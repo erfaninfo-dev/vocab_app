@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/vocab_entry.dart';
-
-// ── API MODE ──────────────────────────────────────────────────────────────────
 import '../../domain/api_providers.dart';
-
-// ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────────
-// import '../../domain/vocabulary_providers.dart';
-// ─────────────────────────────────────────────────────────────────────────────
-
 import '../words/widgets/word_card.dart';
 import '../words/word_preferences_controller.dart';
 
@@ -19,13 +12,7 @@ class FavoritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(wordPreferencesProvider).favoriteIds;
-
-    // ── API MODE ──────────────────────────────────────────────────────────────
     final booksValue = ref.watch(apiBooksProvider);
-
-    // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-    // final booksValue = ref.watch(bookCatalogProvider);
-
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -45,16 +32,9 @@ class FavoritesScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(child: Text('Error: $error')),
           data: (books) {
-            // ── API MODE ────────────────────────────────────────────────────
-            // Load all words for every book so we can match locally stored IDs.
             final allWordsValues = books
                 .map((book) => ref.watch(apiAllWordsForBookProvider(book.id)))
                 .toList();
-
-            // ── LOCAL EXCEL MODE (commented out) ──────────────────────────
-            // final allWordsValues = books
-            //     .map((book) => ref.watch(vocabularyListProvider(book.assetPath)))
-            //     .toList();
 
             final isLoading = allWordsValues.any((v) => v is AsyncLoading);
             if (isLoading) {

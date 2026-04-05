@@ -2,35 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// ── API MODE ──────────────────────────────────────────────────────────────────
 import '../../domain/api_providers.dart';
 
-// ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────────
-// Sections were previously hardcoded as [1, 2, 3].
-// ─────────────────────────────────────────────────────────────────────────────
-
 class SectionsScreen extends ConsumerWidget {
-  // ── API MODE ──────────────────────────────────────────────────────────────
   const SectionsScreen({super.key, required this.bookId, required this.unit});
+
   final int bookId;
-
-  // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-  // const SectionsScreen({super.key, required this.assetPath, required this.unit});
-  // final String assetPath;
-
   final int unit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-
-    // ── API MODE ──────────────────────────────────────────────────────────────
     final sectionsValue = ref.watch(
       apiSectionsProvider((bookId: bookId, unit: unit)),
     );
-
-    // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-    // const sections = [1, 2, 3]; // hardcoded
 
     return Scaffold(
       appBar: AppBar(
@@ -50,7 +35,6 @@ class SectionsScreen extends ConsumerWidget {
             colors: [scheme.primary.withValues(alpha: 0.08), scheme.surface],
           ),
         ),
-        // ── API MODE ──────────────────────────────────────────────────────────
         child: sectionsValue.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
@@ -73,13 +57,6 @@ class SectionsScreen extends ConsumerWidget {
             );
           },
         ),
-
-        // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────
-        // child: _SectionList(
-        //   sections: sections,
-        //   assetPath: assetPath,
-        //   unit: unit,
-        // ),
       ),
     );
   }
@@ -109,14 +86,9 @@ class _SectionList extends StatelessWidget {
         return _SectionTile(
           unit: unit,
           section: section,
-          // ── API MODE ────────────────────────────────────────────────────
           onTap: () => context.push(
             '/books/$bookId/units/$unit/sections/$section/words',
           ),
-          // ── LOCAL EXCEL MODE (commented out) ────────────────────────────
-          // onTap: () => context.push(
-          //   '/books/${Uri.encodeComponent(assetPath)}/units/$unit/sections/$section',
-          // ),
         );
       },
     );

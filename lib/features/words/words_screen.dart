@@ -2,34 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// ── API MODE ──────────────────────────────────────────────────────────────────
 import '../../domain/api_providers.dart';
-
-// ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────────
-// import '../../domain/vocabulary_providers.dart';
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'widgets/word_card.dart';
 
 class WordsScreen extends ConsumerStatefulWidget {
-  // ── API MODE ──────────────────────────────────────────────────────────────
   const WordsScreen({
     super.key,
     required this.bookId,
     required this.unit,
-    required this.section, // nullable: null means the unit has no sections
+    required this.section,
   });
+
   final int bookId;
-
-  // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-  // const WordsScreen({
-  //   super.key,
-  //   required this.assetPath,
-  //   required this.unit,
-  //   required this.section,
-  // });
-  // final String assetPath;
-
   final int unit;
   final int? section;
 
@@ -42,7 +26,6 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ── API MODE ──────────────────────────────────────────────────────────────
     final data = ref.watch(
       apiWordsProvider((
         bookId: widget.bookId,
@@ -51,34 +34,29 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       )),
     );
 
-    // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-    // final data = ref.watch(
-    //   wordsByUnitSectionProvider((
-    //     assetPath: widget.assetPath,
-    //     unit: widget.unit,
-    //     section: widget.section,
-    //   )),
-    // );
-
     final scheme = Theme.of(context).colorScheme;
 
     final appBarTitle = widget.section != null
         ? 'Unit ${widget.unit} • Section ${widget.section}'
         : 'Unit ${widget.unit}';
 
-    // ── API MODE flashcard route ──────────────────────────────────────────────
     final flashcardsRoute = widget.section != null
         ? '/books/${widget.bookId}/units/${widget.unit}/sections/${widget.section}/flashcards'
         : '/books/${widget.bookId}/units/${widget.unit}/flashcards';
 
-    // ── LOCAL EXCEL MODE flashcard route (commented out) ─────────────────────
-    // final flashcardsRoute =
-    //     '/books/${Uri.encodeComponent(widget.assetPath)}/units/${widget.unit}/sections/${widget.section}/flashcards';
+    final quizRoute = widget.section != null
+        ? '/books/${widget.bookId}/units/${widget.unit}/sections/${widget.section}/quiz'
+        : '/books/${widget.bookId}/units/${widget.unit}/quiz';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
         actions: [
+          IconButton(
+            tooltip: 'Quiz',
+            onPressed: () => context.push(quizRoute),
+            icon: const Icon(Icons.quiz_rounded),
+          ),
           IconButton(
             tooltip: 'Flashcards',
             onPressed: () => context.push(flashcardsRoute),
@@ -211,7 +189,7 @@ class _InfoHeader extends StatelessWidget {
                 Text(
                   '$filtered of $total words visible',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                    color: const Color(0xFF1B5E20),
                   ),
                 ),
               ],

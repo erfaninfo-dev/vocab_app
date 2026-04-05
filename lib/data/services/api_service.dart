@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/book_model.dart';
+import '../models/unit_model.dart';
 import '../models/vocab_entry.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
@@ -23,13 +24,32 @@ class ApiService {
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  // در کلاس ApiService اضافه شود:
+  Future<List<Book>> searchBooks(String query) async {
+    // اطمینان حاصل کنید که URL بک‌اند شما از پارامتر search پشتیبانی می‌کند
+    // URL فعلی شما: http://erfaninfo.com/wordsapi
+    // URL مورد انتظار برای جستجو: http://erfaninfo.com/wordsapi/books.php?search=your_query
+    final uri = Uri.parse(
+      '$baseUrl/books.php?search=$query',
+    ); // پارامتر search به URL اضافه شد
+    final response = await http.get(uri);
+    _assertOk(
+      response,
+      'books search',
+    ); // نام منبع برای پیام خطا به 'books search' تغییر داده شد
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   // ── GET /units.php?book_id={id} ───────────────────────────────────────────
-  Future<List<int>> fetchUnits(int bookId) async {
+  Future<List<UnitInfo>> fetchUnits(int bookId) async {
     final uri = Uri.parse('$baseUrl/units.php?book_id=$bookId');
     final response = await http.get(uri);
     _assertOk(response, 'units');
     final data = jsonDecode(response.body) as List<dynamic>;
-    return data.map((e) => (e['unit'] as num).toInt()).toList();
+    return data
+        .map((e) => UnitInfo.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ── GET /sections.php?book_id={id}&unit={unit} ────────────────────────────

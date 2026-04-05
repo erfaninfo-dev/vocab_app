@@ -2,41 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// ── API MODE ──────────────────────────────────────────────────────────────────
+import '../../data/models/unit_model.dart';
 import '../../domain/api_providers.dart';
 
-// ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────────
-// import '../../data/models/book_asset.dart';
-// import '../../domain/vocabulary_providers.dart';
-// ─────────────────────────────────────────────────────────────────────────────
-
 class UnitsScreen extends ConsumerStatefulWidget {
-  // ── API MODE ──────────────────────────────────────────────────────────────
   const UnitsScreen({super.key, required this.bookId});
   final int bookId;
-
-  // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-  // const UnitsScreen({super.key, required this.assetPath});
-  // final String assetPath;
 
   @override
   ConsumerState<UnitsScreen> createState() => _UnitsScreenState();
 }
 
 class _UnitsScreenState extends ConsumerState<UnitsScreen> {
-  // Which unit is currently being checked for sections (shows a loading
-  // indicator on that tile while the async check runs).
   int? _loadingUnit;
 
-  // Called when a unit tile is tapped.
-  // Checks the API for sections; navigates to the sections page if any exist,
-  // or directly to the words page if the unit has no sections.
   Future<void> _onUnitTap(int unit) async {
-    if (_loadingUnit != null) return; // prevent double-tap during loading
+    if (_loadingUnit != null) return;
 
     setState(() => _loadingUnit = unit);
     try {
-      // ── API MODE ──────────────────────────────────────────────────────────
       final sections = await ref.read(
         apiSectionsProvider((bookId: widget.bookId, unit: unit)).future,
       );
@@ -44,18 +28,10 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
       if (!mounted) return;
 
       if (sections.isEmpty) {
-        // Unit has no sections → go straight to words
         context.push('/books/${widget.bookId}/units/$unit/words');
       } else {
-        // Unit has sections → open the sections page
         context.push('/books/${widget.bookId}/units/$unit/sections');
       }
-
-      // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────
-      // Navigate directly to the sections screen (sections were hardcoded):
-      // context.push(
-      //   '/books/${Uri.encodeComponent(assetPath)}/units/$unit',
-      // );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,15 +44,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ── API MODE ──────────────────────────────────────────────────────────────
     final unitsValue = ref.watch(apiUnitsProvider(widget.bookId));
-    const bookTitle = 'Units'; // title without an assetPath-derived name
-
-    // ── LOCAL EXCEL MODE (commented out) ─────────────────────────────────────
-    // final book = BookAsset(assetPath: assetPath);
-    // final unitsValue = ref.watch(unitListProvider(assetPath));
-    // final bookTitle = book.title;
-
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -87,9 +55,9 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/home'),
         ),
-        title: Text(
-          bookTitle,
-          style: const TextStyle(fontWeight: FontWeight.w700),
+        title: const Text(
+          'Units',
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
         actions: [
@@ -167,12 +135,12 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                       ),
                       itemCount: units.length,
                       itemBuilder: (context, index) {
-                        final unit = units[index];
+                        final unitInfo = units[index];
                         return _UnitTile(
-                          unit: unit,
+                          unitInfo: unitInfo,
                           delay: index * 20,
-                          isLoading: _loadingUnit == unit,
-                          onTap: () => _onUnitTap(unit),
+                          isLoading: _loadingUnit == unitInfo.unit,
+                          onTap: () => _onUnitTap(unitInfo.unit),
                         );
                       },
                     ),
@@ -191,13 +159,13 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
 
 class _UnitTile extends StatefulWidget {
   const _UnitTile({
-    required this.unit,
+    required this.unitInfo,
     required this.onTap,
     required this.delay,
     required this.isLoading,
   });
 
-  final int unit;
+  final UnitInfo unitInfo;
   final VoidCallback onTap;
   final int delay;
   final bool isLoading;
@@ -220,6 +188,8 @@ class _UnitTileState extends State<_UnitTile> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final unitInfo = widget.unitInfo;
+
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 260),
       opacity: _show ? 1 : 0,
@@ -235,35 +205,59 @@ class _UnitTileState extends State<_UnitTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: widget.isLoading
-                        ? Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: scheme.primary,
+                  // ── Top row: Unit label (left) + Icon (right) ──────────────
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Unit ${unitInfo.unit}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: widget.isLoading
+                            ? Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: scheme.primary,
+                                ),
+                              )
+                            : Icon(Icons.layers_rounded, color: scheme.primary),
+                      ),
+                    ],
+                  ),
+
+                  // ── Center: unit details ───────────────────────────────────
+                  Expanded(
+                    child: Center(
+                      child: (unitInfo.unitDetails != null &&
+                              unitInfo.unitDetails!.isNotEmpty)
+                          ? Text(
+                              unitInfo.unitDetails!,
+                              textAlign: TextAlign.center,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                              ),
+                            )
+                          : Text(
+                              widget.isLoading ? 'Checking…' : 'Tap to open',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
-                          )
-                        : Icon(Icons.layers_rounded, color: scheme.primary),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Unit ${widget.unit}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.isLoading ? 'Checking…' : 'Tap to open',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
