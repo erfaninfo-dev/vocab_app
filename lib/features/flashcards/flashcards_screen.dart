@@ -84,13 +84,14 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                     onTap: () => setState(() => _showBack = !_showBack),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 260),
-                      child:                       _showBack
+                      child: _showBack
                           ? _CardFace(
                               key: const ValueKey('back'),
                               title: current.meaningEn.isEmpty
                                   ? '-'
                                   : current.meaningEn,
                               subtitle: current.meaningFor(lang),
+                              example: current.exampleEn,
                               subtitleRtl: true,
                               isBack: true,
                             )
@@ -98,6 +99,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                               key: const ValueKey('front'),
                               title: current.word,
                               subtitle: current.type,
+                              example: current.exampleEn,
                             ),
                     ),
                   ),
@@ -202,10 +204,7 @@ class _ProgressRow extends StatelessWidget {
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: current / total,
-            minHeight: 6,
-          ),
+          child: LinearProgressIndicator(value: current / total, minHeight: 6),
         ),
       ],
     );
@@ -219,12 +218,14 @@ class _CardFace extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.example,
     this.subtitleRtl = false,
     this.isBack = false,
   });
 
   final String title;
   final String subtitle;
+  final String? example;
   final bool subtitleRtl;
   final bool isBack;
 
@@ -259,9 +260,9 @@ class _CardFace extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             if (subtitle.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -279,6 +280,17 @@ class _CardFace extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
+            ],
+            if (example != null && example!.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                example!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
             ],
             const SizedBox(height: 14),
             Row(
@@ -328,9 +340,9 @@ class _SrsRatingRow extends ConsumerWidget {
       children: [
         Text(
           'How well did you know this?',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         Row(
@@ -444,8 +456,7 @@ class _FlashcardSpeakRow extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     final isSpeakingWord = tts.isSpeakingText(word);
-    final isSpeakingExample =
-        example.isNotEmpty && tts.isSpeakingText(example);
+    final isSpeakingExample = example.isNotEmpty && tts.isSpeakingText(example);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -461,9 +472,7 @@ class _FlashcardSpeakRow extends ConsumerWidget {
                 : scheme.onPrimaryContainer,
           ),
           icon: Icon(
-            isSpeakingWord
-                ? Icons.volume_up_rounded
-                : Icons.volume_up_outlined,
+            isSpeakingWord ? Icons.volume_up_rounded : Icons.volume_up_outlined,
             size: 18,
           ),
           label: Text(isSpeakingWord ? 'Speaking...' : 'Word'),
