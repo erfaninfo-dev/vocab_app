@@ -136,7 +136,7 @@ class _HomeHeader extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
-        color: scheme.surface.withValues(alpha: 0.76),
+        color: scheme.surface.withValues(alpha: 0.58),
         border: Border.all(
           color: scheme.outlineVariant.withValues(alpha: 0.35),
         ),
@@ -176,6 +176,7 @@ class _SearchField extends ConsumerWidget {
 
     return TextField(
       controller: controller,
+      autofocus: false,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.search),
         hintText: 'Search books…',

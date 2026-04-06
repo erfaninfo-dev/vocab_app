@@ -43,6 +43,13 @@ class VocabEntry {
         exampleKur.toLowerCase().contains(query);
   }
 
+  /// Words screen: search matches the English headword only (not meanings/examples).
+  bool matchesWordQuery(String rawQuery) {
+    final query = rawQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    return word.toLowerCase().contains(query);
+  }
+
   // ── API mode ─────────────────────────────────────────────────────────────
   // Parses a word row returned by the server API.
   // Expected JSON keys match the database column names:

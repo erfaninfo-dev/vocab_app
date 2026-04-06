@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/api_providers.dart';
+import '../../data/models/vocab_entry.dart';
 import 'widgets/word_card.dart';
 
 class WordsScreen extends ConsumerStatefulWidget {
@@ -26,13 +27,14 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = ref.watch(
-      apiWordsProvider((
-        bookId: widget.bookId,
-        unit: widget.unit,
-        section: widget.section,
-      )),
+    final unitKey = (
+      bookId: widget.bookId,
+      unit: widget.unit,
+      section: widget.section,
     );
+    final unitAsync = ref.watch(apiWordsProvider(unitKey));
+    final allBookAsync = ref.watch(apiAllWordsForBookProvider(widget.bookId));
+    final searching = _query.trim().isNotEmpty;
 
     final scheme = Theme.of(context).colorScheme;
 
@@ -72,64 +74,92 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
           ),
         ),
-        child: data.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) =>
-              Center(child: Text('Failed to load words: $error')),
-          data: (words) {
-            final filtered = words
-                .where((word) => word.matchesQuery(_query))
-                .toList();
+        child: searching
+            ? allBookAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) =>
+                    Center(child: Text('Failed to load words: $error')),
+                data: (allWords) {
+                  final filtered = allWords
+                      .where((e) => e.matchesWordQuery(_query))
+                      .toList();
+                  return _wordsScrollView(
+                    displayList: filtered,
+                    headerTotal: allWords.length,
+                    isGlobalSearch: true,
+                  );
+                },
+              )
+            : unitAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) =>
+                    Center(child: Text('Failed to load words: $error')),
+                data: (unitWords) {
+                  return _wordsScrollView(
+                    displayList: unitWords,
+                    headerTotal: unitWords.length,
+                    isGlobalSearch: false,
+                  );
+                },
+              ),
+      ),
+    );
+  }
 
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: _InfoHeader(
-                      unit: widget.unit,
-                      section: widget.section,
-                      total: words.length,
-                      filtered: filtered.length,
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: SearchBar(
-                      hintText: 'Search word, meaning, example...',
-                      leading: const Icon(Icons.search_rounded),
-                      trailing: [
-                        if (_query.isNotEmpty)
-                          IconButton(
-                            onPressed: () => setState(() => _query = ''),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                      ],
-                      onChanged: (value) => setState(() => _query = value),
-                    ),
-                  ),
-                ),
-                if (filtered.isEmpty)
-                  const SliverFillRemaining(
-                    child: Center(child: Text('No matching words found.')),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    sliver: SliverList.separated(
-                      itemBuilder: (context, index) =>
-                          WordCard(entry: filtered[index]),
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemCount: filtered.length,
-                    ),
+  Widget _wordsScrollView({
+    required List<VocabEntry> displayList,
+    required int headerTotal,
+    required bool isGlobalSearch,
+  }) {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: _InfoHeader(
+              unit: widget.unit,
+              section: widget.section,
+              total: headerTotal,
+              filtered: displayList.length,
+              isGlobalSearch: isGlobalSearch,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SearchBar(
+              autoFocus: false,
+              hintText: 'Search word (whole book)…',
+              leading: const Icon(Icons.search_rounded),
+              trailing: [
+                if (_query.isNotEmpty)
+                  IconButton(
+                    onPressed: () => setState(() => _query = ''),
+                    icon: const Icon(Icons.close_rounded),
                   ),
               ],
-            );
-          },
+              onChanged: (value) => setState(() => _query = value),
+            ),
+          ),
         ),
-      ),
+        if (displayList.isEmpty)
+          const SliverFillRemaining(
+            child: Center(child: Text('No matching words found.')),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            sliver: SliverList.separated(
+              itemBuilder: (context, index) =>
+                  WordCard(entry: displayList[index]),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemCount: displayList.length,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -140,12 +170,14 @@ class _InfoHeader extends StatelessWidget {
     required this.section,
     required this.total,
     required this.filtered,
+    required this.isGlobalSearch,
   });
 
   final int unit;
   final int? section;
   final int total;
   final int filtered;
+  final bool isGlobalSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +219,9 @@ class _InfoHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '$filtered of $total words visible',
+                  isGlobalSearch
+                      ? '$filtered of $total matches (whole book)'
+                      : '$filtered of $total words visible',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: const Color(0xFF1B5E20),
                   ),

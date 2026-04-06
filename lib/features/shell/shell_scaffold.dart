@@ -78,6 +78,7 @@ class ShellScaffold extends ConsumerWidget {
         onDestinationSelected: (index) {
           if (index == 0) {
             // Home همیشه به root می‌رود و stack را پاک می‌کند
+            FocusManager.instance.primaryFocus?.unfocus();
             context.go(_tabs[0].path);
           } else if (!location.startsWith(_tabs[index].path)) {
             // بقیه تب‌ها push می‌شوند تا stack حفظ شود و back کار کند
