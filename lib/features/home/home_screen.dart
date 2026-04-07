@@ -50,6 +50,9 @@ class HomeScreen extends ConsumerWidget {
               // ── Review Today banner ───────────────────────────────────────
               const SliverToBoxAdapter(child: _ReviewBanner()),
 
+              // ── Grammar practice ──────────────────────────────────────────
+              const SliverToBoxAdapter(child: _GrammarPracticeBanner()),
+
               booksValue.when(
                 loading: () => const SliverToBoxAdapter(
                   child: Padding(
@@ -330,6 +333,77 @@ List<Color> _cardAccents(int index) {
     Colors.red,
   ];
   return [colors[index % colors.length], colors[(index + 1) % colors.length]];
+}
+
+// ───────────────────── Grammar practice banner ─────────────────────
+
+class _GrammarPracticeBanner extends StatelessWidget {
+  const _GrammarPracticeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/grammar'),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                colors: [
+                  scheme.primary.withValues(alpha: 0.85),
+                  scheme.secondary.withValues(alpha: 0.75),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.rule_rounded,
+                  color: scheme.onPrimary,
+                  size: 32,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Grammar practice',
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        'Multiple-choice questions by grammar topic',
+                        style: TextStyle(
+                          color: scheme.onPrimary.withValues(alpha: 0.9),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: scheme.onPrimary,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ───────────────────── Review Banner ─────────────────────

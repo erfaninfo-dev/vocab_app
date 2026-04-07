@@ -1,13 +1,22 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
+import '../data/models/grammar_question.dart';
+import '../data/models/grammar_topic_summary.dart';
 import '../data/models/unit_model.dart';
 import '../data/models/vocab_entry.dart';
+import '../core/auth/auth_provider.dart';
 import '../data/services/api_service.dart';
 
-// ─── Shared service instance ─────────────────────────────────────────────────
+// ─── Shared service instance (includes auth bearer when logged in) ───────────
 
-final apiServiceProvider = Provider<ApiService>((ref) => const ApiService());
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final auth = ref.watch(authProvider);
+  final token = auth.valueOrNull?.token;
+  return ApiService(authToken: token);
+});
 
 // ─── Books ────────────────────────────────────────────────────────────────────
 // Corresponds to: GET /books.php
@@ -58,6 +67,46 @@ final apiAllWordsForBookProvider = FutureProvider.family<List<VocabEntry>, int>(
     return ref.read(apiServiceProvider).fetchAllWordsForBook(bookId);
   },
 );
+
+// ─── Grammar (DB column `content` = topic name) ─────────────────────────────
+
+final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((ref) {
+  return ref.read(apiServiceProvider).fetchGrammarTopics();
+});
+
+final apiGrammarQuestionsProvider =
+    FutureProvider.family<List<GrammarQuestion>, String>((ref, topic) {
+      return ref.read(apiServiceProvider).fetchGrammarQuestions(topic);
+    });
+
+/// Stable cache key for one or more grammar topic names (sorted, joined).
+String grammarTopicsCacheKey(List<String> topics) {
+  final copy = topics.map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+    ..sort();
+  return copy.join('\x1E');
+}
+
+/// Fetches questions for all [topics], merges, shuffles, returns up to [kGrammarQuizSessionSize].
+const int kGrammarQuizSessionSize = 20;
+
+final apiGrammarQuizSessionProvider =
+    FutureProvider.family<List<GrammarQuestion>, String>((ref, topicsKey) async {
+      if (topicsKey.isEmpty) return [];
+      final topics = topicsKey.split('\x1E').where((s) => s.isNotEmpty).toList();
+      if (topics.isEmpty) return [];
+      final svc = ref.read(apiServiceProvider);
+      final lists = await Future.wait(
+        topics.map((t) => svc.fetchGrammarQuestions(t)),
+      );
+      final merged = <GrammarQuestion>[];
+      for (final list in lists) {
+        merged.addAll(list);
+      }
+      if (merged.isEmpty) return [];
+      merged.shuffle(Random());
+      if (merged.length <= kGrammarQuizSessionSize) return merged;
+      return merged.sublist(0, kGrammarQuizSessionSize);
+    });
 
 // ─── New Providers for Search ───────────────────────────────────────────────
 

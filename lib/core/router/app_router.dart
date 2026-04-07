@@ -1,18 +1,34 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/favorites/favorites_screen.dart';
+import '../../features/grammar/grammar_quiz_screen.dart';
+import '../../features/grammar/grammar_topics_screen.dart';
 import '../../features/flashcards/flashcards_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
 import '../../features/sections/sections_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/settings/profile_screen.dart';
 import '../../features/shell/shell_scaffold.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/units/units_screen.dart';
 import '../../features/words/words_screen.dart';
+import '../../domain/api_providers.dart';
+
+List<String> _grammarPracticeTopics(GoRouterState state) {
+  final multi = state.uri.queryParametersAll['topic'];
+  if (multi != null && multi.isNotEmpty) return multi;
+  final one = state.uri.queryParameters['topic'];
+  if (one != null && one.trim().isNotEmpty) return [one.trim()];
+  return const [];
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -20,6 +36,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // ── Splash (no shell) ──────────────────────────────────────────────────
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+
+      // First-launch guide (no shell)
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
+      ),
+
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+
+      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
 
       // ── Shell: all screens share the bottom NavigationBar ─────────────────
       ShellRoute(
@@ -29,6 +56,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(path: '/home',     builder: (_, __) => const HomeScreen()),
+
+          GoRoute(
+            path: '/grammar',
+            builder: (_, __) => const GrammarTopicsScreen(),
+          ),
+          GoRoute(
+            path: '/grammar/practice',
+            builder: (context, state) {
+              final topics = _grammarPracticeTopics(state);
+              return GrammarQuizScreen(
+                key: ValueKey(grammarTopicsCacheKey(topics)),
+                topics: topics,
+              );
+            },
+          ),
           GoRoute(path: '/review',   builder: (_, __) => const ReviewScreen()),
           GoRoute(path: '/stats',    builder: (_, __) => const StatsScreen()),
           GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
