@@ -28,6 +28,12 @@ const _tabs = [
     label: 'Home',
   ),
   _Tab(
+    path: '/grammar',
+    icon: Icons.rule_outlined,
+    activeIcon: Icons.rule_rounded,
+    label: 'Grammar',
+  ),
+  _Tab(
     path: '/review',
     icon: Icons.loop_outlined,
     activeIcon: Icons.loop_rounded,
@@ -77,24 +83,24 @@ class ShellScaffold extends ConsumerWidget {
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {
           if (index == 0) {
-            // Home همیشه به root می‌رود و stack را پاک می‌کند
             FocusManager.instance.primaryFocus?.unfocus();
             context.go(_tabs[0].path);
           } else if (!location.startsWith(_tabs[index].path)) {
-            // بقیه تب‌ها push می‌شوند تا stack حفظ شود و back کار کند
             context.push(_tabs[index].path);
           }
         },
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
-          // Home
           NavigationDestination(
             icon: Icon(_tabs[0].icon),
             selectedIcon: Icon(_tabs[0].activeIcon),
             label: _tabs[0].label,
           ),
-
-          // Review — with badge when cards are due
+          NavigationDestination(
+            icon: Icon(_tabs[1].icon),
+            selectedIcon: Icon(_tabs[1].activeIcon),
+            label: _tabs[1].label,
+          ),
           NavigationDestination(
             icon: dueCount > 0
                 ? Badge(
@@ -102,33 +108,29 @@ class ShellScaffold extends ConsumerWidget {
                       dueCount > 99 ? '99+' : '$dueCount',
                       style: const TextStyle(fontSize: 10),
                     ),
-                    child: Icon(_tabs[1].icon),
+                    child: Icon(_tabs[2].icon),
                   )
-                : Icon(_tabs[1].icon),
+                : Icon(_tabs[2].icon),
             selectedIcon: dueCount > 0
                 ? Badge(
                     label: Text(
                       dueCount > 99 ? '99+' : '$dueCount',
                       style: const TextStyle(fontSize: 10),
                     ),
-                    child: Icon(_tabs[1].activeIcon),
+                    child: Icon(_tabs[2].activeIcon),
                   )
-                : Icon(_tabs[1].activeIcon),
-            label: _tabs[1].label,
-          ),
-
-          // Progress
-          NavigationDestination(
-            icon: Icon(_tabs[2].icon),
-            selectedIcon: Icon(_tabs[2].activeIcon),
+                : Icon(_tabs[2].activeIcon),
             label: _tabs[2].label,
           ),
-
-          // Settings
           NavigationDestination(
             icon: Icon(_tabs[3].icon),
             selectedIcon: Icon(_tabs[3].activeIcon),
             label: _tabs[3].label,
+          ),
+          NavigationDestination(
+            icon: Icon(_tabs[4].icon),
+            selectedIcon: Icon(_tabs[4].activeIcon),
+            label: _tabs[4].label,
           ),
         ],
       ),
