@@ -1,0 +1,35 @@
+class GrammarResult {
+  const GrammarResult({
+    required this.id,
+    required this.createdAt,
+    required this.quizName,
+    required this.score,
+    required this.totalQuestions,
+    this.userName,
+    this.public,
+    this.selectedGrammarsRaw,
+  });
+
+  final int id;
+  final String createdAt;
+  final String quizName;
+  final int? score;
+  final int? totalQuestions;
+  final String? userName;
+  final int? public;
+  final String? selectedGrammarsRaw;
+
+  factory GrammarResult.fromJson(Map<String, dynamic> json) {
+    return GrammarResult(
+      id: (json['id'] as num).toInt(),
+      createdAt: (json['created_at'] as String?) ?? '',
+      userName: json['user_name'] as String?,
+      quizName: (json['quiz_name'] as String?) ?? '',
+      score: (json['score'] as num?)?.toInt(),
+      totalQuestions: (json['total_questions'] as num?)?.toInt(),
+      public: (json['public'] as num?)?.toInt(),
+      selectedGrammarsRaw: json['selected_grammars'] as String?,
+    );
+  }
+}
+

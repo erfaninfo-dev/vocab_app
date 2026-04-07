@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/language/language_provider.dart';
 import '../../core/srs/srs_model.dart';
@@ -76,7 +75,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ),
       body: booksValue.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => const Center(
+          child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
+        ),
         data: (books) {
           // Watch all words providers for all books
           final allWordsValues = books

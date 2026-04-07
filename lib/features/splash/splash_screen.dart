@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/onboarding/onboarding_prefs.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -25,9 +27,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _goNext() async {
     await Future<void>.delayed(const Duration(milliseconds: 1300));
-    if (mounted) {
-      context.go('/home');
-    }
+    if (!mounted) return;
+    final onboardingDone = await isOnboardingCompleted();
+    if (!mounted) return;
+    context.go(onboardingDone ? '/home' : '/onboarding');
   }
 
   @override

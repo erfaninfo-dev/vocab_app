@@ -219,7 +219,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       ),
       body: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => const Center(
+          child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
+        ),
         data: (words) {
           if (words.length < 4) {
             return const Center(

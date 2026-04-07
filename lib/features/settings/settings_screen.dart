@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_provider.dart';
+import '../../core/profile/profile_avatar.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import 'theme_mode_controller.dart';
@@ -19,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final lang    = ref.watch(langProvider);
     final langN   = ref.read(langProvider.notifier);
     final scheme  = Theme.of(context).colorScheme;
+    final authAsync = ref.watch(authProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -39,6 +42,123 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           children: [
+            // ── Account ───────────────────────────────────────────────────────
+            _SectionLabel(label: 'Account'),
+            authAsync.when(
+              data: (session) {
+                if (session == null) {
+                  return Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.login_rounded,
+                            color: scheme.primary,
+                          ),
+                          title: const Text('Sign in'),
+                          subtitle: const Text(
+                            'Optional — use email and password',
+                          ),
+                          onTap: () => context.push('/login'),
+                        ),
+                        const Divider(height: 0),
+                        ListTile(
+                          leading: Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: scheme.secondary,
+                          ),
+                          title: const Text('Create account'),
+                          onTap: () => context.push('/register'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: ProfileAvatar(
+                          avatarId: session.user.avatar,
+                          size: 48,
+                        ),
+                        title: const Text('Profile'),
+                        subtitle: Text(
+                          session.user.displayName != null &&
+                                  session.user.displayName!.trim().isNotEmpty
+                              ? '${session.user.displayName!}\n${session.user.email}'
+                              : session.user.email,
+                        ),
+                        isThreeLine:
+                            session.user.displayName != null &&
+                            session.user.displayName!.trim().isNotEmpty,
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        onTap: () => context.push('/profile'),
+                      ),
+                      const Divider(height: 0),
+                      ListTile(
+                        leading: const Icon(Icons.logout_rounded),
+                        title: const Text('Sign out'),
+                        onTap: () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) {
+                              return AlertDialog(
+                                title: const Text('Sign out?'),
+                                content: const Text(
+                                  'Are you sure you want to sign out?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: const Text('Sign out'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          if (ok != true) {
+                            return;
+                          }
+                          await ref.read(authProvider.notifier).logout();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Signed out')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => Card(
+                child: ListTile(
+                  leading: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  title: const Text('Loading account…'),
+                ),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 16),
+
             // ── Translation Language ──────────────────────────────────────────
             _SectionLabel(label: 'Translation Language'),
             Card(
