@@ -167,7 +167,10 @@ final apiGrammarQuizSessionProvider =
           .toList();
       if (topics.isEmpty) return [];
       final floor = grammarQuizMinQuestionsForTopics(topics.length);
-      final want = max(floor, params.questionCount).clamp(1, kGrammarQuizSessionSize);
+      final want = max(
+        floor,
+        params.questionCount,
+      ).clamp(1, kGrammarQuizSessionSize);
       final svc = ref.read(apiServiceProvider);
       final lists = await Future.wait(
         topics.map((t) => svc.fetchGrammarQuestions(t)),
