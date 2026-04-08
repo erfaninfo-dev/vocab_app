@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/favorites/favorites_screen.dart';
 import '../../features/grammar/grammar_quiz_screen.dart';
+import '../../features/grammar/grammar_result_review_screen.dart';
 import '../../features/grammar/grammar_results_screen.dart';
 import '../../features/grammar/grammar_topics_screen.dart';
 import '../../features/flashcards/flashcards_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/quiz/book_vocab_quiz_setup_screen.dart';
 import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
 import '../../features/sections/sections_screen.dart';
@@ -19,6 +21,7 @@ import '../../features/auth/register_screen.dart';
 import '../../features/auth/auth_hub_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/units/units_screen.dart';
 import '../../features/words/words_screen.dart';
@@ -30,6 +33,17 @@ List<String> _grammarPracticeTopics(GoRouterState state) {
   final one = state.uri.queryParameters['topic'];
   if (one != null && one.trim().isNotEmpty) return [one.trim()];
   return const [];
+}
+
+int _grammarPracticeQuestionCount(GoRouterState state) {
+  final topics = _grammarPracticeTopics(state);
+  final raw = state.uri.queryParameters['count'] ?? state.uri.queryParameters['n'];
+  final parsed = int.tryParse(raw ?? '');
+  final n = parsed ?? kGrammarQuizDefaultQuestionCount;
+  final floor = topics.isEmpty
+      ? 1
+      : grammarQuizMinQuestionsForTopics(topics.length);
+  return n.clamp(floor, kGrammarQuizSessionSize);
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -69,17 +83,31 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const GrammarResultsScreen(),
           ),
           GoRoute(
+            path: '/grammar/result/:resultId',
+            builder: (context, state) {
+              final id =
+                  int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
+              return GrammarResultReviewScreen(resultId: id);
+            },
+          ),
+          GoRoute(
             path: '/grammar/practice',
             builder: (context, state) {
               final topics = _grammarPracticeTopics(state);
+              final count = _grammarPracticeQuestionCount(state);
               return GrammarQuizScreen(
-                key: ValueKey(grammarTopicsCacheKey(topics)),
+                key: ValueKey('${grammarTopicsCacheKey(topics)}_$count'),
                 topics: topics,
+                questionCount: count,
               );
             },
           ),
           GoRoute(path: '/review',   builder: (_, __) => const ReviewScreen()),
           GoRoute(path: '/stats',    builder: (_, __) => const StatsScreen()),
+          GoRoute(
+            path: '/stats/insights',
+            builder: (_, __) => const LearningInsightsScreen(),
+          ),
           GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
 
           // Books → Units
@@ -88,6 +116,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final bookId = int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
               return UnitsScreen(bookId: bookId);
+            },
+          ),
+
+          /// Multi-unit / whole-book quiz (query: units, count, scope)
+          GoRoute(
+            path: '/books/:bookId/quiz',
+            builder: (context, state) {
+              final bookId = int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              return QuizScreen(bookId: bookId);
+            },
+          ),
+
+          GoRoute(
+            path: '/books/:bookId/vocab-quiz',
+            builder: (context, state) {
+              final bookId = int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              return BookVocabQuizSetupScreen(bookId: bookId);
             },
           ),
 
@@ -150,7 +195,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               final bookId  = int.tryParse(state.pathParameters['bookId']  ?? '') ?? 0;
               final unit    = int.tryParse(state.pathParameters['unit']    ?? '') ?? 1;
               final section = int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
-              return QuizScreen(bookId: bookId, unit: unit, section: section);
+              return QuizScreen(
+                bookId: bookId,
+                unit: unit,
+                section: section,
+              );
             },
           ),
 

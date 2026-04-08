@@ -11,6 +11,7 @@ class VocabEntry {
     required this.exampleKur,
     required this.unit,
     required this.section,
+    this.important = 0,
   });
 
   final String bookId;
@@ -25,6 +26,11 @@ class VocabEntry {
   final int unit;
   // Nullable: words that belong to a unit with no sections have section == null.
   final int? section;
+
+  /// Server: 1 = important word, 0 = normal.
+  final int important;
+
+  bool get isImportant => important == 1;
 
   String get example => exampleEn;
 
@@ -71,6 +77,7 @@ class VocabEntry {
       exampleKur: (json['example_kur'] ?? '').toString(),
       unit: (json['unit'] as num?)?.toInt() ?? 0,
       section: (json['section'] as num?)?.toInt(),
+      important: (json['important'] as num?)?.toInt() ?? 0,
     );
   }
 }

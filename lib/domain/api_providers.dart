@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/book_model.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
+import '../data/models/grammar_result.dart';
+import '../data/models/grammar_result_detail.dart';
 import '../data/models/unit_model.dart';
 import '../data/models/vocab_entry.dart';
 import '../core/auth/auth_provider.dart';
@@ -28,7 +30,10 @@ final apiBooksProvider = FutureProvider<List<Book>>((ref) {
 // ─── Units ────────────────────────────────────────────────────────────────────
 // Corresponds to: GET /units.php?book_id={bookId}
 
-final apiUnitsProvider = FutureProvider.family<List<UnitInfo>, int>((ref, bookId) {
+final apiUnitsProvider = FutureProvider.family<List<UnitInfo>, int>((
+  ref,
+  bookId,
+) {
   return ref.read(apiServiceProvider).fetchUnits(bookId);
 });
 
@@ -70,7 +75,9 @@ final apiAllWordsForBookProvider = FutureProvider.family<List<VocabEntry>, int>(
 
 // ─── Grammar (DB column `content` = topic name) ─────────────────────────────
 
-final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((ref) {
+final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
+  ref,
+) {
   return ref.read(apiServiceProvider).fetchGrammarTopics();
 });
 
@@ -86,14 +93,81 @@ String grammarTopicsCacheKey(List<String> topics) {
   return copy.join('\x1E');
 }
 
-/// Fetches questions for all [topics], merges, shuffles, returns up to [kGrammarQuizSessionSize].
-const int kGrammarQuizSessionSize = 20;
+/// Upper bound on how many questions we load in one grammar session (shuffle then take).
+const int kGrammarQuizSessionSize = 100;
 
+/// Default count when opening `/grammar/practice` without `count=`.
+const int kGrammarQuizDefaultQuestionCount = 15;
+
+/// Floor for question count: at least this many, or [topicCount] if higher (multi-topic).
+const int kGrammarQuizMinBaseQuestions = 5;
+
+/// At least [kGrammarQuizMinBaseQuestions], or [topicCount] when more topics are selected.
+int grammarQuizMinQuestionsForTopics(int topicCount) {
+  if (topicCount <= 0) return 1;
+  return max(kGrammarQuizMinBaseQuestions, topicCount);
+}
+
+/// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length.
+typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount});
+
+/// Sorting for grammar result lists (`date`|`score` + `asc`|`desc`).
+typedef GrammarResultsSort = ({String field, String order});
+
+final grammarResultsSortProvider = StateProvider<GrammarResultsSort>(
+  (ref) => (field: 'date', order: 'desc'),
+);
+
+/// GET /grammar_results_my.php (requires auth)
+final myGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
+  final s = ref.watch(grammarResultsSortProvider);
+  return ref
+      .read(apiServiceProvider)
+      .fetchMyGrammarResults(sort: s.field, order: s.order);
+});
+
+/// GET /grammar_results_public.php (no auth)
+final publicGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
+  final s = ref.watch(grammarResultsSortProvider);
+  return ref
+      .read(apiServiceProvider)
+      .fetchPublicGrammarResults(sort: s.field, order: s.order);
+});
+
+/// GET /grammar_result_detail.php?id= (auth). For review screen.
+final grammarResultDetailProvider =
+    FutureProvider.family<GrammarResultDetail, int>((ref, id) {
+      return ref.read(apiServiceProvider).fetchGrammarResultDetail(id);
+    });
+
+/// Grammar results for charts (date desc, newest first). Empty when logged out.
+final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((
+  ref,
+) async {
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null) return [];
+  return ref
+      .read(apiServiceProvider)
+      .fetchMyGrammarResults(sort: 'date', order: 'desc');
+});
+
+/// Fetches questions for all topics in [params.topicsKey], merges, shuffles, returns up to
+/// `min(params.questionCount, merged.length, [kGrammarQuizSessionSize])`.
+/// One topic: random subset of that bank. Several topics: random mix from all banks (fair variety).
 final apiGrammarQuizSessionProvider =
-    FutureProvider.family<List<GrammarQuestion>, String>((ref, topicsKey) async {
+    FutureProvider.family<List<GrammarQuestion>, GrammarQuizSessionParams>((
+      ref,
+      params,
+    ) async {
+      final topicsKey = params.topicsKey;
       if (topicsKey.isEmpty) return [];
-      final topics = topicsKey.split('\x1E').where((s) => s.isNotEmpty).toList();
+      final topics = topicsKey
+          .split('\x1E')
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (topics.isEmpty) return [];
+      final floor = grammarQuizMinQuestionsForTopics(topics.length);
+      final want = max(floor, params.questionCount).clamp(1, kGrammarQuizSessionSize);
       final svc = ref.read(apiServiceProvider);
       final lists = await Future.wait(
         topics.map((t) => svc.fetchGrammarQuestions(t)),
@@ -104,8 +178,9 @@ final apiGrammarQuizSessionProvider =
       }
       if (merged.isEmpty) return [];
       merged.shuffle(Random());
-      if (merged.length <= kGrammarQuizSessionSize) return merged;
-      return merged.sublist(0, kGrammarQuizSessionSize);
+      final poolCap = min(merged.length, kGrammarQuizSessionSize);
+      final take = min(want, poolCap);
+      return merged.sublist(0, take);
     });
 
 // ─── New Providers for Search ───────────────────────────────────────────────

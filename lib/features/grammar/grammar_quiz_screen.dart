@@ -63,37 +63,37 @@ bool _isLatinLetterRune(int r) {
 }
 
 class _GrammarReportKindOption {
-  const _GrammarReportKindOption({required this.id, required this.labelFa});
+  const _GrammarReportKindOption({required this.id, required this.label});
 
   final String id;
-  final String labelFa;
+  final String label;
 }
 
 /// Must match [allowed] list in `api/grammar_report_question.php`.
 const _kGrammarReportKinds = [
   _GrammarReportKindOption(
     id: 'wrong_correct_answer',
-    labelFa: 'پاسخ درست اشتباه مشخص شده',
+    label: 'Marked correct answer is wrong',
   ),
   _GrammarReportKindOption(
     id: 'typo_question',
-    labelFa: 'غلط املایی در متن سوال',
+    label: 'Typo in the question text',
   ),
   _GrammarReportKindOption(
     id: 'typo_options',
-    labelFa: 'وجود چند جواب درست',
+    label: 'Multiple options look correct',
   ),
   _GrammarReportKindOption(
     id: 'bad_explanation',
-    labelFa: 'توضیح اشتباه یا ناقص',
+    label: 'Explanation is wrong or incomplete',
   ),
   _GrammarReportKindOption(
     id: 'unclear_question',
-    labelFa: 'صورت سوال نامفهوم است',
+    label: 'Question wording is unclear',
   ),
   _GrammarReportKindOption(
     id: 'other',
-    labelFa: 'سایر',
+    label: 'Other',
   ),
 ];
 
@@ -146,7 +146,7 @@ class _GrammarReportBottomSheetState
       widget.onReported();
       Navigator.of(context).pop();
       widget.parentMessenger.showSnackBar(
-        const SnackBar(content: Text('گزارش ثبت شد')),
+        const SnackBar(content: Text('Report submitted')),
       );
     } catch (e) {
       if (!mounted) {
@@ -154,7 +154,9 @@ class _GrammarReportBottomSheetState
       }
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ثبت گزارش انجام نشد. لطفاً دوباره تلاش کنید')),
+        const SnackBar(
+          content: Text('Could not submit report. Please try again.'),
+        ),
       );
     }
   }
@@ -168,68 +170,65 @@ class _GrammarReportBottomSheetState
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Directionality(
-            textDirection: TextDirection.rtl,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'گزارش مشکل در سوال',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Report a problem',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'What is wrong?',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ..._kGrammarReportKinds.map((k) {
+                return RadioListTile<String>(
+                  dense: true,
+                  value: k.id,
+                  groupValue: _selectedId,
+                  onChanged: _submitting
+                      ? null
+                      : (v) {
+                          if (v == null) {
+                            return;
+                          }
+                          setState(() => _selectedId = v);
+                        },
+                  title: Text(k.label),
+                );
+              }),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _detailCtrl,
+                maxLines: 3,
+                maxLength: 500,
+                textAlign: TextAlign.start,
+                decoration: const InputDecoration(
+                  labelText: 'Details (optional)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'نوع مشکل را انتخاب کنید:',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                ..._kGrammarReportKinds.map((k) {
-                  return RadioListTile<String>(
-                    dense: true,
-                    value: k.id,
-                    groupValue: _selectedId,
-                    onChanged: _submitting
-                        ? null
-                        : (v) {
-                            if (v == null) {
-                              return;
-                            }
-                            setState(() => _selectedId = v);
-                          },
-                    title: Text(k.labelFa),
-                  );
-                }),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _detailCtrl,
-                  maxLines: 3,
-                  maxLength: 500,
-                  textAlign: TextAlign.right,
-                  decoration: const InputDecoration(
-                    labelText: 'توضیح بیشتر (اختیاری)',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('ثبت گزارش'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _submitting ? null : _submit,
+                child: _submitting
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Submit report'),
+              ),
+            ],
           ),
         ),
       ),
@@ -278,10 +277,17 @@ String _grammarAppBarTitle(List<String> topics) {
 }
 
 class GrammarQuizScreen extends ConsumerStatefulWidget {
-  const GrammarQuizScreen({super.key, required this.topics});
+  const GrammarQuizScreen({
+    super.key,
+    required this.topics,
+    required this.questionCount,
+  });
 
   /// One or more grammar topic names (DB column `content`).
   final List<String> topics;
+
+  /// Target session length (actual list may be shorter if the bank is smaller).
+  final int questionCount;
 
   @override
   ConsumerState<GrammarQuizScreen> createState() => _GrammarQuizScreenState();
@@ -312,9 +318,10 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
 
   void _resetForNewQuestions() {
     ref.invalidate(
-      apiGrammarQuizSessionProvider(
-        grammarTopicsCacheKey(widget.topics),
-      ),
+      apiGrammarQuizSessionProvider((
+        topicsKey: grammarTopicsCacheKey(widget.topics),
+        questionCount: widget.questionCount,
+      )),
     );
     setState(() {
       _index = 0;
@@ -355,7 +362,12 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       );
     }
 
-    final async = ref.watch(apiGrammarQuizSessionProvider(topicsKey));
+    final async = ref.watch(
+      apiGrammarQuizSessionProvider((
+        topicsKey: topicsKey,
+        questionCount: widget.questionCount,
+      )),
+    );
     final scheme = Theme.of(context).colorScheme;
 
     final needsExitConfirmation = async.maybeWhen(
@@ -391,7 +403,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                 !_sessionDone &&
                 _index < async.value!.length)
               IconButton(
-                tooltip: 'گزارش سوال',
+                tooltip: 'Report question',
                 icon: Icon(
                   _reportedQuestionIds.contains(async.value![_index].id)
                       ? Icons.flag_rounded
@@ -414,7 +426,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'دریافت سوال‌ها انجام نشد. لطفاً دوباره تلاش کنید',
+                'Could not load questions. Please try again.',
                 textAlign: TextAlign.center,
               ),
             ),
@@ -433,17 +445,15 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
               );
             }
 
-            if (_sessionDone && !_resultSubmitted && !_resultSubmitting) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _submitResultOnce(questions);
-              });
-            }
-
             if (_sessionDone) {
               return _SessionDoneBody(
                 score: _score,
                 total: questions.length,
                 submitting: _resultSubmitting,
+                submitted: _resultSubmitted,
+                onSavePrivate: () =>
+                    _submitResult(questions, isPublic: false),
+                onSavePublic: () => _submitResult(questions, isPublic: true),
                 onAgain: _resetForNewQuestions,
                 onBack: () => context.pop(),
               );
@@ -605,11 +615,11 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                                       segments: const [
                                         ButtonSegment<_ExplanationTab>(
                                           value: _ExplanationTab.fa,
-                                          label: Text('فارسی'),
+                                          label: Text('Persian'),
                                         ),
                                         ButtonSegment<_ExplanationTab>(
                                           value: _ExplanationTab.kur,
-                                          label: Text('کوردی'),
+                                          label: Text('Kurdish'),
                                         ),
                                       ],
                                       selected: {_explanationTab},
@@ -685,7 +695,29 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     });
   }
 
-  Future<void> _submitResultOnce(List<GrammarQuestion> questions) async {
+  List<Map<String, dynamic>> _sessionPayload(List<GrammarQuestion> questions) {
+    return List<Map<String, dynamic>>.generate(questions.length, (i) {
+      final q = questions[i];
+      final sel = _answers[i];
+      return <String, dynamic>{
+        'question_id': q.id,
+        'topic': q.topic,
+        'question_text': q.questionText,
+        'option1': q.option1,
+        'option2': q.option2,
+        'option3': q.option3,
+        'option4': q.option4,
+        'correct_answer': q.correctAnswer,
+        'selected_answer': sel,
+        'is_correct': sel != null && q.isCorrectKey(sel),
+      };
+    });
+  }
+
+  Future<void> _submitResult(
+    List<GrammarQuestion> questions, {
+    required bool isPublic,
+  }) async {
     if (!mounted) return;
     setState(() => _resultSubmitting = true);
     try {
@@ -699,8 +731,12 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
             score: _score,
             totalQuestions: questions.length,
             selectedGrammars: topics,
+            isPublic: isPublic,
+            sessionItems: _sessionPayload(questions),
           );
       if (!mounted) return;
+      ref.invalidate(myGrammarResultsProvider);
+      ref.invalidate(publicGrammarResultsProvider);
       setState(() {
         _resultSubmitted = true;
         _resultSubmitting = false;
@@ -709,7 +745,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       if (!mounted) return;
       setState(() => _resultSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ثبت نتیجه انجام نشد. لطفاً دوباره تلاش کنید')),
+        const SnackBar(
+          content: Text('Could not save your result. Please try again.'),
+        ),
       );
     }
   }
@@ -1023,6 +1061,9 @@ class _SessionDoneBody extends StatelessWidget {
     required this.score,
     required this.total,
     required this.submitting,
+    required this.submitted,
+    required this.onSavePrivate,
+    required this.onSavePublic,
     required this.onAgain,
     required this.onBack,
   });
@@ -1030,14 +1071,18 @@ class _SessionDoneBody extends StatelessWidget {
   final int score;
   final int total;
   final bool submitting;
+  final bool submitted;
+  final VoidCallback onSavePrivate;
+  final VoidCallback onSavePublic;
   final VoidCallback onAgain;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1046,23 +1091,90 @@ class _SessionDoneBody extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Session complete',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               'You got $score out of $total correct.',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: tt.titleMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+            if (!submitted) ...[
+              Text(
+                'How should we save this result?',
+                style: tt.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              if (submitting)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(),
+                )
+              else ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed: onSavePrivate,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: const Text('Keep private (only for me)'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: onSavePublic,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: const Text('Show in community results'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                'Private results appear only under My results; public results appear in the Users tab.',
+                style: tt.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ] else ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded, color: scheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Result saved',
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+            const SizedBox(height: 12),
             FilledButton(
-              onPressed: submitting ? null : onAgain,
-              child: Text(submitting ? 'Saving…' : 'Practice again'),
+              onPressed: (submitting && !submitted) ? null : onAgain,
+              child: const Text('Practise again'),
             ),
             const SizedBox(height: 12),
-            TextButton(onPressed: onBack, child: const Text('Back to topics')),
+            TextButton(
+              onPressed: onBack,
+              child: const Text('Back to topics'),
+            ),
           ],
         ),
       ),

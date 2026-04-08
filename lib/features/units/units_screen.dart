@@ -62,6 +62,12 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
         centerTitle: false,
         actions: [
           IconButton(
+            icon: const Icon(Icons.quiz_rounded),
+            tooltip: 'Book quiz',
+            onPressed: () =>
+                context.push('/books/${widget.bookId}/vocab-quiz'),
+          ),
+          IconButton(
             icon: const Icon(Icons.bookmarks_rounded),
             tooltip: 'Favorites',
             onPressed: () => context.push('/favorites'),
@@ -141,6 +147,9 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                           delay: index * 20,
                           isLoading: _loadingUnit == unitInfo.unit,
                           onTap: () => _onUnitTap(unitInfo.unit),
+                          onQuiz: () => context.push(
+                            '/books/${widget.bookId}/units/${unitInfo.unit}/quiz',
+                          ),
                         );
                       },
                     ),
@@ -163,10 +172,12 @@ class _UnitTile extends StatefulWidget {
     required this.onTap,
     required this.delay,
     required this.isLoading,
+    required this.onQuiz,
   });
 
   final UnitInfo unitInfo;
   final VoidCallback onTap;
+  final VoidCallback onQuiz;
   final int delay;
   final bool isLoading;
 
@@ -205,7 +216,7 @@ class _UnitTileState extends State<_UnitTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Top row: Unit label (left) + Icon (right) ──────────────
+                  // ── Top row: Unit label (left) + Icons (right) ─────────────
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -216,6 +227,19 @@ class _UnitTileState extends State<_UnitTile> {
                         ),
                       ),
                       const Spacer(),
+                      IconButton(
+                        tooltip: 'Quiz this unit',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        onPressed: widget.isLoading ? null : widget.onQuiz,
+                        icon: Icon(
+                          Icons.quiz_rounded,
+                          color: scheme.primary,
+                        ),
+                      ),
                       Container(
                         width: 42,
                         height: 42,

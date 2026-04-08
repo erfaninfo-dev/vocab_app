@@ -59,13 +59,14 @@ class StatsScreen extends ConsumerWidget {
 
             const SizedBox(height: 14),
 
-            // ── Quiz stats ────────────────────────────────────────────────────
-            _SectionLabel('Quiz Performance'),
+            // ── Vocabulary + Grammar charts (unified) ─────────────────────────
+            _SectionLabel('Quiz insights'),
             const SizedBox(height: 8),
-            _QuizStatsCard(
-              total: stats.totalQuizAnswered,
-              correct: stats.totalQuizCorrect,
-              accuracy: stats.quizAccuracy,
+            _QuizInsightsEntryCard(
+              scheme: scheme,
+              vocabAccuracy: stats.quizAccuracy,
+              vocabAnswered: stats.totalQuizAnswered,
+              vocabCorrect: stats.totalQuizCorrect,
             ),
 
             const SizedBox(height: 14),
@@ -99,6 +100,73 @@ class _SectionLabel extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
   );
+}
+
+// ─── Quiz insights entry → /stats/insights ────────────────────────────────────
+
+class _QuizInsightsEntryCard extends StatelessWidget {
+  const _QuizInsightsEntryCard({
+    required this.scheme,
+    required this.vocabAccuracy,
+    required this.vocabAnswered,
+    required this.vocabCorrect,
+  });
+
+  final ColorScheme scheme;
+  final double vocabAccuracy;
+  final int vocabAnswered;
+  final int vocabCorrect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/stats/insights'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.insights_rounded, size: 44, color: scheme.primary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vocabulary & grammar',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '14-day charts, trends, and breakdown by type',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                    if (vocabAnswered > 0) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Vocab (device): ${(vocabAccuracy * 100).toStringAsFixed(0)}% '
+                        '($vocabCorrect / $vocabAnswered)',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Streak Card ──────────────────────────────────────────────────────────────
@@ -487,120 +555,6 @@ class _WeeklyChart extends StatelessWidget {
   String _shortDay(DateTime d) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[d.weekday - 1];
-  }
-}
-
-// ─── Quiz Stats Card ──────────────────────────────────────────────────────────
-
-class _QuizStatsCard extends StatelessWidget {
-  const _QuizStatsCard({
-    required this.total,
-    required this.correct,
-    required this.accuracy,
-  });
-
-  final int total;
-  final int correct;
-  final double accuracy;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final pct = (accuracy * 100).toInt();
-
-    if (total == 0) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Center(
-            child: Text(
-              'No quiz data yet.\nStart a quiz to see stats!',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            // Accuracy circle
-            SizedBox(
-              width: 72,
-              height: 72,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: accuracy,
-                    strokeWidth: 7,
-                    color: _accuracyColor(pct),
-                    backgroundColor:
-                        _accuracyColor(pct).withOpacity(0.15),
-                  ),
-                  Text(
-                    '$pct%',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: _accuracyColor(pct),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quiz Accuracy',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$correct correct out of $total answered',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _accuracyLabel(pct),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: _accuracyColor(pct),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _accuracyColor(int pct) {
-    if (pct >= 80) return Colors.green.shade600;
-    if (pct >= 60) return Colors.orange.shade600;
-    return Colors.red.shade600;
-  }
-
-  String _accuracyLabel(int pct) {
-    if (pct >= 90) return '🏆 Excellent!';
-    if (pct >= 75) return '✅ Good job!';
-    if (pct >= 60) return '📚 Keep practicing!';
-    return '💪 Don\'t give up!';
   }
 }
 

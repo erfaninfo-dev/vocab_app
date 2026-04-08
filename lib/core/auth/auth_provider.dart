@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/auth_user.dart';
 import '../../data/services/api_service.dart';
+import '../profile/profile_photo_cache.dart';
 import 'auth_storage.dart';
 
 final authProvider =
@@ -85,6 +88,19 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
       displayName: displayName,
       avatar: avatar,
     );
+    state = AsyncData(AuthSession(token: s.token, user: user));
+  }
+
+  /// Uploads a JPEG; server stores it and sets avatar to `custom`.
+  Future<void> uploadProfilePhoto(Uint8List jpegBytes) async {
+    final s = state.valueOrNull;
+    if (s == null) {
+      throw StateError('Not signed in');
+    }
+    final user = await ApiService(authToken: s.token).uploadProfilePhoto(
+      jpegBytes,
+    );
+    ref.read(profilePhotoCacheNonceProvider.notifier).state++;
     state = AsyncData(AuthSession(token: s.token, user: user));
   }
 }

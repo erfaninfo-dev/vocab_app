@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -7,6 +8,7 @@ import '../models/book_model.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
 import '../models/grammar_result.dart';
+import '../models/grammar_result_detail.dart';
 import '../models/unit_model.dart';
 import '../models/vocab_entry.dart';
 
@@ -154,34 +156,61 @@ class ApiService {
     }
   }
 
-  /// POST /grammar_results_submit.php (auth optional)
-  Future<void> submitGrammarResult({
+  /// POST /grammar_results_submit.php (auth optional). Returns server row id when present.
+  Future<int?> submitGrammarResult({
     required String quizName,
     required int score,
     required int totalQuestions,
     required List<String> selectedGrammars,
-    bool isPublic = true,
+    required bool isPublic,
+    List<Map<String, dynamic>>? sessionItems,
   }) async {
     final uri = Uri.parse('$baseUrl/grammar_results_submit.php');
+    final payload = <String, dynamic>{
+      'quiz_name': quizName,
+      'score': score,
+      'total_questions': totalQuestions,
+      'public': isPublic,
+      'selected_grammars': selectedGrammars,
+    };
+    if (sessionItems != null && sessionItems.isNotEmpty) {
+      payload['session'] = <String, dynamic>{'items': sessionItems};
+    }
     final response = await http.post(
       uri,
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'quiz_name': quizName,
-        'score': score,
-        'total_questions': totalQuestions,
-        'public': isPublic,
-        'selected_grammars': selectedGrammars,
-      }),
+      body: jsonEncode(payload),
     );
     _assertAuthResponse(response);
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      return (map['id'] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
   }
 
-  /// GET /grammar_results_my.php (requires auth)
-  Future<List<GrammarResult>> fetchMyGrammarResults() async {
-    final uri = Uri.parse('$baseUrl/grammar_results_my.php');
+  /// GET /grammar_result_detail.php?id= (requires auth)
+  Future<GrammarResultDetail> fetchGrammarResultDetail(int resultId) async {
+    final uri = Uri.parse('$baseUrl/grammar_result_detail.php').replace(
+      queryParameters: {'id': '$resultId'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return GrammarResultDetail.fromApiJson(map);
+  }
+
+  /// GET /grammar_results_my.php (requires auth). [sort] `date`|`score`, [order] `asc`|`desc`.
+  Future<List<GrammarResult>> fetchMyGrammarResults({
+    String sort = 'date',
+    String order = 'desc',
+  }) async {
+    final uri = Uri.parse('$baseUrl/grammar_results_my.php').replace(
+      queryParameters: {'sort': sort, 'order': order},
+    );
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -189,6 +218,85 @@ class ApiService {
     return list
         .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  /// GET /grammar_results_public.php
+  Future<List<GrammarResult>> fetchPublicGrammarResults({
+    String sort = 'date',
+    String order = 'desc',
+  }) async {
+    final uri = Uri.parse('$baseUrl/grammar_results_public.php').replace(
+      queryParameters: {'sort': sort, 'order': order},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'grammar results (public)');
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = (map['results'] as List<dynamic>? ?? const []);
+    return list
+        .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /vocab_quiz_wrongs.php?book_id=&unit= (optional unit)
+  Future<List<({int unit, String wordKey})>> fetchVocabQuizWrongs(
+    int bookId, {
+    int? unit,
+  }) async {
+    final q = <String, String>{'book_id': '$bookId'};
+    if (unit != null) {
+      q['unit'] = '$unit';
+    }
+    final uri = Uri.parse('$baseUrl/vocab_quiz_wrongs.php')
+        .replace(queryParameters: q);
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = map['items'] as List<dynamic>? ?? const [];
+    return items.map((e) {
+      final m = e as Map<String, dynamic>;
+      return (
+        unit: (m['unit'] as num).toInt(),
+        wordKey: (m['word_key'] ?? '').toString(),
+      );
+    }).toList();
+  }
+
+  /// POST /vocab_quiz_wrongs.php
+  Future<void> addVocabQuizWrong({
+    required int bookId,
+    required int unit,
+    required String wordKey,
+  }) async {
+    final uri = Uri.parse('$baseUrl/vocab_quiz_wrongs.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'book_id': bookId,
+        'unit': unit,
+        'word_key': wordKey,
+      }),
+    );
+    _assertAuthResponse(response);
+  }
+
+  /// DELETE /vocab_quiz_wrongs.php
+  Future<void> removeVocabQuizWrong({
+    required int bookId,
+    required int unit,
+    required String wordKey,
+  }) async {
+    final uri = Uri.parse('$baseUrl/vocab_quiz_wrongs.php').replace(
+      queryParameters: {
+        'book_id': '$bookId',
+        'unit': '$unit',
+        'word_key': wordKey,
+      },
+    );
+    final response = await http.delete(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
   }
 
   Future<List<VocabEntry>> fetchAllWordsForBook(int bookId) async {
@@ -265,6 +373,28 @@ class ApiService {
     if (response.statusCode != 200) {
       _throwFromJsonBody(response);
     }
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// POST /upload_avatar.php — multipart field `photo` (JPEG after client compression).
+  Future<AuthUser> uploadProfilePhoto(Uint8List jpegBytes) async {
+    final uri = Uri.parse('$baseUrl/upload_avatar.php');
+    final req = http.MultipartRequest('POST', uri);
+    final t = authToken;
+    if (t != null && t.isNotEmpty) {
+      req.headers['Authorization'] = 'Bearer $t';
+    }
+    req.files.add(
+      http.MultipartFile.fromBytes(
+        'photo',
+        jpegBytes,
+        filename: 'photo.jpg',
+      ),
+    );
+    final streamed = await req.send();
+    final response = await http.Response.fromStream(streamed);
+    _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
   }

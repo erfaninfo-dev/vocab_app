@@ -5,12 +5,15 @@ class GrammarResult {
     required this.quizName,
     required this.score,
     required this.totalQuestions,
+    this.userId,
     this.userName,
     this.public,
     this.selectedGrammarsRaw,
+    this.avatar,
   });
 
   final int id;
+  final int? userId;
   final String createdAt;
   final String quizName;
   final int? score;
@@ -19,9 +22,13 @@ class GrammarResult {
   final int? public;
   final String? selectedGrammarsRaw;
 
+  /// Preset avatar id from `users.avatar` when joined (e.g. m1, f2).
+  final String? avatar;
+
   factory GrammarResult.fromJson(Map<String, dynamic> json) {
     return GrammarResult(
       id: (json['id'] as num).toInt(),
+      userId: (json['user_id'] as num?)?.toInt(),
       createdAt: (json['created_at'] as String?) ?? '',
       userName: json['user_name'] as String?,
       quizName: (json['quiz_name'] as String?) ?? '',
@@ -29,6 +36,7 @@ class GrammarResult {
       totalQuestions: (json['total_questions'] as num?)?.toInt(),
       public: (json['public'] as num?)?.toInt(),
       selectedGrammarsRaw: json['selected_grammars'] as String?,
+      avatar: json['avatar'] as String?,
     );
   }
 }

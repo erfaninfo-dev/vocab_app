@@ -1,7 +1,10 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/grammar_topic_summary.dart';
 import '../../domain/api_providers.dart';
 
 class GrammarTopicsScreen extends ConsumerStatefulWidget {
@@ -25,11 +28,67 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     });
   }
 
-  void _startPractice() {
+  int _totalQuestionsInBank(List<GrammarTopicSummary> all) {
+    var n = 0;
+    for (final t in all) {
+      if (_selected.contains(t.topic)) {
+        n += t.questionCount;
+      }
+    }
+    return n;
+  }
+
+  Future<void> _startPractice() async {
     if (_selected.isEmpty) return;
+    final topicsData = ref.read(apiGrammarTopicsProvider).valueOrNull;
+    if (topicsData == null) return;
+
+    final bank = _totalQuestionsInBank(topicsData);
+    if (bank <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No questions found for the selected topics.'),
+        ),
+      );
+      return;
+    }
+
+    final minRequired = grammarQuizMinQuestionsForTopics(_selected.length);
+    if (bank < minRequired) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Not enough questions in the bank for this selection '
+            '(need at least $minRequired).',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final cap = min(bank, kGrammarQuizSessionSize);
+    if (!mounted) return;
+
+    final count = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => _GrammarQuestionCountSheet(
+        maxQuestions: cap,
+        selectedTopicCount: _selected.length,
+      ),
+    );
+
+    if (count == null || !mounted) return;
+
     final list = _selected.toList()..sort();
-    final q = list.map((t) => 'topic=${Uri.encodeQueryComponent(t)}').join('&');
-    context.push('/grammar/practice?$q');
+    final parts = <String>[
+      ...list.map((t) => 'topic=${Uri.encodeQueryComponent(t)}'),
+      'count=$count',
+    ];
+    context.push('/grammar/practice?${parts.join('&')}');
   }
 
   @override
@@ -45,6 +104,12 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
+          if (_selected.isNotEmpty)
+            IconButton(
+              tooltip: 'Unselect all',
+              onPressed: () => setState(_selected.clear),
+              icon: const Icon(Icons.close_rounded),
+            ),
           IconButton(
             tooltip: 'Results',
             onPressed: () => context.push('/grammar/results'),
@@ -73,7 +138,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'دریافت لیست گرامر انجام نشد. لطفاً دوباره تلاش کنید',
+                      'Could not load grammar topics. Please try again.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -99,18 +164,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   return CustomScrollView(
                     physics: const BouncingScrollPhysics(),
                     slivers: [
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(20, topInset, 20, 8),
-                          child: Text(
-                            'Select one or more topics. Each session uses 20 random questions.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        padding: EdgeInsets.fromLTRB(16, topInset, 16, 16),
                         sliver: SliverList.separated(
                           itemCount: topics.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -146,8 +201,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   icon: const Icon(Icons.play_arrow_rounded, size: 26),
                   label: Text(
                     _selected.isEmpty
-                        ? 'Select topics to start'
-                        : 'Start (${_selected.length} topic${_selected.length == 1 ? '' : 's'})',
+                        ? 'Select topics'
+                        : 'Continue (${_selected.length} topic${_selected.length == 1 ? '' : 's'})',
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
@@ -165,6 +220,193 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bottom sheet: pick how many questions in this session (clamped to bank size).
+class _GrammarQuestionCountSheet extends StatefulWidget {
+  const _GrammarQuestionCountSheet({
+    required this.maxQuestions,
+    required this.selectedTopicCount,
+  });
+
+  final int maxQuestions;
+  final int selectedTopicCount;
+
+  @override
+  State<_GrammarQuestionCountSheet> createState() =>
+      _GrammarQuestionCountSheetState();
+}
+
+class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> {
+  late int _count;
+
+  int get _effectiveMin {
+    final minQ = grammarQuizMinQuestionsForTopics(widget.selectedTopicCount);
+    return min(minQ, widget.maxQuestions);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final lo = _effectiveMin;
+    final def = min(kGrammarQuizDefaultQuestionCount, widget.maxQuestions);
+    _count = def.clamp(lo, widget.maxQuestions);
+  }
+
+  void _setCount(int v) {
+    final c = v.clamp(_effectiveMin, widget.maxQuestions);
+    setState(() => _count = c);
+  }
+
+  List<int> get _quickPicks {
+    const presets = [5, 10, 15, 20, 25, 30, 40, 50, 100];
+    final set = <int>{};
+    final lo = _effectiveMin;
+    final hi = widget.maxQuestions;
+    for (final p in presets) {
+      if (p >= lo && p <= hi) {
+        set.add(p);
+      }
+    }
+    set.add(hi);
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final single = widget.selectedTopicCount == 1;
+    final hint = single
+        ? 'Questions are drawn at random from this topic only.'
+        : 'Questions are mixed at random from all selected topics for varied practice.';
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Questions in this session',
+                  textAlign: TextAlign.center,
+                  style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  hint,
+                  textAlign: TextAlign.center,
+                  style: tt.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Up to ${widget.maxQuestions} question${widget.maxQuestions == 1 ? '' : 's'} available in the bank.',
+                  textAlign: TextAlign.center,
+                  style: tt.labelMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Minimum this session: $_effectiveMin '
+                  '(at least $kGrammarQuizMinBaseQuestions, or one per topic if you pick several).',
+                  textAlign: TextAlign.center,
+                  style: tt.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$_count',
+                      style: tt.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _count == 1 ? 'question' : 'questions',
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: _count.toDouble(),
+                  min: _effectiveMin.toDouble(),
+                  max: widget.maxQuestions.toDouble(),
+                  divisions: widget.maxQuestions > _effectiveMin
+                      ? widget.maxQuestions - _effectiveMin
+                      : null,
+                  label: '$_count',
+                  onChanged: (v) => _setCount(v.round()),
+                ),
+                Text(
+                  'Quick pick',
+                  style: tt.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final n in _quickPicks)
+                      FilterChip(
+                        label: Text('$n'),
+                        selected: _count == n,
+                        onSelected: (_) => _setCount(n),
+                        showCheckmark: false,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(_count),
+                        child: const Text('Start quiz'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
     );
   }
 }

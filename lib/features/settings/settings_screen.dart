@@ -80,6 +80,7 @@ class SettingsScreen extends ConsumerWidget {
                       ListTile(
                         leading: ProfileAvatar(
                           avatarId: session.user.avatar,
+                          userId: session.user.id,
                           size: 48,
                         ),
                         title: const Text('Profile'),

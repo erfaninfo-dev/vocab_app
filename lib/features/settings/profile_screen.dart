@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
@@ -18,6 +20,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final TextEditingController _nameCtrl;
   String _selectedAvatarId = kDefaultAvatarId;
   var _saving = false;
+  var _uploadingPhoto = false;
   var _loadedUserFields = false;
 
   @override
@@ -39,6 +42,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _nameCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUpload(ImageSource source) async {
+    final picker = ImagePicker();
+    final x = await picker.pickImage(
+      source: source,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      imageQuality: 90,
+    );
+    if (x == null || !mounted) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final raw = await x.readAsBytes();
+      final compressed = await FlutterImageCompress.compressWithList(
+        raw,
+        minWidth: 512,
+        minHeight: 512,
+        quality: 85,
+        format: CompressFormat.jpeg,
+      );
+      await ref.read(authProvider.notifier).uploadProfilePhoto(compressed);
+      if (!mounted) return;
+      final u = ref.read(authProvider).valueOrNull?.user;
+      if (u != null) {
+        setState(() => _selectedAvatarId = u.avatar);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo updated')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload failed. Try again or pick a smaller image.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   Future<void> _save() async {
@@ -99,10 +144,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
-              child: ProfileAvatar(
-                avatarId: _selectedAvatarId,
-                size: 96,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ProfileAvatar(
+                    avatarId: _selectedAvatarId,
+                    userId: session.user.id,
+                    size: 96,
+                    showBorder: true,
+                  ),
+                  if (_uploadingPhoto)
+                    const SizedBox(
+                      width: 96,
+                      height: 96,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                ],
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _uploadingPhoto || _saving
+                      ? null
+                      : () => _pickAndUpload(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined, size: 20),
+                  label: const Text('Gallery'),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: _uploadingPhoto || _saving
+                      ? null
+                      : () => _pickAndUpload(ImageSource.camera),
+                  icon: const Icon(Icons.photo_camera_outlined, size: 20),
+                  label: const Text('Camera'),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
@@ -122,7 +201,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 8),
+            Text(
+              'Or pick a preset avatar',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'Boy avatars',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -152,11 +240,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 32),
             FilledButton(
-              onPressed: _saving ? null : _save,
+              onPressed: (_saving || _uploadingPhoto) ? null : _save,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
-              child: _saving
+              child: (_saving || _uploadingPhoto)
                   ? const SizedBox(
                       height: 22,
                       width: 22,
