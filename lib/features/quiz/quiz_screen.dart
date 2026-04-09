@@ -10,6 +10,7 @@ import '../../core/stats/stats_service.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 const int kVocabQuizMaxQuestions = 60;
 
@@ -38,13 +39,23 @@ enum VocabAnswerFormat {
 // ─── Question Modes (multi-select) ────────────────────────────────────────────
 
 enum VocabQuestionMode {
-  mcqWordToMeaning('Word → Meaning', Icons.translate_rounded),
-  mcqMeaningToWord('Meaning → Word', Icons.text_fields_rounded),
-  writtenMeaningToWord('Fill in the blank', Icons.edit_rounded);
+  mcqWordToMeaning(Icons.translate_rounded),
+  mcqMeaningToWord(Icons.text_fields_rounded),
+  writtenMeaningToWord(Icons.edit_rounded);
 
-  const VocabQuestionMode(this.label, this.icon);
-  final String label;
+  const VocabQuestionMode(this.icon);
   final IconData icon;
+
+  String l10nLabel(AppLocalizations l10n) {
+    switch (this) {
+      case VocabQuestionMode.mcqWordToMeaning:
+        return l10n.quizMcqWordToMeaning;
+      case VocabQuestionMode.mcqMeaningToWord:
+        return l10n.quizMcqMeaningToWord;
+      case VocabQuestionMode.writtenMeaningToWord:
+        return l10n.quizWrittenMeaningToWord;
+    }
+  }
 
   bool get isMcq =>
       this == VocabQuestionMode.mcqWordToMeaning ||
@@ -219,8 +230,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
         final others = usable.where((w) => w.id != word.id).toList()
           ..shuffle(rng);
-        final wrongPool = others.take(3).toList();
-        if (wrongPool.length < 3) continue;
+        final wrongPool = others.take(min(3, others.length)).toList();
 
         if (m == VocabQuestionMode.mcqWordToMeaning) {
           final correct = word.meaningEn.isNotEmpty
@@ -362,14 +372,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           );
       _invalidateWrongs();
       if (mounted) {
+        final msg = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Removed from your mistake list')),
+          SnackBar(content: Text(msg.removedFromMistakes)),
         );
       }
     } catch (_) {
       if (mounted) {
+        final msg = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not update server')),
+          SnackBar(content: Text(msg.couldNotUpdateServer)),
         );
       }
     } finally {
@@ -479,19 +491,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   Future<bool> _confirmExitQuiz() async {
     if (!_inActiveSession) return true;
 
+    final l10n = AppLocalizations.of(context)!;
     final res = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('خروج از کوییز؟'),
-        content: const Text('اگر خارج شوید، پیشرفت این کوییز از بین می‌رود.'),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.vocabQuizExitTitle),
+        content: Text(l10n.vocabQuizExitBody),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('ادامه'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.continueLabel),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('خروج'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.exit),
           ),
         ],
       ),
@@ -528,6 +541,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       )),
     );
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -539,7 +553,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
             nav.pop();
           },
         ),
-        title: const Text('Quiz'),
+        title: Text(l10n.quizTitle),
         actions: [
           if (_questions.isNotEmpty && !_sessionDone)
             Padding(
@@ -565,14 +579,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         },
         child: wordsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Center(
-            child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
+          error: (_, __) => Center(
+            child: Text(l10n.couldNotLoadWords),
           ),
           data: (words) {
             return wrongsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Center(
-              child: Text('Could not load mistake list'),
+            error: (_, __) => Center(
+              child: Text(l10n.couldNotLoadMistakes),
             ),
             data: (wrongs) {
               final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
@@ -587,6 +601,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               if (hasImportant && resolvedScope == null) {
                 final nImp = basePool.where((w) => w.isImportant).length;
                 return _ImportantChoicePanel(
+                  l10n: l10n,
                   allCount: basePool.length,
                   importantCount: nImp,
                   onAllWords: () => setState(() => _userImportantScope = 0),
@@ -599,7 +614,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               final selectedModes = _effectiveModes();
               final needsMcq =
                   selectedModes.any((m) => m.isMcq);
-              final minPoolNeeded = needsMcq ? 4 : 1;
+              final minPoolNeeded = resolvedScope == 1 || _scopeWrongsOnly
+                  ? 1
+                  : (needsMcq ? 4 : 1);
 
               if (pool.length < minPoolNeeded) {
                 final importantTooSmall =
@@ -609,13 +626,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       importantTooSmall
-                          ? 'Not enough important words for this quiz (need at least 4). '
-                              'Choose all words, change scope, or pick more units.'
+                          ? l10n.quizNotEnoughImportant
                           : _scopeWrongsOnly
-                              ? 'Not enough words in mistake list for this quiz (need 4+).'
+                              ? l10n.quizNotEnoughWrongs
                               : needsMcq
-                                  ? 'Need at least 4 words to start this quiz.'
-                                  : 'Need at least 1 word to start this quiz.',
+                                  ? l10n.quizNeedFourWords
+                                  : l10n.quizNeedOneWord,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -650,6 +666,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
               if (_sessionDone) {
                 return _ResultScreen(
+                  l10n: l10n,
                   score: _score,
                   total: _questions.length,
                   onRetry: () {
@@ -666,8 +683,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   _answered &&
                   _selectedAnswer == q.correctAnswer;
 
-              return SingleChildScrollView(
+                return SingleChildScrollView(
                 child: _QuizBody(
+                  l10n: l10n,
                   question: q,
                   questionNumber: _currentIndex + 1,
                   total: _questions.length,
@@ -698,12 +716,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
 class _ImportantChoicePanel extends StatelessWidget {
   const _ImportantChoicePanel({
+    required this.l10n,
     required this.allCount,
     required this.importantCount,
     required this.onAllWords,
     required this.onImportantOnly,
   });
 
+  final AppLocalizations l10n;
   final int allCount;
   final int importantCount;
   final VoidCallback onAllWords;
@@ -712,7 +732,6 @@ class _ImportantChoicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final canQuizImportantOnly = importantCount >= 4;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(28),
@@ -722,15 +741,14 @@ class _ImportantChoicePanel extends StatelessWidget {
             Icon(Icons.star_rounded, size: 52, color: scheme.primary),
             const SizedBox(height: 20),
             Text(
-              'Quiz scope',
+              l10n.quizScopeTitle,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
             const SizedBox(height: 8),
             Text(
-              'This list includes important words. Choose whether the quiz '
-              'uses every word here or only important ones.',
+              l10n.quizScopeImportantDescription,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -744,30 +762,20 @@ class _ImportantChoicePanel extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: Text('All words ($allCount)'),
+                child: Text(l10n.allWordsCount(allCount)),
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: canQuizImportantOnly ? onImportantOnly : null,
+                onPressed: onImportantOnly,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: Text('Important words only ($importantCount)'),
+                child: Text(l10n.importantWordsOnlyCount(importantCount)),
               ),
             ),
-            if (!canQuizImportantOnly) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Important-only mode needs at least four important words in this scope.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
           ],
         ),
       ),
@@ -808,6 +816,7 @@ class _ModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final low = minQuestionPick.toDouble();
     final high = maxQuestionPick.toDouble();
@@ -835,14 +844,14 @@ class _ModeSelector extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Quiz setup',
+              l10n.quizSetupTitle,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
             const SizedBox(height: 6),
             Text(
-              '$poolSize words in pool · min $minQuestionPick question(s) · max $maxQuestionPick',
+              l10n.quizPoolSummary(poolSize, minQuestionPick, maxQuestionPick),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -853,17 +862,17 @@ class _ModeSelector extends StatelessWidget {
               SwitchListTile(
                 value: scopeWrongsOnly,
                 onChanged: wrongOnServer == 0 ? null : (v) => onScopeChanged(v),
-                title: const Text('Only past mistakes'),
+                title: Text(l10n.onlyPastMistakes),
                 subtitle: Text(
                   wrongOnServer == 0
-                      ? 'No mistakes recorded yet for this scope.'
-                      : '$wrongOnServer mistake(s) on server',
+                      ? l10n.noMistakesYet
+                      : l10n.mistakesOnServer(wrongOnServer),
                 ),
               ),
             ] else ...[
               const SizedBox(height: 12),
               Text(
-                'Sign in to sync mistakes and use “past mistakes” mode.',
+                l10n.signInForMistakes,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -874,7 +883,7 @@ class _ModeSelector extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Number of questions',
+                l10n.numberOfQuestions,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -894,7 +903,7 @@ class _ModeSelector extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Question modes',
+                l10n.questionModes,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -918,7 +927,7 @@ class _ModeSelector extends StatelessWidget {
                               : scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 6),
-                        Text(m.label),
+                        Text(m.l10nLabel(l10n)),
                       ],
                     ),
                     selected: selectedModes.contains(m),
@@ -945,7 +954,7 @@ class _ModeSelector extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onStart,
                 icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Start quiz'),
+                label: Text(l10n.startQuiz),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -962,6 +971,7 @@ class _ModeSelector extends StatelessWidget {
 
 class _QuizBody extends StatelessWidget {
   const _QuizBody({
+    required this.l10n,
     required this.question,
     required this.questionNumber,
     required this.total,
@@ -979,6 +989,7 @@ class _QuizBody extends StatelessWidget {
     this.onLearned,
   });
 
+  final AppLocalizations l10n;
   final _Question question;
   final int questionNumber;
   final int total;
@@ -1004,7 +1015,12 @@ class _QuizBody extends StatelessWidget {
       child: Column(
         children: [
           // ── Progress ────────────────────────────────────────────────────────
-          _QuizProgress(current: questionNumber, total: total, score: score),
+          _QuizProgress(
+            l10n: l10n,
+            current: questionNumber,
+            total: total,
+            score: score,
+          ),
           const SizedBox(height: 14),
 
           // ── Prompt card ─────────────────────────────────────────────────────
@@ -1025,8 +1041,8 @@ class _QuizBody extends StatelessWidget {
                 children: [
                   Text(
                     mode == QuizMode.wordToMeaning
-                        ? 'What is the meaning of:'
-                        : 'Which word means:',
+                        ? l10n.whatIsMeaningOf
+                        : l10n.whichWordMeans,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                       letterSpacing: 1.1,
@@ -1066,8 +1082,8 @@ class _QuizBody extends StatelessWidget {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => onSubmitWritten(),
               decoration: InputDecoration(
-                labelText: 'Type the word',
-                hintText: 'Type your answer…',
+                labelText: l10n.typeTheWord,
+                hintText: l10n.typeYourAnswer,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -1076,7 +1092,7 @@ class _QuizBody extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: answered ? null : onSubmitWritten,
-                child: const Text('Submit'),
+                child: Text(l10n.submit),
               ),
             ),
             if (answered) ...[
@@ -1132,7 +1148,9 @@ class _QuizBody extends StatelessWidget {
                               )
                             : const Icon(Icons.check_circle_outline_rounded),
                         label: Text(
-                          learnedBusy ? 'Updating…' : 'I learned it — remove from mistakes',
+                          learnedBusy
+                              ? l10n.updating
+                              : l10n.learnedRemoveMistakes,
                         ),
                       ),
                     ),
@@ -1147,7 +1165,9 @@ class _QuizBody extends StatelessWidget {
                             ? Icons.emoji_events_rounded
                             : Icons.arrow_forward_rounded,
                       ),
-                      label: Text(isLast ? 'See Results' : 'Next Question'),
+                      label: Text(
+                        isLast ? l10n.seeResults : l10n.nextQuestion,
+                      ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -1180,10 +1200,10 @@ class _QuizBody extends StatelessWidget {
     final a = (selectedAnswer ?? '').trim();
     final correct = question.correctAnswer;
     if (_isWrittenCorrect()) {
-      return 'Correct: $a';
+      return l10n.correctLine(a);
     }
-    if (a.isEmpty) return 'Wrong (blank). Correct answer: $correct';
-    return 'Wrong: $a · Correct answer: $correct';
+    if (a.isEmpty) return l10n.wrongBlankLine(correct);
+    return l10n.wrongAnswerLine(a, correct);
   }
 }
 
@@ -1290,11 +1310,13 @@ class _OptionTile extends StatelessWidget {
 
 class _QuizProgress extends StatelessWidget {
   const _QuizProgress({
+    required this.l10n,
     required this.current,
     required this.total,
     required this.score,
   });
 
+  final AppLocalizations l10n;
   final int current;
   final int total;
   final int score;
@@ -1308,7 +1330,7 @@ class _QuizProgress extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Question $current / $total',
+              l10n.questionProgress(current, total),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const Spacer(),
@@ -1321,7 +1343,7 @@ class _QuizProgress extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '$score correct',
+                  l10n.scoreCorrect(score),
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: scheme.primary,
                     fontWeight: FontWeight.w700,
@@ -1345,12 +1367,14 @@ class _QuizProgress extends StatelessWidget {
 
 class _ResultScreen extends StatelessWidget {
   const _ResultScreen({
+    required this.l10n,
     required this.score,
     required this.total,
     required this.onRetry,
     required this.onChangeMode,
   });
 
+  final AppLocalizations l10n;
   final int score;
   final int total;
   final VoidCallback onRetry;
@@ -1365,13 +1389,13 @@ class _ResultScreen extends StatelessWidget {
     return '💪';
   }
 
-  String get _message {
+  String _message() {
     final pct = score / total;
-    if (pct == 1.0) return 'Perfect score!';
-    if (pct >= 0.8) return 'Excellent work!';
-    if (pct >= 0.6) return 'Good job!';
-    if (pct >= 0.4) return 'Keep practicing!';
-    return 'Don\'t give up!';
+    if (pct == 1.0) return l10n.perfectScore;
+    if (pct >= 0.8) return l10n.excellentWork;
+    if (pct >= 0.6) return l10n.goodJob;
+    if (pct >= 0.4) return l10n.keepPracticing;
+    return l10n.dontGiveUp;
   }
 
   @override
@@ -1388,7 +1412,7 @@ class _ResultScreen extends StatelessWidget {
             Text(_emoji, style: const TextStyle(fontSize: 72)),
             const SizedBox(height: 16),
             Text(
-              _message,
+              _message(),
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -1430,7 +1454,7 @@ class _ResultScreen extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
+                label: Text(l10n.tryAgain),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -1442,7 +1466,7 @@ class _ResultScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onChangeMode,
                 icon: const Icon(Icons.tune_rounded),
-                label: const Text('Change Mode'),
+                label: Text(l10n.changeMode),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -1452,7 +1476,7 @@ class _ResultScreen extends StatelessWidget {
             TextButton.icon(
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Back to Words'),
+              label: Text(l10n.backToWords),
             ),
           ],
         ),

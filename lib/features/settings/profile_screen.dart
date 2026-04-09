@@ -9,6 +9,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../core/profile/profile_presets.dart';
 import '../../data/models/auth_user.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -57,20 +58,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<bool> _confirmDiscardChanges() async {
     if (!_hasUnsavedChanges) return true;
+    final l10n = AppLocalizations.of(context)!;
 
     final res = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تغییرات ذخیره نشده'),
-        content: const Text('تغییرات شما ذخیره نشده است. خارج می‌شوید؟'),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChangesTitle),
+        content: Text(l10n.unsavedChangesBody),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('ادامه'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.discardStay),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('خروج'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.discardLeave),
           ),
         ],
       ),
@@ -80,6 +82,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _pickAndUpload(ImageSource source) async {
+    final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     final x = await picker.pickImage(
       source: source,
@@ -96,14 +99,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         compressFormat: ImageCompressFormat.jpg,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Crop photo',
+            toolbarTitle: l10n.profileCropPhoto,
             toolbarColor: Theme.of(context).colorScheme.surface,
             toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
           ),
           IOSUiSettings(
-            title: 'Crop photo',
+            title: l10n.profileCropPhoto,
             aspectRatioLockEnabled: true,
           ),
         ],
@@ -128,13 +131,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo updated')),
+        SnackBar(content: Text(l10n.profilePhotoUpdated)),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Upload failed. Try again or pick a smaller image.'),
+        SnackBar(
+          content: Text(l10n.profileUploadFailed),
         ),
       );
     } finally {
@@ -143,6 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _saving = true);
     try {
       await ref.read(authProvider.notifier).updateProfile(
@@ -155,7 +159,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _initialName = _nameCtrl.text.trim();
       _initialAvatarId = _selectedAvatarId;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved')),
+        SnackBar(content: Text(l10n.profileSaved)),
       );
       context.pop();
     } catch (e) {
@@ -163,7 +167,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ذخیره انجام نشد. لطفاً دوباره تلاش کنید')),
+        SnackBar(content: Text(l10n.profileSaveFailed)),
       );
     } finally {
       if (mounted) {
@@ -174,12 +178,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final session = ref.watch(authProvider).valueOrNull;
     if (session == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: const Center(child: Text('Sign in to edit your profile.')),
+        appBar: AppBar(title: Text(l10n.profileScreenTitle)),
+        body: Center(child: Text(l10n.profileSignInPrompt)),
       );
     }
 
@@ -200,7 +205,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             nav.pop();
           },
         ),
-        title: const Text('Profile'),
+        title: Text(l10n.profileScreenTitle),
       ),
       body: PopScope(
         canPop: !_saving && !_uploadingPhoto,
@@ -245,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ? null
                       : () => _pickAndUpload(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
-                  label: const Text('Gallery'),
+                  label: Text(l10n.profileGallery),
                 ),
                 const SizedBox(width: 10),
                 OutlinedButton.icon(
@@ -253,7 +258,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ? null
                       : () => _pickAndUpload(ImageSource.camera),
                   icon: const Icon(Icons.photo_camera_outlined, size: 20),
-                  label: const Text('Camera'),
+                  label: Text(l10n.profileCamera),
                 ),
               ],
             ),
@@ -269,15 +274,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             TextField(
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Display name',
-                hintText: 'How your name appears',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.profileDisplayName,
+                hintText: l10n.profileDisplayNameHint,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Or pick a preset avatar',
+              l10n.profilePresetAvatars,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -286,7 +291,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Boy avatars',
+              l10n.profileBoyAvatars,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: scheme.onSurfaceVariant,
@@ -300,7 +305,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Girl avatars',
+              l10n.profileGirlAvatars,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: scheme.onSurfaceVariant,
@@ -324,7 +329,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save'),
+                  : Text(l10n.save),
             ),
             ],
           ),

@@ -5,6 +5,7 @@ import '../../core/errors/user_friendly_error.dart';
 import '../../core/sync/pending_word_updates.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../words/widgets/word_card.dart';
 import '../words/word_preferences_controller.dart';
 
@@ -25,12 +26,13 @@ class FavoritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final favorites = ref.watch(wordPreferencesProvider).favoriteIds;
     final booksValue = ref.watch(apiBooksProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorites')),
+      appBar: AppBar(title: Text(l10n.favorites)),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -46,7 +48,8 @@ class FavoritesScreen extends ConsumerWidget {
           onRefresh: () => _refresh(ref),
           child: booksValue.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text(userFriendlyErrorMessage(error))),
+          error: (error, _) =>
+              Center(child: Text(userFriendlyErrorMessage(error, l10n))),
           data: (books) {
             final allWordsValues = books
                 .map((book) => ref.watch(apiAllWordsForBookProvider(book.id)))

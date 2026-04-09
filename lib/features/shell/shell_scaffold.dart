@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/srs/srs_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 
@@ -20,36 +21,36 @@ class _Tab {
   final String label;
 }
 
-const _tabs = [
+List<_Tab> _tabs(AppLocalizations l10n) => [
   _Tab(
     path: '/home',
     icon: Icons.home_outlined,
     activeIcon: Icons.home_rounded,
-    label: 'Home',
+    label: l10n.tabHome,
   ),
   _Tab(
     path: '/grammar',
     icon: Icons.rule_outlined,
     activeIcon: Icons.rule_rounded,
-    label: 'Grammar',
+    label: l10n.tabGrammar,
   ),
   _Tab(
     path: '/review',
     icon: Icons.loop_outlined,
     activeIcon: Icons.loop_rounded,
-    label: 'Review',
+    label: l10n.tabReview,
   ),
   _Tab(
     path: '/stats',
     icon: Icons.bar_chart_outlined,
     activeIcon: Icons.bar_chart_rounded,
-    label: 'Progress',
+    label: l10n.tabProgress,
   ),
   _Tab(
     path: '/settings',
     icon: Icons.tune_outlined,
     activeIcon: Icons.tune_rounded,
-    label: 'Settings',
+    label: l10n.tabSettings,
   ),
 ];
 
@@ -68,10 +69,11 @@ class ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dueCount = ref.watch(srsProvider.select((s) => s.dueTodayCount));
+    final tabs = _tabs(AppLocalizations.of(context)!);
 
     int currentIndex = 0;
-    for (int i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i].path)) {
+    for (int i = 0; i < tabs.length; i++) {
+      if (location.startsWith(tabs[i].path)) {
         currentIndex = i;
         break;
       }
@@ -84,22 +86,22 @@ class ShellScaffold extends ConsumerWidget {
         onDestinationSelected: (index) {
           if (index == 0) {
             FocusManager.instance.primaryFocus?.unfocus();
-            context.go(_tabs[0].path);
-          } else if (!location.startsWith(_tabs[index].path)) {
-            context.push(_tabs[index].path);
+            context.go(tabs[0].path);
+          } else if (!location.startsWith(tabs[index].path)) {
+            context.push(tabs[index].path);
           }
         },
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           NavigationDestination(
-            icon: Icon(_tabs[0].icon),
-            selectedIcon: Icon(_tabs[0].activeIcon),
-            label: _tabs[0].label,
+            icon: Icon(tabs[0].icon),
+            selectedIcon: Icon(tabs[0].activeIcon),
+            label: tabs[0].label,
           ),
           NavigationDestination(
-            icon: Icon(_tabs[1].icon),
-            selectedIcon: Icon(_tabs[1].activeIcon),
-            label: _tabs[1].label,
+            icon: Icon(tabs[1].icon),
+            selectedIcon: Icon(tabs[1].activeIcon),
+            label: tabs[1].label,
           ),
           NavigationDestination(
             icon: dueCount > 0
@@ -108,29 +110,29 @@ class ShellScaffold extends ConsumerWidget {
                       dueCount > 99 ? '99+' : '$dueCount',
                       style: const TextStyle(fontSize: 10),
                     ),
-                    child: Icon(_tabs[2].icon),
+                    child: Icon(tabs[2].icon),
                   )
-                : Icon(_tabs[2].icon),
+                : Icon(tabs[2].icon),
             selectedIcon: dueCount > 0
                 ? Badge(
                     label: Text(
                       dueCount > 99 ? '99+' : '$dueCount',
                       style: const TextStyle(fontSize: 10),
                     ),
-                    child: Icon(_tabs[2].activeIcon),
+                    child: Icon(tabs[2].activeIcon),
                   )
-                : Icon(_tabs[2].activeIcon),
-            label: _tabs[2].label,
+                : Icon(tabs[2].activeIcon),
+            label: tabs[2].label,
           ),
           NavigationDestination(
-            icon: Icon(_tabs[3].icon),
-            selectedIcon: Icon(_tabs[3].activeIcon),
-            label: _tabs[3].label,
+            icon: Icon(tabs[3].icon),
+            selectedIcon: Icon(tabs[3].activeIcon),
+            label: tabs[3].label,
           ),
           NavigationDestination(
-            icon: Icon(_tabs[4].icon),
-            selectedIcon: Icon(_tabs[4].activeIcon),
-            label: _tabs[4].label,
+            icon: Icon(tabs[4].icon),
+            selectedIcon: Icon(tabs[4].activeIcon),
+            label: tabs[4].label,
           ),
         ],
       ),

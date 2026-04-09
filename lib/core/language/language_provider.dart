@@ -7,7 +7,7 @@ import '../../data/models/vocab_entry.dart';
 
 enum TranslationLang {
   fa('فارسی', 'Persian'),
-  kur('کوردی', 'Kurdish');
+  kur('کوردی (سورانی)', 'Kurdish (Sorani)');
 
   const TranslationLang(this.nativeLabel, this.englishLabel);
   final String nativeLabel;

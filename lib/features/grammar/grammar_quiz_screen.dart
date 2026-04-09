@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/grammar_question.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 enum _ExplanationTab { fa, kur }
 
@@ -69,41 +70,44 @@ class _GrammarReportKindOption {
   final String label;
 }
 
-/// Must match [allowed] list in `api/grammar_report_question.php`.
-const _kGrammarReportKinds = [
-  _GrammarReportKindOption(
-    id: 'wrong_correct_answer',
-    label: 'Marked correct answer is wrong',
-  ),
-  _GrammarReportKindOption(
-    id: 'typo_question',
-    label: 'Typo in the question text',
-  ),
-  _GrammarReportKindOption(
-    id: 'typo_options',
-    label: 'Multiple options look correct',
-  ),
-  _GrammarReportKindOption(
-    id: 'bad_explanation',
-    label: 'Explanation is wrong or incomplete',
-  ),
-  _GrammarReportKindOption(
-    id: 'unclear_question',
-    label: 'Question wording is unclear',
-  ),
-  _GrammarReportKindOption(
-    id: 'other',
-    label: 'Other',
-  ),
-];
+/// Labels from [AppLocalizations]; ids must match `api/grammar_report_question.php`.
+List<_GrammarReportKindOption> _grammarReportKinds(AppLocalizations l10n) => [
+      _GrammarReportKindOption(
+        id: 'wrong_correct_answer',
+        label: l10n.grammarReportKindWrongAnswer,
+      ),
+      _GrammarReportKindOption(
+        id: 'typo_question',
+        label: l10n.grammarReportKindTypoQuestion,
+      ),
+      _GrammarReportKindOption(
+        id: 'typo_options',
+        label: l10n.grammarReportKindTypoOptions,
+      ),
+      _GrammarReportKindOption(
+        id: 'bad_explanation',
+        label: l10n.grammarReportKindBadExplanation,
+      ),
+      _GrammarReportKindOption(
+        id: 'unclear_question',
+        label: l10n.grammarReportKindUnclear,
+      ),
+      _GrammarReportKindOption(
+        id: 'other',
+        label: l10n.grammarReportKindOther,
+      ),
+    ];
 
 class _GrammarReportBottomSheet extends ConsumerStatefulWidget {
   const _GrammarReportBottomSheet({
+    required this.l10n,
     required this.question,
     required this.parentMessenger,
     required this.onReported,
   });
 
+  /// Resolved from the quiz screen so the sheet always matches app language.
+  final AppLocalizations l10n;
   final GrammarQuestion question;
   final ScaffoldMessengerState parentMessenger;
   final VoidCallback onReported;
@@ -122,7 +126,7 @@ class _GrammarReportBottomSheetState
   @override
   void initState() {
     super.initState();
-    _selectedId = _kGrammarReportKinds.first.id;
+    _selectedId = 'wrong_correct_answer';
     _detailCtrl = TextEditingController();
   }
 
@@ -133,6 +137,7 @@ class _GrammarReportBottomSheetState
   }
 
   Future<void> _submit() async {
+    final l10n = widget.l10n;
     setState(() => _submitting = true);
     try {
       await ref.read(apiServiceProvider).reportGrammarQuestion(
@@ -146,7 +151,7 @@ class _GrammarReportBottomSheetState
       widget.onReported();
       Navigator.of(context).pop();
       widget.parentMessenger.showSnackBar(
-        const SnackBar(content: Text('Report submitted')),
+        SnackBar(content: Text(l10n.reportSubmitted)),
       );
     } catch (e) {
       if (!mounted) {
@@ -154,8 +159,8 @@ class _GrammarReportBottomSheetState
       }
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not submit report. Please try again.'),
+        SnackBar(
+          content: Text(l10n.reportFailed),
         ),
       );
     }
@@ -163,6 +168,8 @@ class _GrammarReportBottomSheetState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final kinds = _grammarReportKinds(l10n);
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom,
@@ -175,7 +182,7 @@ class _GrammarReportBottomSheetState
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Report a problem',
+                l10n.grammarReportProblemTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -183,13 +190,13 @@ class _GrammarReportBottomSheetState
               ),
               const SizedBox(height: 8),
               Text(
-                'What is wrong?',
+                l10n.grammarReportWhatWrong,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 8),
-              ..._kGrammarReportKinds.map((k) {
+              ...kinds.map((k) {
                 return RadioListTile<String>(
                   dense: true,
                   value: k.id,
@@ -211,9 +218,9 @@ class _GrammarReportBottomSheetState
                 maxLines: 3,
                 maxLength: 500,
                 textAlign: TextAlign.start,
-                decoration: const InputDecoration(
-                  labelText: 'Details (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.grammarReportDetailsOptional,
+                  border: const OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
               ),
@@ -226,7 +233,7 @@ class _GrammarReportBottomSheetState
                         width: 22,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit report'),
+                    : Text(l10n.submitReport),
               ),
             ],
           ),
@@ -242,6 +249,7 @@ const Color _kCorrectOptionFg = Color(0xFF14532D);
 const Color _kCorrectBadgeGreen = Color(0xFF2E7D32);
 
 Future<bool> _confirmExitQuiz(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
   final result = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -249,19 +257,17 @@ Future<bool> _confirmExitQuiz(BuildContext context) async {
       final scheme = Theme.of(ctx).colorScheme;
       return AlertDialog(
         icon: Icon(Icons.quiz_outlined, size: 32, color: scheme.primary),
-        title: const Text('Exit exercise?'),
-        content: const Text(
-          'If you go back now, your progress for this session will not be saved.',
-        ),
+        title: Text(l10n.exitExerciseTitle),
+        content: Text(l10n.exitExerciseBody),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Stay'),
+            child: Text(l10n.stay),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Exit'),
+            child: Text(l10n.exit),
           ),
         ],
       );
@@ -270,10 +276,10 @@ Future<bool> _confirmExitQuiz(BuildContext context) async {
   return result ?? false;
 }
 
-String _grammarAppBarTitle(List<String> topics) {
-  if (topics.isEmpty) return 'Grammar';
+String _grammarAppBarTitle(AppLocalizations l10n, List<String> topics) {
+  if (topics.isEmpty) return l10n.grammarAppBar;
   if (topics.length == 1) return topics.first;
-  return '${topics.length} topics';
+  return l10n.grammarTopicsCountAppBar(topics.length);
 }
 
 class GrammarQuizScreen extends ConsumerStatefulWidget {
@@ -339,26 +345,34 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     BuildContext context,
     GrammarQuestion q,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final parentContext = context;
+    final l10n = AppLocalizations.of(parentContext)!;
+    final messenger = ScaffoldMessenger.of(parentContext);
     await showModalBottomSheet<void>(
-      context: context,
+      context: parentContext,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (ctx) => _GrammarReportBottomSheet(
-        question: q,
-        parentMessenger: messenger,
-        onReported: () => setState(() => _reportedQuestionIds.add(q.id)),
+      builder: (sheetContext) => Localizations.override(
+        context: parentContext,
+        locale: Localizations.localeOf(parentContext),
+        child: _GrammarReportBottomSheet(
+          l10n: l10n,
+          question: q,
+          parentMessenger: messenger,
+          onReported: () => setState(() => _reportedQuestionIds.add(q.id)),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final topicsKey = grammarTopicsCacheKey(widget.topics);
     if (topicsKey.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Grammar')),
-        body: const Center(child: Text('No topic selected.')),
+        appBar: AppBar(title: Text(l10n.grammarAppBar)),
+        body: Center(child: Text(l10n.noTopicSelected)),
       );
     }
 
@@ -387,7 +401,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           title: Text(
-            _grammarAppBarTitle(widget.topics),
+            _grammarAppBarTitle(l10n, widget.topics),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -403,7 +417,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                 !_sessionDone &&
                 _index < async.value!.length)
               IconButton(
-                tooltip: 'Report question',
+                tooltip: l10n.grammarReportQuestionTooltip,
                 icon: Icon(
                   _reportedQuestionIds.contains(async.value![_index].id)
                       ? Icons.flag_rounded
@@ -426,7 +440,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Could not load questions. Please try again.',
+                l10n.grammarCouldNotLoadQuestions,
                 textAlign: TextAlign.center,
               ),
             ),
@@ -437,7 +451,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Text(
-                    'No questions for the selected topic(s).',
+                    l10n.grammarNoQuestionsForTopics,
                     style: Theme.of(context).textTheme.titleMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -447,6 +461,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
 
             if (_sessionDone) {
               return _SessionDoneBody(
+                l10n: l10n,
                 score: _score,
                 total: questions.length,
                 submitting: _resultSubmitting,
@@ -598,7 +613,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Explanation',
+                                        l10n.grammarExplanationHeading,
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleSmall
@@ -612,14 +627,15 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                                   Directionality(
                                     textDirection: TextDirection.rtl,
                                     child: SegmentedButton<_ExplanationTab>(
-                                      segments: const [
+                                      segments: [
                                         ButtonSegment<_ExplanationTab>(
                                           value: _ExplanationTab.fa,
-                                          label: Text('Persian'),
+                                          label: Text(l10n.grammarExplanationTabFa),
                                         ),
                                         ButtonSegment<_ExplanationTab>(
                                           value: _ExplanationTab.kur,
-                                          label: Text('Kurdish'),
+                                          label:
+                                              Text(l10n.grammarExplanationTabCkb),
                                         ),
                                       ],
                                       selected: {_explanationTab},
@@ -719,13 +735,15 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     required bool isPublic,
   }) async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _resultSubmitting = true);
     try {
       final topics = widget.topics
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
-      final quizName = topics.isEmpty ? 'Grammar practice' : topics.join(' + ');
+      final quizName =
+          topics.isEmpty ? l10n.grammarPracticeAppBar : topics.join(' + ');
       await ref.read(apiServiceProvider).submitGrammarResult(
             quizName: quizName,
             score: _score,
@@ -745,8 +763,8 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       if (!mounted) return;
       setState(() => _resultSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save your result. Please try again.'),
+        SnackBar(
+          content: Text(l10n.couldNotSaveResult),
         ),
       );
     }
@@ -1008,47 +1026,51 @@ class _OptionTile extends StatelessWidget {
                   : scheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_optionKeys.indexOf(optionKey) + 1}.',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: fg ?? scheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
+          child: Directionality(
+            textDirection: _grammarQuestionTextDirection(label),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_optionKeys.indexOf(optionKey) + 1}.',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
                     color: fg ?? scheme.onSurface,
-                    height: 1.3,
                   ),
                 ),
-              ),
-              if (answered && ok)
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(
-                      color: _kCorrectBadgeGreen,
-                      shape: BoxShape.circle,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.start,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: fg ?? scheme.onSurface,
+                      height: 1.3,
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 18,
+                  ),
+                ),
+                if (answered && ok)
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: _kCorrectBadgeGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (answered && !ok && sel == optionKey.toLowerCase())
-                Icon(Icons.cancel_rounded, color: scheme.error),
-            ],
+                if (answered && !ok && sel == optionKey.toLowerCase())
+                  Icon(Icons.cancel_rounded, color: scheme.error),
+              ],
+            ),
           ),
         ),
       ),
@@ -1058,6 +1080,7 @@ class _OptionTile extends StatelessWidget {
 
 class _SessionDoneBody extends StatelessWidget {
   const _SessionDoneBody({
+    required this.l10n,
     required this.score,
     required this.total,
     required this.submitting,
@@ -1068,6 +1091,7 @@ class _SessionDoneBody extends StatelessWidget {
     required this.onBack,
   });
 
+  final AppLocalizations l10n;
   final int score;
   final int total;
   final bool submitting;
@@ -1081,6 +1105,7 @@ class _SessionDoneBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final l = l10n;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -1090,20 +1115,20 @@ class _SessionDoneBody extends StatelessWidget {
             Icon(Icons.emoji_events_rounded, size: 72, color: scheme.primary),
             const SizedBox(height: 16),
             Text(
-              'Session complete',
+              l.grammarSessionCompleteTitle,
               style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'You got $score out of $total correct.',
+              l.grammarScoreOutOf(score, total),
               style: tt.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             if (!submitted) ...[
               Text(
-                'How should we save this result?',
+                l.grammarHowSaveResult,
                 style: tt.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: scheme.onSurfaceVariant,
@@ -1124,7 +1149,7 @@ class _SessionDoneBody extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    child: const Text('Keep private (only for me)'),
+                    child: Text(l.keepPrivate),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1135,13 +1160,13 @@ class _SessionDoneBody extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    child: const Text('Show in community results'),
+                    child: Text(l.showCommunity),
                   ),
                 ),
               ],
               const SizedBox(height: 8),
               Text(
-                'Private results appear only under My results; public results appear in the Users tab.',
+                l.grammarSaveResultFootnote,
                 style: tt.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   height: 1.35,
@@ -1155,7 +1180,7 @@ class _SessionDoneBody extends StatelessWidget {
                   Icon(Icons.check_circle_rounded, color: scheme.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Result saved',
+                    l.grammarResultSavedShort,
                     style: tt.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: scheme.primary,
@@ -1168,12 +1193,12 @@ class _SessionDoneBody extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: (submitting && !submitted) ? null : onAgain,
-              child: const Text('Practise again'),
+              child: Text(l.practiseAgain),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: onBack,
-              child: const Text('Back to topics'),
+              child: Text(l.backToTopics),
             ),
           ],
         ),

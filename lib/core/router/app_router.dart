@@ -19,6 +19,7 @@ import '../../features/shell/shell_scaffold.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/auth/auth_hub_screen.dart';
+import '../../features/onboarding/language_selection_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
@@ -54,6 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
 
       // First-launch guide (no shell)
+      GoRoute(
+        path: '/language',
+        builder: (_, __) => const LanguageSelectionScreen(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (_, __) => const OnboardingScreen(),

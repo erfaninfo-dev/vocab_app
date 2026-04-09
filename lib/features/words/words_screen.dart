@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/sync/pending_word_updates.dart';
 import '../../domain/api_providers.dart';
 import '../../data/models/vocab_entry.dart';
@@ -45,6 +46,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final unitKey = (
       bookId: widget.bookId,
       unit: widget.unit,
@@ -57,8 +59,8 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     final appBarTitle = widget.section != null
-        ? 'Unit ${widget.unit} • Section ${widget.section}'
-        : 'Unit ${widget.unit}';
+        ? l10n.wordsUnitSection(widget.unit, widget.section!)
+        : l10n.wordsUnitOnly(widget.unit);
 
     final flashcardsRoute = widget.section != null
         ? '/books/${widget.bookId}/units/${widget.unit}/sections/${widget.section}/flashcards'
@@ -73,12 +75,12 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         title: Text(appBarTitle),
         actions: [
           IconButton(
-            tooltip: 'Quiz',
+            tooltip: l10n.tooltipQuiz,
             onPressed: () => context.push(quizRoute),
             icon: const Icon(Icons.quiz_rounded),
           ),
           IconButton(
-            tooltip: 'Flashcards',
+            tooltip: l10n.tooltipFlashcards,
             onPressed: () => context.push(flashcardsRoute),
             icon: const Icon(Icons.style_rounded),
           ),
@@ -105,7 +107,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   error: (error, _) => ListView(
                     children: [
                       const SizedBox(height: 220),
-                      Center(child: Text(userFriendlyErrorMessage(error))),
+                      Center(child: Text(userFriendlyErrorMessage(error, l10n))),
                     ],
                   ),
                   data: (allWords) {
@@ -113,6 +115,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                         .where((e) => e.matchesWordQuery(_query))
                         .toList();
                     return _wordsScrollView(
+                      l10n: l10n,
                       displayList: filtered,
                       headerTotal: allWords.length,
                       isGlobalSearch: true,
@@ -129,11 +132,12 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   error: (error, _) => ListView(
                     children: [
                       const SizedBox(height: 220),
-                      Center(child: Text(userFriendlyErrorMessage(error))),
+                      Center(child: Text(userFriendlyErrorMessage(error, l10n))),
                     ],
                   ),
                   data: (unitWords) {
                     return _wordsScrollView(
+                      l10n: l10n,
                       displayList: unitWords,
                       headerTotal: unitWords.length,
                       isGlobalSearch: false,
@@ -146,6 +150,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
   }
 
   Widget _wordsScrollView({
+    required AppLocalizations l10n,
     required List<VocabEntry> displayList,
     required int headerTotal,
     required bool isGlobalSearch,
@@ -169,7 +174,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: SearchBar(
               autoFocus: false,
-              hintText: 'Search word (whole book)…',
+              hintText: l10n.searchWordWholeBook,
               leading: const Icon(Icons.search_rounded),
               trailing: [
                 if (_query.isNotEmpty)
@@ -183,8 +188,8 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           ),
         ),
         if (displayList.isEmpty)
-          const SliverFillRemaining(
-            child: Center(child: Text('No matching words found.')),
+          SliverFillRemaining(
+            child: Center(child: Text(l10n.noMatchingWords)),
           )
         else
           SliverPadding(
@@ -219,9 +224,10 @@ class _InfoHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final label = section != null
-        ? 'Section $section in Unit $unit'
-        : 'Unit $unit';
+        ? l10n.sectionInUnit(section!, unit)
+        : l10n.unitLabel(unit);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -257,8 +263,8 @@ class _InfoHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   isGlobalSearch
-                      ? '$filtered of $total matches (whole book)'
-                      : '$filtered of $total words visible',
+                      ? l10n.matchesWholeBook(filtered, total)
+                      : l10n.wordsVisible(filtered, total),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: const Color(0xFF1B5E20),
                   ),

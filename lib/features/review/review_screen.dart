@@ -8,6 +8,7 @@ import '../../core/srs/srs_provider.dart';
 import '../../core/tts/tts_service.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
@@ -44,6 +45,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Load all books, then load all words, then filter by due today
     final booksValue = ref.watch(apiBooksProvider);
@@ -54,7 +56,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Review Today'),
+        title: Text(l10n.reviewToday),
         actions: [
           Consumer(
             builder: (context, ref, _) {
@@ -65,7 +67,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               return Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: Chip(
-                  label: Text('$count due'),
+                  label: Text(l10n.dueCount(count)),
                   backgroundColor: scheme.primaryContainer,
                 ),
               );
@@ -75,8 +77,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ),
       body: booksValue.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(
-          child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
+        error: (_, __) => Center(
+          child: Text(l10n.fetchErrorRetry),
         ),
         data: (books) {
           // Watch all words providers for all books
@@ -103,11 +105,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               .toList();
 
           if (dueWords.isEmpty) {
-            return _EmptyState(totalStudied: srs.cards.length);
+            return _EmptyState(l10n: l10n, totalStudied: srs.cards.length);
           }
 
           if (_sessionDone || _index >= dueWords.length) {
-            return _DoneState(reviewed: dueWords.length);
+            return _DoneState(l10n: l10n, reviewed: dueWords.length);
           }
 
           final current = dueWords[_index];
@@ -120,6 +122,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               children: [
                 // Progress
                 _ReviewProgress(
+                  l10n: l10n,
                   current: _index + 1,
                   total: dueWords.length,
                 ),
@@ -135,6 +138,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       child:                       _showBack
                           ? _ReviewCardFace(
                               key: const ValueKey('back'),
+                              l10n: l10n,
                               word: current.word,
                               meaningEn: current.meaningEn,
                               meaningLocal: current.meaningFor(lang),
@@ -143,6 +147,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             )
                           : _ReviewCardFace(
                               key: const ValueKey('front'),
+                              l10n: l10n,
                               word: current.word,
                               meaningEn: '',
                               meaningLocal: '',
@@ -156,6 +161,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
                 // TTS
                 _ReviewSpeakRow(
+                  l10n: l10n,
                   word: current.word,
                   example: current.exampleEn,
                 ),
@@ -168,6 +174,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   child: _showBack
                       ? _ReviewRatingRow(
                           key: ValueKey('rating_${current.id}'),
+                          l10n: l10n,
                           card: card,
                           onRate: (r) =>
                               _rate(current.id, r, dueWords.length),
@@ -177,7 +184,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           height: 56,
                           child: Center(
                             child: Text(
-                              'Tap card to reveal answer',
+                              l10n.tapCardToReveal,
                               style: TextStyle(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -197,8 +204,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 // ─── Progress ─────────────────────────────────────────────────────────────────
 
 class _ReviewProgress extends StatelessWidget {
-  const _ReviewProgress({required this.current, required this.total});
+  const _ReviewProgress({
+    required this.l10n,
+    required this.current,
+    required this.total,
+  });
 
+  final AppLocalizations l10n;
   final int current;
   final int total;
 
@@ -211,7 +223,7 @@ class _ReviewProgress extends StatelessWidget {
         Row(
           children: [
             Text(
-              '$current / $total words',
+              l10n.wordsProgress(current, total),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const Spacer(),
@@ -242,6 +254,7 @@ class _ReviewProgress extends StatelessWidget {
 class _ReviewCardFace extends StatelessWidget {
   const _ReviewCardFace({
     super.key,
+    required this.l10n,
     required this.word,
     required this.meaningEn,
     required this.meaningLocal,
@@ -249,6 +262,7 @@ class _ReviewCardFace extends StatelessWidget {
     this.isBack = false,
   });
 
+  final AppLocalizations l10n;
   final String word;
   final String meaningEn;
   final String meaningLocal;
@@ -277,7 +291,7 @@ class _ReviewCardFace extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              isBack ? 'Answer' : 'Translate this word',
+              isBack ? l10n.answer : l10n.translateThisWord,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: scheme.onSurfaceVariant,
                 letterSpacing: 1.2,
@@ -346,7 +360,7 @@ class _ReviewCardFace extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Tap to see answer',
+                    l10n.tapToSeeAnswer,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -366,10 +380,12 @@ class _ReviewCardFace extends StatelessWidget {
 class _ReviewRatingRow extends StatelessWidget {
   const _ReviewRatingRow({
     super.key,
+    required this.l10n,
     required this.card,
     required this.onRate,
   });
 
+  final AppLocalizations l10n;
   final SrsCard card;
   final void Function(SrsRating) onRate;
 
@@ -378,7 +394,7 @@ class _ReviewRatingRow extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'How well did you know this?',
+          l10n.howWellKnew,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -391,6 +407,7 @@ class _ReviewRatingRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: _RatingChip(
+                  l10n: l10n,
                   rating: rating,
                   nextDays: next,
                   onTap: () => onRate(rating),
@@ -406,11 +423,13 @@ class _ReviewRatingRow extends StatelessWidget {
 
 class _RatingChip extends StatelessWidget {
   const _RatingChip({
+    required this.l10n,
     required this.rating,
     required this.nextDays,
     required this.onTap,
   });
 
+  final AppLocalizations l10n;
   final SrsRating rating;
   final int nextDays;
   final VoidCallback onTap;
@@ -448,7 +467,7 @@ class _RatingChip extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              rating.label,
+              _ratingLabel(l10n, rating),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -458,7 +477,7 @@ class _RatingChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${nextDays}d',
+              l10n.nextDaysShort(nextDays),
               style: TextStyle(
                 fontSize: 10,
                 color: _fg(context).withOpacity(0.75),
@@ -471,11 +490,29 @@ class _RatingChip extends StatelessWidget {
   }
 }
 
+String _ratingLabel(AppLocalizations l10n, SrsRating rating) {
+  switch (rating) {
+    case SrsRating.again:
+      return l10n.srsRatingAgain;
+    case SrsRating.hard:
+      return l10n.srsRatingHard;
+    case SrsRating.good:
+      return l10n.srsRatingGood;
+    case SrsRating.easy:
+      return l10n.srsRatingEasy;
+  }
+}
+
 // ─── Speak Row ────────────────────────────────────────────────────────────────
 
 class _ReviewSpeakRow extends ConsumerWidget {
-  const _ReviewSpeakRow({required this.word, required this.example});
+  const _ReviewSpeakRow({
+    required this.l10n,
+    required this.word,
+    required this.example,
+  });
 
+  final AppLocalizations l10n;
   final String word;
   final String example;
 
@@ -505,7 +542,7 @@ class _ReviewSpeakRow extends ConsumerWidget {
                 : Icons.volume_up_outlined,
             size: 18,
           ),
-          label: Text(isSpeaking ? 'Speaking...' : 'Pronounce'),
+          label: Text(isSpeaking ? l10n.speaking : l10n.pronounce),
         ),
       ],
     );
@@ -515,8 +552,9 @@ class _ReviewSpeakRow extends ConsumerWidget {
 // ─── Empty / Done States ──────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.totalStudied});
+  const _EmptyState({required this.l10n, required this.totalStudied});
 
+  final AppLocalizations l10n;
   final int totalStudied;
 
   @override
@@ -530,7 +568,7 @@ class _EmptyState extends StatelessWidget {
             const Text('🎉', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 16),
             Text(
-              'No words due today!',
+              l10n.noWordsDueTitle,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -538,8 +576,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               totalStudied == 0
-                  ? 'Start studying words using Flashcards to build your review queue.'
-                  : 'Great job! Come back tomorrow for more reviews.\n$totalStudied words in your queue.',
+                  ? l10n.noWordsDueBodyFlashcards
+                  : l10n.noWordsDueBodyGreat(totalStudied),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -553,8 +591,9 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _DoneState extends StatelessWidget {
-  const _DoneState({required this.reviewed});
+  const _DoneState({required this.l10n, required this.reviewed});
 
+  final AppLocalizations l10n;
   final int reviewed;
 
   @override
@@ -568,14 +607,14 @@ class _DoneState extends StatelessWidget {
             const Text('✅', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 16),
             Text(
-              'Session Complete!',
+              l10n.sessionComplete,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'You reviewed $reviewed word${reviewed == 1 ? '' : 's'} today.',
+              l10n.youReviewedToday(reviewed),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

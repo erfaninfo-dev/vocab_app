@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/grammar_session_item.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 const _optKeys = ['option1', 'option2', 'option3', 'option4'];
 
@@ -15,6 +16,7 @@ class GrammarResultReviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(grammarResultDetailProvider(resultId));
 
@@ -24,7 +26,7 @@ class GrammarResultReviewScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Review session'),
+        title: Text(l10n.reviewSessionTitle),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -34,12 +36,12 @@ class GrammarResultReviewScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Could not load this result.'),
+                Text(l10n.couldNotLoadResult),
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () =>
                       ref.invalidate(grammarResultDetailProvider(resultId)),
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),

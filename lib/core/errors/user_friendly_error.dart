@@ -1,24 +1,21 @@
 import 'dart:io';
 
-String userFriendlyErrorMessage(Object error) {
-  // Network
+import '../../l10n/app_localizations.dart';
+
+String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
   if (error is SocketException) {
-    return 'اتصال اینترنت برقرار نیست. لطفاً اینترنت را بررسی کنید.';
+    return l10n.errNoInternet;
   }
 
-  // Common parsing / bad server payload
   if (error is FormatException) {
-    return 'دریافت اطلاعات با مشکل مواجه شد. لطفاً دوباره تلاش کنید.';
+    return l10n.errBadData;
   }
 
   final text = error.toString();
 
-  // Avoid leaking raw HTTP codes / stack traces
   if (text.contains('HTTP ') || text.contains('Failed to fetch')) {
-    return 'ارتباط با سرور با مشکل مواجه شد. لطفاً دوباره تلاش کنید.';
+    return l10n.errServer;
   }
 
-  // Generic
-  return 'مشکلی پیش آمد. لطفاً دوباره تلاش کنید.';
+  return l10n.errorGeneric;
 }
-

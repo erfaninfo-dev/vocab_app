@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/onboarding/language_selection_prefs.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,6 +30,12 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _goNext() async {
     await Future<void>.delayed(const Duration(milliseconds: 1300));
     if (!mounted) return;
+    final langSelected = await isUiLanguageSelected();
+    if (!mounted) return;
+    if (!langSelected) {
+      context.go('/language');
+      return;
+    }
     final onboardingDone = await isOnboardingCompleted();
     if (!mounted) return;
     context.go(onboardingDone ? '/home' : '/onboarding');
@@ -36,6 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 450),
@@ -89,14 +98,14 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'IELTS Essential Words',
+                    l10n.appTitle,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Calm, focused vocabulary practice',
+                    l10n.splashTagline,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

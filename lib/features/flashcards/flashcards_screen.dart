@@ -7,6 +7,7 @@ import '../../core/srs/srs_model.dart';
 import '../../core/srs/srs_provider.dart';
 import '../../core/tts/tts_service.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class FlashcardsScreen extends ConsumerStatefulWidget {
   const FlashcardsScreen({
@@ -51,6 +52,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final data = ref.watch(
       apiWordsProvider((
         bookId: widget.bookId,
@@ -60,10 +62,11 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Flashcards')),
+      appBar: AppBar(title: Text(l10n.tooltipFlashcards)),
       body: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(userFriendlyErrorMessage(error))),
+        error: (error, _) =>
+            Center(child: Text(userFriendlyErrorMessage(error, l10n))),
         data: (words) {
           if (words.isEmpty) {
             return const Center(child: Text('No words for this section.'));

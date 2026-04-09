@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/unit_model.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class UnitsScreen extends ConsumerStatefulWidget {
   const UnitsScreen({super.key, required this.bookId});
@@ -34,8 +35,9 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
       }
     } catch (_) {
       if (!mounted) return;
+      final msg = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load sections. Please retry.')),
+        SnackBar(content: Text(msg.failedLoadSections)),
       );
     } finally {
       if (mounted) setState(() => _loadingUnit = null);
@@ -44,6 +46,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final unitsValue = ref.watch(apiUnitsProvider(widget.bookId));
     final scheme = Theme.of(context).colorScheme;
 
@@ -51,25 +54,25 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to books',
+          tooltip: l10n.backToBooks,
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/home'),
         ),
-        title: const Text(
-          'Units',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          l10n.unitsTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.quiz_rounded),
-            tooltip: 'Book quiz',
+            tooltip: l10n.bookQuiz,
             onPressed: () =>
                 context.push('/books/${widget.bookId}/vocab-quiz'),
           ),
           IconButton(
             icon: const Icon(Icons.bookmarks_rounded),
-            tooltip: 'Favorites',
+            tooltip: l10n.favorites,
             onPressed: () => context.push('/favorites'),
           ),
           const SizedBox(width: 4),
@@ -126,27 +129,30 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                     ),
                   ),
                   Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.04,
+                    child: Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.04,
+                        ),
+                        itemCount: units.length,
+                        itemBuilder: (context, index) {
+                          final unitInfo = units[index];
+                          return _UnitTile(
+                            unitInfo: unitInfo,
+                            delay: index * 20,
+                            isLoading: _loadingUnit == unitInfo.unit,
+                            onTap: () => _onUnitTap(unitInfo.unit),
+                            onQuiz: () => context.push(
+                              '/books/${widget.bookId}/units/${unitInfo.unit}/quiz',
+                            ),
+                          );
+                        },
                       ),
-                      itemCount: units.length,
-                      itemBuilder: (context, index) {
-                        final unitInfo = units[index];
-                        return _UnitTile(
-                          unitInfo: unitInfo,
-                          delay: index * 20,
-                          isLoading: _loadingUnit == unitInfo.unit,
-                          onTap: () => _onUnitTap(unitInfo.unit),
-                          onQuiz: () => context.push(
-                            '/books/${widget.bookId}/units/${unitInfo.unit}/quiz',
-                          ),
-                        );
-                      },
                     ),
                   ),
                 ],
@@ -215,10 +221,15 @@ class _UnitTileState extends State<_UnitTile> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Unit ${unitInfo.unit}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          'Unit ${unitInfo.unit}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                       const Spacer(),

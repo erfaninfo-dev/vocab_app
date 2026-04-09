@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/grammar_topic_summary.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class GrammarTopicsScreen extends ConsumerStatefulWidget {
   const GrammarTopicsScreen({super.key});
@@ -40,6 +41,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
 
   Future<void> _startPractice() async {
     if (_selected.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
     final topicsData = ref.read(apiGrammarTopicsProvider).valueOrNull;
     if (topicsData == null) return;
 
@@ -47,9 +49,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     if (bank <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No questions found for the selected topics.'),
-        ),
+        SnackBar(content: Text(l10n.grammarNoQuestions)),
       );
       return;
     }
@@ -58,12 +58,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     if (bank < minRequired) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Not enough questions in the bank for this selection '
-            '(need at least $minRequired).',
-          ),
-        ),
+        SnackBar(content: Text(l10n.grammarNotEnoughInBank(minRequired))),
       );
       return;
     }
@@ -95,25 +90,36 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(apiGrammarTopicsProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Grammar practice'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: l10n.back,
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/home'),
+        ),
+        title: Text(
+          l10n.grammarPracticeAppBar,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: false,
         backgroundColor: scheme.surface.withValues(alpha: 0.85),
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
           if (_selected.isNotEmpty)
             IconButton(
-              tooltip: 'Unselect all',
+              tooltip: l10n.grammarTooltipUnselectAll,
               onPressed: () => setState(_selected.clear),
               icon: const Icon(Icons.close_rounded),
             ),
           IconButton(
-            tooltip: 'Results',
+            tooltip: l10n.grammarTooltipResults,
             onPressed: () => context.push('/grammar/results'),
             icon: const Icon(Icons.emoji_events_rounded),
           ),
@@ -140,7 +146,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Could not load grammar topics. Please try again.',
+                      l10n.grammarCouldNotLoadTopics,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -151,8 +157,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          'No grammar topics yet.\n'
-                          'Add rows to your questions table (column content = topic name).',
+                          l10n.grammarNoTopicsEmpty,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
@@ -174,12 +179,15 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                           itemBuilder: (context, index) {
                             final t = topics[index];
                             final sel = _selected.contains(t.topic);
-                            return _TopicCard(
-                              title: t.topic,
-                              questionCount: t.questionCount,
-                              index: index,
-                              selected: sel,
-                              onTap: () => _toggleTopic(t.topic),
+                            return Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: _TopicCard(
+                                title: t.topic,
+                                questionCount: t.questionCount,
+                                index: index,
+                                selected: sel,
+                                onTap: () => _toggleTopic(t.topic),
+                              ),
                             );
                           },
                         ),
@@ -203,8 +211,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   icon: const Icon(Icons.play_arrow_rounded, size: 26),
                   label: Text(
                     _selected.isEmpty
-                        ? 'Select topics'
-                        : 'Continue (${_selected.length} topic${_selected.length == 1 ? '' : 's'})',
+                        ? l10n.grammarSelectTopicsCta
+                        : l10n.grammarContinueTopics(_selected.length),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
@@ -279,12 +287,13 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final single = widget.selectedTopicCount == 1;
     final hint = single
-        ? 'Questions are drawn at random from this topic only.'
-        : 'Questions are mixed at random from all selected topics for varied practice.';
+        ? l10n.grammarSheetHintSingleTopic
+        : l10n.grammarSheetHintMultiTopic;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -298,7 +307,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Questions in this session',
+                  l10n.grammarSheetSessionTitle,
                   textAlign: TextAlign.center,
                   style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
@@ -313,7 +322,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Up to ${widget.maxQuestions} question${widget.maxQuestions == 1 ? '' : 's'} available in the bank.',
+                  l10n.grammarSheetUpToInBank(widget.maxQuestions),
                   textAlign: TextAlign.center,
                   style: tt.labelMedium?.copyWith(
                     color: scheme.primary,
@@ -322,8 +331,10 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Minimum this session: $_effectiveMin '
-                  '(at least $kGrammarQuizMinBaseQuestions, or one per topic if you pick several).',
+                  l10n.grammarSheetMinSession(
+                    _effectiveMin,
+                    kGrammarQuizMinBaseQuestions,
+                  ),
                   textAlign: TextAlign.center,
                   style: tt.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -345,7 +356,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        _count == 1 ? 'question' : 'questions',
+                        l10n.grammarQuestionNoun(_count),
                         style: tt.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -364,7 +375,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                   onChanged: (v) => _setCount(v.round()),
                 ),
                 Text(
-                  'Quick pick',
+                  l10n.grammarSheetQuickPick,
                   style: tt.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: scheme.onSurfaceVariant,
@@ -391,7 +402,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.cancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -400,7 +411,7 @@ class _GrammarQuestionCountSheetState extends State<_GrammarQuestionCountSheet> 
                       child: FilledButton(
                         onPressed: () =>
                             Navigator.of(context).pop(_count),
-                        child: const Text('Start quiz'),
+                        child: Text(l10n.startQuiz),
                       ),
                     ),
                   ],

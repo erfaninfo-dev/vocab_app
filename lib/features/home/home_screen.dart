@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/srs/srs_provider.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 final searchControllerProvider = Provider<TextEditingController>((ref) {
   final controller = TextEditingController();
@@ -20,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final booksValue = ref.watch(apiSearchBooksProvider);
     final scheme = Theme.of(context).colorScheme;
 
@@ -65,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(24),
                     child: Center(
                       child: Text(
-                        'Could not load books.\n$error',
+                        l10n.couldNotLoadBooksWithError(error.toString()),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -73,42 +75,56 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 data: (books) {
                   if (books.isEmpty) {
-                    return const SliverToBoxAdapter(
+                    return SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 50),
+                        padding: const EdgeInsets.only(top: 50),
                         child: Center(
                           child: Text(
-                            'No books found',
-                            style: TextStyle(fontSize: 20),
+                            l10n.noBooksFound,
+                            style: const TextStyle(fontSize: 20),
                           ),
                         ),
                       ),
                     );
                   }
 
-                  final width = MediaQuery.sizeOf(context).width;
-                  final crossAxisCount = width >= 1100
-                      ? 3
-                      : width >= 700
-                      ? 2
-                      : 1;
+                  return SliverToBoxAdapter(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        final crossAxisCount = width >= 1100
+                            ? 3
+                            : width >= 700
+                            ? 2
+                            : 1;
 
-                  return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    sliver: SliverGrid.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: crossAxisCount == 1 ? 1.5 : 1.08,
-                      ),
-                      itemCount: books.length,
-                      itemBuilder: (context, index) {
-                        final book = books[index];
-                        return _BookCard(
-                          book: book,
-                          index: index,
-                          onTap: () => context.push('/books/${book.id}/units'),
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          child: Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio:
+                                    crossAxisCount == 1 ? 1.5 : 1.08,
+                              ),
+                              itemCount: books.length,
+                              itemBuilder: (context, index) {
+                                final book = books[index];
+                                return _BookCard(
+                                  book: book,
+                                  index: index,
+                                  onTap: () =>
+                                      context.push('/books/${book.id}/units'),
+                                );
+                              },
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -130,6 +146,7 @@ class _HomeHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final bookCount = ref.watch(
       apiSearchBooksProvider.select((v) => v.valueOrNull?.length ?? 0),
@@ -148,13 +165,13 @@ class _HomeHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Choose Your Book',
+            l10n.chooseYourBook,
             style: Theme.of(context).textTheme.headlineSmall
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 5),
           Text(
-            '$bookCount ${bookCount == 1 ? 'book' : 'books'} available',
+            l10n.booksAvailable(bookCount),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -174,6 +191,7 @@ class _SearchField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final controller = ref.watch(searchControllerProvider);
 
@@ -182,7 +200,7 @@ class _SearchField extends ConsumerWidget {
       autofocus: false,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.search),
-        hintText: 'Search books…',
+        hintText: l10n.searchBooksHint,
         filled: true,
         fillColor: scheme.surface.withValues(alpha: 0.9),
         border: OutlineInputBorder(
@@ -209,9 +227,13 @@ class _BookCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final unitsValue = ref.watch(apiUnitsProvider(book.id));
     final accents = _cardAccents(index);
+    final locale = Localizations.localeOf(context);
+    final rtlUnitLine =
+        locale.languageCode == 'fa' || locale.languageCode == 'ckb';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -271,15 +293,25 @@ class _BookCard extends ConsumerWidget {
 
               const SizedBox(height: 6),
 
-              Text(
-                unitsValue.when(
-                  loading: () => 'Loading…',
-                  error: (_, __) => 'Tap to open',
-                  data: (units) =>
-                      '${units.length} unit${units.length == 1 ? '' : 's'}',
-                ),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              Align(
+                alignment:
+                    rtlUnitLine ? Alignment.centerRight : Alignment.centerLeft,
+                child: Directionality(
+                  textDirection:
+                      rtlUnitLine ? TextDirection.rtl : TextDirection.ltr,
+                  child: Text(
+                    unitsValue.when(
+                      loading: () => l10n.loadingEllipsis,
+                      error: (_, __) => l10n.tapToOpen,
+                      data: (units) {
+                        final n = units.length;
+                        return '$n ${n == 1 ? l10n.unitSingular : l10n.unitPlural}';
+                      },
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
 
@@ -342,6 +374,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -375,7 +408,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Grammar practice',
+                        l10n.grammarPracticeTitle,
                         style: TextStyle(
                           color: scheme.onPrimary,
                           fontWeight: FontWeight.w800,
@@ -383,7 +416,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Multiple-choice questions by grammar topic',
+                        l10n.grammarPracticeSubtitle,
                         style: TextStyle(
                           color: scheme.onPrimary.withValues(alpha: 0.9),
                           fontSize: 12,
@@ -413,6 +446,7 @@ class _ReviewBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final dueCount = ref.watch(
       srsProvider.select((s) => s.dueTodayCount),
     );
@@ -446,16 +480,16 @@ class _ReviewBanner extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$dueCount word${dueCount == 1 ? '' : 's'} due for review!',
+                        l10n.reviewWordsDue(dueCount),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                         ),
                       ),
-                      const Text(
-                        'Tap to start your daily review session',
-                        style: TextStyle(
+                      Text(
+                        l10n.reviewTapStart,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
                         ),

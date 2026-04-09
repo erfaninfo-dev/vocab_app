@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/auth/auth_provider.dart';
+import '../../core/locale/ui_locale_provider.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
+import '../../l10n/app_localizations.dart';
 import 'quiz_screen.dart';
 
 /// Pick unit(s), question count (min 10 when enough words exist), and scope for book-level quiz.
@@ -31,6 +33,8 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(uiLocaleProvider);
+    final l10n = lookupAppLocalizations(locale);
     final scheme = Theme.of(context).colorScheme;
     final unitsAsync = ref.watch(apiUnitsProvider(widget.bookId));
     final allWordsAsync = ref.watch(apiAllWordsForBookProvider(widget.bookId));
@@ -41,7 +45,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vocabulary quiz'),
+        title: Text(l10n.vocabularyQuizTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -49,7 +53,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
       ),
       body: unitsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e))),
+        error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e, l10n))),
         data: (units) {
           if (!_seededUnits && units.isNotEmpty) {
             _seededUnits = true;
@@ -65,11 +69,11 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
 
           return allWordsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e))),
+            error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e, l10n))),
             data: (allWords) {
               return wrongsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Center(child: Text('Could not load mistakes')),
+                error: (_, __) => Center(child: Text(l10n.couldNotLoadMistakesShort)),
                 data: (wrongs) {
                   final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
 
@@ -89,6 +93,10 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       : basePool;
 
                   final pool = effectivePool.length;
+                  final minPoolStart = (hasImportant && _quizImportantOnly) ||
+                          _wrongsOnly
+                      ? 1
+                      : 4;
                   final maxQ = pool.clamp(0, 60);
                   final minQ = pool >= 10 ? 10 : (pool > 0 ? pool : 0);
                   if (_questionCount > maxQ && maxQ > 0) {
@@ -108,25 +116,33 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                     children: [
                       Text(
-                        'Choose units, how many questions, and whether to drill past mistakes.',
+                        l10n.bookQuizSetupIntro,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        'Units',
+                        l10n.unitsSectionTitle,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final u in units)
-                            FilterChip(
-                              label: Text('Unit ${u.unit}'),
-                              selected: _selectedUnits.contains(u.unit),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final u in units)
+                              FilterChip(
+                                label: Text(
+                                  l10n.unitLabel(u.unit),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(fontSize: 13),
+                                ),
+                                selected: _selectedUnits.contains(u.unit),
                               onSelected: (v) {
                                 setState(() {
                                   if (v) {
@@ -137,7 +153,8 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                                 });
                               },
                             ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
                       if (loggedIn) ...[
@@ -146,17 +163,17 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                           onChanged: wrongs.isEmpty
                               ? null
                               : (v) => setState(() => _wrongsOnly = v),
-                          title: const Text('Only past mistakes'),
+                          title: Text(l10n.onlyPastMistakes),
                           subtitle: Text(
                             wrongs.isEmpty
-                                ? 'No recorded mistakes for this book yet.'
-                                : '${wrongs.length} mistake(s) on server',
+                                ? l10n.noMistakesYet
+                                : l10n.mistakesOnServer(wrongs.length),
                           ),
                         ),
                         const SizedBox(height: 8),
                       ] else ...[
                         Text(
-                          'Sign in to sync wrong words and use “past mistakes” mode.',
+                          l10n.signInForMistakes,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -165,14 +182,14 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       ],
                       if (hasImportant) ...[
                         Text(
-                          'Important words',
+                          l10n.importantWordsSection,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'This selection includes words marked important on the server.',
+                          l10n.importantWordsServerHint,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -183,13 +200,13 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                           runSpacing: 8,
                           children: [
                             ChoiceChip(
-                              label: const Text('All words'),
+                              label: Text(l10n.allWordsChip),
                               selected: !_quizImportantOnly,
                               onSelected: (_) =>
                                   setState(() => _quizImportantOnly = false),
                             ),
                             ChoiceChip(
-                              label: const Text('Important only'),
+                              label: Text(l10n.importantOnlyChip),
                               selected: _quizImportantOnly,
                               onSelected: (_) =>
                                   setState(() => _quizImportantOnly = true),
@@ -199,7 +216,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                         const SizedBox(height: 20),
                       ],
                       Text(
-                        'Question modes',
+                        l10n.questionModes,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
@@ -211,7 +228,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                         children: [
                           for (final m in VocabQuestionMode.values)
                             FilterChip(
-                              label: Text(m.label),
+                              label: Text(m.l10nLabel(l10n)),
                               selected: _questionModes.contains(m),
                               showCheckmark: false,
                               onSelected: (v) {
@@ -231,7 +248,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Questions (max $maxQ)',
+                        l10n.bookQuizQuestionsSlider(maxQ),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
@@ -248,7 +265,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: pool < 4 || maxQ < 1
+                        onPressed: pool < minPoolStart || maxQ < 1
                             ? null
                             : () {
                                 final u = _selectedUnits.toList()..sort();
@@ -267,18 +284,21 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                                 context.push(path);
                               },
                         icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text('Start quiz'),
+                        label: Text(l10n.startQuiz),
                       ),
-                      if (pool < 4)
+                      if (pool < minPoolStart)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
-                            hasImportant &&
-                                    _quizImportantOnly &&
-                                    basePool.length >= 4
-                                ? 'Not enough important words in this selection (need at least 4). '
-                                    'Choose all words or adjust units / mistakes.'
-                                : 'Need at least 4 words in the pool (check units / mistakes).',
+                            pool == 0 &&
+                                    hasImportant &&
+                                    _quizImportantOnly
+                                ? l10n.bookQuizPoolTooSmallImportant
+                                : pool == 0 &&
+                                        loggedIn &&
+                                        _wrongsOnly
+                                    ? l10n.quizNotEnoughWrongs
+                                    : l10n.bookQuizPoolTooSmall,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: scheme.error,
                                 ),

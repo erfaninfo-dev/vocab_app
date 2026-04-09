@@ -1,0 +1,568 @@
+{
+  "@@locale": "en",
+  "appTitle": "IELTS Essential Words",
+  "tabHome": "Home",
+  "tabGrammar": "Grammar",
+  "tabReview": "Review",
+  "tabProgress": "Progress",
+  "tabSettings": "Settings",
+  "back": "Back",
+  "next": "Next",
+  "skip": "Skip",
+  "cancel": "Cancel",
+  "continueLabel": "Continue",
+  "close": "Close",
+  "retry": "Retry",
+  "loading": "Loading…",
+  "search": "Search",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "splashTagline": "Calm, focused vocabulary practice",
+  "languageSelectionTitle": "Choose app language",
+  "languageSelectionSubtitle": "You can change this anytime in Settings.",
+  "langEnglish": "English",
+  "langPersian": "Persian (Farsi)",
+  "langKurdishSorani": "Kurdish (Sorani)",
+  "chooseYourBook": "Choose Your Book",
+  "booksAvailable": "{count, plural, =0{No books available} =1{1 book available} other{{count} books available}}",
+  "@booksAvailable": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "searchBooksHint": "Search books…",
+  "couldNotLoadBooks": "Could not load books.",
+  "couldNotLoadBooksWithError": "Could not load books.\n{error}",
+  "@couldNotLoadBooksWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "noBooksFound": "No books found",
+  "bookSingular": "book",
+  "bookPlural": "books",
+  "unitSingular": "unit",
+  "unitPlural": "units",
+  "loadingEllipsis": "Loading…",
+  "tapToOpen": "Tap to open",
+  "grammarPracticeTitle": "Grammar practice",
+  "grammarPracticeSubtitle": "Multiple-choice questions by grammar topic",
+  "reviewWordsDue": "{count, plural, =1{1 word due for review!} other{{count} words due for review!}}",
+  "@reviewWordsDue": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "reviewTapStart": "Tap to start your daily review session",
+  "obSlide1Title": "Books & words",
+  "obSlide1Body": "Start from Home: pick a book, open units, then browse words. Use flashcards and quizzes inside each unit to study the way you like.",
+  "obSlide2Title": "Grammar practice",
+  "obSlide2Body": "Open the Grammar tab below. Select one or more topics and start a session — each run uses 20 random questions with explanations.",
+  "obSlide3Title": "Daily review",
+  "obSlide3Body": "Review uses spaced repetition for words you've practiced. Check the badge on the tab when cards are due.",
+  "obSlide4Title": "Your progress",
+  "obSlide4Body": "Progress shows streaks and activity. Keep a steady rhythm to build a habit.",
+  "obSlide5Title": "Make it yours",
+  "obSlide5Body": "In Settings: theme, translation language (Persian / Kurdish Sorani), reminders, and more.",
+  "getStarted": "Get started",
+  "settingsTitle": "Settings",
+  "sectionAccount": "Account",
+  "signIn": "Sign in",
+  "signInSubtitle": "Optional — use email and password",
+  "createAccount": "Create account",
+  "profile": "Profile",
+  "signOut": "Sign out",
+  "signOutTitle": "Sign out?",
+  "signOutBody": "Are you sure you want to sign out?",
+  "signedOut": "Signed out",
+  "loadingAccount": "Loading account…",
+  "sectionTranslationLanguage": "Translation language",
+  "translationLangPersian": "Persian",
+  "translationLangKurdishSorani": "Kurdish (Sorani)",
+  "sectionAppearance": "Appearance",
+  "systemTheme": "System theme",
+  "lightMode": "Light mode",
+  "darkMode": "Dark mode",
+  "sectionDailyReminder": "Daily reminder",
+  "dailyStudyReminder": "Daily study reminder",
+  "reminderSetAt": "Reminder set at {time}",
+  "@reminderSetAt": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tapToEnableReminder": "Tap to enable",
+  "reminderTime": "Reminder time",
+  "sectionAbout": "About",
+  "sectionAppLanguage": "App language",
+  "appLanguageSubtitle": "Interface language (English, Persian, or Kurdish Sorani)",
+  "linkCopied": "Link copied to clipboard",
+  "appNameShort": "IELTS Words",
+  "byAuthor": "By Erfan Abdi",
+  "errNoInternet": "No internet connection. Please check your network.",
+  "errBadData": "Could not read data. Please try again.",
+  "errServer": "Could not reach the server. Please try again.",
+  "reviewToday": "Review Today",
+  "dueCount": "{count} due",
+  "@dueCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "fetchErrorRetry": "Could not load data. Please try again.",
+  "tapCardToReveal": "Tap card to reveal answer",
+  "translateThisWord": "Translate this word",
+  "answer": "Answer",
+  "tapToSeeAnswer": "Tap to see answer",
+  "howWellKnew": "How well did you know this?",
+  "pronounce": "Pronounce",
+  "speaking": "Speaking…",
+  "noWordsDueTitle": "No words due today!",
+  "noWordsDueBodyFlashcards": "Start studying words using Flashcards to build your review queue.",
+  "noWordsDueBodyGreat": "Great job! Come back tomorrow for more reviews.\n{count, plural, =1{1 word} other{{count} words}} in your queue.",
+  "@noWordsDueBodyGreat": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "sessionComplete": "Session Complete!",
+  "youReviewedToday": "You reviewed {count, plural, =1{1 word} other{{count} words}} today.",
+  "@youReviewedToday": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "wordsProgress": "{current} / {total} words",
+  "@wordsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "quizTitle": "Quiz",
+  "couldNotLoadWords": "Could not load data. Please try again.",
+  "couldNotLoadMistakes": "Could not load mistake list",
+  "quizNotEnoughImportant": "No important words in this scope. Choose all words, change scope, or pick more units.",
+  "quizNotEnoughWrongs": "No words from your mistake list in this selection. Adjust units or turn off “only past mistakes”.",
+  "quizNeedFourWords": "Need at least 4 words to start this quiz.",
+  "quizNeedOneWord": "Need at least 1 word to start this quiz.",
+  "quizScopeTitle": "Quiz scope",
+  "quizScopeImportantDescription": "This list includes important words. Choose whether the quiz uses every word here or only important ones.",
+  "allWordsCount": "All words ({count})",
+  "@allWordsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importantWordsOnlyCount": "Important words only ({count})",
+  "@importantWordsOnlyCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importantOnlyNeedsFour": "Quiz only the words marked important in this list.",
+  "quizSetupTitle": "Quiz setup",
+  "quizPoolSummary": "{pool} words in pool · min {min} question(s) · max {max}",
+  "@quizPoolSummary": {
+    "placeholders": {
+      "pool": {"type": "int"},
+      "min": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "onlyPastMistakes": "Only past mistakes",
+  "noMistakesYet": "No mistakes recorded yet for this scope.",
+  "mistakesOnServer": "{count, plural, =1{1 mistake} other{{count} mistakes}} on server",
+  "@mistakesOnServer": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "signInForMistakes": "Sign in to sync mistakes and use “past mistakes” mode.",
+  "numberOfQuestions": "Number of questions",
+  "questionModes": "Question modes",
+  "startQuiz": "Start quiz",
+  "quizMcqWordToMeaning": "Word → Meaning",
+  "quizMcqMeaningToWord": "Meaning → Word",
+  "quizWrittenMeaningToWord": "Fill in the blank",
+  "whatIsMeaningOf": "What is the meaning of:",
+  "whichWordMeans": "Which word means:",
+  "typeTheWord": "Type the word",
+  "typeYourAnswer": "Type your answer…",
+  "submit": "Submit",
+  "seeResults": "See Results",
+  "nextQuestion": "Next Question",
+  "updating": "Updating…",
+  "learnedRemoveMistakes": "I learned it — remove from mistakes",
+  "questionProgress": "Question {current} / {total}",
+  "@questionProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "scoreCorrect": "{score} correct",
+  "@scoreCorrect": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
+  },
+  "perfectScore": "Perfect score!",
+  "excellentWork": "Excellent work!",
+  "goodJob": "Good job!",
+  "keepPracticing": "Keep practicing!",
+  "dontGiveUp": "Don't give up!",
+  "tryAgain": "Try Again",
+  "changeMode": "Change Mode",
+  "backToWords": "Back to Words",
+  "correctLine": "Correct: {answer}",
+  "@correctLine": {
+    "placeholders": {
+      "answer": {"type": "String"}
+    }
+  },
+  "wrongBlankLine": "Wrong (blank). Correct answer: {correct}",
+  "@wrongBlankLine": {
+    "placeholders": {
+      "correct": {"type": "String"}
+    }
+  },
+  "wrongAnswerLine": "Wrong: {given} · Correct answer: {correct}",
+  "@wrongAnswerLine": {
+    "placeholders": {
+      "given": {"type": "String"},
+      "correct": {"type": "String"}
+    }
+  },
+  "removedFromMistakes": "Removed from your mistake list",
+  "couldNotUpdateServer": "Could not update server",
+  "unitsTitle": "Units",
+  "backToBooks": "Back to books",
+  "bookQuiz": "Book quiz",
+  "favorites": "Favorites",
+  "failedLoadSections": "Failed to load sections. Please retry.",
+  "wordsUnitSection": "Unit {unit} • Section {section}",
+  "@wordsUnitSection": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "wordsUnitOnly": "Unit {unit}",
+  "@wordsUnitOnly": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "tooltipQuiz": "Quiz",
+  "tooltipFlashcards": "Flashcards",
+  "searchWordWholeBook": "Search word (whole book)…",
+  "noMatchingWords": "No matching words found.",
+  "sectionInUnit": "Section {section} in Unit {unit}",
+  "@sectionInUnit": {
+    "placeholders": {
+      "section": {"type": "int"},
+      "unit": {"type": "int"}
+    }
+  },
+  "unitLabel": "Unit {unit}",
+  "@unitLabel": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "matchesWholeBook": "{filtered} of {total} matches (whole book)",
+  "@matchesWholeBook": {
+    "placeholders": {
+      "filtered": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordsVisible": "{filtered} of {total} words visible",
+  "@wordsVisible": {
+    "placeholders": {
+      "filtered": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "vocabularyQuizTitle": "Vocabulary quiz",
+  "bookQuizSetupIntro": "Choose units, how many questions, and whether to drill past mistakes.",
+  "unitsSectionTitle": "Units",
+  "couldNotLoadMistakesShort": "Could not load mistakes",
+  "registerTitle": "Create account",
+  "newAccount": "New account",
+  "registerSubtitle": "Choose email and password (at least 8 characters). No email or SMS code — you can sign in right away.",
+  "displayNameOptional": "Display name (optional)",
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm password",
+  "register": "Register",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "loginTitle": "Sign in",
+  "welcomeBack": "Welcome back",
+  "loginSubtitle": "Use your email and password. No verification step — your account is active immediately.",
+  "enterEmail": "Enter your email",
+  "enterValidEmail": "Enter a valid email",
+  "enterPassword": "Enter your password",
+  "passwordMinLength": "At least 8 characters",
+  "confirmYourPassword": "Confirm your password",
+  "passwordsNoMatch": "Passwords do not match",
+  "signInButton": "Sign in",
+  "forgotPassword": "Forgot password?",
+  "createAnAccount": "Create an account",
+  "accountTitle": "Account",
+  "tabSignIn": "Sign in",
+  "tabRegister": "Register",
+  "statsMyProgress": "My Progress",
+  "wordMastery": "Word Mastery",
+  "last7Days": "Last 7 Days",
+  "quizInsights": "Quiz insights",
+  "allTime": "All Time",
+  "vocabAndGrammar": "Vocabulary & grammar",
+  "streakDays": "{count, plural, =1{1 day} other{{count} days}} streak",
+  "@streakDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "longest": "Longest",
+  "totalDays": "Total Days",
+  "mastered": "Mastered  ",
+  "learning": "Learning  ",
+  "seenOnce": "Seen once  ",
+  "wordsReviewedPerDay": "Words reviewed per day",
+  "totalReviews": "Total Reviews",
+  "studyDays": "Study Days",
+  "insightsTitle": "Quiz insights",
+  "tabOverview": "Overview",
+  "tabVocabulary": "Vocabulary",
+  "tabGrammarStats": "Grammar",
+  "insightsLast14": "Last 14 days: vocabulary (this device) vs grammar (saved to your account).",
+  "insightsSignInGrammar": "Sign in to load grammar scores. Vocabulary bars still use local quiz data.",
+  "insightsGrammarLoadError": "Could not load grammar data for the chart.",
+  "vocabDailyAccuracy": "Daily accuracy from vocabulary quizzes (stored on this device).",
+  "allTimeDevice": "All-time (device)",
+  "grammarPracticeAppBar": "Grammar practice",
+  "grammarTooltipResults": "Results",
+  "grammarTooltipUnselectAll": "Unselect all",
+  "grammarSelectTopicsCta": "Select topics",
+  "grammarContinueTopics": "{count, plural, one{Continue (1 topic)} other{Continue ({count} topics)}}",
+  "@grammarContinueTopics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "grammarCouldNotLoadTopics": "Could not load grammar topics. Please try again.",
+  "grammarNoTopicsEmpty": "No grammar topics yet.\nAdd rows to your questions table (column content = topic name).",
+  "grammarNotEnoughInBank": "Not enough questions in the bank for this selection (need at least {minRequired}).",
+  "@grammarNotEnoughInBank": {
+    "placeholders": {
+      "minRequired": {
+        "type": "int"
+      }
+    }
+  },
+  "grammarNoQuestions": "No questions found for the selected topics.",
+  "grammarTopicsPick": "Pick topics and session length",
+  "exitExerciseTitle": "Exit exercise?",
+  "exitExerciseBody": "If you go back now, your progress for this session will not be saved.",
+  "stay": "Stay",
+  "exit": "Exit",
+  "grammarAppBar": "Grammar",
+  "noTopicSelected": "No topic selected.",
+  "reportSubmitted": "Report submitted",
+  "reportFailed": "Could not submit report. Please try again.",
+  "submitReport": "Submit report",
+  "couldNotSaveResult": "Could not save your result. Please try again.",
+  "keepPrivate": "Keep private (only for me)",
+  "showCommunity": "Show in community results",
+  "practiseAgain": "Practise again",
+  "backToTopics": "Back to topics",
+  "reviewSessionTitle": "Review session",
+  "couldNotLoadResult": "Could not load this result.",
+  "myResults": "My results",
+  "users": "Users",
+  "tryAgainResults": "Try again",
+  "wordExample": "Example",
+  "favorite": "Favorite",
+  "important": "Important",
+  "pronounceWord": "Pronounce word",
+  "pronounceExample": "Pronounce example",
+  "couldNotUpdateImportant": "Could not update important flag",
+  "markedImportant": "Marked as important",
+  "removedImportant": "Removed from important",
+  "savedLocally": "Saved locally. Will sync on refresh.",
+  "registerEmailTaken": "This email is already registered",
+  "registerFailed": "Registration failed. Please try again.",
+  "loginInvalid": "Invalid email or password",
+  "loginFailed": "Sign-in failed. Please try again.",
+  "passwordResetTitle": "Password reset",
+  "passwordResetBody": "Due to internet restrictions, email reset may not work. For help, message erfaninfox on Bale or Rubika.",
+  "copySupportLink": "Copy support link",
+  "supportLinkCopied": "Support link copied — open in browser or Rubika",
+  "copyRequestText": "Copy request text",
+  "requestTextCopied": "Request text copied — send it in Bale or Rubika",
+  "statsSignInGrammarTrend": "Sign in to see grammar score trends from your saved quizzes.",
+  "statsCouldNotLoadGrammar": "Could not load grammar stats.",
+  "statsNoGrammarYet": "No grammar results yet. Complete a grammar quiz and save your score.",
+  "grammarOverview": "Grammar overview",
+  "averageLastAttempts": "Average (last {count} saved): ",
+  "@averageLastAttempts": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "attempts": "Attempts",
+  "lastLabel": "Last",
+  "bestLabel": "Best",
+  "worstLabel": "Worst",
+  "trendLabel": "Trend",
+  "scoreTrendTitle": "Score trend (oldest → newest)",
+  "saveTwoQuizzesChart": "Save at least two grammar quizzes to see a line chart.",
+  "attemptsDistribution": "Attempts distribution",
+  "vocabDailyChartHint": "Answer vocabulary quiz questions to see daily accuracy here.",
+  "noQuizDataRange": "No quiz data in this range yet.",
+  "legendVocabulary": "Vocabulary",
+  "legendGrammar": "Grammar",
+  "insightsVocabVsGrammar": "Vocabulary",
+  "bookQuizChooseUnits": "Choose units",
+  "nextDaysShort": "{n}d",
+  "@nextDaysShort": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "vocabQuizExitTitle": "Exit quiz?",
+  "vocabQuizExitBody": "If you leave now, your progress for this quiz will be lost.",
+  "importantWordsSection": "Important words",
+  "importantWordsServerHint": "This selection includes words marked important on the server.",
+  "allWordsChip": "All words",
+  "importantOnlyChip": "Important only",
+  "bookQuizQuestionsSlider": "Questions (max {max})",
+  "@bookQuizQuestionsSlider": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "bookQuizPoolTooSmall": "Need at least 4 words in the pool (check units / mistakes).",
+  "bookQuizPoolTooSmallImportant": "No important words in this selection. Choose all words or adjust units / mistakes.",
+  "statsStudiedToday": "✅ Studied today!",
+  "statsStudyToKeepStreak": "📖 Study today to keep your streak",
+  "statsInsightsCardSubtitle": "14-day charts, trends, and breakdown by type",
+  "statsVocabDeviceAccuracy": "Vocab (device): {pct}% ({correct} / {answered})",
+  "@statsVocabDeviceAccuracy": {
+    "placeholders": {
+      "pct": {"type": "String"},
+      "correct": {"type": "int"},
+      "answered": {"type": "int"}
+    }
+  },
+  "statsWordsStudiedTotal": "{count, plural, =1{1 word studied in total} other{{count} words studied in total}}",
+  "@statsWordsStudiedTotal": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "srsRatingAgain": "❌ Again",
+  "srsRatingHard": "😐 Hard",
+  "srsRatingGood": "✅ Good",
+  "srsRatingEasy": "🔥 Easy",
+  "profileScreenTitle": "Profile",
+  "profileSignInPrompt": "Sign in to edit your profile.",
+  "profilePhotoUpdated": "Photo updated",
+  "profileUploadFailed": "Upload failed. Try again or pick a smaller image.",
+  "profileSaved": "Profile saved",
+  "profileSaveFailed": "Could not save profile. Please try again.",
+  "unsavedChangesTitle": "Unsaved changes",
+  "unsavedChangesBody": "You have unsaved changes. Leave anyway?",
+  "discardStay": "Keep editing",
+  "discardLeave": "Leave",
+  "profileCropPhoto": "Crop photo",
+  "profileGallery": "Gallery",
+  "profileCamera": "Camera",
+  "profileDisplayName": "Display name",
+  "profileDisplayNameHint": "How your name appears",
+  "profilePresetAvatars": "Or pick a preset avatar",
+  "profileBoyAvatars": "Boy avatars",
+  "profileGirlAvatars": "Girl avatars",
+  "save": "Save",
+  "grammarResultsScreenTitle": "Grammar results",
+  "grammarExplanationTabFa": "Persian",
+  "grammarExplanationTabCkb": "Kurdish",
+  "grammarReportProblemTitle": "Report a problem",
+  "grammarReportWhatWrong": "What is wrong?",
+  "grammarReportDetailsOptional": "Details (optional)",
+  "grammarReportKindWrongAnswer": "Marked correct answer is wrong",
+  "grammarReportKindTypoQuestion": "Typo in the question text",
+  "grammarReportKindTypoOptions": "Multiple options look correct",
+  "grammarReportKindBadExplanation": "Explanation is wrong or incomplete",
+  "grammarReportKindUnclear": "Question wording is unclear",
+  "grammarReportKindOther": "Other",
+  "grammarReportQuestionTooltip": "Report question",
+  "grammarTopicsCountAppBar": "{count, plural, =1{1 topic} other{{count} topics}}",
+  "@grammarTopicsCountAppBar": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarSortNewestFirst": "Newest first",
+  "grammarSortHighestScore": "Highest score %",
+  "grammarSortLabel": "Sort",
+  "grammarSignInRequiredTitle": "Sign in required",
+  "grammarSignInRequiredBody": "Log in to see your personal history and private/public labels.",
+  "grammarGoToSignIn": "Go to Settings & sign in",
+  "grammarLoadingYourResults": "Loading your results…",
+  "grammarLoadingCommunityResults": "Loading community results…",
+  "grammarNoPersonalResultsTitle": "No results yet",
+  "grammarNoPersonalResultsBody": "After you finish a grammar session, your score will appear here.",
+  "grammarCommunityEmptyTitle": "Nothing here yet",
+  "grammarCommunityEmptyBody": "When you choose “Show in community results” at the end of a quiz, it will appear in this list.",
+  "guestUser": "Guest",
+  "resultVisibilityPublic": "Public",
+  "resultVisibilityPrivate": "Private",
+  "errorConnectionTryAgain": "Check your connection and try again.",
+  "grammarSheetSessionTitle": "Questions in this session",
+  "grammarSheetHintSingleTopic": "Questions are drawn at random from this topic only.",
+  "grammarSheetHintMultiTopic": "Questions are mixed at random from all selected topics for varied practice.",
+  "grammarSheetUpToInBank": "{max, plural, =1{Up to 1 question available in the bank.} other{Up to {max} questions available in the bank.}}",
+  "@grammarSheetUpToInBank": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "grammarSheetMinSession": "Minimum this session: {min} (at least {base}, or one per topic if you pick several).",
+  "@grammarSheetMinSession": {
+    "placeholders": {
+      "min": {"type": "int"},
+      "base": {"type": "int"}
+    }
+  },
+  "grammarSheetQuickPick": "Quick pick",
+  "grammarQuestionNoun": "{count, plural, =1{question} other{questions}}",
+  "@grammarQuestionNoun": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarCouldNotLoadQuestions": "Could not load questions. Please try again.",
+  "grammarNoQuestionsForTopics": "No questions for the selected topic(s).",
+  "grammarExplanationHeading": "Explanation",
+  "grammarSessionCompleteTitle": "Session complete",
+  "grammarScoreOutOf": "You got {score} out of {total} correct.",
+  "@grammarScoreOutOf": {
+    "placeholders": {
+      "score": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "grammarHowSaveResult": "How should we save this result?",
+  "grammarSaveResultFootnote": "Private results appear only under My results; public results appear in the Users tab.",
+  "grammarResultSavedShort": "Result saved",
+  "statsDaysOnly": "{count, plural, =1{1 day} other{{count} days}}",
+  "@statsDaysOnly": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
+}

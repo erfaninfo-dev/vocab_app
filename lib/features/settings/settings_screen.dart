@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/locale/ui_locale_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'theme_mode_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -22,6 +24,9 @@ class SettingsScreen extends ConsumerWidget {
     final langN   = ref.read(langProvider.notifier);
     final scheme  = Theme.of(context).colorScheme;
     final authAsync = ref.watch(authProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final uiLoc = ref.watch(uiLocaleProvider);
+    final uiLocN = ref.read(uiLocaleProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +34,7 @@ class SettingsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
       ),
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -42,8 +47,40 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           children: [
+            _SectionLabel(label: l10n.sectionAppLanguage),
+            Card(
+              child: Column(
+                children: [
+                  RadioListTile<String>(
+                    value: 'en',
+                    groupValue: uiLoc.languageCode,
+                    onChanged: (v) {
+                      if (v != null) uiLocN.setLocaleCode(v);
+                    },
+                    title: Text(l10n.langEnglish),
+                  ),
+                  RadioListTile<String>(
+                    value: 'fa',
+                    groupValue: uiLoc.languageCode,
+                    onChanged: (v) {
+                      if (v != null) uiLocN.setLocaleCode(v);
+                    },
+                    title: Text(l10n.langPersian),
+                  ),
+                  RadioListTile<String>(
+                    value: 'ckb',
+                    groupValue: uiLoc.languageCode,
+                    onChanged: (v) {
+                      if (v != null) uiLocN.setLocaleCode(v);
+                    },
+                    title: Text(l10n.langKurdishSorani),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             // ── Account ───────────────────────────────────────────────────────
-            _SectionLabel(label: 'Account'),
+            _SectionLabel(label: l10n.sectionAccount),
             authAsync.when(
               data: (session) {
                 if (session == null) {
@@ -55,10 +92,8 @@ class SettingsScreen extends ConsumerWidget {
                             Icons.login_rounded,
                             color: scheme.primary,
                           ),
-                          title: const Text('Sign in'),
-                          subtitle: const Text(
-                            'Optional — use email and password',
-                          ),
+                          title: Text(l10n.signIn),
+                          subtitle: Text(l10n.signInSubtitle),
                           onTap: () => context.push('/login'),
                         ),
                         const Divider(height: 0),
@@ -67,7 +102,7 @@ class SettingsScreen extends ConsumerWidget {
                             Icons.person_add_alt_1_rounded,
                             color: scheme.secondary,
                           ),
-                          title: const Text('Create account'),
+                          title: Text(l10n.createAccount),
                           onTap: () => context.push('/register'),
                         ),
                       ],
@@ -83,7 +118,7 @@ class SettingsScreen extends ConsumerWidget {
                           userId: session.user.id,
                           size: 48,
                         ),
-                        title: const Text('Profile'),
+                        title: Text(l10n.profile),
                         subtitle: Text(
                           session.user.displayName != null &&
                                   session.user.displayName!.trim().isNotEmpty
@@ -102,26 +137,24 @@ class SettingsScreen extends ConsumerWidget {
                       const Divider(height: 0),
                       ListTile(
                         leading: const Icon(Icons.logout_rounded),
-                        title: const Text('Sign out'),
+                        title: Text(l10n.signOut),
                         onTap: () async {
                           final ok = await showDialog<bool>(
                             context: context,
                             builder: (ctx) {
                               return AlertDialog(
-                                title: const Text('Sign out?'),
-                                content: const Text(
-                                  'Are you sure you want to sign out?',
-                                ),
+                                title: Text(l10n.signOutTitle),
+                                content: Text(l10n.signOutBody),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
                                         Navigator.of(ctx).pop(false),
-                                    child: const Text('Cancel'),
+                                    child: Text(l10n.cancel),
                                   ),
                                   FilledButton(
                                     onPressed: () =>
                                         Navigator.of(ctx).pop(true),
-                                    child: const Text('Sign out'),
+                                    child: Text(l10n.signOut),
                                   ),
                                 ],
                               );
@@ -133,7 +166,7 @@ class SettingsScreen extends ConsumerWidget {
                           await ref.read(authProvider.notifier).logout();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Signed out')),
+                              SnackBar(content: Text(l10n.signedOut)),
                             );
                           }
                         },
@@ -152,7 +185,7 @@ class SettingsScreen extends ConsumerWidget {
                       color: scheme.primary,
                     ),
                   ),
-                  title: const Text('Loading account…'),
+                  title: Text(l10n.loadingAccount),
                 ),
               ),
               error: (_, __) => const SizedBox.shrink(),
@@ -161,7 +194,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // ── Translation Language ──────────────────────────────────────────
-            _SectionLabel(label: 'Translation Language'),
+            _SectionLabel(label: l10n.sectionTranslationLanguage),
             Card(
               child: Column(
                 children: TranslationLang.values.map((l) {
@@ -173,7 +206,11 @@ class SettingsScreen extends ConsumerWidget {
                       l == TranslationLang.fa ? '🇮🇷' : '🟢',
                       style: const TextStyle(fontSize: 22),
                     ),
-                    title: Text(l.nativeLabel),
+                    title: Text(
+                      l == TranslationLang.fa
+                          ? l10n.translationLangPersian
+                          : l10n.translationLangKurdishSorani,
+                    ),
                     subtitle: Text(l.englishLabel),
                   );
                 }).toList(),
@@ -183,7 +220,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // ── Theme ────────────────────────────────────────────────────────
-            _SectionLabel(label: 'Appearance'),
+            _SectionLabel(label: l10n.sectionAppearance),
             Card(
               child: Column(
                 children: [
@@ -191,19 +228,19 @@ class SettingsScreen extends ConsumerWidget {
                     value: ThemeMode.system,
                     groupValue: mode,
                     onChanged: (v) { if (v != null) theme.setThemeMode(v); },
-                    title: const Text('System theme'),
+                    title: Text(l10n.systemTheme),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.light,
                     groupValue: mode,
                     onChanged: (v) { if (v != null) theme.setThemeMode(v); },
-                    title: const Text('Light mode'),
+                    title: Text(l10n.lightMode),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.dark,
                     groupValue: mode,
                     onChanged: (v) { if (v != null) theme.setThemeMode(v); },
-                    title: const Text('Dark mode'),
+                    title: Text(l10n.darkMode),
                   ),
                 ],
               ),
@@ -212,17 +249,17 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // ── Notifications ─────────────────────────────────────────────────
-            _SectionLabel(label: 'Daily Reminder'),
+            _SectionLabel(label: l10n.sectionDailyReminder),
             Card(
               child: Column(
                 children: [
                   SwitchListTile(
                     secondary: const Icon(Icons.notifications_outlined),
-                    title: const Text('Daily study reminder'),
+                    title: Text(l10n.dailyStudyReminder),
                     subtitle: Text(
                       notif.enabled
-                          ? 'Reminder set at ${notif.timeLabel}'
-                          : 'Tap to enable',
+                          ? l10n.reminderSetAt(notif.timeLabel)
+                          : l10n.tapToEnableReminder,
                     ),
                     value: notif.enabled,
                     onChanged: (v) => notifN.setEnabled(v),
@@ -231,7 +268,7 @@ class SettingsScreen extends ConsumerWidget {
                     const Divider(height: 0),
                     ListTile(
                       leading: const Icon(Icons.schedule_rounded),
-                      title: const Text('Reminder time'),
+                      title: Text(l10n.reminderTime),
                       trailing: Text(
                         notif.timeLabel,
                         style: TextStyle(
@@ -261,7 +298,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // ── About ──────────────────────────────────────────────────────────
-            _SectionLabel(label: 'About'),
+            _SectionLabel(label: l10n.sectionAbout),
             _AboutCard(),
           ],
         ),
@@ -274,6 +311,7 @@ class _AboutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -318,7 +356,7 @@ class _AboutCard extends StatelessWidget {
 
               // ── App name ──────────────────────────────────────────────────
               Text(
-                'IELTS Words',
+                l10n.appNameShort,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: scheme.onPrimaryContainer,
@@ -335,7 +373,7 @@ class _AboutCard extends StatelessWidget {
                   Icon(Icons.person_rounded, size: 16, color: scheme.primary),
                   const SizedBox(width: 4),
                   Text(
-                    'By Erfan Abdi',
+                    l10n.byAuthor,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSecondaryContainer,
                       fontWeight: FontWeight.w600,
@@ -354,7 +392,7 @@ class _AboutCard extends StatelessWidget {
                   Clipboard.setData(const ClipboardData(text: 'www.erfaninfo.com'));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Link copied to clipboard'),
+                      content: Text(l10n.linkCopied),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       duration: const Duration(seconds: 2),

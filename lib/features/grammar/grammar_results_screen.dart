@@ -8,6 +8,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/grammar_result.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class GrammarResultsScreen extends ConsumerStatefulWidget {
   const GrammarResultsScreen({super.key});
@@ -35,6 +36,7 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -53,7 +55,7 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
             Icon(Icons.emoji_events_rounded, color: scheme.primary, size: 26),
             const SizedBox(width: 10),
             Text(
-              'Grammar results',
+              l10n.grammarResultsScreenTitle,
               style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
           ],
@@ -72,15 +74,15 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
               labelColor: scheme.primary,
               unselectedLabelColor: scheme.onSurfaceVariant,
               dividerColor: scheme.outlineVariant.withValues(alpha: 0.35),
-              tabs: const [
+              tabs: [
                 Tab(
                   height: 48,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.person_rounded, size: 20),
-                      SizedBox(width: 8),
-                      Text('My results'),
+                      const Icon(Icons.person_rounded, size: 20),
+                      const SizedBox(width: 8),
+                      Text(l10n.myResults),
                     ],
                   ),
                 ),
@@ -89,9 +91,9 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.groups_rounded, size: 20),
-                      SizedBox(width: 8),
-                      Text('Users'),
+                      const Icon(Icons.groups_rounded, size: 20),
+                      const SizedBox(width: 8),
+                      Text(l10n.users),
                     ],
                   ),
                 ),
@@ -134,24 +136,24 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
 class _GrammarSortBar extends ConsumerWidget {
   const _GrammarSortBar();
 
-  static const _options = <({String label, GrammarResultsSort value})>[
-    (
-      label: 'Newest first',
-      value: (field: 'date', order: 'desc'),
-    ),
-    (
-      label: 'Highest score %',
-      value: (field: 'score', order: 'desc'),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final options = <({String label, GrammarResultsSort value})>[
+      (
+        label: l10n.grammarSortNewestFirst,
+        value: (field: 'date', order: 'desc'),
+      ),
+      (
+        label: l10n.grammarSortHighestScore,
+        value: (field: 'score', order: 'desc'),
+      ),
+    ];
     final scheme = Theme.of(context).colorScheme;
     final current = ref.watch(grammarResultsSortProvider);
-    final match = _options.firstWhere(
+    final match = options.firstWhere(
       (o) => o.value.field == current.field && o.value.order == current.order,
-      orElse: () => _options.first,
+      orElse: () => options.first,
     );
 
     return Material(
@@ -163,7 +165,7 @@ class _GrammarSortBar extends ConsumerWidget {
             Icon(Icons.sort_rounded, size: 18, color: scheme.onSurfaceVariant),
             const SizedBox(width: 8),
             Text(
-              'Sort',
+              l10n.grammarSortLabel,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -175,7 +177,7 @@ class _GrammarSortBar extends ConsumerWidget {
                   isExpanded: true,
                   value: match.label,
                   items: [
-                    for (final o in _options)
+                    for (final o in options)
                       DropdownMenuItem(
                         value: o.label,
                         child: Text(o.label),
@@ -183,7 +185,7 @@ class _GrammarSortBar extends ConsumerWidget {
                   ],
                   onChanged: (label) {
                     if (label == null) return;
-                    final o = _options.firstWhere((x) => x.label == label);
+                    final o = options.firstWhere((x) => x.label == label);
                     ref.read(grammarResultsSortProvider.notifier).state =
                         o.value;
                     ref.invalidate(myGrammarResultsProvider);
@@ -204,6 +206,7 @@ class _MyResultsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final session = ref.watch(authProvider).valueOrNull;
     final scheme = Theme.of(context).colorScheme;
 
@@ -211,17 +214,16 @@ class _MyResultsTab extends ConsumerWidget {
       return _EmptyStateScaffold(
         icon: Icons.lock_person_rounded,
         iconColor: scheme.tertiary,
-        title: 'Sign in required',
-        subtitle:
-            'Log in to see your personal history and private/public labels.',
-        actionLabel: 'Go to Settings & sign in',
+        title: l10n.grammarSignInRequiredTitle,
+        subtitle: l10n.grammarSignInRequiredBody,
+        actionLabel: l10n.grammarGoToSignIn,
         onAction: () => context.push('/settings'),
       );
     }
 
     final async = ref.watch(myGrammarResultsProvider);
     return async.when(
-      loading: () => const _LoadingState(message: 'Loading your results…'),
+      loading: () => _LoadingState(message: l10n.grammarLoadingYourResults),
       error: (_, __) => _ErrorState(
         onRetry: () => ref.invalidate(myGrammarResultsProvider),
       ),
@@ -230,9 +232,8 @@ class _MyResultsTab extends ConsumerWidget {
           return _EmptyStateScaffold(
             icon: Icons.quiz_outlined,
             iconColor: scheme.primary,
-            title: 'No results yet',
-            subtitle:
-                'After you finish a grammar session, your score will appear here.',
+            title: l10n.grammarNoPersonalResultsTitle,
+            subtitle: l10n.grammarNoPersonalResultsBody,
           );
         }
         return RefreshIndicator(
@@ -269,11 +270,12 @@ class _PublicResultsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(publicGrammarResultsProvider);
     return async.when(
       loading: () =>
-          const _LoadingState(message: 'Loading community results…'),
+          _LoadingState(message: l10n.grammarLoadingCommunityResults),
       error: (_, __) => _ErrorState(
         onRetry: () => ref.invalidate(publicGrammarResultsProvider),
       ),
@@ -282,10 +284,8 @@ class _PublicResultsTab extends ConsumerWidget {
           return _EmptyStateScaffold(
             icon: Icons.public_off_rounded,
             iconColor: scheme.onSurfaceVariant,
-            title: 'Nothing here yet',
-            subtitle:
-                'When you choose “Show in community results” at the end of a quiz, '
-                'it will appear in this list.',
+            title: l10n.grammarCommunityEmptyTitle,
+            subtitle: l10n.grammarCommunityEmptyBody,
           );
         }
         return RefreshIndicator(
@@ -315,10 +315,11 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final byUser = <String, List<GrammarResult>>{};
     for (final r in results) {
       final name = (r.userName ?? '').trim();
-      final key = name.isEmpty ? 'Guest' : name;
+      final key = name.isEmpty ? l10n.guestUser : name;
       byUser.putIfAbsent(key, () => []).add(r);
     }
 
@@ -492,12 +493,13 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final chips = _topicLabelsForResult(r);
     final isPublic = r.public == 1;
     final displayName = (r.userName ?? '').trim().isEmpty
-        ? 'Guest'
+        ? l10n.guestUser
         : r.userName!.trim();
 
     final int? score = r.score;
@@ -716,6 +718,7 @@ class _PrivacyPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -740,7 +743,7 @@ class _PrivacyPill extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            isPublic ? 'Public' : 'Private',
+            isPublic ? l10n.resultVisibilityPublic : l10n.resultVisibilityPrivate,
             style: tt.labelSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: isPublic
@@ -871,6 +874,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     return Center(
@@ -886,13 +890,13 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Something went wrong',
+              l10n.errorGeneric,
               style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Check your connection and try again.',
+              l10n.errorConnectionTryAgain,
               style: tt.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
@@ -900,7 +904,7 @@ class _ErrorState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try again'),
+              label: Text(l10n.tryAgainResults),
             ),
           ],
         ),

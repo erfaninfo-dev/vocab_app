@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/stats/stats_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -12,6 +14,7 @@ class StatsScreen extends ConsumerWidget {
     final stats   = ref.watch(statsProvider);
     final mastery = ref.watch(wordMasteryProvider);
     final scheme  = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -19,7 +22,7 @@ class StatsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('My Progress'),
+        title: Text(l10n.statsMyProgress),
       ),
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -37,6 +40,7 @@ class StatsScreen extends ConsumerWidget {
           children: [
             // ── Streak card ───────────────────────────────────────────────────
             _StreakCard(
+              l10n: l10n,
               current: stats.currentStreak,
               longest: stats.longestStreak,
               totalDays: stats.totalStudyDays,
@@ -46,23 +50,24 @@ class StatsScreen extends ConsumerWidget {
             const SizedBox(height: 14),
 
             // ── Word mastery ──────────────────────────────────────────────────
-            _SectionLabel('Word Mastery'),
+            _SectionLabel(l10n.wordMastery),
             const SizedBox(height: 8),
-            _MasteryCard(mastery: mastery),
+            _MasteryCard(l10n: l10n, mastery: mastery),
 
             const SizedBox(height: 14),
 
             // ── Weekly chart ──────────────────────────────────────────────────
-            _SectionLabel('Last 7 Days'),
+            _SectionLabel(l10n.last7Days),
             const SizedBox(height: 8),
-            _WeeklyChart(days: stats.last7Days),
+            _WeeklyChart(l10n: l10n, days: stats.last7Days),
 
             const SizedBox(height: 14),
 
             // ── Vocabulary + Grammar charts (unified) ─────────────────────────
-            _SectionLabel('Quiz insights'),
+            _SectionLabel(l10n.quizInsights),
             const SizedBox(height: 8),
             _QuizInsightsEntryCard(
+              l10n: l10n,
               scheme: scheme,
               vocabAccuracy: stats.quizAccuracy,
               vocabAnswered: stats.totalQuizAnswered,
@@ -72,9 +77,10 @@ class StatsScreen extends ConsumerWidget {
             const SizedBox(height: 14),
 
             // ── Totals ────────────────────────────────────────────────────────
-            _SectionLabel('All Time'),
+            _SectionLabel(l10n.allTime),
             const SizedBox(height: 8),
             _TotalsRow(
+              l10n: l10n,
               wordsReviewed: stats.totalWordsReviewed,
               studyDays: stats.totalStudyDays,
             ),
@@ -106,12 +112,14 @@ class _SectionLabel extends StatelessWidget {
 
 class _QuizInsightsEntryCard extends StatelessWidget {
   const _QuizInsightsEntryCard({
+    required this.l10n,
     required this.scheme,
     required this.vocabAccuracy,
     required this.vocabAnswered,
     required this.vocabCorrect,
   });
 
+  final AppLocalizations l10n;
   final ColorScheme scheme;
   final double vocabAccuracy;
   final int vocabAnswered;
@@ -134,14 +142,14 @@ class _QuizInsightsEntryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Vocabulary & grammar',
+                      l10n.vocabAndGrammar,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '14-day charts, trends, and breakdown by type',
+                      l10n.statsInsightsCardSubtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -149,8 +157,11 @@ class _QuizInsightsEntryCard extends StatelessWidget {
                     if (vocabAnswered > 0) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Vocab (device): ${(vocabAccuracy * 100).toStringAsFixed(0)}% '
-                        '($vocabCorrect / $vocabAnswered)',
+                        l10n.statsVocabDeviceAccuracy(
+                          (vocabAccuracy * 100).toStringAsFixed(0),
+                          vocabCorrect,
+                          vocabAnswered,
+                        ),
                         style: Theme.of(context).textTheme.labelMedium?.copyWith(
                               color: scheme.primary,
                               fontWeight: FontWeight.w600,
@@ -173,12 +184,14 @@ class _QuizInsightsEntryCard extends StatelessWidget {
 
 class _StreakCard extends StatelessWidget {
   const _StreakCard({
+    required this.l10n,
     required this.current,
     required this.longest,
     required this.totalDays,
     required this.studiedToday,
   });
 
+  final AppLocalizations l10n;
   final int current;
   final int longest;
   final int totalDays;
@@ -214,7 +227,7 @@ class _StreakCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$current day${current == 1 ? '' : 's'} streak',
+                      l10n.streakDays(current),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -223,8 +236,8 @@ class _StreakCard extends StatelessWidget {
                     ),
                     Text(
                       studiedToday
-                          ? '✅ Studied today!'
-                          : '📖 Study today to keep your streak',
+                          ? l10n.statsStudiedToday
+                          : l10n.statsStudyToKeepStreak,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
@@ -239,14 +252,14 @@ class _StreakCard extends StatelessWidget {
           Row(
             children: [
               _StreakStat(
-                label: 'Longest',
-                value: '$longest days',
+                label: l10n.longest,
+                value: l10n.statsDaysOnly(longest),
                 icon: '🏆',
               ),
               const SizedBox(width: 12),
               _StreakStat(
-                label: 'Total Days',
-                value: '$totalDays days',
+                label: l10n.totalDays,
+                value: l10n.statsDaysOnly(totalDays),
                 icon: '📅',
               ),
             ],
@@ -311,7 +324,9 @@ class _StreakStat extends StatelessWidget {
 // ─── Word Mastery Card ────────────────────────────────────────────────────────
 
 class _MasteryCard extends StatelessWidget {
-  const _MasteryCard({required this.mastery});
+  const _MasteryCard({required this.l10n, required this.mastery});
+
+  final AppLocalizations l10n;
   final WordMastery mastery;
 
   @override
@@ -330,7 +345,7 @@ class _MasteryCard extends StatelessWidget {
                 _MasteryDot(color: Colors.green.shade400),
                 const SizedBox(width: 8),
                 Text(
-                  'Mastered  ',
+                  l10n.mastered,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const Spacer(),
@@ -355,7 +370,7 @@ class _MasteryCard extends StatelessWidget {
               children: [
                 _MasteryDot(color: Colors.orange.shade400),
                 const SizedBox(width: 8),
-                Text('Learning  ', style: Theme.of(context).textTheme.bodyMedium),
+                Text(l10n.learning, style: Theme.of(context).textTheme.bodyMedium),
                 const Spacer(),
                 Text(
                   '${mastery.learning}',
@@ -378,7 +393,7 @@ class _MasteryCard extends StatelessWidget {
               children: [
                 _MasteryDot(color: scheme.primary.withOpacity(0.6)),
                 const SizedBox(width: 8),
-                Text('Seen once  ', style: Theme.of(context).textTheme.bodyMedium),
+                Text(l10n.seenOnce, style: Theme.of(context).textTheme.bodyMedium),
                 const Spacer(),
                 Text(
                   '${mastery.seen}',
@@ -399,7 +414,7 @@ class _MasteryCard extends StatelessWidget {
               const SizedBox(height: 14),
               Center(
                 child: Text(
-                  '$total words studied in total',
+                  l10n.statsWordsStudiedTotal(total),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -447,7 +462,9 @@ class _MasteryBar extends StatelessWidget {
 // ─── Weekly Chart ─────────────────────────────────────────────────────────────
 
 class _WeeklyChart extends StatelessWidget {
-  const _WeeklyChart({required this.days});
+  const _WeeklyChart({required this.l10n, required this.days});
+
+  final AppLocalizations l10n;
   final List<DayActivity> days;
 
   @override
@@ -472,7 +489,7 @@ class _WeeklyChart extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Words reviewed per day',
+                  l10n.wordsReviewedPerDay,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -487,7 +504,7 @@ class _WeeklyChart extends StatelessWidget {
                 children: days.map((day) {
                   final ratio = day.wordsReviewed / maxVal;
                   final isToday = _isToday(day.date);
-                  final dayName = _shortDay(day.date);
+                  final dayName = _shortDay(context, day.date);
 
                   return Expanded(
                     child: Padding(
@@ -552,9 +569,10 @@ class _WeeklyChart extends StatelessWidget {
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  String _shortDay(DateTime d) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[d.weekday - 1];
+  String _shortDay(BuildContext context, DateTime d) {
+    return DateFormat.E(
+      Localizations.localeOf(context).toString(),
+    ).format(d);
   }
 }
 
@@ -562,10 +580,12 @@ class _WeeklyChart extends StatelessWidget {
 
 class _TotalsRow extends StatelessWidget {
   const _TotalsRow({
+    required this.l10n,
     required this.wordsReviewed,
     required this.studyDays,
   });
 
+  final AppLocalizations l10n;
   final int wordsReviewed;
   final int studyDays;
 
@@ -577,7 +597,7 @@ class _TotalsRow extends StatelessWidget {
           child: _StatBox(
             icon: '📖',
             value: '$wordsReviewed',
-            label: 'Total Reviews',
+            label: l10n.totalReviews,
             color: Colors.blue.shade400,
           ),
         ),
@@ -586,7 +606,7 @@ class _TotalsRow extends StatelessWidget {
           child: _StatBox(
             icon: '🗓️',
             value: '$studyDays',
-            label: 'Study Days',
+            label: l10n.studyDays,
             color: Colors.purple.shade400,
           ),
         ),
