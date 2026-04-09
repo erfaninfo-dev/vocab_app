@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/user_friendly_error.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
+import 'quiz_screen.dart';
 
 /// Pick unit(s), question count (min 10 when enough words exist), and scope for book-level quiz.
 class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
@@ -25,6 +27,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
   bool _seededUnits = false;
   /// When the selected pool includes important words, quiz can be all words or important-only.
   bool _quizImportantOnly = false;
+  Set<VocabQuestionMode> _questionModes = {VocabQuestionMode.mcqWordToMeaning};
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +49,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
       ),
       body: unitsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e))),
         data: (units) {
           if (!_seededUnits && units.isNotEmpty) {
             _seededUnits = true;
@@ -62,7 +65,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
 
           return allWordsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e))),
             data: (allWords) {
               return wrongsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -196,6 +199,38 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                         const SizedBox(height: 20),
                       ],
                       Text(
+                        'Question modes',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final m in VocabQuestionMode.values)
+                            FilterChip(
+                              label: Text(m.label),
+                              selected: _questionModes.contains(m),
+                              showCheckmark: false,
+                              onSelected: (v) {
+                                setState(() {
+                                  final next = {..._questionModes};
+                                  if (v) {
+                                    next.add(m);
+                                  } else {
+                                    next.remove(m);
+                                  }
+                                  if (next.isEmpty) next.add(m);
+                                  _questionModes = next;
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
                         'Questions (max $maxQ)',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
@@ -224,6 +259,11 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                                   path +=
                                       '&important=${_quizImportantOnly ? 1 : 0}';
                                 }
+                                final csv = _questionModes
+                                    .map((m) => m.name)
+                                    .toList()
+                                  ..sort();
+                                path += '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
                                 context.push(path);
                               },
                         icon: const Icon(Icons.play_arrow_rounded),

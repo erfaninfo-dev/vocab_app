@@ -88,7 +88,9 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
       ...list.map((t) => 'topic=${Uri.encodeQueryComponent(t)}'),
       'count=$count',
     ];
-    context.push('/grammar/practice?${parts.join('&')}');
+    await context.push('/grammar/practice?${parts.join('&')}');
+    if (!mounted) return;
+    setState(_selected.clear);
   }
 
   @override

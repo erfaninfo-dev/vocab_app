@@ -72,11 +72,6 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
             tooltip: 'Favorites',
             onPressed: () => context.push('/favorites'),
           ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-          ),
           const SizedBox(width: 4),
         ],
       ),

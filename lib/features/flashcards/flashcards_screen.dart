@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/errors/user_friendly_error.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/srs/srs_model.dart';
 import '../../core/srs/srs_provider.dart';
@@ -62,7 +63,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
       appBar: AppBar(title: const Text('Flashcards')),
       body: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) => Center(child: Text(userFriendlyErrorMessage(error))),
         data: (words) {
           if (words.isEmpty) {
             return const Center(child: Text('No words for this section.'));

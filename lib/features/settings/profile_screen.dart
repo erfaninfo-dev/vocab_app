@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +23,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   var _saving = false;
   var _uploadingPhoto = false;
   var _loadedUserFields = false;
+  String _initialName = '';
+  String _initialAvatarId = kDefaultAvatarId;
 
   @override
   void initState() {
@@ -34,14 +37,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
     _loadedUserFields = true;
-    _nameCtrl.text = user.displayName?.trim() ?? '';
-    _selectedAvatarId = user.avatar;
+    _initialName = user.displayName?.trim() ?? '';
+    _initialAvatarId = user.avatar;
+    _nameCtrl.text = _initialName;
+    _selectedAvatarId = _initialAvatarId;
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     super.dispose();
+  }
+
+  bool get _hasUnsavedChanges {
+    if (!_loadedUserFields) return false;
+    return _nameCtrl.text.trim() != _initialName.trim() ||
+        _selectedAvatarId != _initialAvatarId;
+  }
+
+  Future<bool> _confirmDiscardChanges() async {
+    if (!_hasUnsavedChanges) return true;
+
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تغییرات ذخیره نشده'),
+        content: const Text('تغییرات شما ذخیره نشده است. خارج می‌شوید؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('ادامه'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('خروج'),
+          ),
+        ],
+      ),
+    );
+
+    return res ?? false;
   }
 
   Future<void> _pickAndUpload(ImageSource source) async {
@@ -56,7 +91,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     setState(() => _uploadingPhoto = true);
     try {
-      final raw = await x.readAsBytes();
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: x.path,
+        compressFormat: ImageCompressFormat.jpg,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop photo',
+            toolbarColor: Theme.of(context).colorScheme.surface,
+            toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop photo',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+      if (cropped == null || !mounted) {
+        return;
+      }
+
+      final raw = await cropped.readAsBytes();
       final compressed = await FlutterImageCompress.compressWithList(
         raw,
         minWidth: 512,
@@ -96,6 +152,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!mounted) {
         return;
       }
+      _initialName = _nameCtrl.text.trim();
+      _initialAvatarId = _selectedAvatarId;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile saved')),
       );
@@ -134,15 +192,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: () async {
+            if (_saving || _uploadingPhoto) return;
+            final nav = Navigator.of(context);
+            final ok = await _confirmDiscardChanges();
+            if (!ok || !mounted) return;
+            nav.pop();
+          },
         ),
         title: const Text('Profile'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: PopScope(
+        canPop: !_saving && !_uploadingPhoto,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          if (_saving || _uploadingPhoto) return;
+          final nav = Navigator.of(context);
+          final ok = await _confirmDiscardChanges();
+          if (!ok || !mounted) return;
+          nav.pop();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -252,7 +326,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     )
                   : const Text('Save'),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

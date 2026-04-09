@@ -299,6 +299,29 @@ class ApiService {
     _assertAuthResponse(response);
   }
 
+  /// POST /word_important.php
+  Future<int> setWordImportant({
+    required int id,
+    required int important,
+  }) async {
+    final uri = Uri.parse('$baseUrl/word_important.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'id': id, 'important': important}),
+    );
+    if (response.statusCode != 200) {
+      _throwFromJsonBody(response);
+    }
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Update failed');
+    }
+    return (map['important'] as num?)?.toInt() ?? important;
+  }
+
   Future<List<VocabEntry>> fetchAllWordsForBook(int bookId) async {
     final uri = Uri.parse('$baseUrl/words.php?book_id=$bookId');
     final response = await http.get(uri, headers: _mergeHeaders());

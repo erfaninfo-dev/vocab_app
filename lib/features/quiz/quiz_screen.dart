@@ -24,7 +24,36 @@ enum QuizMode {
   final IconData icon;
 }
 
+// ─── Answer Format ────────────────────────────────────────────────────────────
+
+enum VocabAnswerFormat {
+  mcq('Multiple choice'),
+  written('Fill in the blank'),
+  both('Both');
+
+  const VocabAnswerFormat(this.label);
+  final String label;
+}
+
+// ─── Question Modes (multi-select) ────────────────────────────────────────────
+
+enum VocabQuestionMode {
+  mcqWordToMeaning('Word → Meaning', Icons.translate_rounded),
+  mcqMeaningToWord('Meaning → Word', Icons.text_fields_rounded),
+  writtenMeaningToWord('Fill in the blank', Icons.edit_rounded);
+
+  const VocabQuestionMode(this.label, this.icon);
+  final String label;
+  final IconData icon;
+
+  bool get isMcq =>
+      this == VocabQuestionMode.mcqWordToMeaning ||
+      this == VocabQuestionMode.mcqMeaningToWord;
+}
+
 // ─── Question model ───────────────────────────────────────────────────────────
+
+enum _QuestionKind { mcq, written }
 
 class _Question {
   const _Question({
@@ -32,7 +61,8 @@ class _Question {
     required this.prompt,
     required this.promptSub,
     required this.correctAnswer,
-    required this.options, // 4 items, shuffled
+    required this.options, // 4 items, shuffled (empty for written)
+    required this.kind,
   });
 
   final VocabEntry entry;
@@ -40,6 +70,7 @@ class _Question {
   final String promptSub; // secondary line (e.g. type or fa meaning)
   final String correctAnswer;
   final List<String> options;
+  final _QuestionKind kind;
 }
 
 // ─── Quiz Screen ──────────────────────────────────────────────────────────────
@@ -64,6 +95,8 @@ class QuizScreen extends ConsumerStatefulWidget {
 class _QuizScreenState extends ConsumerState<QuizScreen>
     with SingleTickerProviderStateMixin {
   QuizMode _mode = QuizMode.wordToMeaning;
+  VocabAnswerFormat _answerFormat = VocabAnswerFormat.mcq;
+  Set<VocabQuestionMode> _questionModes = {VocabQuestionMode.mcqWordToMeaning};
   List<_Question> _questions = [];
   int _currentIndex = 0;
   String? _selectedAnswer;
@@ -76,6 +109,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   bool _removingLearned = false;
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
+  late final TextEditingController _writtenCtrl;
 
   @override
   void initState() {
@@ -88,21 +122,55 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       begin: 0,
       end: 1,
     ).animate(CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticIn));
+
+    _writtenCtrl = TextEditingController();
   }
 
   @override
   void dispose() {
     _shakeCtrl.dispose();
+    _writtenCtrl.dispose();
     super.dispose();
+  }
+
+  static String _normalizeAnswer(String s) {
+    return s.trim().toLowerCase();
+  }
+
+  static bool _isCorrect(_Question q, String answer) {
+    if (q.kind == _QuestionKind.written) {
+      return _normalizeAnswer(answer) == _normalizeAnswer(q.correctAnswer);
+    }
+    return answer == q.correctAnswer;
+  }
+
+  Set<VocabQuestionMode> _effectiveModes() {
+    if (_questionModes.isNotEmpty) return _questionModes;
+    if (_answerFormat == VocabAnswerFormat.written) {
+      return {VocabQuestionMode.writtenMeaningToWord};
+    }
+    if (_answerFormat == VocabAnswerFormat.both) {
+      return {
+        _mode == QuizMode.wordToMeaning
+            ? VocabQuestionMode.mcqWordToMeaning
+            : VocabQuestionMode.mcqMeaningToWord,
+        VocabQuestionMode.writtenMeaningToWord,
+      };
+    }
+    return {
+      _mode == QuizMode.wordToMeaning
+          ? VocabQuestionMode.mcqWordToMeaning
+          : VocabQuestionMode.mcqMeaningToWord,
+    };
   }
 
   List<_Question> _buildQuestions(
     List<VocabEntry> words,
-    QuizMode mode,
     TranslationLang lang,
     int maxQuestions,
+    Set<VocabQuestionMode> modes,
   ) {
-    if (words.length < 2) return [];
+    if (words.isEmpty) return [];
     final rng = Random();
 
     // Filter: only words with both word and at least one meaning
@@ -114,77 +182,131 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         )
         .toList();
 
-    if (usable.length < 2) return [];
+    if (usable.isEmpty) return [];
 
     final cap = maxQuestions.clamp(1, kVocabQuizMaxQuestions);
-    final questions = <_Question>[];
+    final selected = modes.isEmpty
+        ? <VocabQuestionMode>{VocabQuestionMode.mcqWordToMeaning}
+        : {...modes};
 
-    for (final word in usable) {
-      // Build wrong options from other words in the list
-      final others = usable.where((w) => w.id != word.id).toList()
-        ..shuffle(rng);
-      final wrongPool = others.take(3).toList();
+    final Map<VocabQuestionMode, List<_Question>> buckets = {
+      for (final m in selected) m: <_Question>[],
+    };
 
-      if (wrongPool.length < 3) continue;
+    final shuffledWords = [...usable]..shuffle(rng);
+    for (final word in shuffledWords) {
+      for (final m in selected) {
+        if (m == VocabQuestionMode.writtenMeaningToWord) {
+          final localMeaning = word.meaningFor(lang);
+          final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
+          if (prompt.trim().isEmpty) continue;
+          final promptSub =
+              (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
+                  ? word.meaningEn
+                  : word.type;
+          buckets[m]!.add(
+            _Question(
+              entry: word,
+              prompt: prompt,
+              promptSub: promptSub,
+              correctAnswer: word.word,
+              options: const [],
+              kind: _QuestionKind.written,
+            ),
+          );
+          continue;
+        }
 
-      if (mode == QuizMode.wordToMeaning) {
-        final correct = word.meaningEn.isNotEmpty
-            ? word.meaningEn
-            : word.meaningFor(lang);
-        final wrongs = wrongPool
-            .map(
-              (w) => w.meaningEn.isNotEmpty ? w.meaningEn : w.meaningFor(lang),
-            )
-            .toList();
+        final others = usable.where((w) => w.id != word.id).toList()
+          ..shuffle(rng);
+        final wrongPool = others.take(3).toList();
+        if (wrongPool.length < 3) continue;
 
-        final opts = [correct, ...wrongs]..shuffle(rng);
-        questions.add(
-          _Question(
-            entry: word,
-            prompt: word.word,
-            promptSub: word.type,
-            correctAnswer: correct,
-            options: opts,
-          ),
-        );
-      } else {
-        // Meaning → Word: use selected language meaning as prompt
-        final localMeaning = word.meaningFor(lang);
-        final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
-        final correct = word.word;
-        final wrongs = wrongPool.map((w) => w.word).toList();
-
-        final opts = [correct, ...wrongs]..shuffle(rng);
-        // promptSub: show English meaning only if prompt is the local meaning
-        final promptSub = (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
-            ? word.meaningEn
-            : '';
-        questions.add(
-          _Question(
-            entry: word,
-            prompt: prompt,
-            promptSub: promptSub,
-            correctAnswer: correct,
-            options: opts,
-          ),
-        );
+        if (m == VocabQuestionMode.mcqWordToMeaning) {
+          final correct = word.meaningEn.isNotEmpty
+              ? word.meaningEn
+              : word.meaningFor(lang);
+          final wrongs = wrongPool
+              .map(
+                (w) => w.meaningEn.isNotEmpty ? w.meaningEn : w.meaningFor(lang),
+              )
+              .toList();
+          final opts = [correct, ...wrongs]..shuffle(rng);
+          buckets[m]!.add(
+            _Question(
+              entry: word,
+              prompt: word.word,
+              promptSub: word.type,
+              correctAnswer: correct,
+              options: opts,
+              kind: _QuestionKind.mcq,
+            ),
+          );
+        } else if (m == VocabQuestionMode.mcqMeaningToWord) {
+          final localMeaning = word.meaningFor(lang);
+          final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
+          final correct = word.word;
+          final wrongs = wrongPool.map((w) => w.word).toList();
+          final opts = [correct, ...wrongs]..shuffle(rng);
+          final promptSub =
+              (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
+                  ? word.meaningEn
+                  : '';
+          buckets[m]!.add(
+            _Question(
+              entry: word,
+              prompt: prompt,
+              promptSub: promptSub,
+              correctAnswer: correct,
+              options: opts,
+              kind: _QuestionKind.mcq,
+            ),
+          );
+        }
       }
     }
 
-    questions.shuffle(rng);
-    final takeN = min(cap, questions.length);
-    return questions.take(takeN).toList();
+    final out = <_Question>[];
+    final keys = selected.toList();
+    var cursor = 0;
+    while (out.length < cap) {
+      var addedAny = false;
+      for (var k = 0; k < keys.length && out.length < cap; k++) {
+        final m = keys[(cursor + k) % keys.length];
+        final b = buckets[m]!;
+        if (b.isEmpty) continue;
+        out.add(b.removeAt(0));
+        addedAny = true;
+      }
+      cursor = (cursor + 1) % keys.length;
+      if (!addedAny) break;
+    }
+    return out;
+
+  }
+
+  void _resetWrittenInput() {
+    _writtenCtrl
+      ..text = ''
+      ..selection = const TextSelection.collapsed(offset: 0);
+  }
+
+  Future<void> _submitWritten() async {
+    if (_answered) return;
+    final answer = _writtenCtrl.text;
+    await _selectAnswer(answer);
   }
 
   void _startQuiz(List<VocabEntry> words, TranslationLang lang, int budget) {
     setState(() {
-      _questions = _buildQuestions(words, _mode, lang, budget);
+      _questions = _buildQuestions(words, lang, budget, _effectiveModes());
       _currentIndex = 0;
       _selectedAnswer = null;
       _answered = false;
       _score = 0;
       _sessionDone = false;
     });
+    _resetWrittenInput();
   }
 
   void _invalidateWrongs() {
@@ -201,7 +323,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   Future<void> _selectAnswer(String answer) async {
     if (_answered) return;
     final q = _questions[_currentIndex];
-    final isCorrect = answer == q.correctAnswer;
+    final isCorrect = _isCorrect(q, answer);
     setState(() {
       _selectedAnswer = answer;
       _answered = true;
@@ -228,7 +350,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     if (!_answered || _removingLearned) return;
     final q = _questions[_currentIndex];
     final answer = _selectedAnswer;
-    if (answer == null || answer != q.correctAnswer) return;
+    if (answer == null || !_isCorrect(q, answer)) return;
     final session = ref.read(authProvider).valueOrNull;
     if (session == null) return;
     setState(() => _removingLearned = true);
@@ -264,6 +386,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         _selectedAnswer = null;
         _answered = false;
       });
+      _resetWrittenInput();
     }
   }
 
@@ -279,12 +402,45 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final scope = route.uri.queryParameters['scope'] ?? 'all';
     final c = int.tryParse(route.uri.queryParameters['count'] ?? '');
     final imp = route.uri.queryParameters['important'];
+    final fmt = route.uri.queryParameters['format'];
+    final modesCsv = route.uri.queryParameters['modes'];
     _scopeWrongsOnly = scope == 'wrongs';
     if (c != null && c > 0) {
       _questionBudget = c.clamp(1, kVocabQuizMaxQuestions);
     }
     if (imp == '0' || imp == '1') {
       _routeImportant = imp == '0' ? 0 : 1;
+    }
+    if (fmt != null) {
+      VocabAnswerFormat? parsed;
+      for (final v in VocabAnswerFormat.values) {
+        if (v.name == fmt) {
+          parsed = v;
+          break;
+        }
+      }
+      if (parsed != null) {
+        _answerFormat = parsed;
+        if (parsed == VocabAnswerFormat.written) {
+          _mode = QuizMode.meaningToWord;
+        }
+      }
+    }
+
+    if (modesCsv != null && modesCsv.trim().isNotEmpty) {
+      final parts = modesCsv.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty);
+      final next = <VocabQuestionMode>{};
+      for (final p in parts) {
+        for (final m in VocabQuestionMode.values) {
+          if (m.name == p) {
+            next.add(m);
+            break;
+          }
+        }
+      }
+      if (next.isNotEmpty) {
+        _questionModes = next;
+      }
     }
     _parsedRouteOnce = true;
   }
@@ -318,6 +474,31 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     return pool;
   }
 
+  bool get _inActiveSession => _questions.isNotEmpty && !_sessionDone;
+
+  Future<bool> _confirmExitQuiz() async {
+    if (!_inActiveSession) return true;
+
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('خروج از کوییز؟'),
+        content: const Text('اگر خارج شوید، پیشرفت این کوییز از بین می‌رود.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('ادامه'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('خروج'),
+          ),
+        ],
+      ),
+    );
+    return res ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureRouteDefaults();
@@ -349,6 +530,15 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () async {
+            final nav = Navigator.of(context);
+            final ok = await _confirmExitQuiz();
+            if (!ok || !mounted) return;
+            nav.pop();
+          },
+        ),
         title: const Text('Quiz'),
         actions: [
           if (_questions.isNotEmpty && !_sessionDone)
@@ -366,13 +556,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
             ),
         ],
       ),
-      body: wordsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(
-          child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
-        ),
-        data: (words) {
-          return wrongsAsync.when(
+      body: PopScope(
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final ok = await _confirmExitQuiz();
+          if (!ok || !mounted) return;
+          Navigator.of(context).pop();
+        },
+        child: wordsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Center(
+            child: Text('دریافت اطلاعات انجام نشد. لطفاً دوباره تلاش کنید'),
+          ),
+          data: (words) {
+            return wrongsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => const Center(
               child: Text('Could not load mistake list'),
@@ -399,7 +596,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
               final pool = _applyImportantFilter(basePool, resolvedScope!);
 
-              if (pool.length < 4) {
+              final selectedModes = _effectiveModes();
+              final needsMcq =
+                  selectedModes.any((m) => m.isMcq);
+              final minPoolNeeded = needsMcq ? 4 : 1;
+
+              if (pool.length < minPoolNeeded) {
                 final importantTooSmall =
                     resolvedScope == 1 && hasImportant && basePool.length >= 4;
                 return Center(
@@ -411,7 +613,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                               'Choose all words, change scope, or pick more units.'
                           : _scopeWrongsOnly
                               ? 'Not enough words in mistake list for this quiz (need 4+).'
-                              : 'Need at least 4 words to start a quiz.',
+                              : needsMcq
+                                  ? 'Need at least 4 words to start this quiz.'
+                                  : 'Need at least 1 word to start this quiz.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -424,7 +628,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
               if (_questions.isEmpty) {
                 return _ModeSelector(
-                  selectedMode: _mode,
+                  selectedModes: selectedModes,
                   poolSize: pool.length,
                   scopeWrongsOnly: _scopeWrongsOnly,
                   wrongOnServer: wrongs.length,
@@ -432,7 +636,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   minQuestionPick: minPick,
                   maxQuestionPick: maxQ,
                   loggedIn: loggedIn,
-                  onModeChanged: (m) => setState(() => _mode = m),
+                  onModesChanged: (modes) =>
+                      setState(() => _questionModes = modes),
                   onScopeChanged: (v) => setState(() => _scopeWrongsOnly = v),
                   onQuestionBudgetChanged: (n) =>
                       setState(() => _questionBudget = n),
@@ -472,6 +677,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   answered: _answered,
                   shakeAnimation: _shakeAnim,
                   onSelect: _selectAnswer,
+                  writtenController: _writtenCtrl,
+                  onSubmitWritten: _submitWritten,
                   onNext: _next,
                   showLearnedButton: showLearned,
                   learnedBusy: _removingLearned,
@@ -480,7 +687,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               );
             },
           );
-        },
+          },
+        ),
       ),
     );
   }
@@ -571,7 +779,7 @@ class _ImportantChoicePanel extends StatelessWidget {
 
 class _ModeSelector extends StatelessWidget {
   const _ModeSelector({
-    required this.selectedMode,
+    required this.selectedModes,
     required this.poolSize,
     required this.scopeWrongsOnly,
     required this.wrongOnServer,
@@ -579,13 +787,13 @@ class _ModeSelector extends StatelessWidget {
     required this.minQuestionPick,
     required this.maxQuestionPick,
     required this.loggedIn,
-    required this.onModeChanged,
+    required this.onModesChanged,
     required this.onScopeChanged,
     required this.onQuestionBudgetChanged,
     required this.onStart,
   });
 
-  final QuizMode selectedMode;
+  final Set<VocabQuestionMode> selectedModes;
   final int poolSize;
   final bool scopeWrongsOnly;
   final int wrongOnServer;
@@ -593,7 +801,7 @@ class _ModeSelector extends StatelessWidget {
   final int minQuestionPick;
   final int maxQuestionPick;
   final bool loggedIn;
-  final ValueChanged<QuizMode> onModeChanged;
+  final ValueChanged<Set<VocabQuestionMode>> onModesChanged;
   final ValueChanged<bool> onScopeChanged;
   final ValueChanged<int> onQuestionBudgetChanged;
   final VoidCallback onStart;
@@ -686,22 +894,50 @@ class _ModeSelector extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Question style',
+                'Question modes',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
               ),
             ),
             const SizedBox(height: 8),
-            ...QuizMode.values.map(
-              (mode) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ModeTile(
-                  mode: mode,
-                  selected: selectedMode == mode,
-                  onTap: () => onModeChanged(mode),
-                ),
-              ),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final m in VocabQuestionMode.values)
+                  FilterChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          m.icon,
+                          size: 18,
+                          color: selectedModes.contains(m)
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(m.label),
+                      ],
+                    ),
+                    selected: selectedModes.contains(m),
+                    onSelected: (v) {
+                      final next = {...selectedModes};
+                      if (v) {
+                        next.add(m);
+                      } else {
+                        next.remove(m);
+                      }
+                      if (next.isEmpty) {
+                        // Keep at least one mode.
+                        next.add(m);
+                      }
+                      onModesChanged(next);
+                    },
+                    showCheckmark: false,
+                  ),
+              ],
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -722,61 +958,6 @@ class _ModeSelector extends StatelessWidget {
   }
 }
 
-class _ModeTile extends StatelessWidget {
-  const _ModeTile({
-    required this.mode,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final QuizMode mode;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: selected
-              ? scheme.primaryContainer
-              : scheme.surfaceContainerHighest,
-          border: Border.all(
-            color: selected ? scheme.primary : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              mode.icon,
-              color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 14),
-            Text(
-              mode.label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-                color: selected ? scheme.primary : scheme.onSurface,
-              ),
-            ),
-            const Spacer(),
-            if (selected)
-              Icon(Icons.check_circle_rounded, color: scheme.primary),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Quiz Body ────────────────────────────────────────────────────────────────
 
 class _QuizBody extends StatelessWidget {
@@ -790,6 +971,8 @@ class _QuizBody extends StatelessWidget {
     required this.answered,
     required this.shakeAnimation,
     required this.onSelect,
+    required this.writtenController,
+    required this.onSubmitWritten,
     required this.onNext,
     this.showLearnedButton = false,
     this.learnedBusy = false,
@@ -805,6 +988,8 @@ class _QuizBody extends StatelessWidget {
   final bool answered;
   final Animation<double> shakeAnimation;
   final ValueChanged<String> onSelect;
+  final TextEditingController writtenController;
+  final VoidCallback onSubmitWritten;
   final VoidCallback onNext;
   final bool showLearnedButton;
   final bool learnedBusy;
@@ -873,18 +1058,55 @@ class _QuizBody extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // ── Options ─────────────────────────────────────────────────────────
-          ...question.options.map(
-            (opt) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _OptionTile(
-                text: opt,
-                state: _optionState(opt),
-                shakeAnimation: shakeAnimation,
-                onTap: () => onSelect(opt),
+          // ── Answer area ─────────────────────────────────────────────────────
+          if (question.kind == _QuestionKind.written) ...[
+            TextField(
+              controller: writtenController,
+              enabled: !answered,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => onSubmitWritten(),
+              decoration: InputDecoration(
+                labelText: 'Type the word',
+                hintText: 'e.g. ${question.correctAnswer}',
+                border: const OutlineInputBorder(),
               ),
             ),
-          ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: answered ? null : onSubmitWritten,
+                child: const Text('Submit'),
+              ),
+            ),
+            if (answered) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _resultLine(),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: _isWrittenCorrect()
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ] else ...[
+            ...question.options.map(
+              (opt) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _OptionTile(
+                  text: opt,
+                  state: _optionState(opt),
+                  shakeAnimation: shakeAnimation,
+                  onTap: () => onSelect(opt),
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 8),
 
@@ -945,6 +1167,23 @@ class _QuizBody extends StatelessWidget {
     if (opt == question.correctAnswer) return _OptionState.correct;
     if (opt == selectedAnswer) return _OptionState.wrong;
     return _OptionState.idle;
+  }
+
+  bool _isWrittenCorrect() {
+    if (question.kind != _QuestionKind.written) return false;
+    final a = (selectedAnswer ?? '').trim().toLowerCase();
+    final c = question.correctAnswer.trim().toLowerCase();
+    return a.isNotEmpty && a == c;
+  }
+
+  String _resultLine() {
+    final a = (selectedAnswer ?? '').trim();
+    final correct = question.correctAnswer;
+    if (_isWrittenCorrect()) {
+      return 'Correct: $a';
+    }
+    if (a.isEmpty) return 'Wrong (blank). Correct answer: $correct';
+    return 'Wrong: $a · Correct answer: $correct';
   }
 }
 

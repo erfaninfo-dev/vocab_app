@@ -19,6 +19,16 @@ class GrammarStatsCharts extends ConsumerWidget {
     return (s / t) * 100;
   }
 
+  static DateTime? _parseCreatedAt(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return null;
+    final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+    return DateTime.tryParse(normalized);
+  }
+
+  static String _mmDd(DateTime d) =>
+      '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -101,6 +111,14 @@ class GrammarStatsCharts extends ConsumerWidget {
         final avg = chronological.map((e) => e.pct).reduce((a, b) => a + b) /
             chronological.length;
 
+        final attemptCount = chronological.length;
+        final last = chronological.isNotEmpty ? chronological.last : null;
+        final best = chronological.map((e) => e.pct).reduce(math.max);
+        final worst = chronological.map((e) => e.pct).reduce(math.min);
+        final trendDelta = (chronological.length >= 2)
+            ? (chronological.last.pct - chronological.first.pct)
+            : null;
+
         final spots = <FlSpot>[
           for (var i = 0; i < chronological.length; i++)
             FlSpot(i.toDouble(), chronological[i].pct),
@@ -110,6 +128,11 @@ class GrammarStatsCharts extends ConsumerWidget {
             .clamp(0.0, 100.0);
         final maxY = (chronological.map((e) => e.pct).reduce(math.max) + 5)
             .clamp(0.0, 100.0);
+
+        final n = chronological.length;
+        final tickStep = math.max(1, (n / 4).floor()); // show ~5 ticks max
+        final shown = <int>{0, tickStep, tickStep * 2, tickStep * 3, n - 1}
+          ..removeWhere((i) => i < 0 || i >= n);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,12 +151,54 @@ class GrammarStatsCharts extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Average (last ${chronological.length} saved): '
-                      '${avg.round()}%',
+                      'Average (last $attemptCount saved): '
+                      '${avg.toStringAsFixed(1)}%',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: scheme.primary,
                             fontWeight: FontWeight.w700,
                           ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: [
+                        _MetricChip(
+                          icon: Icons.numbers_rounded,
+                          label: 'Attempts',
+                          value: '$attemptCount',
+                          scheme: scheme,
+                        ),
+                        if (last != null)
+                          _MetricChip(
+                            icon: Icons.schedule_rounded,
+                            label: 'Last',
+                            value: '${last.pct.toStringAsFixed(1)}%',
+                            scheme: scheme,
+                          ),
+                        _MetricChip(
+                          icon: Icons.trending_up_rounded,
+                          label: 'Best',
+                          value: '${best.toStringAsFixed(1)}%',
+                          scheme: scheme,
+                        ),
+                        _MetricChip(
+                          icon: Icons.trending_down_rounded,
+                          label: 'Worst',
+                          value: '${worst.toStringAsFixed(1)}%',
+                          scheme: scheme,
+                        ),
+                        if (trendDelta != null)
+                          _MetricChip(
+                            icon: trendDelta >= 0
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            label: 'Trend',
+                            value:
+                                '${trendDelta >= 0 ? '+' : ''}${trendDelta.toStringAsFixed(1)}%',
+                            scheme: scheme,
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -172,6 +237,28 @@ class GrammarStatsCharts extends ConsumerWidget {
                           LineChartData(
                             minY: minY,
                             maxY: maxY,
+                            lineTouchData: LineTouchData(
+                              enabled: true,
+                              touchTooltipData: LineTouchTooltipData(
+                                tooltipRoundedRadius: 12,
+                                getTooltipItems: (touchedSpots) {
+                                  return touchedSpots.map((s) {
+                                    final i = s.x.round().clamp(0, n - 1);
+                                    final raw = chronological[i].r.createdAt;
+                                    final dt = _parseCreatedAt(raw);
+                                    final dateLabel = dt != null ? _mmDd(dt) : '#${i + 1}';
+                                    final r = chronological[i].r;
+                                    final score = r.score ?? 0;
+                                    final total = r.totalQuestions ?? 0;
+                                    final pct = chronological[i].pct;
+                                    return LineTooltipItem(
+                                      '$dateLabel\n${pct.toStringAsFixed(1)}% ($score/$total)',
+                                      Theme.of(context).textTheme.labelMedium!,
+                                    );
+                                  }).toList();
+                                },
+                              ),
+                            ),
                             gridData: FlGridData(
                               show: true,
                               drawVerticalLine: false,
@@ -202,16 +289,23 @@ class GrammarStatsCharts extends ConsumerWidget {
                               bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
-                                  interval: math.max(1, (spots.length / 6).ceil().toDouble()),
+                                  reservedSize: 28,
+                                  interval: 1,
                                   getTitlesWidget: (v, m) {
                                     final i = v.round();
                                     if (i < 0 || i >= chronological.length) {
                                       return const SizedBox.shrink();
                                     }
+                                    if (!shown.contains(i)) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final dt = _parseCreatedAt(
+                                      chronological[i].r.createdAt,
+                                    );
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 6),
                                       child: Text(
-                                        '${i + 1}',
+                                        dt != null ? _mmDd(dt) : '${i + 1}',
                                         style: Theme.of(context).textTheme.labelSmall,
                                       ),
                                     );
@@ -325,6 +419,22 @@ class _AccuracyBucketsBar extends StatelessWidget {
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
         maxY: maxC > 0 ? maxC.toDouble() + 0.5 : 1,
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            tooltipRoundedRadius: 12,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final idx = group.x.toInt().clamp(0, 3);
+              final count = buckets[idx];
+              final total = results.isEmpty ? 0 : results.length;
+              final pct = total == 0 ? 0 : (count / total * 100);
+              return BarTooltipItem(
+                '${labels[idx]}\n$count attempt(s) • ${pct.toStringAsFixed(0)}%',
+                Theme.of(context).textTheme.labelMedium!,
+              );
+            },
+          ),
+        ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
@@ -377,6 +487,52 @@ class _AccuracyBucketsBar extends StatelessWidget {
                 ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.scheme,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
         ],
       ),
     );

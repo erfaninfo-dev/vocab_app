@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/user_friendly_error.dart';
+import '../../core/sync/pending_word_updates.dart';
 import '../../domain/api_providers.dart';
 import '../../data/models/vocab_entry.dart';
 import 'widgets/word_card.dart';
@@ -24,6 +26,22 @@ class WordsScreen extends ConsumerStatefulWidget {
 
 class _WordsScreenState extends ConsumerState<WordsScreen> {
   String _query = '';
+
+  Future<void> _refresh() async {
+    await syncPendingImportantUpdates(ref);
+    ref.invalidate(apiAllWordsForBookProvider(widget.bookId));
+    ref.invalidate(
+      apiWordsProvider((
+        bookId: widget.bookId,
+        unit: widget.unit,
+        section: widget.section,
+      )),
+    );
+    // Wait for at least one request so RefreshIndicator doesn't instantly stop.
+    try {
+      await ref.read(apiAllWordsForBookProvider(widget.bookId).future);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,36 +92,55 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
           ),
         ),
-        child: searching
-            ? allBookAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (error, _) =>
-                    Center(child: Text('Failed to load words: $error')),
-                data: (allWords) {
-                  final filtered = allWords
-                      .where((e) => e.matchesWordQuery(_query))
-                      .toList();
-                  return _wordsScrollView(
-                    displayList: filtered,
-                    headerTotal: allWords.length,
-                    isGlobalSearch: true,
-                  );
-                },
-              )
-            : unitAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (error, _) =>
-                    Center(child: Text('Failed to load words: $error')),
-                data: (unitWords) {
-                  return _wordsScrollView(
-                    displayList: unitWords,
-                    headerTotal: unitWords.length,
-                    isGlobalSearch: false,
-                  );
-                },
-              ),
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: searching
+              ? allBookAsync.when(
+                  loading: () => ListView(
+                    children: const [
+                      SizedBox(height: 220),
+                      Center(child: CircularProgressIndicator()),
+                    ],
+                  ),
+                  error: (error, _) => ListView(
+                    children: [
+                      const SizedBox(height: 220),
+                      Center(child: Text(userFriendlyErrorMessage(error))),
+                    ],
+                  ),
+                  data: (allWords) {
+                    final filtered = allWords
+                        .where((e) => e.matchesWordQuery(_query))
+                        .toList();
+                    return _wordsScrollView(
+                      displayList: filtered,
+                      headerTotal: allWords.length,
+                      isGlobalSearch: true,
+                    );
+                  },
+                )
+              : unitAsync.when(
+                  loading: () => ListView(
+                    children: const [
+                      SizedBox(height: 220),
+                      Center(child: CircularProgressIndicator()),
+                    ],
+                  ),
+                  error: (error, _) => ListView(
+                    children: [
+                      const SizedBox(height: 220),
+                      Center(child: Text(userFriendlyErrorMessage(error))),
+                    ],
+                  ),
+                  data: (unitWords) {
+                    return _wordsScrollView(
+                      displayList: unitWords,
+                      headerTotal: unitWords.length,
+                      isGlobalSearch: false,
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }

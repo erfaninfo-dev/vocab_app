@@ -140,16 +140,8 @@ class _GrammarSortBar extends ConsumerWidget {
       value: (field: 'date', order: 'desc'),
     ),
     (
-      label: 'Oldest first',
-      value: (field: 'date', order: 'asc'),
-    ),
-    (
       label: 'Highest score %',
       value: (field: 'score', order: 'desc'),
-    ),
-    (
-      label: 'Lowest score %',
-      value: (field: 'score', order: 'asc'),
     ),
   ];
 
@@ -302,17 +294,137 @@ class _PublicResultsTab extends ConsumerWidget {
             await ref.read(publicGrammarResultsProvider.future);
           },
           color: scheme.primary,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              return _ResultCard(
-                r: items[i],
-                variant: _ResultCardVariant.public,
-              );
-            },
+          child: _UsersPracticeLeaderboard(
+            results: items,
+            scheme: scheme,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _UsersPracticeLeaderboard extends StatelessWidget {
+  const _UsersPracticeLeaderboard({
+    required this.results,
+    required this.scheme,
+  });
+
+  final List<GrammarResult> results;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final byUser = <String, List<GrammarResult>>{};
+    for (final r in results) {
+      final name = (r.userName ?? '').trim();
+      final key = name.isEmpty ? 'Guest' : name;
+      byUser.putIfAbsent(key, () => []).add(r);
+    }
+
+    final rows = byUser.entries.map((e) {
+      final name = e.key;
+      final items = e.value;
+      final attempts = items.length;
+
+      double? avgPct;
+      var sum = 0.0;
+      var n = 0;
+      for (final r in items) {
+        final s = r.score;
+        final t = r.totalQuestions;
+        if (s != null && t != null && t > 0) {
+          sum += (s / t) * 100;
+          n++;
+        }
+      }
+      if (n > 0) avgPct = sum / n;
+
+      return (name: name, attempts: attempts, avgPct: avgPct);
+    }).toList()
+      ..sort((a, b) => b.attempts.compareTo(a.attempts));
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+      itemCount: rows.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, i) {
+        final r = rows[i];
+        final medal = switch (i) {
+          0 => '🥇',
+          1 => '🥈',
+          2 => '🥉',
+          _ => null,
+        };
+
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 34,
+                child: Center(
+                  child: medal != null
+                      ? Text(medal, style: const TextStyle(fontSize: 18))
+                      : Text(
+                          '${i + 1}',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${r.attempts} practice session(s)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (r.avgPct != null) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${r.avgPct!.toStringAsFixed(0)}%',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ],
           ),
         );
       },

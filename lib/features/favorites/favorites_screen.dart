@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/errors/user_friendly_error.dart';
+import '../../core/sync/pending_word_updates.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../words/widgets/word_card.dart';
@@ -8,6 +10,18 @@ import '../words/word_preferences_controller.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
+
+  Future<void> _refresh(WidgetRef ref) async {
+    await syncPendingImportantUpdates(ref);
+    ref.invalidate(apiBooksProvider);
+    // Re-fetch all words for all books used by favorites.
+    try {
+      final books = await ref.read(apiBooksProvider.future);
+      for (final b in books) {
+        ref.invalidate(apiAllWordsForBookProvider(b.id));
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,9 +42,11 @@ class FavoritesScreen extends ConsumerWidget {
             ],
           ),
         ),
-        child: booksValue.when(
+        child: RefreshIndicator(
+          onRefresh: () => _refresh(ref),
+          child: booksValue.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('Error: $error')),
+          error: (error, _) => Center(child: Text(userFriendlyErrorMessage(error))),
           data: (books) {
             final allWordsValues = books
                 .map((book) => ref.watch(apiAllWordsForBookProvider(book.id)))
@@ -48,7 +64,12 @@ class FavoritesScreen extends ConsumerWidget {
 
             final favEntries = _filter(allEntries, favorites);
             if (favEntries.isEmpty) {
-              return const Center(child: Text('No favorite words yet.'));
+              return ListView(
+                children: const [
+                  SizedBox(height: 220),
+                  Center(child: Text('No favorite words yet.')),
+                ],
+              );
             }
 
             return ListView.separated(
@@ -59,6 +80,7 @@ class FavoritesScreen extends ConsumerWidget {
               itemCount: favEntries.length,
             );
           },
+        ),
         ),
       ),
     );

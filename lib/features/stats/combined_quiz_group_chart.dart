@@ -38,7 +38,14 @@ class CombinedQuizGroupChart extends StatelessWidget {
 
     final maxY = 100.0;
     final n = days.length;
-    final step = math.max(1, (n / 6).ceil());
+    final tickStep = math.max(1, (n / 4).floor()); // show ~5 ticks max
+    final shown = <int>{
+      0,
+      tickStep,
+      tickStep * 2,
+      tickStep * 3,
+      n - 1,
+    }..removeWhere((i) => i < 0 || i >= n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,6 +65,24 @@ class CombinedQuizGroupChart extends StatelessWidget {
               alignment: BarChartAlignment.spaceAround,
               maxY: maxY,
               minY: 0,
+              barTouchData: BarTouchData(
+                enabled: true,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final i = group.x.toInt();
+                    final label =
+                        (i >= 0 && i < n) ? days[i].labelMmDd : '';
+                    final which = rodIndex == 0 ? 'Vocabulary' : 'Grammar';
+                    final v = rod.toY;
+                    final pretty =
+                        v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1);
+                    return BarTooltipItem(
+                      '$label • $which\n$pretty%',
+                      Theme.of(context).textTheme.labelMedium!,
+                    );
+                  },
+                ),
+              ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
@@ -86,10 +111,13 @@ class CombinedQuizGroupChart extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: step.toDouble(),
+                    reservedSize: 34,
+                    interval: 1,
                     getTitlesWidget: (v, m) {
                       final i = v.toInt();
                       if (i < 0 || i >= n) return const SizedBox.shrink();
+                      final shouldShow = shown.contains(i);
+                      if (!shouldShow) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(

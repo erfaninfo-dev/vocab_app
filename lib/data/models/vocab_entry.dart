@@ -1,5 +1,6 @@
 class VocabEntry {
   const VocabEntry({
+    required this.rowId,
     required this.bookId,
     required this.word,
     required this.type,
@@ -13,6 +14,9 @@ class VocabEntry {
     required this.section,
     this.important = 0,
   });
+
+  /// DB row id from server `words` table.
+  final int rowId;
 
   final String bookId;
   final String word;
@@ -66,6 +70,7 @@ class VocabEntry {
     required String bookId,
   }) {
     return VocabEntry(
+      rowId: (json['id'] as num?)?.toInt() ?? 0,
       bookId: bookId,
       word: (json['word'] ?? '').toString(),
       type: (json['type'] ?? '').toString(),
