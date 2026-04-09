@@ -1067,7 +1067,7 @@ class _QuizBody extends StatelessWidget {
               onSubmitted: (_) => onSubmitWritten(),
               decoration: InputDecoration(
                 labelText: 'Type the word',
-                hintText: 'e.g. ${question.correctAnswer}',
+                hintText: 'Type your answer…',
                 border: const OutlineInputBorder(),
               ),
             ),

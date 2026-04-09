@@ -84,7 +84,6 @@ class _WordCardState extends ConsumerState<WordCard> {
     final controller = ref.read(wordPreferencesProvider.notifier);
     final lang       = ref.watch(langProvider);
     final isFav      = state.favoriteIds.contains(widget.entry.id);
-    final isHard     = state.difficultIds.contains(widget.entry.id);
     final scheme     = Theme.of(context).colorScheme;
     final accent     = _accent(widget.entry.section);
 
@@ -246,18 +245,15 @@ class _WordCardState extends ConsumerState<WordCard> {
                 ),
                 const SizedBox(width: 4),
                 IconButton.filledTonal(
-                  tooltip: 'Difficult',
-                  onPressed: () => controller.toggleDifficult(widget.entry.id),
-                  icon: Icon(
-                    isHard
-                        ? Icons.local_fire_department_rounded
-                        : Icons.local_fire_department_outlined,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton.filledTonal(
                   tooltip: 'Important',
                   onPressed: _busyImportant ? null : () => _toggleImportant(context),
+                  style: _isImportant
+                      ? IconButton.styleFrom(
+                          backgroundColor:
+                              Colors.orange.withValues(alpha: 0.22),
+                          foregroundColor: Colors.deepOrange.shade700,
+                        )
+                      : null,
                   icon: Icon(
                     _isImportant
                         ? Icons.local_fire_department_rounded
