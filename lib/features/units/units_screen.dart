@@ -36,9 +36,9 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
     } catch (_) {
       if (!mounted) return;
       final msg = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg.failedLoadSections)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(msg.failedLoadSections)));
     } finally {
       if (mounted) setState(() => _loadingUnit = null);
     }
@@ -67,8 +67,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
           IconButton(
             icon: const Icon(Icons.quiz_rounded),
             tooltip: l10n.bookQuiz,
-            onPressed: () =>
-                context.push('/books/${widget.bookId}/vocab-quiz'),
+            onPressed: () => context.push('/books/${widget.bookId}/vocab-quiz'),
           ),
           IconButton(
             icon: const Icon(Icons.bookmarks_rounded),
@@ -226,10 +225,11 @@ class _UnitTileState extends State<_UnitTile> {
                           'Unit ${unitInfo.unit}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
                         ),
                       ),
                       const Spacer(),
@@ -241,10 +241,7 @@ class _UnitTileState extends State<_UnitTile> {
                           minHeight: 40,
                         ),
                         onPressed: widget.isLoading ? null : widget.onQuiz,
-                        icon: Icon(
-                          Icons.quiz_rounded,
-                          color: scheme.primary,
-                        ),
+                        icon: Icon(Icons.quiz_rounded, color: scheme.primary),
                       ),
                       Container(
                         width: 42,
@@ -269,24 +266,25 @@ class _UnitTileState extends State<_UnitTile> {
                   // ── Center: unit details ───────────────────────────────────
                   Expanded(
                     child: Center(
-                      child: (unitInfo.unitDetails != null &&
+                      child:
+                          (unitInfo.unitDetails != null &&
                               unitInfo.unitDetails!.isNotEmpty)
                           ? Text(
                               unitInfo.unitDetails!,
                               textAlign: TextAlign.center,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                                height: 1.4,
-                              ),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                  ),
                             )
                           : Text(
                               widget.isLoading ? 'Checking…' : 'Tap to open',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
                             ),
                     ),
                   ),

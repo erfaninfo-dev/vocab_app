@@ -2098,6 +2098,12 @@ abstract class AppLocalizations {
   /// **'Highest score %'**
   String get grammarSortHighestScore;
 
+  /// No description provided for @grammarSortMostPractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Most practice'**
+  String get grammarSortMostPractice;
+
   /// No description provided for @grammarSortLabel.
   ///
   /// In en, this message translates to:

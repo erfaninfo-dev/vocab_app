@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/user_friendly_error.dart';
 import '../../core/srs/srs_provider.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
@@ -67,7 +68,8 @@ class HomeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(24),
                     child: Center(
                       child: Text(
-                        l10n.couldNotLoadBooksWithError(error.toString()),
+                        '${l10n.couldNotLoadBooks}\n'
+                        '${userFriendlyErrorMessage(error, l10n)}',
                         textAlign: TextAlign.center,
                       ),
                     ),

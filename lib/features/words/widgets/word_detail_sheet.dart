@@ -9,36 +9,36 @@ class WordDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry.word,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.word,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-              ),
-              if (entry.type.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Chip(label: Text(entry.type)),
+                if (entry.type.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Chip(label: Text(entry.type)),
+                ],
+                const SizedBox(height: 16),
+                _SectionTitle(title: 'English Meaning'),
+                Text(entry.meaningEn.isEmpty ? '-' : entry.meaningEn),
+                const SizedBox(height: 16),
+                _SectionTitle(title: 'معنی فارسی'),
+                Text(entry.meaningFa.isEmpty ? '-' : entry.meaningFa),
+                const SizedBox(height: 16),
+                _SectionTitle(title: 'Example'),
+                Text(entry.example.isEmpty ? '-' : entry.example),
               ],
-              const SizedBox(height: 16),
-              _SectionTitle(title: 'English Meaning'),
-              Text(entry.meaningEn.isEmpty ? '-' : entry.meaningEn),
-              const SizedBox(height: 16),
-              _SectionTitle(title: 'معنی فارسی'),
-              Directionality(
-                textDirection: TextDirection.rtl,
-                child: Text(entry.meaningFa.isEmpty ? '-' : entry.meaningFa),
-              ),
-              const SizedBox(height: 16),
-              _SectionTitle(title: 'Example'),
-              Text(entry.example.isEmpty ? '-' : entry.example),
-            ],
+            ),
           ),
         ),
       ),

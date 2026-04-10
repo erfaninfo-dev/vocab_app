@@ -199,11 +199,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final bookId  = int.tryParse(state.pathParameters['bookId']  ?? '') ?? 0;
               final unit    = int.tryParse(state.pathParameters['unit']    ?? '') ?? 1;
-              final section = int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
-              return QuizScreen(
+              // Use the same setup screen as book-level quiz, but seed only this unit.
+              // (User can still select other units.)
+              return BookVocabQuizSetupScreen(
                 bookId: bookId,
-                unit: unit,
-                section: section,
+                initialSelectedUnits: {unit},
               );
             },
           ),
@@ -214,7 +214,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final bookId = int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
               final unit   = int.tryParse(state.pathParameters['unit']   ?? '') ?? 1;
-              return QuizScreen(bookId: bookId, unit: unit);
+              return BookVocabQuizSetupScreen(
+                bookId: bookId,
+                initialSelectedUnits: {unit},
+              );
             },
           ),
 

@@ -333,6 +333,7 @@
   "grammarTopicsCountAppBar": "{count, plural, =1{١ بابەت} other{{count} بابەت}}",
   "grammarSortNewestFirst": "نوێترین یەکەم",
   "grammarSortHighestScore": "بەرزترین لەسەدی نمرە",
+  "grammarSortMostPractice": "زۆرترین مەشق",
   "grammarSortLabel": "ڕیزکردن",
   "grammarSignInRequiredTitle": "چوونەژوورەوە پێویستە",
   "grammarSignInRequiredBody": "بچۆرە ژوورەوە بۆ مێژوو و نیشانەی تایبەت/گشتی.",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:math' as math;
 
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/auth/auth_provider.dart';
@@ -13,20 +14,27 @@ import 'quiz_screen.dart';
 
 /// Pick unit(s), question count (min 10 when enough words exist), and scope for book-level quiz.
 class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
-  const BookVocabQuizSetupScreen({super.key, required this.bookId});
+  const BookVocabQuizSetupScreen({
+    super.key,
+    required this.bookId,
+    this.initialSelectedUnits,
+  });
 
   final int bookId;
+  final Set<int>? initialSelectedUnits;
 
   @override
   ConsumerState<BookVocabQuizSetupScreen> createState() =>
       _BookVocabQuizSetupScreenState();
 }
 
-class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScreen> {
+class _BookVocabQuizSetupScreenState
+    extends ConsumerState<BookVocabQuizSetupScreen> {
   final Set<int> _selectedUnits = {};
   bool _wrongsOnly = false;
   int _questionCount = 20;
   bool _seededUnits = false;
+
   /// When the selected pool includes important words, quiz can be all words or important-only.
   bool _quizImportantOnly = false;
   Set<VocabQuestionMode> _questionModes = {VocabQuestionMode.mcqWordToMeaning};
@@ -35,6 +43,7 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
   Widget build(BuildContext context) {
     final locale = ref.watch(uiLocaleProvider);
     final l10n = lookupAppLocalizations(locale);
+    final l10nEn = lookupAppLocalizations(const Locale('en'));
     final scheme = Theme.of(context).colorScheme;
     final unitsAsync = ref.watch(apiUnitsProvider(widget.bookId));
     final allWordsAsync = ref.watch(apiAllWordsForBookProvider(widget.bookId));
@@ -60,20 +69,27 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
+                final available = units.map((e) => e.unit).toSet();
+                final seed = widget.initialSelectedUnits
+                        ?.where((u) => available.contains(u))
+                        .toSet() ??
+                    <int>{};
                 _selectedUnits
                   ..clear()
-                  ..addAll(units.map((e) => e.unit));
+                  ..addAll(seed.isNotEmpty ? seed : available);
               });
             });
           }
 
           return allWordsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e, l10n))),
+            error: (e, _) =>
+                Center(child: Text(userFriendlyErrorMessage(e, l10n))),
             data: (allWords) {
               return wrongsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => Center(child: Text(l10n.couldNotLoadMistakesShort)),
+                error: (_, __) =>
+                    Center(child: Text(l10n.couldNotLoadMistakesShort)),
                 data: (wrongs) {
                   final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
 
@@ -93,12 +109,18 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       : basePool;
 
                   final pool = effectivePool.length;
-                  final minPoolStart = (hasImportant && _quizImportantOnly) ||
-                          _wrongsOnly
-                      ? 1
-                      : 4;
+                  final needsMcq = _questionModes.any((m) => m.isMcq);
+                  final allInUnits = allWords
+                      .where((e) => _selectedUnits.contains(e.unit))
+                      .toList();
+                  final distractorPool = hasImportant && _quizImportantOnly
+                      ? allInUnits.where((e) => e.isImportant).toList()
+                      : allInUnits;
                   final maxQ = pool.clamp(0, 60);
-                  final minQ = pool >= 10 ? 10 : (pool > 0 ? pool : 0);
+                  final baseMinQ = pool >= 10 ? 10 : (pool > 0 ? pool : 0);
+                  // Keep min questions >= selected units (when possible).
+                  final minByUnits = _selectedUnits.length.clamp(0, maxQ);
+                  final minQ = maxQ == 0 ? 0 : math.max(baseMinQ, minByUnits);
                   if (_questionCount > maxQ && maxQ > 0) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;
@@ -112,6 +134,13 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                     });
                   }
 
+                  final canStart = maxQ >= 1 &&
+                      (needsMcq
+                          ? (_wrongsOnly
+                              ? (pool >= 1 && distractorPool.length >= 4)
+                              : pool >= 4)
+                          : pool >= 1);
+
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                     children: [
@@ -122,9 +151,8 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       const SizedBox(height: 18),
                       Text(
                         l10n.unitsSectionTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
                       Directionality(
@@ -136,23 +164,21 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                             for (final u in units)
                               FilterChip(
                                 label: Text(
-                                  l10n.unitLabel(u.unit),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
+                                  l10nEn.unitLabel(u.unit),
+                                  style: Theme.of(context).textTheme.labelLarge
                                       ?.copyWith(fontSize: 13),
                                 ),
                                 selected: _selectedUnits.contains(u.unit),
-                              onSelected: (v) {
-                                setState(() {
-                                  if (v) {
-                                    _selectedUnits.add(u.unit);
-                                  } else {
-                                    _selectedUnits.remove(u.unit);
-                                  }
-                                });
-                              },
-                            ),
+                                onSelected: (v) {
+                                  setState(() {
+                                    if (v) {
+                                      _selectedUnits.add(u.unit);
+                                    } else {
+                                      _selectedUnits.remove(u.unit);
+                                    }
+                                  });
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -174,25 +200,22 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       ] else ...[
                         Text(
                           l10n.signInForMistakes,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 12),
                       ],
                       if (hasImportant) ...[
                         Text(
                           l10n.importantWordsSection,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           l10n.importantWordsServerHint,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 10),
                         Wrap(
@@ -217,9 +240,8 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       ],
                       Text(
                         l10n.questionModes,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -249,25 +271,25 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                       const SizedBox(height: 20),
                       Text(
                         l10n.bookQuizQuestionsSlider(maxQ),
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       Slider(
                         min: minQ > 0 ? minQ.toDouble() : 1,
                         max: maxQ > 0 ? maxQ.toDouble() : 1,
                         divisions: maxQ > minQ ? maxQ - minQ : null,
                         label: '$_questionCount',
-                        value: _questionCount.clamp(minQ, maxQ > 0 ? maxQ : 1).toDouble(),
+                        value: _questionCount
+                            .clamp(minQ, maxQ > 0 ? maxQ : 1)
+                            .toDouble(),
                         onChanged: maxQ <= 0
                             ? null
                             : (v) => setState(() => _questionCount = v.round()),
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: pool < minPoolStart || maxQ < 1
-                            ? null
-                            : () {
+                        onPressed: canStart
+                            ? () {
                                 final u = _selectedUnits.toList()..sort();
                                 final scope = _wrongsOnly ? 'wrongs' : 'all';
                                 var path =
@@ -276,32 +298,30 @@ class _BookVocabQuizSetupScreenState extends ConsumerState<BookVocabQuizSetupScr
                                   path +=
                                       '&important=${_quizImportantOnly ? 1 : 0}';
                                 }
-                                final csv = _questionModes
-                                    .map((m) => m.name)
-                                    .toList()
-                                  ..sort();
-                                path += '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
+                                final csv =
+                                    _questionModes.map((m) => m.name).toList()
+                                      ..sort();
+                                path +=
+                                    '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
                                 context.push(path);
-                              },
+                              }
+                            : null,
                         icon: const Icon(Icons.play_arrow_rounded),
                         label: Text(l10n.startQuiz),
                       ),
-                      if (pool < minPoolStart)
+                      if (!canStart)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
-                            pool == 0 &&
-                                    hasImportant &&
-                                    _quizImportantOnly
+                            pool == 0 && hasImportant && _quizImportantOnly
                                 ? l10n.bookQuizPoolTooSmallImportant
-                                : pool == 0 &&
-                                        loggedIn &&
-                                        _wrongsOnly
-                                    ? l10n.quizNotEnoughWrongs
-                                    : l10n.bookQuizPoolTooSmall,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: scheme.error,
-                                ),
+                                : pool == 0 && loggedIn && _wrongsOnly
+                                ? l10n.quizNotEnoughWrongs
+                                : needsMcq && pool > 0 && distractorPool.length < 4
+                                ? l10n.quizNeedFourWords
+                                : l10n.bookQuizPoolTooSmall,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: scheme.error),
                           ),
                         ),
                     ],

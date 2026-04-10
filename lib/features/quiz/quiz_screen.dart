@@ -87,14 +87,10 @@ class _Question {
 // ─── Quiz Screen ──────────────────────────────────────────────────────────────
 
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({
-    super.key,
-    required this.bookId,
-    this.unit,
-    this.section,
-  });
+  const QuizScreen({super.key, required this.bookId, this.unit, this.section});
 
   final int bookId;
+
   /// Null when using `/books/:bookId/quiz` (multi-unit from query).
   final int? unit;
   final int? section;
@@ -114,6 +110,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   bool _answered = false;
   int _score = 0;
   bool _sessionDone = false;
+
   /// From setup: all words in pool, or wrong-words only.
   bool _scopeWrongsOnly = false;
   int _questionBudget = 20;
@@ -121,6 +118,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
   late final TextEditingController _writtenCtrl;
+  bool _autoStartScheduled = false;
 
   @override
   void initState() {
@@ -176,16 +174,17 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   }
 
   List<_Question> _buildQuestions(
-    List<VocabEntry> words,
+    List<VocabEntry> questionWords,
+    List<VocabEntry> distractorWords,
     TranslationLang lang,
     int maxQuestions,
     Set<VocabQuestionMode> modes,
   ) {
-    if (words.isEmpty) return [];
+    if (questionWords.isEmpty) return [];
     final rng = Random();
 
     // Filter: only words with both word and at least one meaning
-    final usable = words
+    final usable = questionWords
         .where(
           (w) =>
               w.word.isNotEmpty &&
@@ -195,10 +194,24 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
     if (usable.isEmpty) return [];
 
+    final usableDistractors = distractorWords
+        .where(
+          (w) =>
+              w.word.isNotEmpty &&
+              (w.meaningEn.isNotEmpty || w.meaningFor(lang).isNotEmpty),
+        )
+        .toList();
+    if (usableDistractors.isEmpty) return [];
+
     final cap = maxQuestions.clamp(1, kVocabQuizMaxQuestions);
     final selected = modes.isEmpty
         ? <VocabQuestionMode>{VocabQuestionMode.mcqWordToMeaning}
         : {...modes};
+
+    String meaningForQuiz(VocabEntry w) {
+      final local = w.meaningFor(lang);
+      return local.isNotEmpty ? local : w.meaningEn;
+    }
 
     final Map<VocabQuestionMode, List<_Question>> buckets = {
       for (final m in selected) m: <_Question>[],
@@ -209,12 +222,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       for (final m in selected) {
         if (m == VocabQuestionMode.writtenMeaningToWord) {
           final localMeaning = word.meaningFor(lang);
-          final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
+          final prompt = localMeaning.isNotEmpty
+              ? localMeaning
+              : word.meaningEn;
           if (prompt.trim().isEmpty) continue;
           final promptSub =
               (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
-                  ? word.meaningEn
-                  : word.type;
+              ? word.meaningEn
+              : word.type;
           buckets[m]!.add(
             _Question(
               entry: word,
@@ -228,18 +243,51 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           continue;
         }
 
-        final others = usable.where((w) => w.id != word.id).toList()
-          ..shuffle(rng);
-        final wrongPool = others.take(min(3, others.length)).toList();
+        // Distractor preference order (fast + higher quality):
+        // 1) same section (if any) → 2) same unit → 3) rest of distractor scope
+        final candidates =
+            usableDistractors.where((w) => w.id != word.id).toList();
+
+        List<VocabEntry> shuffled(List<VocabEntry> xs) {
+          final out = [...xs]..shuffle(rng);
+          return out;
+        }
+
+        final sameSection = <VocabEntry>[];
+        if (word.section != null) {
+          for (final w in candidates) {
+            if (w.unit == word.unit && w.section == word.section) {
+              sameSection.add(w);
+            }
+          }
+        }
+
+        final sameUnit = <VocabEntry>[];
+        for (final w in candidates) {
+          if (w.unit == word.unit &&
+              (word.section == null || w.section != word.section)) {
+            sameUnit.add(w);
+          }
+        }
+
+        final rest = <VocabEntry>[];
+        for (final w in candidates) {
+          if (w.unit != word.unit) rest.add(w);
+        }
+
+        final ordered = <VocabEntry>[
+          ...shuffled(sameSection),
+          ...shuffled(sameUnit),
+          ...shuffled(rest),
+        ];
+
+        final wrongPool = ordered.take(3).toList();
+        if (wrongPool.length < 3) continue;
 
         if (m == VocabQuestionMode.mcqWordToMeaning) {
-          final correct = word.meaningEn.isNotEmpty
-              ? word.meaningEn
-              : word.meaningFor(lang);
+          final correct = meaningForQuiz(word);
           final wrongs = wrongPool
-              .map(
-                (w) => w.meaningEn.isNotEmpty ? w.meaningEn : w.meaningFor(lang),
-              )
+              .map(meaningForQuiz)
               .toList();
           final opts = [correct, ...wrongs]..shuffle(rng);
           buckets[m]!.add(
@@ -254,14 +302,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           );
         } else if (m == VocabQuestionMode.mcqMeaningToWord) {
           final localMeaning = word.meaningFor(lang);
-          final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
+          final prompt = localMeaning.isNotEmpty
+              ? localMeaning
+              : word.meaningEn;
           final correct = word.word;
           final wrongs = wrongPool.map((w) => w.word).toList();
           final opts = [correct, ...wrongs]..shuffle(rng);
           final promptSub =
               (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
-                  ? word.meaningEn
-                  : '';
+              ? word.meaningEn
+              : '';
           buckets[m]!.add(
             _Question(
               entry: word,
@@ -292,7 +342,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       if (!addedAny) break;
     }
     return out;
-
   }
 
   void _resetWrittenInput() {
@@ -307,9 +356,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     await _selectAnswer(answer);
   }
 
-  void _startQuiz(List<VocabEntry> words, TranslationLang lang, int budget) {
+  void _startQuiz(
+    List<VocabEntry> words,
+    TranslationLang lang,
+    int budget, {
+    List<VocabEntry>? distractors,
+  }) {
     setState(() {
-      _questions = _buildQuestions(words, lang, budget, _effectiveModes());
+      _questions = _buildQuestions(
+        words,
+        distractors ?? words,
+        lang,
+        budget,
+        _effectiveModes(),
+      );
       _currentIndex = 0;
       _selectedAnswer = null;
       _answered = false;
@@ -345,7 +405,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       final session = ref.read(authProvider).valueOrNull;
       if (session != null) {
         try {
-          await ref.read(apiServiceProvider).addVocabQuizWrong(
+          await ref
+              .read(apiServiceProvider)
+              .addVocabQuizWrong(
                 bookId: widget.bookId,
                 unit: q.entry.unit,
                 wordKey: q.entry.id,
@@ -365,7 +427,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     if (session == null) return;
     setState(() => _removingLearned = true);
     try {
-      await ref.read(apiServiceProvider).removeVocabQuizWrong(
+      await ref
+          .read(apiServiceProvider)
+          .removeVocabQuizWrong(
             bookId: widget.bookId,
             unit: q.entry.unit,
             wordKey: q.entry.id,
@@ -373,16 +437,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       _invalidateWrongs();
       if (mounted) {
         final msg = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg.removedFromMistakes)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg.removedFromMistakes)));
       }
     } catch (_) {
       if (mounted) {
         final msg = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg.couldNotUpdateServer)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg.couldNotUpdateServer)));
       }
     } finally {
       if (mounted) setState(() => _removingLearned = false);
@@ -403,8 +467,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   }
 
   bool _parsedRouteOnce = false;
+
   /// From `?important=0|1`; when set, skips the in-quiz important-word choice.
   int? _routeImportant;
+
   /// User choice when pool has important words and URL did not specify `important`.
   int? _userImportantScope;
 
@@ -440,7 +506,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     }
 
     if (modesCsv != null && modesCsv.trim().isNotEmpty) {
-      final parts = modesCsv.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty);
+      final parts = modesCsv
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty);
       final next = <VocabQuestionMode>{};
       for (final p in parts) {
         for (final m in VocabQuestionMode.values) {
@@ -517,6 +586,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     _ensureRouteDefaults();
     final lang = ref.watch(langProvider);
     final route = GoRouterState.of(context);
+    final qp = route.uri.queryParameters;
+    final autoStartFromRoute =
+        qp.containsKey('count') || qp.containsKey('modes');
     final unitsCsv = route.uri.queryParameters['units'] ?? '';
     final unitFilter = unitsCsv
         .split(',')
@@ -535,10 +607,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         : ref.watch(apiAllWordsForBookProvider(widget.bookId));
 
     final wrongsAsync = ref.watch(
-      vocabQuizWrongsProvider((
-        bookId: widget.bookId,
-        unit: widget.unit,
-      )),
+      vocabQuizWrongsProvider((bookId: widget.bookId, unit: widget.unit)),
     );
 
     final l10n = AppLocalizations.of(context)!;
@@ -579,132 +648,163 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         },
         child: wordsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Center(
-            child: Text(l10n.couldNotLoadWords),
-          ),
+          error: (_, __) => Center(child: Text(l10n.couldNotLoadWords)),
           data: (words) {
             return wrongsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => Center(
-              child: Text(l10n.couldNotLoadMistakes),
-            ),
-            data: (wrongs) {
-              final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
-              final basePool = _filterPool(
-                words,
-                widget.unit == null ? unitFilter : <int>{},
-                _scopeWrongsOnly,
-                wrongKeys,
-              );
-              final hasImportant = basePool.any((w) => w.isImportant);
-              final resolvedScope = _resolvedImportantScope(hasImportant);
-              if (hasImportant && resolvedScope == null) {
-                final nImp = basePool.where((w) => w.isImportant).length;
-                return _ImportantChoicePanel(
-                  l10n: l10n,
-                  allCount: basePool.length,
-                  importantCount: nImp,
-                  onAllWords: () => setState(() => _userImportantScope = 0),
-                  onImportantOnly: () => setState(() => _userImportantScope = 1),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => Center(child: Text(l10n.couldNotLoadMistakes)),
+              data: (wrongs) {
+                final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
+                final basePool = _filterPool(
+                  words,
+                  widget.unit == null ? unitFilter : <int>{},
+                  _scopeWrongsOnly,
+                  wrongKeys,
                 );
-              }
+                final basePoolAllSelected = _filterPool(
+                  words,
+                  widget.unit == null ? unitFilter : <int>{},
+                  false,
+                  wrongKeys,
+                );
+                final hasImportant = basePool.any((w) => w.isImportant);
+                final resolvedScope = _resolvedImportantScope(hasImportant);
+                if (hasImportant && resolvedScope == null) {
+                  final nImp = basePool.where((w) => w.isImportant).length;
+                  return _ImportantChoicePanel(
+                    l10n: l10n,
+                    allCount: basePool.length,
+                    importantCount: nImp,
+                    onAllWords: () => setState(() => _userImportantScope = 0),
+                    onImportantOnly: () =>
+                        setState(() => _userImportantScope = 1),
+                  );
+                }
 
-              final pool = _applyImportantFilter(basePool, resolvedScope!);
+                final pool = _applyImportantFilter(basePool, resolvedScope!);
+                final distractorPool =
+                    _applyImportantFilter(basePoolAllSelected, resolvedScope);
 
-              final selectedModes = _effectiveModes();
-              final needsMcq =
-                  selectedModes.any((m) => m.isMcq);
-              final minPoolNeeded = resolvedScope == 1 || _scopeWrongsOnly
-                  ? 1
-                  : (needsMcq ? 4 : 1);
+                final selectedModes = _effectiveModes();
+                final needsMcq = selectedModes.any((m) => m.isMcq);
+                final canMcq =
+                    !needsMcq ||
+                    (_scopeWrongsOnly
+                        ? pool.isNotEmpty && distractorPool.length >= 4
+                        : pool.length >= 4);
+                final canStart = needsMcq ? canMcq : pool.isNotEmpty;
 
-              if (pool.length < minPoolNeeded) {
-                final importantTooSmall =
-                    resolvedScope == 1 && hasImportant && basePool.length >= 4;
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      importantTooSmall
-                          ? l10n.quizNotEnoughImportant
-                          : _scopeWrongsOnly
-                              ? l10n.quizNotEnoughWrongs
-                              : needsMcq
-                                  ? l10n.quizNeedFourWords
-                                  : l10n.quizNeedOneWord,
-                      textAlign: TextAlign.center,
+                if (!canStart) {
+                  final importantTooSmall =
+                      resolvedScope == 1 &&
+                      hasImportant &&
+                      basePool.length >= 4;
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        importantTooSmall
+                            ? l10n.quizNotEnoughImportant
+                            : _scopeWrongsOnly && pool.isEmpty
+                                ? l10n.quizNotEnoughWrongs
+                                : needsMcq
+                                    ? l10n.quizNeedFourWords
+                                    : l10n.quizNeedOneWord,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              final loggedIn = ref.watch(authProvider).valueOrNull != null;
-              final maxQ = pool.length.clamp(1, kVocabQuizMaxQuestions);
-              final minPick = pool.length >= 10 ? 10 : pool.length;
+                final loggedIn = ref.watch(authProvider).valueOrNull != null;
+                final maxQ = pool.length.clamp(1, kVocabQuizMaxQuestions);
+                final minPick = pool.length >= 10 ? 10 : pool.length;
 
-              if (_questions.isEmpty) {
-                return _ModeSelector(
-                  selectedModes: selectedModes,
-                  poolSize: pool.length,
-                  scopeWrongsOnly: _scopeWrongsOnly,
-                  wrongOnServer: wrongs.length,
-                  questionBudget: _questionBudget.clamp(minPick, maxQ),
-                  minQuestionPick: minPick,
-                  maxQuestionPick: maxQ,
-                  loggedIn: loggedIn,
-                  onModesChanged: (modes) =>
-                      setState(() => _questionModes = modes),
-                  onScopeChanged: (v) => setState(() => _scopeWrongsOnly = v),
-                  onQuestionBudgetChanged: (n) =>
-                      setState(() => _questionBudget = n),
-                  onStart: () {
-                    final b = _questionBudget.clamp(minPick, maxQ);
-                    _startQuiz(pool, lang, b);
-                  },
-                );
-              }
+                if (_questions.isEmpty) {
+                  if (autoStartFromRoute) {
+                    if (!_autoStartScheduled) {
+                      _autoStartScheduled = true;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        final b = _questionBudget.clamp(minPick, maxQ);
+                        _startQuiz(
+                          pool,
+                          lang,
+                          b,
+                          distractors: _scopeWrongsOnly ? distractorPool : null,
+                        );
+                      });
+                    }
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return _ModeSelector(
+                    selectedModes: selectedModes,
+                    poolSize: pool.length,
+                    scopeWrongsOnly: _scopeWrongsOnly,
+                    wrongOnServer: wrongs.length,
+                    questionBudget: _questionBudget.clamp(minPick, maxQ),
+                    minQuestionPick: minPick,
+                    maxQuestionPick: maxQ,
+                    loggedIn: loggedIn,
+                    onModesChanged: (modes) =>
+                        setState(() => _questionModes = modes),
+                    onScopeChanged: (v) => setState(() => _scopeWrongsOnly = v),
+                    onQuestionBudgetChanged: (n) =>
+                        setState(() => _questionBudget = n),
+                    onStart: () {
+                      final b = _questionBudget.clamp(minPick, maxQ);
+                      _startQuiz(
+                        pool,
+                        lang,
+                        b,
+                        distractors: _scopeWrongsOnly ? distractorPool : null,
+                      );
+                    },
+                  );
+                }
 
-              if (_sessionDone) {
-                return _ResultScreen(
-                  l10n: l10n,
-                  score: _score,
-                  total: _questions.length,
-                  onRetry: () {
-                    final b = _questionBudget.clamp(minPick, maxQ);
-                    _startQuiz(pool, lang, b);
-                  },
-                  onChangeMode: () => setState(() => _questions = []),
-                );
-              }
+                if (_sessionDone) {
+                  return _ResultScreen(
+                    l10n: l10n,
+                    score: _score,
+                    total: _questions.length,
+                    onRetry: () {
+                      final b = _questionBudget.clamp(minPick, maxQ);
+                      _startQuiz(pool, lang, b);
+                    },
+                    onChangeMode: () => setState(() => _questions = []),
+                  );
+                }
 
-              final q = _questions[_currentIndex];
-              final showLearned = _scopeWrongsOnly &&
-                  loggedIn &&
-                  _answered &&
-                  _selectedAnswer == q.correctAnswer;
+                final q = _questions[_currentIndex];
+                final showLearned =
+                    _scopeWrongsOnly &&
+                    loggedIn &&
+                    _answered &&
+                    _selectedAnswer == q.correctAnswer;
 
                 return SingleChildScrollView(
-                child: _QuizBody(
-                  l10n: l10n,
-                  question: q,
-                  questionNumber: _currentIndex + 1,
-                  total: _questions.length,
-                  score: _score,
-                  mode: _mode,
-                  selectedAnswer: _selectedAnswer,
-                  answered: _answered,
-                  shakeAnimation: _shakeAnim,
-                  onSelect: _selectAnswer,
-                  writtenController: _writtenCtrl,
-                  onSubmitWritten: _submitWritten,
-                  onNext: _next,
-                  showLearnedButton: showLearned,
-                  learnedBusy: _removingLearned,
-                  onLearned: _onLearnedCurrent,
-                ),
-              );
-            },
-          );
+                  child: _QuizBody(
+                    l10n: l10n,
+                    question: q,
+                    questionNumber: _currentIndex + 1,
+                    total: _questions.length,
+                    score: _score,
+                    mode: _mode,
+                    selectedAnswer: _selectedAnswer,
+                    answered: _answered,
+                    shakeAnimation: _shakeAnim,
+                    onSelect: _selectAnswer,
+                    writtenController: _writtenCtrl,
+                    onSubmitWritten: _submitWritten,
+                    onNext: _next,
+                    showLearnedButton: showLearned,
+                    learnedBusy: _removingLearned,
+                    onLearned: _onLearnedCurrent,
+                  ),
+                );
+              },
+            );
           },
         ),
       ),
@@ -742,17 +842,17 @@ class _ImportantChoicePanel extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               l10n.quizScopeTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
               l10n.quizScopeImportantDescription,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -845,17 +945,17 @@ class _ModeSelector extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               l10n.quizSetupTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.quizPoolSummary(poolSize, minQuestionPick, maxQuestionPick),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             if (loggedIn) ...[
               const SizedBox(height: 16),
@@ -874,9 +974,9 @@ class _ModeSelector extends StatelessWidget {
               Text(
                 l10n.signInForMistakes,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
             const SizedBox(height: 8),
@@ -884,9 +984,9 @@ class _ModeSelector extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 l10n.numberOfQuestions,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             Slider(
@@ -894,7 +994,9 @@ class _ModeSelector extends StatelessWidget {
               max: high,
               divisions: divisions,
               label: '$questionBudget',
-              value: questionBudget.clamp(minQuestionPick, maxQuestionPick).toDouble(),
+              value: questionBudget
+                  .clamp(minQuestionPick, maxQuestionPick)
+                  .toDouble(),
               onChanged: maxQuestionPick < 1
                   ? null
                   : (v) => onQuestionBudgetChanged(v.round()),
@@ -904,9 +1006,9 @@ class _ModeSelector extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 l10n.questionModes,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(height: 8),
@@ -1048,6 +1150,19 @@ class _QuizBody extends StatelessWidget {
                       letterSpacing: 1.1,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    question.entry.section == null
+                        ? l10n.wordsUnitOnly(question.entry.unit)
+                        : l10n.wordsUnitSection(
+                            question.entry.unit,
+                            question.entry.section!,
+                          ),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
                   const SizedBox(height: 10),
                   Text(
                     question.prompt,
@@ -1144,7 +1259,9 @@ class _QuizBody extends StatelessWidget {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.check_circle_outline_rounded),
                         label: Text(
@@ -1165,9 +1282,7 @@ class _QuizBody extends StatelessWidget {
                             ? Icons.emoji_events_rounded
                             : Icons.arrow_forward_rounded,
                       ),
-                      label: Text(
-                        isLast ? l10n.seeResults : l10n.nextQuestion,
-                      ),
+                      label: Text(isLast ? l10n.seeResults : l10n.nextQuestion),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

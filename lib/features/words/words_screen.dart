@@ -107,7 +107,9 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   error: (error, _) => ListView(
                     children: [
                       const SizedBox(height: 220),
-                      Center(child: Text(userFriendlyErrorMessage(error, l10n))),
+                      Center(
+                        child: Text(userFriendlyErrorMessage(error, l10n)),
+                      ),
                     ],
                   ),
                   data: (allWords) {
@@ -132,7 +134,9 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   error: (error, _) => ListView(
                     children: [
                       const SizedBox(height: 220),
-                      Center(child: Text(userFriendlyErrorMessage(error, l10n))),
+                      Center(
+                        child: Text(userFriendlyErrorMessage(error, l10n)),
+                      ),
                     ],
                   ),
                   data: (unitWords) {
@@ -188,9 +192,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           ),
         ),
         if (displayList.isEmpty)
-          SliverFillRemaining(
-            child: Center(child: Text(l10n.noMatchingWords)),
-          )
+          SliverFillRemaining(child: Center(child: Text(l10n.noMatchingWords)))
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),

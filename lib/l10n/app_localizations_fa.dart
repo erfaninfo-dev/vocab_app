@@ -1165,6 +1165,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get grammarSortHighestScore => 'بیشترین درصد نمره';
 
   @override
+  String get grammarSortMostPractice => 'بیشترین تمرین';
+
+  @override
   String get grammarSortLabel => 'مرتب‌سازی';
 
   @override

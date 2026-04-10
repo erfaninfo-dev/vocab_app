@@ -273,6 +273,7 @@ class _PublicResultsTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(publicGrammarResultsProvider);
+    final sort = ref.watch(grammarUsersSortProvider);
     return async.when(
       loading: () =>
           _LoadingState(message: l10n.grammarLoadingCommunityResults),
@@ -294,12 +295,84 @@ class _PublicResultsTab extends ConsumerWidget {
             await ref.read(publicGrammarResultsProvider.future);
           },
           color: scheme.primary,
-          child: _UsersPracticeLeaderboard(
-            results: items,
-            scheme: scheme,
+          child: Column(
+            children: [
+              const _UsersSortBar(),
+              Expanded(
+                child: _UsersPracticeLeaderboard(
+                  results: items,
+                  scheme: scheme,
+                  sort: sort,
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+enum _UsersSort { newest, mostPractice }
+
+final grammarUsersSortProvider =
+    StateProvider<_UsersSort>((_) => _UsersSort.newest);
+
+class _UsersSortBar extends ConsumerWidget {
+  const _UsersSortBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final current = ref.watch(grammarUsersSortProvider);
+    final options = <({String label, _UsersSort value})>[
+      (label: l10n.grammarSortNewestFirst, value: _UsersSort.newest),
+      (label: l10n.grammarSortMostPractice, value: _UsersSort.mostPractice),
+    ];
+    final match = options.firstWhere(
+      (o) => o.value == current,
+      orElse: () => options.first,
+    );
+
+    return Material(
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            Icon(Icons.sort_rounded, size: 18, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Text(
+              l10n.grammarSortLabel,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: match.label,
+                  items: [
+                    for (final o in options)
+                      DropdownMenuItem(
+                        value: o.label,
+                        child: Text(o.label),
+                      ),
+                  ],
+                  onChanged: (label) {
+                    if (label == null) return;
+                    final o = options.firstWhere((x) => x.label == label);
+                    ref.read(grammarUsersSortProvider.notifier).state = o.value;
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -308,10 +381,12 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
   const _UsersPracticeLeaderboard({
     required this.results,
     required this.scheme,
+    required this.sort,
   });
 
   final List<GrammarResult> results;
   final ColorScheme scheme;
+  final _UsersSort sort;
 
   @override
   Widget build(BuildContext context) {
@@ -323,10 +398,24 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
       byUser.putIfAbsent(key, () => []).add(r);
     }
 
+    DateTime parseCreatedAt(String raw) {
+      final t = raw.trim();
+      if (t.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+      final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+      return DateTime.tryParse(normalized) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
     final rows = byUser.entries.map((e) {
       final name = e.key;
       final items = e.value;
       final attempts = items.length;
+      final latest = items
+          .map((r) => parseCreatedAt(r.createdAt))
+          .fold<DateTime>(
+            DateTime.fromMillisecondsSinceEpoch(0),
+            (a, b) => a.isAfter(b) ? a : b,
+          );
 
       double? avgPct;
       var sum = 0.0;
@@ -341,9 +430,14 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
       }
       if (n > 0) avgPct = sum / n;
 
-      return (name: name, attempts: attempts, avgPct: avgPct);
+      return (name: name, attempts: attempts, avgPct: avgPct, latest: latest);
     }).toList()
-      ..sort((a, b) => b.attempts.compareTo(a.attempts));
+      ..sort((a, b) {
+        return switch (sort) {
+          _UsersSort.newest => b.latest.compareTo(a.latest),
+          _UsersSort.mostPractice => b.attempts.compareTo(a.attempts),
+        };
+      });
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),

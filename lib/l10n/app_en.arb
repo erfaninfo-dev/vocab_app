@@ -508,6 +508,7 @@
   },
   "grammarSortNewestFirst": "Newest first",
   "grammarSortHighestScore": "Highest score %",
+  "grammarSortMostPractice": "Most practice",
   "grammarSortLabel": "Sort",
   "grammarSignInRequiredTitle": "Sign in required",
   "grammarSignInRequiredBody": "Log in to see your personal history and private/public labels.",

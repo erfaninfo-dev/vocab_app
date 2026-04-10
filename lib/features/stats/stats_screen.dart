@@ -523,32 +523,48 @@ class _WeeklyChart extends StatelessWidget {
                                     : scheme.onSurfaceVariant,
                               ),
                             ),
-                          const SizedBox(height: 3),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            height: day.wordsReviewed == 0 ? 4 : (80 * ratio).clamp(4, 80),
-                            decoration: BoxDecoration(
-                              color: day.wordsReviewed == 0
-                                  ? scheme.outlineVariant.withOpacity(0.3)
-                                  : isToday
-                                      ? scheme.primary
-                                      : scheme.primary.withOpacity(0.5),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(6),
+                          const SizedBox(height: 2),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final h = constraints.maxHeight;
+                                  final barH = day.wordsReviewed == 0
+                                      ? 4.0
+                                      : (h * ratio).clamp(4.0, h);
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 400),
+                                    height: barH,
+                                    decoration: BoxDecoration(
+                                      color: day.wordsReviewed == 0
+                                          ? scheme.outlineVariant
+                                              .withOpacity(0.3)
+                                          : isToday
+                                              ? scheme.primary
+                                              : scheme.primary.withOpacity(0.5),
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(6),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            dayName,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: isToday
-                                  ? FontWeight.w700
-                                  : FontWeight.normal,
-                              color: isToday
-                                  ? scheme.primary
-                                  : scheme.onSurfaceVariant,
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              dayName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight:
+                                    isToday ? FontWeight.w700 : FontWeight.normal,
+                                color: isToday
+                                    ? scheme.primary
+                                    : scheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ],

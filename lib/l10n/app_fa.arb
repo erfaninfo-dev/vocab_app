@@ -333,6 +333,7 @@
   "grammarTopicsCountAppBar": "{count, plural, =1{۱ موضوع} other{{count} موضوع}}",
   "grammarSortNewestFirst": "جدیدترین اول",
   "grammarSortHighestScore": "بیشترین درصد نمره",
+  "grammarSortMostPractice": "بیشترین تمرین",
   "grammarSortLabel": "مرتب‌سازی",
   "grammarSignInRequiredTitle": "ورود لازم است",
   "grammarSignInRequiredBody": "برای تاریخچه و برچسب خصوصی/عمومی وارد شوید.",

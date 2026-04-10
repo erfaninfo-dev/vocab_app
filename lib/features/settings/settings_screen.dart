@@ -312,6 +312,7 @@ class _AboutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final l10nEn = lookupAppLocalizations(const Locale('en'));
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -356,7 +357,7 @@ class _AboutCard extends StatelessWidget {
 
               // ── App name ──────────────────────────────────────────────────
               Text(
-                l10n.appNameShort,
+                l10nEn.appNameShort,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: scheme.onPrimaryContainer,
@@ -373,7 +374,7 @@ class _AboutCard extends StatelessWidget {
                   Icon(Icons.person_rounded, size: 16, color: scheme.primary),
                   const SizedBox(width: 4),
                   Text(
-                    l10n.byAuthor,
+                    l10nEn.byAuthor,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSecondaryContainer,
                       fontWeight: FontWeight.w600,

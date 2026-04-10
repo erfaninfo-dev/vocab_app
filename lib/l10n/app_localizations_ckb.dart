@@ -1175,6 +1175,9 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get grammarSortHighestScore => 'بەرزترین لەسەدی نمرە';
 
   @override
+  String get grammarSortMostPractice => 'زۆرترین مەشق';
+
+  @override
   String get grammarSortLabel => 'ڕیزکردن';
 
   @override

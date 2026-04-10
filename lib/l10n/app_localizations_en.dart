@@ -1168,6 +1168,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grammarSortHighestScore => 'Highest score %';
 
   @override
+  String get grammarSortMostPractice => 'Most practice';
+
+  @override
   String get grammarSortLabel => 'Sort';
 
   @override

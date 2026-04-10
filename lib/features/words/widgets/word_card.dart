@@ -90,8 +90,10 @@ class _WordCardState extends ConsumerState<WordCard> {
     final localMeaning = widget.entry.meaningFor(lang);
     final localExample = widget.entry.exampleLocalFor(lang);
 
-    return Card(
-      child: Container(
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Card(
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           color: scheme.surface.withValues(alpha: 0.92),
@@ -158,7 +160,8 @@ class _WordCardState extends ConsumerState<WordCard> {
               Directionality(
                 textDirection: TextDirection.rtl,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 32),
+                  // Slightly larger right inset for local meaning.
+                  padding: const EdgeInsets.only(right: 40),
                   child: SizedBox(
                     width: double.infinity,
                     child: Text(
@@ -217,7 +220,9 @@ class _WordCardState extends ConsumerState<WordCard> {
                             child: Text(
                               localExample,
                               textAlign: TextAlign.right,
-                              style: Theme.of(context).textTheme.bodyMedium
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
                                   ?.copyWith(color: Colors.black87),
                             ),
                           ),
@@ -273,6 +278,7 @@ class _WordCardState extends ConsumerState<WordCard> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );
