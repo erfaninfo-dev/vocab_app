@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/sync/pending_word_updates.dart';
 import '../../domain/api_providers.dart';
+import 'important_words_controller.dart';
+import 'word_preferences_controller.dart';
 import '../../data/models/vocab_entry.dart';
 import 'widgets/word_card.dart';
 
@@ -29,7 +30,11 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
   String _query = '';
 
   Future<void> _refresh() async {
-    await syncPendingImportantUpdates(ref);
+    final api = ref.read(apiServiceProvider);
+    if (api.authToken != null && api.authToken!.isNotEmpty) {
+      await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
+      await ref.read(importantWordsProvider.notifier).pullFromServer(api);
+    }
     ref.invalidate(apiAllWordsForBookProvider(widget.bookId));
     ref.invalidate(
       apiWordsProvider((

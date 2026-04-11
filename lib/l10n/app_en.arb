@@ -6,6 +6,16 @@
   "tabReview": "Review",
   "tabProgress": "Progress",
   "tabSettings": "Settings",
+  "tabStudents": "Students",
+  "studentBooksTitle": "Your class books",
+  "registerAsStudent": "Your student",
+  "studentCodeLabel": "Student code",
+  "studentCodeRequired": "Enter the code your teacher gave you",
+  "redeemStudentCode": "Enter student code",
+  "redeemStudentCodeSubtitle": "Unlock the Students tab with your personal code.",
+  "invalidStudentCode": "Invalid or expired code.",
+  "studentAccessGranted": "Student access enabled.",
+  "studentTabSignIn": "Sign in to access your teacher's books.",
   "back": "Back",
   "next": "Next",
   "skip": "Skip",
@@ -30,6 +40,7 @@
     }
   },
   "searchBooksHint": "Search books…",
+  "homeReceivingBooks": "Receiving…",
   "couldNotLoadBooks": "Could not load books.",
   "couldNotLoadBooksWithError": "Could not load books.\n{error}",
   "@couldNotLoadBooksWithError": {
@@ -38,6 +49,22 @@
     }
   },
   "noBooksFound": "No books found",
+  "homeTrackIelts": "IELTS",
+  "homeTrackGeneral": "General",
+  "homeBooksSeriesOther": "Other books",
+  "homeSeriesCambridgeTests": "Cambridge IELTS Tests",
+  "homeSeriesVolumesCount": "{count, plural, =1{1 book in series} other{{count} books in series}}",
+  "@homeSeriesVolumesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "seriesBooksGridHint": "{count, plural, =1{1 book · tap a card to open} other{{count} books · tap a card to open}}",
+  "@seriesBooksGridHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "bookSingular": "book",
   "bookPlural": "books",
   "unitSingular": "unit",
@@ -436,7 +463,7 @@
   "vocabQuizExitTitle": "Exit quiz?",
   "vocabQuizExitBody": "If you leave now, your progress for this quiz will be lost.",
   "importantWordsSection": "Important words",
-  "importantWordsServerHint": "This selection includes words marked important on the server.",
+  "importantWordsServerHint": "This selection includes words you marked as important (synced when signed in).",
   "allWordsChip": "All words",
   "importantOnlyChip": "Important only",
   "bookQuizQuestionsSlider": "Questions (max {max})",
@@ -490,6 +517,7 @@
   "grammarResultsScreenTitle": "Grammar results",
   "grammarExplanationTabFa": "Persian",
   "grammarExplanationTabCkb": "Kurdish",
+  "grammarExplanationTabEn": "English",
   "grammarReportProblemTitle": "Report a problem",
   "grammarReportWhatWrong": "What is wrong?",
   "grammarReportDetailsOptional": "Details (optional)",
@@ -506,8 +534,7 @@
       "count": {"type": "int"}
     }
   },
-  "grammarSortNewestFirst": "Newest first",
-  "grammarSortHighestScore": "Highest score %",
+  "grammarSortNewest": "Newest",
   "grammarSortMostPractice": "Most practice",
   "grammarSortLabel": "Sort",
   "grammarSignInRequiredTitle": "Sign in required",

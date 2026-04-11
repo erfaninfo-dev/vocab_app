@@ -27,6 +27,37 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get tabSettings => 'ڕێکخستنەکان';
 
   @override
+  String get tabStudents => 'قوتابی';
+
+  @override
+  String get studentBooksTitle => 'کتێبەکانی پۆلەکەت';
+
+  @override
+  String get registerAsStudent => 'قوتابی تۆ';
+
+  @override
+  String get studentCodeLabel => 'کۆدی قوتابی';
+
+  @override
+  String get studentCodeRequired => 'کۆدەکە بنووسە کە مامۆستا پێتداویە';
+
+  @override
+  String get redeemStudentCode => 'تۆمارکردنی کۆدی قوتابی';
+
+  @override
+  String get redeemStudentCodeSubtitle => 'بە کۆدی تایبەت تابی قوتابی بکەرەوە.';
+
+  @override
+  String get invalidStudentCode => 'کۆدەکە نادروستە یان بەسەرچووە.';
+
+  @override
+  String get studentAccessGranted => 'دەستپێگەیشتنی قوتابی چالاککرا.';
+
+  @override
+  String get studentTabSignIn =>
+      'بچۆرە ژوورەوە بۆ بینینی کتێبەکانی مامۆستاکەت.';
+
+  @override
   String get back => 'گەڕانەوە';
 
   @override
@@ -94,6 +125,9 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get searchBooksHint => 'گەڕان لە کتێبەکان…';
 
   @override
+  String get homeReceivingBooks => 'لە وەرگرتندایە…';
+
+  @override
   String get couldNotLoadBooks => 'بارکردنی کتێبەکان سەرکەوتوو نەبوو.';
 
   @override
@@ -103,6 +137,40 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get noBooksFound => 'هیچ کتێبێک نەدۆزرایەوە';
+
+  @override
+  String get homeTrackIelts => 'ئایێڵتس';
+
+  @override
+  String get homeTrackGeneral => 'گشتی';
+
+  @override
+  String get homeBooksSeriesOther => 'کتێبەکانی تر';
+
+  @override
+  String get homeSeriesCambridgeTests => 'تێستەکانی Cambridge IELTS';
+
+  @override
+  String homeSeriesVolumesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کتێب لەم زنجیرەیە',
+      one: '١ کتێب لەم زنجیرەیە',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seriesBooksGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کتێب · بۆ کردنەوە لەسەر کارت دابگرە',
+      one: '١ کتێب · بۆ کردنەوە لەسەر کارت دابگرە',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get bookSingular => 'کتێب';
@@ -1002,7 +1070,7 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get importantWordsServerHint =>
-      'ئەم هەڵبژاردنە وشەی وەک گرنگ نیشانکراو لە سێرڤەر لەخۆ دەگرێت.';
+      'ئەم هەڵبژاردنە ئەو وشانە لەخۆ دەگرێت کە خۆت وەک گرنگ نیشانت کردووە (کاتێک چوویتە ژوورەوە هاوکات دەبێت).';
 
   @override
   String get allWordsChip => 'هەموو وشەکان';
@@ -1128,6 +1196,9 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get grammarExplanationTabCkb => 'کوردی';
 
   @override
+  String get grammarExplanationTabEn => 'ئینگلیزی';
+
+  @override
   String get grammarReportProblemTitle => 'ڕاپۆرتکردنی کێشە';
 
   @override
@@ -1169,10 +1240,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   }
 
   @override
-  String get grammarSortNewestFirst => 'نوێترین یەکەم';
-
-  @override
-  String get grammarSortHighestScore => 'بەرزترین لەسەدی نمرە';
+  String get grammarSortNewest => 'نوێترین';
 
   @override
   String get grammarSortMostPractice => 'زۆرترین مەشق';

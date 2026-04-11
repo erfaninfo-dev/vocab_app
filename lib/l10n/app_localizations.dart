@@ -136,6 +136,66 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get tabSettings;
 
+  /// No description provided for @tabStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'Students'**
+  String get tabStudents;
+
+  /// No description provided for @studentBooksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your class books'**
+  String get studentBooksTitle;
+
+  /// No description provided for @registerAsStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your student'**
+  String get registerAsStudent;
+
+  /// No description provided for @studentCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Student code'**
+  String get studentCodeLabel;
+
+  /// No description provided for @studentCodeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code your teacher gave you'**
+  String get studentCodeRequired;
+
+  /// No description provided for @redeemStudentCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter student code'**
+  String get redeemStudentCode;
+
+  /// No description provided for @redeemStudentCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the Students tab with your personal code.'**
+  String get redeemStudentCodeSubtitle;
+
+  /// No description provided for @invalidStudentCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code.'**
+  String get invalidStudentCode;
+
+  /// No description provided for @studentAccessGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Student access enabled.'**
+  String get studentAccessGranted;
+
+  /// No description provided for @studentTabSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to access your teacher\'s books.'**
+  String get studentTabSignIn;
+
   /// No description provided for @back.
   ///
   /// In en, this message translates to:
@@ -250,6 +310,12 @@ abstract class AppLocalizations {
   /// **'Search books…'**
   String get searchBooksHint;
 
+  /// No description provided for @homeReceivingBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving…'**
+  String get homeReceivingBooks;
+
   /// No description provided for @couldNotLoadBooks.
   ///
   /// In en, this message translates to:
@@ -267,6 +333,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No books found'**
   String get noBooksFound;
+
+  /// No description provided for @homeTrackIelts.
+  ///
+  /// In en, this message translates to:
+  /// **'IELTS'**
+  String get homeTrackIelts;
+
+  /// No description provided for @homeTrackGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get homeTrackGeneral;
+
+  /// No description provided for @homeBooksSeriesOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other books'**
+  String get homeBooksSeriesOther;
+
+  /// No description provided for @homeSeriesCambridgeTests.
+  ///
+  /// In en, this message translates to:
+  /// **'Cambridge IELTS Tests'**
+  String get homeSeriesCambridgeTests;
+
+  /// No description provided for @homeSeriesVolumesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 book in series} other{{count} books in series}}'**
+  String homeSeriesVolumesCount(int count);
+
+  /// No description provided for @seriesBooksGridHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 book · tap a card to open} other{{count} books · tap a card to open}}'**
+  String seriesBooksGridHint(int count);
 
   /// No description provided for @bookSingular.
   ///
@@ -1801,7 +1903,7 @@ abstract class AppLocalizations {
   /// No description provided for @importantWordsServerHint.
   ///
   /// In en, this message translates to:
-  /// **'This selection includes words marked important on the server.'**
+  /// **'This selection includes words you marked as important (synced when signed in).'**
   String get importantWordsServerHint;
 
   /// No description provided for @allWordsChip.
@@ -2020,6 +2122,12 @@ abstract class AppLocalizations {
   /// **'Kurdish'**
   String get grammarExplanationTabCkb;
 
+  /// No description provided for @grammarExplanationTabEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get grammarExplanationTabEn;
+
   /// No description provided for @grammarReportProblemTitle.
   ///
   /// In en, this message translates to:
@@ -2086,17 +2194,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 topic} other{{count} topics}}'**
   String grammarTopicsCountAppBar(int count);
 
-  /// No description provided for @grammarSortNewestFirst.
+  /// No description provided for @grammarSortNewest.
   ///
   /// In en, this message translates to:
-  /// **'Newest first'**
-  String get grammarSortNewestFirst;
-
-  /// No description provided for @grammarSortHighestScore.
-  ///
-  /// In en, this message translates to:
-  /// **'Highest score %'**
-  String get grammarSortHighestScore;
+  /// **'Newest'**
+  String get grammarSortNewest;
 
   /// No description provided for @grammarSortMostPractice.
   ///

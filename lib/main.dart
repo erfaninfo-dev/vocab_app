@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/auth/auth_provider.dart';
+import 'data/models/auth_user.dart';
 import 'core/locale/app_localizations_proxy_delegate.dart';
 import 'core/locale/ui_locale_provider.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'domain/api_providers.dart';
 import 'features/settings/theme_mode_controller.dart';
+import 'features/words/important_words_controller.dart';
+import 'features/words/word_preferences_controller.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -21,6 +28,15 @@ class IeltsVocabApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AsyncValue<AuthSession?>>(authProvider, (previous, next) {
+      final session = next.valueOrNull;
+      if (session == null) return;
+      if (previous?.valueOrNull?.token == session.token) return;
+      final api = ref.read(apiServiceProvider);
+      unawaited(ref.read(wordPreferencesProvider.notifier).pullFromServer(api));
+      unawaited(ref.read(importantWordsProvider.notifier).pullFromServer(api));
+    });
+
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
     final uiLocale = ref.watch(uiLocaleProvider);

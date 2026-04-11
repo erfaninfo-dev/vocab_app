@@ -27,6 +27,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabSettings => 'Settings';
 
   @override
+  String get tabStudents => 'Students';
+
+  @override
+  String get studentBooksTitle => 'Your class books';
+
+  @override
+  String get registerAsStudent => 'Your student';
+
+  @override
+  String get studentCodeLabel => 'Student code';
+
+  @override
+  String get studentCodeRequired => 'Enter the code your teacher gave you';
+
+  @override
+  String get redeemStudentCode => 'Enter student code';
+
+  @override
+  String get redeemStudentCodeSubtitle =>
+      'Unlock the Students tab with your personal code.';
+
+  @override
+  String get invalidStudentCode => 'Invalid or expired code.';
+
+  @override
+  String get studentAccessGranted => 'Student access enabled.';
+
+  @override
+  String get studentTabSignIn => 'Sign in to access your teacher\'s books.';
+
+  @override
   String get back => 'Back';
 
   @override
@@ -94,6 +125,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchBooksHint => 'Search books…';
 
   @override
+  String get homeReceivingBooks => 'Receiving…';
+
+  @override
   String get couldNotLoadBooks => 'Could not load books.';
 
   @override
@@ -103,6 +137,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noBooksFound => 'No books found';
+
+  @override
+  String get homeTrackIelts => 'IELTS';
+
+  @override
+  String get homeTrackGeneral => 'General';
+
+  @override
+  String get homeBooksSeriesOther => 'Other books';
+
+  @override
+  String get homeSeriesCambridgeTests => 'Cambridge IELTS Tests';
+
+  @override
+  String homeSeriesVolumesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count books in series',
+      one: '1 book in series',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seriesBooksGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count books · tap a card to open',
+      one: '1 book · tap a card to open',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get bookSingular => 'book';
@@ -993,7 +1061,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importantWordsServerHint =>
-      'This selection includes words marked important on the server.';
+      'This selection includes words you marked as important (synced when signed in).';
 
   @override
   String get allWordsChip => 'All words';
@@ -1120,6 +1188,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grammarExplanationTabCkb => 'Kurdish';
 
   @override
+  String get grammarExplanationTabEn => 'English';
+
+  @override
   String get grammarReportProblemTitle => 'Report a problem';
 
   @override
@@ -1162,10 +1233,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get grammarSortNewestFirst => 'Newest first';
-
-  @override
-  String get grammarSortHighestScore => 'Highest score %';
+  String get grammarSortNewest => 'Newest';
 
   @override
   String get grammarSortMostPractice => 'Most practice';

@@ -21,8 +21,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+  final _studentCodeCtrl = TextEditingController();
   var _obscure1 = true;
   var _obscure2 = true;
+  var _registerAsStudent = false;
   var _submitting = false;
 
   @override
@@ -31,6 +33,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
+    _studentCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -46,6 +49,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _emailCtrl.text,
             password: _passwordCtrl.text,
             displayName: name.isEmpty ? null : name,
+            registerAsStudent: _registerAsStudent,
+            studentCode: _registerAsStudent ? _studentCodeCtrl.text : null,
           );
       if (!mounted) {
         return;
@@ -62,7 +67,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final raw = e.toString();
       final msg = raw.contains('Email already registered')
           ? l10n.registerEmailTaken
-          : l10n.registerFailed;
+          : (raw.contains('Student code') ||
+                  raw.contains('Invalid code') ||
+                  raw.contains('already used') ||
+                  raw.contains('expired'))
+              ? l10n.invalidStudentCode
+              : l10n.registerFailed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
       );
@@ -178,6 +188,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              value: _registerAsStudent,
+              onChanged: _submitting
+                  ? null
+                  : (v) => setState(() {
+                        _registerAsStudent = v ?? false;
+                        if (!_registerAsStudent) {
+                          _studentCodeCtrl.clear();
+                        }
+                      }),
+              title: Text(l10n.registerAsStudent),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (_registerAsStudent) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _studentCodeCtrl,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: l10n.studentCodeLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (!_registerAsStudent) return null;
+                  final s = v?.trim() ?? '';
+                  if (s.isEmpty) {
+                    return l10n.studentCodeRequired;
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _submitting ? null : _submit,

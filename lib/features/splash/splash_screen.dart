@@ -1,20 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/onboarding/language_selection_prefs.dart';
-import '../../l10n/app_localizations.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
+import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   var _visible = false;
 
   @override
@@ -24,7 +26,21 @@ class _SplashScreenState extends State<SplashScreen> {
       const Duration(milliseconds: 80),
       () => mounted ? setState(() => _visible = true) : null,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_prefetchBooksList());
+    });
     unawaited(_goNext());
+  }
+
+  /// Warm [apiSearchBooksProvider] so Home often shows data immediately.
+  Future<void> _prefetchBooksList() async {
+    try {
+      await ref.read(apiSearchBooksProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      ref.invalidate(apiSearchBooksProvider);
+    }
   }
 
   Future<void> _goNext() async {

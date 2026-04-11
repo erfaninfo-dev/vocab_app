@@ -11,6 +11,7 @@ import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../words/important_words_controller.dart';
 
 const int kVocabQuizMaxQuestions = 60;
 
@@ -532,9 +533,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     return _userImportantScope;
   }
 
-  List<VocabEntry> _applyImportantFilter(List<VocabEntry> pool, int scope) {
+  List<VocabEntry> _applyImportantFilter(
+    List<VocabEntry> pool,
+    int scope,
+    bool Function(VocabEntry) userImportant,
+  ) {
     if (scope == 1) {
-      return pool.where((w) => w.isImportant).toList();
+      return pool.where(userImportant).toList();
     }
     return pool;
   }
@@ -609,6 +614,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final wrongsAsync = ref.watch(
       vocabQuizWrongsProvider((bookId: widget.bookId, unit: widget.unit)),
     );
+    final importantState = ref.watch(importantWordsProvider);
 
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
@@ -667,10 +673,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   false,
                   wrongKeys,
                 );
-                final hasImportant = basePool.any((w) => w.isImportant);
+                bool userImp(VocabEntry w) => importantState.isMarked(w);
+                final hasImportant = basePool.any(userImp);
                 final resolvedScope = _resolvedImportantScope(hasImportant);
                 if (hasImportant && resolvedScope == null) {
-                  final nImp = basePool.where((w) => w.isImportant).length;
+                  final nImp = basePool.where(userImp).length;
                   return _ImportantChoicePanel(
                     l10n: l10n,
                     allCount: basePool.length,
@@ -681,9 +688,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   );
                 }
 
-                final pool = _applyImportantFilter(basePool, resolvedScope!);
-                final distractorPool =
-                    _applyImportantFilter(basePoolAllSelected, resolvedScope);
+                final pool = _applyImportantFilter(
+                  basePool,
+                  resolvedScope!,
+                  userImp,
+                );
+                final distractorPool = _applyImportantFilter(
+                  basePoolAllSelected,
+                  resolvedScope,
+                  userImp,
+                );
 
                 final selectedModes = _effectiveModes();
                 final needsMcq = selectedModes.any((m) => m.isMcq);

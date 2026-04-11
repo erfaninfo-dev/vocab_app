@@ -726,6 +726,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
         'correct_answer': q.correctAnswer,
         'selected_answer': sel,
         'is_correct': sel != null && q.isCorrectKey(sel),
+        'fa_explanation': q.faExplanation,
+        'kur_explanation': q.kurExplanation,
+        'eng_explanation': q.engExplanation,
       };
     });
   }

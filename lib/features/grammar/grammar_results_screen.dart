@@ -139,197 +139,15 @@ class _GrammarSortBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final options = <({String label, GrammarResultsSort value})>[
+    final options = <({String label, GrammarResultsListSort value})>[
+      (label: l10n.grammarSortNewest, value: GrammarResultsListSort.newest),
       (
-        label: l10n.grammarSortNewestFirst,
-        value: (field: 'date', order: 'desc'),
-      ),
-      (
-        label: l10n.grammarSortHighestScore,
-        value: (field: 'score', order: 'desc'),
+        label: l10n.grammarSortMostPractice,
+        value: GrammarResultsListSort.mostPractice,
       ),
     ];
     final scheme = Theme.of(context).colorScheme;
-    final current = ref.watch(grammarResultsSortProvider);
-    final match = options.firstWhere(
-      (o) => o.value.field == current.field && o.value.order == current.order,
-      orElse: () => options.first,
-    );
-
-    return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          children: [
-            Icon(Icons.sort_rounded, size: 18, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 8),
-            Text(
-              l10n.grammarSortLabel,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: match.label,
-                  items: [
-                    for (final o in options)
-                      DropdownMenuItem(
-                        value: o.label,
-                        child: Text(o.label),
-                      ),
-                  ],
-                  onChanged: (label) {
-                    if (label == null) return;
-                    final o = options.firstWhere((x) => x.label == label);
-                    ref.read(grammarResultsSortProvider.notifier).state =
-                        o.value;
-                    ref.invalidate(myGrammarResultsProvider);
-                    ref.invalidate(publicGrammarResultsProvider);
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MyResultsTab extends ConsumerWidget {
-  const _MyResultsTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final session = ref.watch(authProvider).valueOrNull;
-    final scheme = Theme.of(context).colorScheme;
-
-    if (session == null) {
-      return _EmptyStateScaffold(
-        icon: Icons.lock_person_rounded,
-        iconColor: scheme.tertiary,
-        title: l10n.grammarSignInRequiredTitle,
-        subtitle: l10n.grammarSignInRequiredBody,
-        actionLabel: l10n.grammarGoToSignIn,
-        onAction: () => context.push('/settings'),
-      );
-    }
-
-    final async = ref.watch(myGrammarResultsProvider);
-    return async.when(
-      loading: () => _LoadingState(message: l10n.grammarLoadingYourResults),
-      error: (_, __) => _ErrorState(
-        onRetry: () => ref.invalidate(myGrammarResultsProvider),
-      ),
-      data: (items) {
-        if (items.isEmpty) {
-          return _EmptyStateScaffold(
-            icon: Icons.quiz_outlined,
-            iconColor: scheme.primary,
-            title: l10n.grammarNoPersonalResultsTitle,
-            subtitle: l10n.grammarNoPersonalResultsBody,
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(myGrammarResultsProvider);
-            await ref.read(myGrammarResultsProvider.future);
-          },
-          color: scheme.primary,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              final r = items[i];
-              return InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => context.push('/grammar/result/${r.id}'),
-                child: _ResultCard(
-                  r: r,
-                  variant: _ResultCardVariant.myResults,
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _PublicResultsTab extends ConsumerWidget {
-  const _PublicResultsTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final async = ref.watch(publicGrammarResultsProvider);
-    final sort = ref.watch(grammarUsersSortProvider);
-    return async.when(
-      loading: () =>
-          _LoadingState(message: l10n.grammarLoadingCommunityResults),
-      error: (_, __) => _ErrorState(
-        onRetry: () => ref.invalidate(publicGrammarResultsProvider),
-      ),
-      data: (items) {
-        if (items.isEmpty) {
-          return _EmptyStateScaffold(
-            icon: Icons.public_off_rounded,
-            iconColor: scheme.onSurfaceVariant,
-            title: l10n.grammarCommunityEmptyTitle,
-            subtitle: l10n.grammarCommunityEmptyBody,
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(publicGrammarResultsProvider);
-            await ref.read(publicGrammarResultsProvider.future);
-          },
-          color: scheme.primary,
-          child: Column(
-            children: [
-              const _UsersSortBar(),
-              Expanded(
-                child: _UsersPracticeLeaderboard(
-                  results: items,
-                  scheme: scheme,
-                  sort: sort,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-enum _UsersSort { newest, mostPractice }
-
-final grammarUsersSortProvider =
-    StateProvider<_UsersSort>((_) => _UsersSort.newest);
-
-class _UsersSortBar extends ConsumerWidget {
-  const _UsersSortBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final current = ref.watch(grammarUsersSortProvider);
-    final options = <({String label, _UsersSort value})>[
-      (label: l10n.grammarSortNewestFirst, value: _UsersSort.newest),
-      (label: l10n.grammarSortMostPractice, value: _UsersSort.mostPractice),
-    ];
+    final current = ref.watch(grammarResultsListSortProvider);
     final match = options.firstWhere(
       (o) => o.value == current,
       orElse: () => options.first,
@@ -365,7 +183,8 @@ class _UsersSortBar extends ConsumerWidget {
                   onChanged: (label) {
                     if (label == null) return;
                     final o = options.firstWhere((x) => x.label == label);
-                    ref.read(grammarUsersSortProvider.notifier).state = o.value;
+                    ref.read(grammarResultsListSortProvider.notifier).state =
+                        o.value;
                   },
                 ),
               ),
@@ -377,6 +196,161 @@ class _UsersSortBar extends ConsumerWidget {
   }
 }
 
+class _MyResultsTab extends ConsumerWidget {
+  const _MyResultsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final session = ref.watch(authProvider).valueOrNull;
+    final scheme = Theme.of(context).colorScheme;
+
+    if (session == null) {
+      return _EmptyStateScaffold(
+        icon: Icons.lock_person_rounded,
+        iconColor: scheme.tertiary,
+        title: l10n.grammarSignInRequiredTitle,
+        subtitle: l10n.grammarSignInRequiredBody,
+        actionLabel: l10n.grammarGoToSignIn,
+        onAction: () => context.push('/settings'),
+      );
+    }
+
+    final async = ref.watch(myGrammarResultsProvider);
+    final sort = ref.watch(grammarResultsListSortProvider);
+    return async.when(
+      loading: () => _LoadingState(message: l10n.grammarLoadingYourResults),
+      error: (_, __) => _ErrorState(
+        onRetry: () => ref.invalidate(myGrammarResultsProvider),
+      ),
+      data: (items) {
+        final sorted = _sortGrammarResultRows(List<GrammarResult>.of(items), sort);
+        if (sorted.isEmpty) {
+          return _EmptyStateScaffold(
+            icon: Icons.quiz_outlined,
+            iconColor: scheme.primary,
+            title: l10n.grammarNoPersonalResultsTitle,
+            subtitle: l10n.grammarNoPersonalResultsBody,
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(myGrammarResultsProvider);
+            await ref.read(myGrammarResultsProvider.future);
+          },
+          color: scheme.primary,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+            itemCount: sorted.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, i) {
+              final r = sorted[i];
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => context.push('/grammar/result/${r.id}'),
+                child: _ResultCard(
+                  r: r,
+                  variant: _ResultCardVariant.myResults,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PublicResultsTab extends ConsumerWidget {
+  const _PublicResultsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final async = ref.watch(publicGrammarResultsProvider);
+    final sort = ref.watch(grammarResultsListSortProvider);
+    return async.when(
+      loading: () =>
+          _LoadingState(message: l10n.grammarLoadingCommunityResults),
+      error: (_, __) => _ErrorState(
+        onRetry: () => ref.invalidate(publicGrammarResultsProvider),
+      ),
+      data: (items) {
+        if (items.isEmpty) {
+          return _EmptyStateScaffold(
+            icon: Icons.public_off_rounded,
+            iconColor: scheme.onSurfaceVariant,
+            title: l10n.grammarCommunityEmptyTitle,
+            subtitle: l10n.grammarCommunityEmptyBody,
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(publicGrammarResultsProvider);
+            await ref.read(publicGrammarResultsProvider.future);
+          },
+          color: scheme.primary,
+          child: _UsersPracticeLeaderboard(
+            results: items,
+            scheme: scheme,
+            sort: sort,
+          ),
+        );
+      },
+    );
+  }
+}
+
+DateTime _grammarResultCreatedAt(GrammarResult r) {
+  final t = r.createdAt.trim();
+  if (t.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+  final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+  return DateTime.tryParse(normalized) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+String _formatGrammarDisplayDateTime(DateTime dt) {
+  if (dt.millisecondsSinceEpoch == 0) return '—';
+  final y = dt.year.toString();
+  final m = dt.month.toString().padLeft(2, '0');
+  final d = dt.day.toString().padLeft(2, '0');
+  final h = dt.hour.toString().padLeft(2, '0');
+  final min = dt.minute.toString().padLeft(2, '0');
+  return '$y/$m/$d · $h:$min';
+}
+
+String _formatCreatedAtRaw(String raw) {
+  final t = raw.trim();
+  if (t.isEmpty) return '—';
+  final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+  final dt = DateTime.tryParse(normalized);
+  if (dt == null) return raw;
+  return _formatGrammarDisplayDateTime(dt);
+}
+
+List<GrammarResult> _sortGrammarResultRows(
+  List<GrammarResult> items,
+  GrammarResultsListSort sort,
+) {
+  int cmp(GrammarResult a, GrammarResult b) {
+    switch (sort) {
+      case GrammarResultsListSort.newest:
+        return _grammarResultCreatedAt(b).compareTo(_grammarResultCreatedAt(a));
+      case GrammarResultsListSort.mostPractice:
+        final ta = a.totalQuestions ?? 0;
+        final tb = b.totalQuestions ?? 0;
+        final c = tb.compareTo(ta);
+        if (c != 0) return c;
+        return _grammarResultCreatedAt(b).compareTo(_grammarResultCreatedAt(a));
+    }
+  }
+
+  items.sort(cmp);
+  return items;
+}
+
 class _UsersPracticeLeaderboard extends StatelessWidget {
   const _UsersPracticeLeaderboard({
     required this.results,
@@ -386,7 +360,7 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
 
   final List<GrammarResult> results;
   final ColorScheme scheme;
-  final _UsersSort sort;
+  final GrammarResultsListSort sort;
 
   @override
   Widget build(BuildContext context) {
@@ -398,20 +372,12 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
       byUser.putIfAbsent(key, () => []).add(r);
     }
 
-    DateTime parseCreatedAt(String raw) {
-      final t = raw.trim();
-      if (t.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
-      final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
-      return DateTime.tryParse(normalized) ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-    }
-
     final rows = byUser.entries.map((e) {
       final name = e.key;
       final items = e.value;
       final attempts = items.length;
       final latest = items
-          .map((r) => parseCreatedAt(r.createdAt))
+          .map(_grammarResultCreatedAt)
           .fold<DateTime>(
             DateTime.fromMillisecondsSinceEpoch(0),
             (a, b) => a.isAfter(b) ? a : b,
@@ -434,8 +400,9 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
     }).toList()
       ..sort((a, b) {
         return switch (sort) {
-          _UsersSort.newest => b.latest.compareTo(a.latest),
-          _UsersSort.mostPractice => b.attempts.compareTo(a.attempts),
+          GrammarResultsListSort.newest => b.latest.compareTo(a.latest),
+          GrammarResultsListSort.mostPractice =>
+            b.attempts.compareTo(a.attempts),
         };
       });
 
@@ -446,11 +413,14 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final r = rows[i];
-        final medal = switch (i) {
-          0 => '🥇',
-          1 => '🥈',
-          2 => '🥉',
-          _ => null,
+        final medal = switch (sort) {
+          GrammarResultsListSort.newest => null,
+          GrammarResultsListSort.mostPractice => switch (i) {
+              0 => '🥇',
+              1 => '🥈',
+              2 => '🥉',
+              _ => null,
+            },
         };
 
         return Container(
@@ -497,6 +467,27 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 13,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _formatGrammarDisplayDateTime(r.latest),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -569,20 +560,6 @@ class _ResultCard extends StatelessWidget {
       return parts;
     }
     return [q];
-  }
-
-  static String _formatDate(String raw) {
-    final t = raw.trim();
-    if (t.isEmpty) return '—';
-    final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
-    final dt = DateTime.tryParse(normalized);
-    if (dt == null) return raw;
-    final y = dt.year.toString();
-    final m = dt.month.toString().padLeft(2, '0');
-    final d = dt.day.toString().padLeft(2, '0');
-    final h = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '$y/$m/$d · $h:$min';
   }
 
   @override
@@ -682,7 +659,7 @@ class _ResultCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            _formatDate(r.createdAt),
+                            _formatCreatedAtRaw(r.createdAt),
                             style: tt.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,

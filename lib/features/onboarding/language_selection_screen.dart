@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/onboarding/language_selection_prefs.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
+import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
 /// First-launch UI language: English, Persian, or Kurdish (Sorani).
@@ -16,8 +19,27 @@ class LanguageSelectionScreen extends ConsumerStatefulWidget {
       _LanguageSelectionScreenState();
 }
 
-class _LanguageSelectionScreenState extends ConsumerState<LanguageSelectionScreen> {
+class _LanguageSelectionScreenState
+    extends ConsumerState<LanguageSelectionScreen> {
   String _code = 'en';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_prefetchBooksList());
+    });
+  }
+
+  Future<void> _prefetchBooksList() async {
+    try {
+      await ref.read(apiSearchBooksProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      ref.invalidate(apiSearchBooksProvider);
+    }
+  }
 
   Future<void> _continue() async {
     await ref.read(uiLocaleProvider.notifier).setLocaleCode(_code);
@@ -52,26 +74,22 @@ class _LanguageSelectionScreenState extends ConsumerState<LanguageSelectionScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.language_rounded,
-                  size: 56,
-                  color: scheme.primary,
-                ),
+                Icon(Icons.language_rounded, size: 56, color: scheme.primary),
                 const SizedBox(height: 20),
                 Text(
                   l10n.languageSelectionTitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   l10n.languageSelectionSubtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 Card(
@@ -84,7 +102,10 @@ class _LanguageSelectionScreenState extends ConsumerState<LanguageSelectionScree
                           if (v != null) setState(() => _code = v);
                         },
                         title: Text(l10n.langEnglish),
-                        secondary: const Text('EN', style: TextStyle(fontWeight: FontWeight.w700)),
+                        secondary: const Text(
+                          'EN',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                       const Divider(height: 0),
                       RadioListTile<String>(
@@ -94,7 +115,10 @@ class _LanguageSelectionScreenState extends ConsumerState<LanguageSelectionScree
                           if (v != null) setState(() => _code = v);
                         },
                         title: Text(l10n.langPersian),
-                        secondary: const Text('فا', style: TextStyle(fontWeight: FontWeight.w700)),
+                        secondary: const Text(
+                          'فا',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                       const Divider(height: 0),
                       RadioListTile<String>(
@@ -104,7 +128,10 @@ class _LanguageSelectionScreenState extends ConsumerState<LanguageSelectionScree
                           if (v != null) setState(() => _code = v);
                         },
                         title: Text(l10n.langKurdishSorani),
-                        secondary: const Text('کو', style: TextStyle(fontWeight: FontWeight.w700)),
+                        secondary: const Text(
+                          'کو',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),

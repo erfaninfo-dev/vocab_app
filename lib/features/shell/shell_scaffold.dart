@@ -54,6 +54,33 @@ List<_Tab> _tabs(AppLocalizations l10n) => [
   ),
 ];
 
+NavigationDestination _navDestination(_Tab tab, int dueCount) {
+  final isReview = tab.path == '/review';
+  final icon = isReview && dueCount > 0
+      ? Badge(
+          label: Text(
+            dueCount > 99 ? '99+' : '$dueCount',
+            style: const TextStyle(fontSize: 10),
+          ),
+          child: Icon(tab.icon),
+        )
+      : Icon(tab.icon);
+  final selectedIcon = isReview && dueCount > 0
+      ? Badge(
+          label: Text(
+            dueCount > 99 ? '99+' : '$dueCount',
+            style: const TextStyle(fontSize: 10),
+          ),
+          child: Icon(tab.activeIcon),
+        )
+      : Icon(tab.activeIcon);
+  return NavigationDestination(
+    icon: icon,
+    selectedIcon: selectedIcon,
+    label: tab.label,
+  );
+}
+
 // ─── Shell Scaffold ───────────────────────────────────────────────────────────
 
 class ShellScaffold extends ConsumerWidget {
@@ -69,7 +96,8 @@ class ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dueCount = ref.watch(srsProvider.select((s) => s.dueTodayCount));
-    final tabs = _tabs(AppLocalizations.of(context)!);
+    final l10n = AppLocalizations.of(context)!;
+    final tabs = _tabs(l10n);
 
     int currentIndex = 0;
     for (int i = 0; i < tabs.length; i++) {
@@ -93,47 +121,8 @@ class ShellScaffold extends ConsumerWidget {
         },
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
-          NavigationDestination(
-            icon: Icon(tabs[0].icon),
-            selectedIcon: Icon(tabs[0].activeIcon),
-            label: tabs[0].label,
-          ),
-          NavigationDestination(
-            icon: Icon(tabs[1].icon),
-            selectedIcon: Icon(tabs[1].activeIcon),
-            label: tabs[1].label,
-          ),
-          NavigationDestination(
-            icon: dueCount > 0
-                ? Badge(
-                    label: Text(
-                      dueCount > 99 ? '99+' : '$dueCount',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    child: Icon(tabs[2].icon),
-                  )
-                : Icon(tabs[2].icon),
-            selectedIcon: dueCount > 0
-                ? Badge(
-                    label: Text(
-                      dueCount > 99 ? '99+' : '$dueCount',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    child: Icon(tabs[2].activeIcon),
-                  )
-                : Icon(tabs[2].activeIcon),
-            label: tabs[2].label,
-          ),
-          NavigationDestination(
-            icon: Icon(tabs[3].icon),
-            selectedIcon: Icon(tabs[3].activeIcon),
-            label: tabs[3].label,
-          ),
-          NavigationDestination(
-            icon: Icon(tabs[4].icon),
-            selectedIcon: Icon(tabs[4].activeIcon),
-            label: tabs[4].label,
-          ),
+          for (int i = 0; i < tabs.length; i++)
+            _navDestination(tabs[i], dueCount),
         ],
       ),
     );

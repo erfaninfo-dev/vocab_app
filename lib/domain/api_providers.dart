@@ -24,7 +24,7 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 // Corresponds to: GET /books.php
 
 final apiBooksProvider = FutureProvider<List<Book>>((ref) {
-  return ref.read(apiServiceProvider).fetchBooks();
+  return ref.read(apiServiceProvider).fetchBooks(scope: 'public');
 });
 
 // ─── Units ────────────────────────────────────────────────────────────────────
@@ -111,27 +111,26 @@ int grammarQuizMinQuestionsForTopics(int topicCount) {
 /// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length.
 typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount});
 
-/// Sorting for grammar result lists (`date`|`score` + `asc`|`desc`).
-typedef GrammarResultsSort = ({String field, String order});
+/// Sort mode for grammar result screens (UI only; lists are fetched date-desc then reordered).
+enum GrammarResultsListSort { newest, mostPractice }
 
-final grammarResultsSortProvider = StateProvider<GrammarResultsSort>(
-  (ref) => (field: 'date', order: 'desc'),
+final grammarResultsListSortProvider =
+    StateProvider<GrammarResultsListSort>(
+  (ref) => GrammarResultsListSort.newest,
 );
 
 /// GET /grammar_results_my.php (requires auth)
 final myGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
-  final s = ref.watch(grammarResultsSortProvider);
   return ref
       .read(apiServiceProvider)
-      .fetchMyGrammarResults(sort: s.field, order: s.order);
+      .fetchMyGrammarResults(sort: 'date', order: 'desc');
 });
 
 /// GET /grammar_results_public.php (no auth)
 final publicGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
-  final s = ref.watch(grammarResultsSortProvider);
   return ref
       .read(apiServiceProvider)
-      .fetchPublicGrammarResults(sort: s.field, order: s.order);
+      .fetchPublicGrammarResults(sort: 'date', order: 'desc');
 });
 
 /// GET /grammar_result_detail.php?id= (auth). For review screen.
@@ -198,8 +197,8 @@ final apiSearchBooksProvider = FutureProvider<List<Book>>((ref) {
   // If the query is empty, fetch all books (like before)
   // Otherwise, search using the query
   if (query.isEmpty) {
-    return ref.read(apiServiceProvider).fetchBooks();
+    return ref.read(apiServiceProvider).fetchBooks(scope: 'public');
   } else {
-    return ref.read(apiServiceProvider).searchBooks(query);
+    return ref.read(apiServiceProvider).searchBooks(query, scope: 'public');
   }
 });

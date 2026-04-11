@@ -10,6 +10,7 @@ import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../words/important_words_controller.dart';
 import 'quiz_screen.dart';
 
 /// Pick unit(s), question count (min 10 when enough words exist), and scope for book-level quiz.
@@ -51,6 +52,7 @@ class _BookVocabQuizSetupScreenState
       vocabQuizWrongsProvider((bookId: widget.bookId, unit: null)),
     );
     final loggedIn = ref.watch(authProvider).valueOrNull != null;
+    final importantState = ref.watch(importantWordsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -103,9 +105,10 @@ class _BookVocabQuizSetupScreenState
                   }
 
                   final basePool = basePoolForSelection();
-                  final hasImportant = basePool.any((e) => e.isImportant);
+                  bool userImp(VocabEntry e) => importantState.isMarked(e);
+                  final hasImportant = basePool.any(userImp);
                   final effectivePool = hasImportant && _quizImportantOnly
-                      ? basePool.where((e) => e.isImportant).toList()
+                      ? basePool.where(userImp).toList()
                       : basePool;
 
                   final pool = effectivePool.length;
@@ -114,7 +117,7 @@ class _BookVocabQuizSetupScreenState
                       .where((e) => _selectedUnits.contains(e.unit))
                       .toList();
                   final distractorPool = hasImportant && _quizImportantOnly
-                      ? allInUnits.where((e) => e.isImportant).toList()
+                      ? allInUnits.where(userImp).toList()
                       : allInUnits;
                   final maxQ = pool.clamp(0, 60);
                   final baseMinQ = pool >= 10 ? 10 : (pool > 0 ? pool : 0);

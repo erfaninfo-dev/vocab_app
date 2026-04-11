@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../home/home_displayed_books_provider.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../core/language/language_provider.dart';
@@ -134,6 +135,80 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         onTap: () => context.push('/profile'),
                       ),
+                      if (!session.user.studentAccess) ...[
+                        const Divider(height: 0),
+                        ListTile(
+                          leading: Icon(
+                            Icons.school_outlined,
+                            color: scheme.primary,
+                          ),
+                          title: Text(l10n.redeemStudentCode),
+                          subtitle: Text(
+                            l10n.redeemStudentCodeSubtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () async {
+                            final ctrl = TextEditingController();
+                            final submitted = await showDialog<String>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(l10n.redeemStudentCode),
+                                content: TextField(
+                                  controller: ctrl,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.studentCodeLabel,
+                                  ),
+                                  autofocus: true,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      ctrl.dispose();
+                                      Navigator.of(ctx).pop();
+                                    },
+                                    child: Text(l10n.cancel),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () {
+                                      final t = ctrl.text.trim();
+                                      ctrl.dispose();
+                                      Navigator.of(ctx).pop(t);
+                                    },
+                                    child: Text(l10n.continueLabel),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (submitted == null || submitted.isEmpty) {
+                              return;
+                            }
+                            try {
+                              await ref
+                                  .read(authProvider.notifier)
+                                  .redeemStudentCode(submitted);
+                              ref.invalidate(apiHomeBooksProvider);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.studentAccessGranted),
+                                  ),
+                                );
+                              }
+                            } catch (_) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.invalidStudentCode),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
                       const Divider(height: 0),
                       ListTile(
                         leading: const Icon(Icons.logout_rounded),

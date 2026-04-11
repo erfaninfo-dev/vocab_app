@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/auth_user.dart';
 import '../../data/services/api_service.dart';
+import '../../features/home/home_displayed_books_provider.dart';
 import '../profile/profile_photo_cache.dart';
 import 'auth_storage.dart';
 
@@ -47,6 +48,8 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     required String email,
     required String password,
     String? displayName,
+    bool registerAsStudent = false,
+    String? studentCode,
   }) async {
     final previous = state.valueOrNull;
     state = const AsyncLoading();
@@ -55,6 +58,8 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         email: email,
         password: password,
         displayName: displayName,
+        registerAsStudent: registerAsStudent,
+        studentCode: studentCode,
       );
       await AuthStorage().saveToken(session.token);
       state = AsyncData(session);
@@ -62,6 +67,27 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
       state = AsyncData(previous);
       Error.throwWithStackTrace(e, st);
     }
+  }
+
+  /// Refreshes profile from GET /me.php (e.g. after redeeming student code).
+  Future<void> refreshSession() async {
+    final s = state.valueOrNull;
+    if (s == null) return;
+    try {
+      final user = await ApiService(authToken: s.token).fetchCurrentUser();
+      state = AsyncData(AuthSession(token: s.token, user: user));
+    } catch (_) {}
+  }
+
+  /// POST /student_redeem_code.php — updates session user.
+  Future<void> redeemStudentCode(String code) async {
+    final s = state.valueOrNull;
+    if (s == null) {
+      throw StateError('Not signed in');
+    }
+    final user = await ApiService(authToken: s.token).redeemStudentCode(code);
+    state = AsyncData(AuthSession(token: s.token, user: user));
+    ref.invalidate(apiHomeBooksProvider);
   }
 
   Future<void> logout() async {

@@ -11,6 +11,9 @@ class GrammarSessionItem {
     this.correctAnswer,
     this.selectedAnswer,
     required this.isCorrect,
+    this.faExplanation,
+    this.kurExplanation,
+    this.engExplanation,
   });
 
   final int questionId;
@@ -23,6 +26,10 @@ class GrammarSessionItem {
   final String? correctAnswer;
   final String? selectedAnswer;
   final bool isCorrect;
+
+  final String? faExplanation;
+  final String? kurExplanation;
+  final String? engExplanation;
 
   String? optionLabel(String key) {
     switch (key.trim().toLowerCase()) {
@@ -51,6 +58,9 @@ class GrammarSessionItem {
       correctAnswer: json['correct_answer'] as String?,
       selectedAnswer: json['selected_answer'] as String?,
       isCorrect: json['is_correct'] == true,
+      faExplanation: json['fa_explanation'] as String?,
+      kurExplanation: json['kur_explanation'] as String?,
+      engExplanation: json['eng_explanation'] as String?,
     );
   }
 }

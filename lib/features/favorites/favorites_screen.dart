@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/user_friendly_error.dart';
-import '../../core/sync/pending_word_updates.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/widgets/word_card.dart';
+import '../words/important_words_controller.dart';
 import '../words/word_preferences_controller.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
 
   Future<void> _refresh(WidgetRef ref) async {
-    await syncPendingImportantUpdates(ref);
+    final api = ref.read(apiServiceProvider);
+    if (api.authToken != null && api.authToken!.isNotEmpty) {
+      await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
+      await ref.read(importantWordsProvider.notifier).pullFromServer(api);
+    }
     ref.invalidate(apiBooksProvider);
     // Re-fetch all words for all books used by favorites.
     try {
@@ -27,7 +31,7 @@ class FavoritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final favorites = ref.watch(wordPreferencesProvider).favoriteIds;
+    final prefs = ref.watch(wordPreferencesProvider);
     final booksValue = ref.watch(apiBooksProvider);
     final scheme = Theme.of(context).colorScheme;
 
@@ -65,7 +69,8 @@ class FavoritesScreen extends ConsumerWidget {
               value.whenData(allEntries.addAll);
             }
 
-            final favEntries = _filter(allEntries, favorites);
+            final favEntries =
+                allEntries.where((e) => prefs.isFavorite(e)).toList();
             if (favEntries.isEmpty) {
               return ListView(
                 children: const [
@@ -87,9 +92,5 @@ class FavoritesScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  List<VocabEntry> _filter(List<VocabEntry> source, Set<String> ids) {
-    return source.where((entry) => ids.contains(entry.id)).toList();
   }
 }

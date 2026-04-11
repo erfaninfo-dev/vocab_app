@@ -1,15 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/onboarding/onboarding_prefs.dart';
+import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
 class _Slide {
-  const _Slide({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _Slide({required this.icon, required this.title, required this.body});
 
   final IconData icon;
   final String title;
@@ -17,43 +17,61 @@ class _Slide {
 }
 
 List<_Slide> _slides(AppLocalizations l10n) => [
-      _Slide(
-        icon: Icons.auto_stories_rounded,
-        title: l10n.obSlide1Title,
-        body: l10n.obSlide1Body,
-      ),
-      _Slide(
-        icon: Icons.rule_rounded,
-        title: l10n.obSlide2Title,
-        body: l10n.obSlide2Body,
-      ),
-      _Slide(
-        icon: Icons.loop_rounded,
-        title: l10n.obSlide3Title,
-        body: l10n.obSlide3Body,
-      ),
-      _Slide(
-        icon: Icons.bar_chart_rounded,
-        title: l10n.obSlide4Title,
-        body: l10n.obSlide4Body,
-      ),
-      _Slide(
-        icon: Icons.tune_rounded,
-        title: l10n.obSlide5Title,
-        body: l10n.obSlide5Body,
-      ),
-    ];
+  _Slide(
+    icon: Icons.auto_stories_rounded,
+    title: l10n.obSlide1Title,
+    body: l10n.obSlide1Body,
+  ),
+  _Slide(
+    icon: Icons.rule_rounded,
+    title: l10n.obSlide2Title,
+    body: l10n.obSlide2Body,
+  ),
+  _Slide(
+    icon: Icons.loop_rounded,
+    title: l10n.obSlide3Title,
+    body: l10n.obSlide3Body,
+  ),
+  _Slide(
+    icon: Icons.bar_chart_rounded,
+    title: l10n.obSlide4Title,
+    body: l10n.obSlide4Body,
+  ),
+  _Slide(
+    icon: Icons.tune_rounded,
+    title: l10n.obSlide5Title,
+    body: l10n.obSlide5Body,
+  ),
+];
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_prefetchBooksList());
+    });
+  }
+
+  Future<void> _prefetchBooksList() async {
+    try {
+      await ref.read(apiSearchBooksProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      ref.invalidate(apiSearchBooksProvider);
+    }
+  }
 
   @override
   void dispose() {
@@ -92,10 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _finish,
-                  child: Text(l10n.skip),
-                ),
+                child: TextButton(onPressed: _finish, child: Text(l10n.skip)),
               ),
               Expanded(
                 child: PageView.builder(

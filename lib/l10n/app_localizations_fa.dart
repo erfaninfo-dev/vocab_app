@@ -27,6 +27,37 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tabSettings => 'تنظیمات';
 
   @override
+  String get tabStudents => 'دانش‌آموز';
+
+  @override
+  String get studentBooksTitle => 'کتاب‌های کلاس شما';
+
+  @override
+  String get registerAsStudent => 'دانش‌آموز شما';
+
+  @override
+  String get studentCodeLabel => 'کد دانش‌آموزی';
+
+  @override
+  String get studentCodeRequired => 'کدی که مدرس به شما داده را وارد کنید';
+
+  @override
+  String get redeemStudentCode => 'وارد کردن کد دانش‌آموزی';
+
+  @override
+  String get redeemStudentCodeSubtitle =>
+      'با کد شخصی‌تان تب دانش‌آموز را باز کنید.';
+
+  @override
+  String get invalidStudentCode => 'کد نامعتبر یا منقضی است.';
+
+  @override
+  String get studentAccessGranted => 'دسترسی دانش‌آموزی فعال شد.';
+
+  @override
+  String get studentTabSignIn => 'برای دیدن کتاب‌های کلاس، وارد حساب شوید.';
+
+  @override
   String get back => 'بازگشت';
 
   @override
@@ -94,6 +125,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get searchBooksHint => 'جستجوی کتاب…';
 
   @override
+  String get homeReceivingBooks => 'در حال دریافت…';
+
+  @override
   String get couldNotLoadBooks => 'بارگذاری کتاب‌ها انجام نشد.';
 
   @override
@@ -103,6 +137,40 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get noBooksFound => 'کتابی یافت نشد';
+
+  @override
+  String get homeTrackIelts => 'آیلتس';
+
+  @override
+  String get homeTrackGeneral => 'عمومی';
+
+  @override
+  String get homeBooksSeriesOther => 'سایر کتاب‌ها';
+
+  @override
+  String get homeSeriesCambridgeTests => 'آزمون‌های کمبریج آیلتس';
+
+  @override
+  String homeSeriesVolumesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کتاب در این سری',
+      one: '۱ کتاب در این سری',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seriesBooksGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کتاب · برای باز کردن روی کارت بزنید',
+      one: '۱ کتاب · برای باز کردن روی کارت بزنید',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get bookSingular => 'کتاب';
@@ -992,7 +1060,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get importantWordsServerHint =>
-      'این انتخاب شامل لغاتی است که روی سرور به‌عنوان مهم علامت خورده‌اند.';
+      'این انتخاب شامل لغاتی است که خودتان مهم کرده‌اید (با ورود به حساب همگام می‌شود).';
 
   @override
   String get allWordsChip => 'همهٔ لغات';
@@ -1118,6 +1186,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get grammarExplanationTabCkb => 'کردی';
 
   @override
+  String get grammarExplanationTabEn => 'انگلیسی';
+
+  @override
   String get grammarReportProblemTitle => 'گزارش مشکل';
 
   @override
@@ -1159,10 +1230,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get grammarSortNewestFirst => 'جدیدترین اول';
-
-  @override
-  String get grammarSortHighestScore => 'بیشترین درصد نمره';
+  String get grammarSortNewest => 'جدیدترین';
 
   @override
   String get grammarSortMostPractice => 'بیشترین تمرین';
