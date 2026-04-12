@@ -135,6 +135,26 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         onTap: () => context.push('/profile'),
                       ),
+                      if (session.user.isTeacher) ...[
+                        const Divider(height: 0),
+                        ListTile(
+                          leading: Icon(
+                            Icons.co_present_rounded,
+                            color: scheme.tertiary,
+                          ),
+                          title: Text(l10n.teacherOpenPanel),
+                          subtitle: Text(
+                            l10n.teacherPanelSubtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right_rounded,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          onTap: () => context.push('/teacher'),
+                        ),
+                      ],
                       if (!session.user.studentAccess) ...[
                         const Divider(height: 0),
                         ListTile(
@@ -189,7 +209,8 @@ class SettingsScreen extends ConsumerWidget {
                               await ref
                                   .read(authProvider.notifier)
                                   .redeemStudentCode(submitted);
-                              ref.invalidate(apiHomeBooksProvider);
+                              ref.invalidate(apiPublicBooksForHomeProvider);
+                              ref.invalidate(apiStudentBooksForHomeProvider);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

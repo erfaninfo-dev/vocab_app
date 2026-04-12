@@ -715,6 +715,76 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vocabQuizResultQuestion => 'سؤال';
 
   @override
+  String vocabQuizHistoryUnitsLine(String units) {
+    return 'یونیت‌ها: $units';
+  }
+
+  @override
+  String vocabQuizCorrectWrongLine(int correct, int wrong) {
+    return '$correct درست · $wrong غلط';
+  }
+
+  @override
+  String get vocabQuizViewMistakes => 'مشاهدهٔ غلط‌ها';
+
+  @override
+  String get vocabQuizMistakesTitle => 'پاسخ‌های غلط';
+
+  @override
+  String get vocabQuizMistakesEmpty => 'در این جلسه پاسخ غلطی ثبت نشده است.';
+
+  @override
+  String get teacherPanelTitle => 'پنل استاد';
+
+  @override
+  String get teacherPanelSubtitle =>
+      'مشاهدهٔ تمرین لغات و گرامر شاگردان و ثبت جلسات کلاس.';
+
+  @override
+  String get teacherOpenPanel => 'پنل استاد';
+
+  @override
+  String get teacherStudentsEmpty =>
+      'هنوز شاگردی متصل نیست. روی سرور، کدهای دانش‌آموزی را به حساب استاد خودتان وصل کنید؛ با همان کد ثبت‌نام کنند تا اینجا بیایند.';
+
+  @override
+  String get teacherStudentDetailTitle => 'شاگرد';
+
+  @override
+  String get teacherTabVocabQuiz => 'لغات';
+
+  @override
+  String get teacherTabGrammar => 'گرامر';
+
+  @override
+  String get teacherClassSessions => 'جلسات کلاس';
+
+  @override
+  String get teacherSessionCountLabel => 'تعداد جلسات ثبت‌شده';
+
+  @override
+  String get teacherSessionSave => 'ذخیره';
+
+  @override
+  String get teacherSessionUpdated => 'ذخیره شد';
+
+  @override
+  String get teacherSessionInvalid => 'یک عدد معتبر (۰ یا بیشتر) وارد کنید.';
+
+  @override
+  String get teacherAccessDenied => 'فقط حساب استاد به این بخش دسترسی دارد.';
+
+  @override
+  String get teacherNoResults => 'هنوز نتیجه‌ای ثبت نشده';
+
+  @override
+  String get teacherNoteLabel => 'یادداشت استاد';
+
+  @override
+  String get teacherNotePlaceholder =>
+      'یادداشت خصوصی دربارهٔ این شاگرد (فقط شما می‌بینید)';
+
+  @override
   String get bookQuizSetupIntro =>
       'یونیت‌ها، تعداد سؤال و حالت تمرین روی اشتباهات قبلی را انتخاب کنید.';
 

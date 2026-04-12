@@ -357,6 +357,54 @@ List<GrammarResult> _sortGrammarResultRows(
   return items;
 }
 
+/// Average % for leaderboard row — circular ring, top-right of card.
+class _LeaderboardAvgPercentCircle extends StatelessWidget {
+  const _LeaderboardAvgPercentCircle({
+    required this.avgPct,
+    required this.scheme,
+  });
+
+  final double avgPct;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final v = (avgPct / 100).clamp(0.0, 1.0);
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              value: v,
+              strokeWidth: 3.5,
+              backgroundColor:
+                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
+              color: scheme.primary,
+              strokeCap: StrokeCap.round,
+            ),
+          ),
+          Text(
+            '${avgPct.round()}%',
+            style: tt.labelSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: scheme.primary,
+              fontSize: 10,
+              height: 1.0,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UsersPracticeLeaderboard extends StatelessWidget {
   const _UsersPracticeLeaderboard({
     required this.results,
@@ -402,7 +450,32 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
       }
       if (n > 0) avgPct = sum / n;
 
-      return (name: name, attempts: attempts, avgPct: avgPct, latest: latest);
+      GrammarResult? latestResult;
+      for (final r in items) {
+        final prev = latestResult;
+        if (prev == null ||
+            _grammarResultCreatedAt(r).isAfter(_grammarResultCreatedAt(prev))) {
+          latestResult = r;
+        }
+      }
+
+      final topicLabels = <String>{};
+      for (final gr in items) {
+        for (final t in _ResultCard._topicLabelsForResult(gr)) {
+          topicLabels.add(t);
+        }
+      }
+      final topicList = topicLabels.toList()..sort();
+
+      return (
+        name: name,
+        attempts: attempts,
+        avgPct: avgPct,
+        latest: latest,
+        avatarId: latestResult?.avatar,
+        userId: latestResult?.userId,
+        topicLabels: topicList,
+      );
     }).toList()
       ..sort((a, b) {
         return switch (sort) {
@@ -438,84 +511,96 @@ class _UsersPracticeLeaderboard extends StatelessWidget {
             ),
           ),
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 34,
-                child: Center(
-                  child: medal != null
-                      ? Text(medal, style: const TextStyle(fontSize: 18))
-                      : Text(
-                          '${i + 1}',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      r.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 34,
+                    child: Center(
+                      child: medal != null
+                          ? Text(medal, style: const TextStyle(fontSize: 18))
+                          : Text(
+                              '${i + 1}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                            ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${r.attempts} practice session(s)',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                  ),
+                  const SizedBox(width: 8),
+                  _UserAvatar(
+                    scheme: scheme,
+                    avatarId: r.avatarId,
+                    userId: r.userId,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 13,
-                          color: scheme.onSurfaceVariant,
+                        Text(
+                          r.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _formatGrammarDisplayDateTime(r.latest),
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${r.attempts} practice session(s)',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                        ),
+                        if (r.topicLabels.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          _GrammarTopicChipsWrap(
+                            labels: r.topicLabels,
+                            scheme: scheme,
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                  ],
-                ),
-              ),
-              if (r.avgPct != null) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text(
-                    '${r.avgPct!.toStringAsFixed(0)}%',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w800,
+                  if (r.avgPct != null) ...[
+                    const SizedBox(width: 8),
+                    _LeaderboardAvgPercentCircle(
+                      avgPct: r.avgPct!,
+                      scheme: scheme,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 13,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatGrammarDisplayDateTime(r.latest),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ],
           ),
         );

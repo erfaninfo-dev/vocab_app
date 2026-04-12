@@ -14,6 +14,31 @@ import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
 import 'series_books_screen.dart';
 
+int homePageIndexForTrack(HomeBookTrack track, bool showStudentTab) {
+  switch (track) {
+    case HomeBookTrack.ielts:
+      return 0;
+    case HomeBookTrack.general:
+      return 1;
+    case HomeBookTrack.student:
+      return showStudentTab ? 2 : 0;
+  }
+}
+
+HomeBookTrack homeTrackForPageIndex(int index, bool showStudentTab) {
+  if (!showStudentTab) {
+    return index <= 0 ? HomeBookTrack.ielts : HomeBookTrack.general;
+  }
+  switch (index) {
+    case 0:
+      return HomeBookTrack.ielts;
+    case 1:
+      return HomeBookTrack.general;
+    default:
+      return HomeBookTrack.student;
+  }
+}
+
 final searchControllerProvider = Provider<TextEditingController>((ref) {
   final controller = TextEditingController();
   controller.addListener(() {
@@ -23,15 +48,78 @@ final searchControllerProvider = Provider<TextEditingController>((ref) {
   return controller;
 });
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
 
-    final booksValue = ref.watch(homeDisplayedBooksProvider);
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPageToTrack());
+  }
+
+  void _syncPageToTrack() {
+    if (!mounted) return;
+    final showStudent =
+        ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+    final track = ref.read(homeBookTrackProvider);
+    final idx = homePageIndexForTrack(track, showStudent);
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(idx);
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    final api = ref.read(apiServiceProvider);
+    final q = ref.read(bookSearchQueryProvider);
+    await api.bustBooksCatalogCache(searchQuery: q);
+    ref.invalidate(apiPublicBooksForHomeProvider);
+    ref.invalidate(apiStudentBooksForHomeProvider);
+    await Future.wait([
+      ref.read(apiPublicBooksForHomeProvider.future),
+      ref.read(apiStudentBooksForHomeProvider.future),
+    ]);
+  }
+
+  Future<void> _onHomePageChanged(int index) async {
+    final showStudent =
+        ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+    final track = homeTrackForPageIndex(index, showStudent);
+    ref.read(homeBookTrackProvider.notifier).state = track;
+    final p = await SharedPreferences.getInstance();
+    await p.setString(kHomeBookTrackPrefsKey, track.name);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final showStudent =
+        ref.watch(authProvider).valueOrNull?.user.studentAccess == true;
+
+    ref.listen(authProvider, (prev, next) {
+      final can = next.valueOrNull?.user.studentAccess == true;
+      if (can) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (!_pageController.hasClients) return;
+        if ((_pageController.page ?? 0) >= 2) {
+          _pageController.jumpToPage(0);
+        }
+      });
+    });
 
     return Scaffold(
       body: DecoratedBox(
@@ -47,151 +135,179 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              final api = ref.read(apiServiceProvider);
-              final q = ref.read(bookSearchQueryProvider);
-              await api.bustBooksCatalogCache(searchQuery: q);
-              ref.invalidate(apiHomeBooksProvider);
-              await ref.read(apiHomeBooksProvider.future);
-            },
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-              // Header جدا از booksValue — ری‌بیلد نمی‌شه
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-                  child: const _HomeHeader(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                child: const _HomeHeader(),
+              ),
+              _HomeTrackSegment(pageController: _pageController),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: _onHomePageChanged,
+                  children: [
+                    _HomeTrackBookPage(
+                      track: HomeBookTrack.ielts,
+                      onRefresh: _onRefresh,
+                    ),
+                    _HomeTrackBookPage(
+                      track: HomeBookTrack.general,
+                      onRefresh: _onRefresh,
+                    ),
+                    if (showStudent)
+                      _HomeTrackBookPage(
+                        track: HomeBookTrack.student,
+                        onRefresh: _onRefresh,
+                      ),
+                  ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-              // ── Review Today + Grammar banners — hidden for now; restore:
-              // const SliverToBoxAdapter(child: _ReviewBanner()),
-              // const SliverToBoxAdapter(child: _GrammarPracticeBanner()),
+class _HomeTrackBookPage extends ConsumerWidget {
+  const _HomeTrackBookPage({
+    required this.track,
+    required this.onRefresh,
+  });
 
-              const SliverToBoxAdapter(child: _HomeTrackSegment()),
+  final HomeBookTrack track;
+  final Future<void> Function() onRefresh;
 
-              booksValue.when(
-                loading: () => SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 80),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(height: 20),
-                          Text(
-                            l10n.homeReceivingBooks,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final booksValue = ref.watch(homeDisplayedBooksForTrackProvider(track));
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          booksValue.when(
+            loading: () => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 80),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.homeReceivingBooks,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
-                          ),
-                        ],
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                error: (error, _) => SliverToBoxAdapter(
+              ),
+            ),
+            error: (error, _) => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    '${l10n.couldNotLoadBooks}\n'
+                    '${userFriendlyErrorMessage(error, l10n)}',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+            data: (books) {
+              if (books.isEmpty) {
+                return SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.only(top: 50),
                     child: Center(
                       child: Text(
-                        '${l10n.couldNotLoadBooks}\n'
-                        '${userFriendlyErrorMessage(error, l10n)}',
-                        textAlign: TextAlign.center,
+                        l10n.noBooksFound,
+                        style: const TextStyle(fontSize: 20),
                       ),
                     ),
                   ),
-                ),
-                data: (books) {
-                  if (books.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 50),
-                        child: Center(
-                          child: Text(
-                            l10n.noBooksFound,
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
+                );
+              }
 
-                  return SliverToBoxAdapter(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        final crossAxisCount = width >= 1100
-                            ? 3
-                            : width >= 700
+              return SliverToBoxAdapter(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final crossAxisCount = width >= 1100
+                        ? 3
+                        : width >= 700
                             ? 2
                             : 1;
 
-                        final entries = _trackHomeEntriesForTrack(books);
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          child: Directionality(
-                            textDirection: TextDirection.ltr,
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
-                                childAspectRatio:
-                                    crossAxisCount == 1 ? 1.5 : 1.08,
-                              ),
-                              itemCount: entries.length,
-                              itemBuilder: (context, i) {
-                                final e = entries[i];
-                                if (e.isSeries) {
-                                  final seriesTitle =
-                                      (e.books!.first.seriesTitle ?? '')
-                                          .trim();
-                                  return _IeltsSeriesCard(
-                                    title: seriesTitle,
-                                    bookCount: e.books!.length,
-                                    index: i,
-                                    onTap: () {
-                                      final sorted = List<Book>.of(e.books!);
-                                      sortBooksInSeriesDisplayOrder(sorted);
-                                      context.push(
-                                        '/series-books',
-                                        extra: SeriesBooksRouteArgs(
-                                          title: seriesTitle,
-                                          books: sorted,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                }
-                                return HomeBookCard(
-                                  book: e.book!,
-                                  index: i,
-                                  onTap: () => context.push(
-                                    '/books/${e.book!.id}/units',
-                                  ),
-                                );
-                              },
-                            ),
+                    final entries = _trackHomeEntriesForTrack(books);
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      child: Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio:
+                                crossAxisCount == 1 ? 1.5 : 1.08,
                           ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
-            ),
+                          itemCount: entries.length,
+                          itemBuilder: (context, i) {
+                            final e = entries[i];
+                            if (e.isSeries) {
+                              final seriesTitle =
+                                  (e.books!.first.seriesTitle ?? '')
+                                      .trim();
+                              return _IeltsSeriesCard(
+                                title: seriesTitle,
+                                bookCount: e.books!.length,
+                                index: i,
+                                onTap: () {
+                                  final sorted = List<Book>.of(e.books!);
+                                  sortBooksInSeriesDisplayOrder(sorted);
+                                  context.push(
+                                    '/series-books',
+                                    extra: SeriesBooksRouteArgs(
+                                      title: seriesTitle,
+                                      books: sorted,
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                            return HomeBookCard(
+                              book: e.book!,
+                              index: i,
+                              onTap: () => context.push(
+                                '/books/${e.book!.id}/units',
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ),
+        ],
       ),
     );
   }
@@ -246,7 +362,9 @@ class _HomeHeader extends ConsumerWidget {
 // ───────────────────── IELTS / General track ─────────────────────
 
 class _HomeTrackSegment extends ConsumerStatefulWidget {
-  const _HomeTrackSegment();
+  const _HomeTrackSegment({required this.pageController});
+
+  final PageController pageController;
 
   @override
   ConsumerState<_HomeTrackSegment> createState() => _HomeTrackSegmentState();
@@ -274,6 +392,13 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
     } else if (raw == HomeBookTrack.student.name && canStudent) {
       ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.student;
     }
+    if (!mounted) return;
+    final t = ref.read(homeBookTrackProvider);
+    final show = ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      widget.pageController.jumpToPage(homePageIndexForTrack(t, show));
+    });
   }
 
   @override
@@ -288,6 +413,10 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
       final can = next.valueOrNull?.user.studentAccess == true;
       if (!can && ref.read(homeBookTrackProvider) == HomeBookTrack.student) {
         ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.ielts;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          widget.pageController.jumpToPage(0);
+        });
       }
     });
 
@@ -295,6 +424,7 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
         ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.ielts;
+        widget.pageController.jumpToPage(0);
       });
     }
 
@@ -337,6 +467,15 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
           ref.read(homeBookTrackProvider.notifier).state = v;
           final p = await SharedPreferences.getInstance();
           await p.setString(kHomeBookTrackPrefsKey, v.name);
+          final show = ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+          final idx = homePageIndexForTrack(v, show);
+          if (widget.pageController.hasClients) {
+            await widget.pageController.animateToPage(
+              idx,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+            );
+          }
         },
         style: ButtonStyle(
           visualDensity: VisualDensity.standard,

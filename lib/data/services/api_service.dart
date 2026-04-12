@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/cache/api_disk_cache.dart';
 import '../models/auth_user.dart';
+import '../models/teacher_student.dart';
 import '../models/book_model.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
@@ -650,6 +651,110 @@ class ApiService {
     }
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  // ── Teacher panel (requires is_teacher on server) ───────────────────────────
+
+  /// GET /teacher_students.php
+  Future<List<TeacherStudentSummary>> fetchTeacherStudents() async {
+    final uri = Uri.parse('$baseUrl/teacher_students.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['students'] as List<dynamic>? ?? const [];
+    return list
+        .map(
+          (e) => TeacherStudentSummary.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// GET /teacher_student_vocab_results.php
+  Future<List<VocabQuizResultSummary>> fetchTeacherStudentVocabResults(
+    int studentId, {
+    int limit = 100,
+  }) async {
+    final uri =
+        Uri.parse('$baseUrl/teacher_student_vocab_results.php').replace(
+      queryParameters: {
+        'student_id': '$studentId',
+        'limit': '$limit',
+      },
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['results'] as List<dynamic>? ?? const [];
+    return list
+        .map(
+          (e) => VocabQuizResultSummary.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// GET /teacher_student_grammar_results.php
+  Future<List<GrammarResult>> fetchTeacherStudentGrammarResults(
+    int studentId,
+  ) async {
+    final uri =
+        Uri.parse('$baseUrl/teacher_student_grammar_results.php').replace(
+      queryParameters: {'student_id': '$studentId'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['results'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /teacher_student_sessions.php
+  Future<TeacherSessionInfo> fetchTeacherStudentSessions(int studentId) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php').replace(
+      queryParameters: {'student_id': '$studentId'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final c = (map['session_count'] as num?)?.toInt() ?? 0;
+    final u = map['updated_at']?.toString();
+    final rawNote = map['note']?.toString();
+    return TeacherSessionInfo(
+      sessionCount: c,
+      updatedAt: (u != null && u.isNotEmpty) ? u : null,
+      note: (rawNote != null && rawNote.trim().isNotEmpty) ? rawNote : null,
+    );
+  }
+
+  /// POST /teacher_student_sessions.php — [note] stored per teacher–student pair.
+  Future<TeacherSessionInfo> setTeacherStudentSessions({
+    required int studentId,
+    required int sessionCount,
+    String note = '',
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'session_count': sessionCount,
+        'note': note,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final c = (map['session_count'] as num?)?.toInt() ?? sessionCount;
+    final u = map['updated_at']?.toString();
+    final rawNote = map['note']?.toString();
+    return TeacherSessionInfo(
+      sessionCount: c,
+      updatedAt: (u != null && u.isNotEmpty) ? u : null,
+      note: (rawNote != null && rawNote.trim().isNotEmpty) ? rawNote : null,
+    );
   }
 
   /// POST /upload_avatar.php — multipart field `photo` (JPEG after client compression).

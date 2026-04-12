@@ -91,7 +91,8 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     final user = await ApiService(authToken: s.token).redeemStudentCode(code);
     state = AsyncData(AuthSession(token: s.token, user: user));
     await ApiDiskCache.instance.clearAll();
-    ref.invalidate(apiHomeBooksProvider);
+    ref.invalidate(apiPublicBooksForHomeProvider);
+    ref.invalidate(apiStudentBooksForHomeProvider);
   }
 
   Future<void> logout() async {

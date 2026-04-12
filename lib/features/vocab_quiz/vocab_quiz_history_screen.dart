@@ -12,6 +12,22 @@ import '../../l10n/app_localizations.dart';
 class VocabQuizHistoryScreen extends ConsumerWidget {
   const VocabQuizHistoryScreen({super.key});
 
+  static String _unitsCsv(List<int> units) {
+    if (units.isEmpty) return '—';
+    return units.join(', ');
+  }
+
+  /// [raw] from MySQL datetime or ISO string.
+  static String _formatSessionDate(BuildContext context, String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '—';
+    final t = raw.trim();
+    final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+    final dt = DateTime.tryParse(normalized);
+    if (dt == null) return raw;
+    final loc = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(loc).add_Hm().format(dt.toLocal());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -101,31 +117,90 @@ class VocabQuizHistoryScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: rows.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final r = rows[i];
-                final title =
+                final bookTitle =
                     (r.bookTitle != null && r.bookTitle!.trim().isNotEmpty)
-                        ? r.bookTitle!
+                        ? r.bookTitle!.trim()
                         : 'Book #${r.bookId}';
-                final dateStr = _formatDate(r.createdAt);
+                final quizTitle = (r.quizName != null &&
+                        r.quizName!.trim().isNotEmpty)
+                    ? r.quizName!.trim()
+                    : l10n.vocabularyQuizTitle;
+
                 return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: scheme.primaryContainer,
-                      child: Icon(
-                        Icons.quiz_rounded,
-                        color: scheme.onPrimaryContainer,
-                      ),
+                  elevation: 0,
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
                     ),
-                    title: Text(title,
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(
-                      '${l10n.vocabQuizResultScoreLine(r.score, r.totalQuestions)} · $dateStr',
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          quizTitle,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          bookTitle,
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.vocabQuizHistoryUnitsLine(
+                            _unitsCsv(r.units),
+                          ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n.vocabQuizCorrectWrongLine(r.correct, r.wrong),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: scheme.primary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: Text(
+                            _formatSessionDate(context, r.createdAt),
+                            style:
+                                Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: FilledButton.tonalIcon(
+                            onPressed: () => context.push(
+                              '/vocab-quiz/result/${r.id}?mistakes=1',
+                            ),
+                            icon: const Icon(Icons.rule_folder_outlined, size: 20),
+                            label: Text(l10n.vocabQuizViewMistakes),
+                          ),
+                        ),
+                      ],
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () =>
-                        context.push('/vocab-quiz/result/${r.id}'),
                   ),
                 );
               },
@@ -134,15 +209,5 @@ class VocabQuizHistoryScreen extends ConsumerWidget {
         },
       ),
     );
-  }
-
-  static String _formatDate(String raw) {
-    try {
-      final d = DateTime.tryParse(raw);
-      if (d == null) return raw;
-      return DateFormat.yMMMd().add_Hm().format(d.toLocal());
-    } catch (_) {
-      return raw;
-    }
   }
 }

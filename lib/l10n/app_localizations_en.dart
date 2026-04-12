@@ -715,6 +715,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vocabQuizResultQuestion => 'Question';
 
   @override
+  String vocabQuizHistoryUnitsLine(String units) {
+    return 'Units: $units';
+  }
+
+  @override
+  String vocabQuizCorrectWrongLine(int correct, int wrong) {
+    return '$correct correct · $wrong wrong';
+  }
+
+  @override
+  String get vocabQuizViewMistakes => 'View mistakes';
+
+  @override
+  String get vocabQuizMistakesTitle => 'Wrong answers';
+
+  @override
+  String get vocabQuizMistakesEmpty => 'No wrong answers in this session.';
+
+  @override
+  String get teacherPanelTitle => 'Teacher panel';
+
+  @override
+  String get teacherPanelSubtitle =>
+      'View your students\' vocabulary & grammar practice and class sessions.';
+
+  @override
+  String get teacherOpenPanel => 'Teacher panel';
+
+  @override
+  String get teacherStudentsEmpty =>
+      'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.';
+
+  @override
+  String get teacherStudentDetailTitle => 'Student';
+
+  @override
+  String get teacherTabVocabQuiz => 'Vocabulary';
+
+  @override
+  String get teacherTabGrammar => 'Grammar';
+
+  @override
+  String get teacherClassSessions => 'Class sessions';
+
+  @override
+  String get teacherSessionCountLabel => 'Recorded class sessions';
+
+  @override
+  String get teacherSessionSave => 'Save';
+
+  @override
+  String get teacherSessionUpdated => 'Saved';
+
+  @override
+  String get teacherSessionInvalid => 'Enter a valid number (0 or more).';
+
+  @override
+  String get teacherAccessDenied =>
+      'Only teacher accounts can open this panel.';
+
+  @override
+  String get teacherNoResults => 'No results yet';
+
+  @override
+  String get teacherNoteLabel => 'Teacher note';
+
+  @override
+  String get teacherNotePlaceholder =>
+      'Private notes about this student (only you can see this)';
+
+  @override
   String get bookQuizSetupIntro =>
       'Choose units, how many questions, and whether to drill past mistakes.';
 

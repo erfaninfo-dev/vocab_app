@@ -3,26 +3,54 @@ class VocabQuizResultSummary {
     required this.id,
     required this.bookId,
     this.bookTitle,
-    required this.score,
-    required this.totalQuestions,
-    required this.createdAt,
+    this.quizName,
+    this.units = const [],
+    required this.correct,
+    required this.wrong,
+    this.createdAt,
   });
 
   final int id;
   final int bookId;
   final String? bookTitle;
-  final int score;
-  final int totalQuestions;
-  final String createdAt;
+
+  /// Server `vocab_quiz_results.created_at` (e.g. `YYYY-MM-DD HH:MM:SS`).
+  final String? createdAt;
+
+  /// From session meta (e.g. localized "Vocabulary quiz").
+  final String? quizName;
+
+  /// Distinct unit numbers included in the session.
+  final List<int> units;
+  final int correct;
+  final int wrong;
 
   factory VocabQuizResultSummary.fromJson(Map<String, dynamic> json) {
+    final units = <int>[];
+    final rawU = json['units'];
+    if (rawU is List) {
+      for (final e in rawU) {
+        if (e is num) units.add(e.toInt());
+      }
+    }
+    final score = (json['score'] as num?)?.toInt();
+    final total = (json['total_questions'] as num?)?.toInt();
+    final correct = (json['correct'] as num?)?.toInt() ?? score ?? 0;
+    int? wrong = (json['wrong'] as num?)?.toInt();
+    if (wrong == null && total != null) {
+      wrong = (total - correct).clamp(0, 1 << 30);
+    }
+    wrong ??= 0;
+
     return VocabQuizResultSummary(
       id: (json['id'] as num).toInt(),
       bookId: (json['book_id'] as num).toInt(),
       bookTitle: json['book_title']?.toString(),
-      score: (json['score'] as num).toInt(),
-      totalQuestions: (json['total_questions'] as num).toInt(),
-      createdAt: json['created_at']?.toString() ?? '',
+      quizName: json['quiz_name']?.toString(),
+      units: units,
+      correct: correct,
+      wrong: wrong,
+      createdAt: json['created_at']?.toString(),
     );
   }
 }
@@ -77,6 +105,26 @@ class VocabQuizResultDetail {
   final List<VocabQuizSessionItem> items;
   final Map<String, dynamic>? meta;
 
+  String? get quizNameFromMeta {
+    final m = meta;
+    if (m == null) return null;
+    final q = m['quiz_name']?.toString().trim();
+    return (q != null && q.isNotEmpty) ? q : null;
+  }
+
+  List<int> get unitsFromMeta {
+    final m = meta;
+    if (m == null) return const [];
+    final u = m['units'];
+    if (u is! List) return const [];
+    final out = <int>[];
+    for (final e in u) {
+      if (e is num) out.add(e.toInt());
+    }
+    out.sort();
+    return out;
+  }
+
   factory VocabQuizResultDetail.fromApiJson(Map<String, dynamic> map) {
     final session = map['session'];
     List<VocabQuizSessionItem> items = [];
@@ -88,9 +136,11 @@ class VocabQuizResultDetail {
       final rawItems = session['items'];
       if (rawItems is List) {
         items = rawItems
-            .map((e) => VocabQuizSessionItem.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ))
+            .map(
+              (e) => VocabQuizSessionItem.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
       }
     }
