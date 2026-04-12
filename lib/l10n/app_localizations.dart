@@ -130,11 +130,89 @@ abstract class AppLocalizations {
   /// **'Progress'**
   String get tabProgress;
 
+  /// No description provided for @tabYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get tabYou;
+
   /// No description provided for @tabSettings.
   ///
   /// In en, this message translates to:
   /// **'Settings'**
   String get tabSettings;
+
+  /// No description provided for @youPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get youPageTitle;
+
+  /// No description provided for @youSectionProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get youSectionProgress;
+
+  /// No description provided for @youSectionProgressSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks, stats, and quiz insights'**
+  String get youSectionProgressSubtitle;
+
+  /// No description provided for @youSectionMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Your teacher'**
+  String get youSectionMessages;
+
+  /// No description provided for @youSectionMessagesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with your class teacher'**
+  String get youSectionMessagesSubtitle;
+
+  /// No description provided for @youTeacherPanelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Students and class activity'**
+  String get youTeacherPanelSubtitle;
+
+  /// No description provided for @chatSenderYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get chatSenderYou;
+
+  /// No description provided for @teacherStudentChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get teacherStudentChat;
+
+  /// No description provided for @teacherChatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message…'**
+  String get teacherChatHint;
+
+  /// No description provided for @teacherMessagesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet.'**
+  String get teacherMessagesEmpty;
+
+  /// No description provided for @teacherMessagesNoTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your student code so a teacher can be assigned to you.'**
+  String get teacherMessagesNoTeacher;
+
+  /// No description provided for @newMessagesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new} other{{count} new}}'**
+  String newMessagesCount(int count);
 
   /// No description provided for @tabStudents.
   ///

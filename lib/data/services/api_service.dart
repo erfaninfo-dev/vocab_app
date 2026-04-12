@@ -14,6 +14,7 @@ import '../models/grammar_result_detail.dart';
 import '../models/unit_model.dart';
 import '../models/vocab_entry.dart';
 import '../models/vocab_quiz_result.dart';
+import '../models/teacher_message.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
@@ -773,6 +774,72 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// GET /teacher_student_messages.php?preview=1 — auth; empty preview if no teacher.
+  Future<TeacherMessagesPreview> fetchTeacherMessagesPreview() async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
+      queryParameters: const {'preview': '1'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherMessagesPreview.fromJson(map);
+  }
+
+  /// GET /teacher_student_messages.php — full thread (student: no params; teacher: student_id).
+  Future<TeacherMessagesThread> fetchTeacherMessages({int? studentId}) async {
+    final q = <String, String>{};
+    if (studentId != null) q['student_id'] = '$studentId';
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php')
+        .replace(queryParameters: q.isEmpty ? null : q);
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherMessagesThread.fromJson(map);
+  }
+
+  /// POST mark_read — student or teacher (with student_id).
+  Future<void> markTeacherMessagesRead({int? studentId}) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
+    final body = <String, dynamic>{'mark_read': true};
+    if (studentId != null) body['student_id'] = studentId;
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Mark read failed');
+    }
+  }
+
+  /// POST new message — body text; teachers must pass [studentId].
+  Future<TeacherMessageRow> sendTeacherMessage(
+    String text, {
+    int? studentId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
+    final body = <String, dynamic>{'body': text.trim()};
+    if (studentId != null) body['student_id'] = studentId;
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final m = map['message'] as Map<String, dynamic>?;
+    if (m == null) {
+      throw Exception(map['error']?.toString() ?? 'Send failed');
+    }
+    return TeacherMessageRow.fromJson(m);
   }
 
   /// POST /update_profile.php — requires [authToken].

@@ -24,7 +24,56 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tabProgress => 'پیشرفت';
 
   @override
+  String get tabYou => 'شما';
+
+  @override
   String get tabSettings => 'تنظیمات';
+
+  @override
+  String get youPageTitle => 'شما';
+
+  @override
+  String get youSectionProgress => 'پیشرفت';
+
+  @override
+  String get youSectionProgressSubtitle => 'استریک، آمار و نتایج آزمون';
+
+  @override
+  String get youSectionMessages => 'مدرس شما';
+
+  @override
+  String get youSectionMessagesSubtitle => 'گفت‌وگو با مدرس کلاس';
+
+  @override
+  String get youTeacherPanelSubtitle => 'دانش‌آموزان و فعالیت کلاس';
+
+  @override
+  String get chatSenderYou => 'شما';
+
+  @override
+  String get teacherStudentChat => 'گفت‌وگو';
+
+  @override
+  String get teacherChatHint => 'پیام…';
+
+  @override
+  String get teacherMessagesEmpty => 'هنوز پیامی نیست.';
+
+  @override
+  String get teacherMessagesNoTeacher =>
+      'با کد دانش‌آموزی، مدرس به شما وصل می‌شود.';
+
+  @override
+  String newMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count پیام جدید',
+      one: '۱ پیام جدید',
+      zero: 'پیام جدیدی نیست',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get tabStudents => 'دانش‌آموز';

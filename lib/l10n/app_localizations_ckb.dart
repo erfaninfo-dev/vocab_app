@@ -24,7 +24,56 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get tabProgress => 'پێشکەوتن';
 
   @override
+  String get tabYou => 'تۆ';
+
+  @override
   String get tabSettings => 'ڕێکخستنەکان';
+
+  @override
+  String get youPageTitle => 'تۆ';
+
+  @override
+  String get youSectionProgress => 'پێشکەوتن';
+
+  @override
+  String get youSectionProgressSubtitle => 'زنجیرە، ئامار و تێڕوانینەکانی تێست';
+
+  @override
+  String get youSectionMessages => 'مامۆستاکەت';
+
+  @override
+  String get youSectionMessagesSubtitle => 'گفتوگۆ لەگەڵ مامۆستای پۆلەکەت';
+
+  @override
+  String get youTeacherPanelSubtitle => 'قوتابیان و چالاکی پۆل';
+
+  @override
+  String get chatSenderYou => 'تۆ';
+
+  @override
+  String get teacherStudentChat => 'گفتوگۆ';
+
+  @override
+  String get teacherChatHint => 'پەیام…';
+
+  @override
+  String get teacherMessagesEmpty => 'هێشتا پەیام نییە.';
+
+  @override
+  String get teacherMessagesNoTeacher =>
+      'کۆدی قوتابی بەکاربهێنە بۆ پەیوەندی مامۆستا.';
+
+  @override
+  String newMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count پەیامی نوێ',
+      one: '١ پەیامی نوێ',
+      zero: 'پەیامی نوێ نییە',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get tabStudents => 'قوتابی';

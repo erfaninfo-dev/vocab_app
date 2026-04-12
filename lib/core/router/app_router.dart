@@ -25,6 +25,8 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/you/you_screen.dart';
+import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
 import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
@@ -88,6 +90,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           return TeacherStudentDetailScreen(studentId: id);
         },
       ),
+      GoRoute(
+        path: '/teacher/chat/:studentId',
+        builder: (context, state) {
+          final id =
+              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          final hint = state.extra is String ? state.extra as String : null;
+          return TeacherChatScreen(studentId: id, peerTitleHint: hint);
+        },
+      ),
 
       // ── Shell: all screens share the bottom NavigationBar ─────────────────
       ShellRoute(
@@ -139,6 +150,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(path: '/review', builder: (_, __) => const ReviewScreen()),
+          GoRoute(
+            path: '/you/messages',
+            builder: (_, __) => const TeacherChatScreen(),
+          ),
+          GoRoute(path: '/you', builder: (_, __) => const YouScreen()),
           GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
           GoRoute(
             path: '/stats/insights',

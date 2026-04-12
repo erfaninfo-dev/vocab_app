@@ -5,7 +5,25 @@
   "tabGrammar": "Grammar",
   "tabReview": "Review",
   "tabProgress": "Progress",
+  "tabYou": "You",
   "tabSettings": "Settings",
+  "youPageTitle": "You",
+  "youSectionProgress": "Progress",
+  "youSectionProgressSubtitle": "Streaks, stats, and quiz insights",
+  "youSectionMessages": "Your teacher",
+  "youSectionMessagesSubtitle": "Chat with your class teacher",
+  "youTeacherPanelSubtitle": "Students and class activity",
+  "chatSenderYou": "You",
+  "teacherStudentChat": "Chat",
+  "teacherChatHint": "Message…",
+  "teacherMessagesEmpty": "No messages yet.",
+  "teacherMessagesNoTeacher": "Use your student code so a teacher can be assigned to you.",
+  "newMessagesCount": "{count, plural, =1{1 new} other{{count} new}}",
+  "@newMessagesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "tabStudents": "Students",
   "studentBooksTitle": "Your class books",
   "registerAsStudent": "Your student",

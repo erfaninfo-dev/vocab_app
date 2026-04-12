@@ -11,6 +11,7 @@ import '../data/models/unit_model.dart';
 import '../data/models/vocab_entry.dart';
 import '../data/models/vocab_quiz_result.dart';
 import '../data/models/teacher_student.dart';
+import '../data/models/teacher_message.dart';
 import '../core/auth/auth_provider.dart';
 import '../data/services/api_service.dart';
 
@@ -185,6 +186,16 @@ final teacherStudentGrammarResultsProvider =
 final teacherStudentSessionsProvider =
     FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
       return ref.read(apiServiceProvider).fetchTeacherStudentSessions(studentId);
+    });
+
+/// Preview row for You hub (student + assigned teacher). Empty when not applicable.
+final teacherMessagesPreviewProvider =
+    FutureProvider<TeacherMessagesPreview>((ref) async {
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null || session.user.isTeacher) {
+        return TeacherMessagesPreview.empty();
+      }
+      return ref.read(apiServiceProvider).fetchTeacherMessagesPreview();
     });
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.

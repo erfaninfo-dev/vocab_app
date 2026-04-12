@@ -5,7 +5,25 @@
   "tabGrammar": "ڕێزمان",
   "tabReview": "پێداچوونەوە",
   "tabProgress": "پێشکەوتن",
+  "tabYou": "تۆ",
   "tabSettings": "ڕێکخستنەکان",
+  "youPageTitle": "تۆ",
+  "youSectionProgress": "پێشکەوتن",
+  "youSectionProgressSubtitle": "زنجیرە، ئامار و تێڕوانینەکانی تێست",
+  "youSectionMessages": "مامۆستاکەت",
+  "youSectionMessagesSubtitle": "گفتوگۆ لەگەڵ مامۆستای پۆلەکەت",
+  "youTeacherPanelSubtitle": "قوتابیان و چالاکی پۆل",
+  "chatSenderYou": "تۆ",
+  "teacherStudentChat": "گفتوگۆ",
+  "teacherChatHint": "پەیام…",
+  "teacherMessagesEmpty": "هێشتا پەیام نییە.",
+  "teacherMessagesNoTeacher": "کۆدی قوتابی بەکاربهێنە بۆ پەیوەندی مامۆستا.",
+  "newMessagesCount": "{count, plural, =0{پەیامی نوێ نییە} =1{١ پەیامی نوێ} other{{count} پەیامی نوێ}}",
+  "@newMessagesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "tabStudents": "قوتابی",
   "studentBooksTitle": "کتێبەکانی پۆلەکەت",
   "registerAsStudent": "قوتابی تۆ",
