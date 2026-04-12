@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../core/stats/stats_service.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -13,6 +14,7 @@ class StatsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats   = ref.watch(statsProvider);
     final mastery = ref.watch(wordMasteryProvider);
+    final loggedIn = ref.watch(authProvider).valueOrNull != null;
     final scheme  = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
@@ -73,6 +75,24 @@ class StatsScreen extends ConsumerWidget {
               vocabAnswered: stats.totalQuizAnswered,
               vocabCorrect: stats.totalQuizCorrect,
             ),
+
+            if (loggedIn) ...[
+              const SizedBox(height: 14),
+              _SectionLabel(l10n.vocabQuizHistoryTitle),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    Icons.history_edu_rounded,
+                    color: scheme.primary,
+                  ),
+                  title: Text(l10n.vocabQuizHistoryTitle),
+                  subtitle: Text(l10n.vocabQuizHistorySubtitle),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/vocab-quiz/history'),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 14),
 

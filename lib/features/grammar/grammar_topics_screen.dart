@@ -88,6 +88,13 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     setState(_selected.clear);
   }
 
+  Future<void> _onRefreshTopics() async {
+    final api = ref.read(apiServiceProvider);
+    await api.bustGrammarTopicsCache();
+    ref.invalidate(apiGrammarTopicsProvider);
+    await ref.read(apiGrammarTopicsProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -140,37 +147,59 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   ],
                 ),
               ),
-              child: async.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      l10n.grammarCouldNotLoadTopics,
-                      textAlign: TextAlign.center,
-                    ),
+              child: RefreshIndicator(
+                onRefresh: _onRefreshTopics,
+                child: async.when(
+                  loading: () => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(
+                        height: 400,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ],
                   ),
-                ),
-                data: (topics) {
-                  if (topics.isEmpty) {
-                    return Center(
-                      child: Padding(
+                  error: (_, __) => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
-                          l10n.grammarNoTopicsEmpty,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        child: Center(
+                          child: Text(
+                            l10n.grammarCouldNotLoadTopics,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                    );
-                  }
+                    ],
+                  ),
+                  data: (topics) {
+                    if (topics.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(
+                              child: Text(
+                                l10n.grammarNoTopicsEmpty,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
 
-                  final topInset =
-                      MediaQuery.paddingOf(context).top + kToolbarHeight + 12;
+                    final topInset =
+                        MediaQuery.paddingOf(context).top + kToolbarHeight + 12;
 
-                  return CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
+                    return CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      slivers: [
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(16, topInset, 16, 16),
                         sliver: SliverList.separated(
@@ -194,7 +223,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                       ),
                     ],
                   );
-                },
+                  },
+                ),
               ),
             ),
           ),

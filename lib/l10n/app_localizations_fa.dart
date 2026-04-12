@@ -88,6 +88,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get errorGeneric => 'مشکلی پیش آمد. لطفاً دوباره تلاش کنید.';
 
   @override
+  String get errServerReturnedError =>
+      'سرور خطا برگرداند. بعداً دوباره تلاش کنید.';
+
+  @override
   String get splashTagline => 'تمرین آرام و متمرکز واژگان';
 
   @override
@@ -509,6 +513,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get quizWrittenMeaningToWord => 'جای خالی';
 
   @override
+  String get quizSpellingListenAndType => 'شنیداری و املا';
+
+  @override
+  String get quizSpellingListenPrompt => 'گوش کن و لغت انگلیسی را بنویس:';
+
+  @override
+  String get quizReplayAudio => 'پخش مجدد';
+
+  @override
+  String get quizSpellingTypeEnglish => 'لغت انگلیسی را بنویسید';
+
+  @override
   String get whatIsMeaningOf => 'معنی این چیست:';
 
   @override
@@ -585,6 +601,15 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get quizFeedbackWrongPrefix => 'غلط:';
+
+  @override
+  String get quizFeedbackCorrectLabel => 'پاسخ درست:';
+
+  @override
+  String get quizWrongBlankIntro => 'غلط (خالی).';
+
+  @override
   String get removedFromMistakes => 'از لیست اشتباهات شما حذف شد';
 
   @override
@@ -650,6 +675,44 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get vocabularyQuizTitle => 'کوییز واژگان';
+
+  @override
+  String get vocabQuizHistoryTitle => 'تاریخچهٔ کوییز لغات';
+
+  @override
+  String get vocabQuizHistorySubtitle =>
+      'جلسات روی حساب کاربری‌تان ذخیره می‌شود و می‌توانید مرور کنید.';
+
+  @override
+  String get vocabQuizHistoryEmpty => 'هنوز جلسه‌ای ثبت نشده است.';
+
+  @override
+  String get vocabQuizHistorySignIn =>
+      'برای ذخیرهٔ نتایج روی سرور و دیدن تاریخچه، وارد شوید.';
+
+  @override
+  String get vocabQuizHistoryLoadError =>
+      'بارگذاری تاریخچه ممکن نشد. معمولاً جدول نتایج روی دیتابیس نیست؛ فایل api/vocab_quiz_results_schema.sql را روی MySQL اجرا کنید یا بعداً دوباره امتحان کنید.';
+
+  @override
+  String get vocabQuizResultDetailTitle => 'جزئیات جلسه';
+
+  @override
+  String vocabQuizResultScoreLine(int score, int total) {
+    return '$score از $total درست';
+  }
+
+  @override
+  String get vocabQuizResultYourAnswer => 'پاسخ شما';
+
+  @override
+  String get vocabQuizResultCorrect => 'درست';
+
+  @override
+  String get vocabQuizResultIncorrect => 'غلط';
+
+  @override
+  String get vocabQuizResultQuestion => 'سؤال';
 
   @override
   String get bookQuizSetupIntro =>

@@ -32,6 +32,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
   Future<void> _refresh() async {
     final api = ref.read(apiServiceProvider);
     if (api.authToken != null && api.authToken!.isNotEmpty) {
+      await api.bustUserVocabMarksCache();
       await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
       await ref.read(importantWordsProvider.notifier).pullFromServer(api);
     }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/cache/api_disk_cache.dart';
 import '../models/auth_user.dart';
 import '../models/book_model.dart';
 import '../models/grammar_question.dart';
@@ -11,10 +12,21 @@ import '../models/grammar_result.dart';
 import '../models/grammar_result_detail.dart';
 import '../models/unit_model.dart';
 import '../models/vocab_entry.dart';
+import '../models/vocab_quiz_result.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
 const String kApiBaseUrl = 'http://erfaninfo.com/wordsapi';
+
+// ─── GET response disk cache (never used for words.php — see [_httpCacheKey]). ─
+const Duration _ttlBooks = Duration(minutes: 25);
+const Duration _ttlUnitsSections = Duration(hours: 8);
+const Duration _ttlGrammarCatalog = Duration(days: 3);
+const Duration _ttlGrammarResultsPublic = Duration(hours: 1);
+const Duration _ttlGrammarResultsMy = Duration(minutes: 6);
+const Duration _ttlGrammarResultDetail = Duration(minutes: 12);
+const Duration _ttlVocabQuizResultsList = Duration(minutes: 4);
+const Duration _ttlUserVocabMarks = Duration(minutes: 6);
 
 class ApiService {
   ApiService({this.baseUrl = kApiBaseUrl, this.authToken});
@@ -33,13 +45,41 @@ class ApiService {
     return out;
   }
 
+  /// Isolates cache files per user session without storing the raw token in filenames.
+  String _authCacheTag() {
+    final t = authToken;
+    if (t == null || t.isEmpty) return 'anon';
+    var h = 2166136261;
+    for (final x in utf8.encode(t)) {
+      h ^= x;
+      h = h * 16777619;
+    }
+    return '${h & 0x7fffffff}';
+  }
+
+  String _httpCacheKey(Uri uri) {
+    return 'GET|${uri.toString()}|${_authCacheTag()}';
+  }
+
+  Future<String?> _readGetCache(Uri uri) =>
+      ApiDiskCache.instance.read(_httpCacheKey(uri));
+
+  Future<void> _writeGetCache(Uri uri, String body, Duration ttl) =>
+      ApiDiskCache.instance.write(_httpCacheKey(uri), body, ttl: ttl);
+
   /// [scope] `public` (default) = main catalog; `student` = student tab (auth + server-side access).
   Future<List<Book>> fetchBooks({String scope = 'public'}) async {
     final uri = Uri.parse('$baseUrl/books.php').replace(
       queryParameters: {'scope': scope},
     );
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final data = jsonDecode(cached) as List<dynamic>;
+      return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'books');
+    await _writeGetCache(uri, response.body, _ttlBooks);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -48,8 +88,14 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/books.php').replace(
       queryParameters: {'search': query, 'scope': scope},
     );
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final data = jsonDecode(cached) as List<dynamic>;
+      return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'books search');
+    await _writeGetCache(uri, response.body, _ttlBooks);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -57,8 +103,16 @@ class ApiService {
   // ── GET /units.php?book_id={id} ───────────────────────────────────────────
   Future<List<UnitInfo>> fetchUnits(int bookId) async {
     final uri = Uri.parse('$baseUrl/units.php?book_id=$bookId');
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final data = jsonDecode(cached) as List<dynamic>;
+      return data
+          .map((e) => UnitInfo.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'units');
+    await _writeGetCache(uri, response.body, _ttlUnitsSections);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
         .map((e) => UnitInfo.fromJson(e as Map<String, dynamic>))
@@ -68,8 +122,14 @@ class ApiService {
   // ── GET /sections.php?book_id={id}&unit={unit} ────────────────────────────
   Future<List<int>> fetchSections(int bookId, int unit) async {
     final uri = Uri.parse('$baseUrl/sections.php?book_id=$bookId&unit=$unit');
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final data = jsonDecode(cached) as List<dynamic>;
+      return data.map((e) => (e['section'] as num).toInt()).toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'sections');
+    await _writeGetCache(uri, response.body, _ttlUnitsSections);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data.map((e) => (e['section'] as num).toInt()).toList();
   }
@@ -100,15 +160,23 @@ class ApiService {
   // ── GET /grammar_topics.php ───────────────────────────────────────────────
   Future<List<GrammarTopicSummary>> fetchGrammarTopics() async {
     final uri = Uri.parse('$baseUrl/grammar_topics.php');
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final data = jsonDecode(cached) as List<dynamic>;
+      return data
+          .map((e) => GrammarTopicSummary.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'grammar topics');
+    await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
         .map((e) => GrammarTopicSummary.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  // ── GET /grammar_questions.php?topic=... ─────────────────────────────────
+  // ── GET /grammar_questions.php?topic=... (never disk-cached — live question bank)
   Future<List<GrammarQuestion>> fetchGrammarQuestions(String topic) async {
     final uri = Uri.parse(
       '$baseUrl/grammar_questions.php',
@@ -188,6 +256,7 @@ class ApiService {
       body: jsonEncode(payload),
     );
     _assertAuthResponse(response);
+    await bustGrammarResultsListCaches();
     try {
       final map = jsonDecode(response.body) as Map<String, dynamic>;
       return (map['id'] as num?)?.toInt();
@@ -201,8 +270,14 @@ class ApiService {
     final uri = Uri.parse(
       '$baseUrl/grammar_result_detail.php',
     ).replace(queryParameters: {'id': '$resultId'});
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final map = jsonDecode(cached) as Map<String, dynamic>;
+      return GrammarResultDetail.fromApiJson(map);
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
+    await _writeGetCache(uri, response.body, _ttlGrammarResultDetail);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return GrammarResultDetail.fromApiJson(map);
   }
@@ -215,8 +290,17 @@ class ApiService {
     final uri = Uri.parse(
       '$baseUrl/grammar_results_my.php',
     ).replace(queryParameters: {'sort': sort, 'order': order});
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final map = jsonDecode(cached) as Map<String, dynamic>;
+      final list = (map['results'] as List<dynamic>? ?? const []);
+      return list
+          .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
+    await _writeGetCache(uri, response.body, _ttlGrammarResultsMy);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = (map['results'] as List<dynamic>? ?? const []);
     return list
@@ -232,8 +316,17 @@ class ApiService {
     final uri = Uri.parse(
       '$baseUrl/grammar_results_public.php',
     ).replace(queryParameters: {'sort': sort, 'order': order});
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final map = jsonDecode(cached) as Map<String, dynamic>;
+      final list = (map['results'] as List<dynamic>? ?? const []);
+      return list
+          .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'grammar results (public)');
+    await _writeGetCache(uri, response.body, _ttlGrammarResultsPublic);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = (map['results'] as List<dynamic>? ?? const []);
     return list
@@ -300,6 +393,86 @@ class ApiService {
     _assertAuthResponse(response);
   }
 
+  /// POST /vocab_quiz_results_submit.php — requires auth.
+  Future<int?> submitVocabQuizResult({
+    required int bookId,
+    required int score,
+    required int totalQuestions,
+    required Map<String, dynamic> session,
+  }) async {
+    final uri = Uri.parse('$baseUrl/vocab_quiz_results_submit.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'book_id': bookId,
+        'score': score,
+        'total_questions': totalQuestions,
+        'session': session,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Submit failed');
+    }
+    await bustVocabQuizResultsMyCache();
+    await bustVocabQuizResultsMyCache(bookId: bookId);
+    return (map['id'] as num?)?.toInt();
+  }
+
+  /// GET /vocab_quiz_results_my.php — requires auth.
+  /// List rows only (no word list). [words.php] and detail session are never cached.
+  Future<List<VocabQuizResultSummary>> fetchMyVocabQuizResults({
+    int? bookId,
+    int limit = 100,
+  }) async {
+    final q = <String, String>{'limit': '$limit'};
+    if (bookId != null) {
+      q['book_id'] = '$bookId';
+    }
+    final uri = Uri.parse('$baseUrl/vocab_quiz_results_my.php')
+        .replace(queryParameters: q);
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final map = jsonDecode(cached) as Map<String, dynamic>;
+      final list = map['results'] as List<dynamic>? ?? const [];
+      return list
+          .map((e) => VocabQuizResultSummary.fromJson(
+                e as Map<String, dynamic>,
+              ))
+          .toList();
+    }
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    await _writeGetCache(uri, response.body, _ttlVocabQuizResultsList);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['results'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => VocabQuizResultSummary.fromJson(
+              e as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  /// GET /vocab_quiz_result_detail.php?id= — requires auth.
+  /// Not cached: response includes per-word session data (same policy as words.php).
+  Future<VocabQuizResultDetail> fetchVocabQuizResultDetail(int id) async {
+    final uri = Uri.parse('$baseUrl/vocab_quiz_result_detail.php').replace(
+      queryParameters: {'id': '$id'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final r = map['result'] as Map<String, dynamic>?;
+    if (r == null) {
+      throw Exception('Invalid response');
+    }
+    return VocabQuizResultDetail.fromApiJson(r);
+  }
+
   /// POST /word_important.php
   Future<int> setWordImportant({
     required int id,
@@ -320,16 +493,25 @@ class ApiService {
     if (map['ok'] != true) {
       throw Exception(map['error']?.toString() ?? 'Update failed');
     }
+    await bustUserVocabMarksCache(kind: 'important');
     return (map['important'] as num?)?.toInt() ?? important;
   }
 
   /// GET /user_vocab_marks.php?kind=favorite|important — requires auth.
+  /// Caches id sets only (not word text).
   Future<Set<int>> fetchUserVocabMarks({required String kind}) async {
     final uri = Uri.parse('$baseUrl/user_vocab_marks.php').replace(
       queryParameters: {'kind': kind},
     );
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final map = jsonDecode(cached) as Map<String, dynamic>;
+      final list = map['word_ids'] as List<dynamic>? ?? const [];
+      return list.map((e) => (e as num).toInt()).toSet();
+    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
+    await _writeGetCache(uri, response.body, _ttlUserVocabMarks);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['word_ids'] as List<dynamic>? ?? const [];
     return list.map((e) => (e as num).toInt()).toSet();
@@ -349,6 +531,7 @@ class ApiService {
       body: jsonEncode({'kind': kind, 'word_id': wordId}),
     );
     _assertAuthResponse(response);
+    await bustUserVocabMarksCache(kind: kind);
   }
 
   /// DELETE /user_vocab_marks.php — requires auth.
@@ -361,6 +544,7 @@ class ApiService {
     );
     final response = await http.delete(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
+    await bustUserVocabMarksCache(kind: kind);
   }
 
   Future<List<VocabEntry>> fetchAllWordsForBook(int bookId) async {
@@ -502,6 +686,95 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// Clears disk cache for GET [uri] so the next request uses the network.
+  Future<void> bustHttpCacheForUri(Uri uri) async {
+    await ApiDiskCache.instance.remove(_httpCacheKey(uri));
+  }
+
+  /// Busts `books.php` caches for catalog + optional search (both scopes), matching [fetchBooks] / [searchBooks].
+  Future<void> bustBooksCatalogCache({String? searchQuery}) async {
+    final q = searchQuery?.trim() ?? '';
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/books.php').replace(
+        queryParameters: {'scope': 'public'},
+      ),
+    );
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/books.php').replace(
+        queryParameters: {'scope': 'student'},
+      ),
+    );
+    if (q.isNotEmpty) {
+      await bustHttpCacheForUri(
+        Uri.parse('$baseUrl/books.php').replace(
+          queryParameters: {'search': q, 'scope': 'public'},
+        ),
+      );
+      await bustHttpCacheForUri(
+        Uri.parse('$baseUrl/books.php').replace(
+          queryParameters: {'search': q, 'scope': 'student'},
+        ),
+      );
+    }
+  }
+
+  Future<void> bustUnitsCache(int bookId) async {
+    await bustHttpCacheForUri(Uri.parse('$baseUrl/units.php?book_id=$bookId'));
+  }
+
+  Future<void> bustGrammarTopicsCache() async {
+    await bustHttpCacheForUri(Uri.parse('$baseUrl/grammar_topics.php'));
+  }
+
+  /// Clears GET caches for grammar result lists ([fetchPublicGrammarResults] / [fetchMyGrammarResults] defaults).
+  Future<void> bustGrammarResultsListCaches() async {
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/grammar_results_public.php').replace(
+        queryParameters: const {'sort': 'date', 'order': 'desc'},
+      ),
+    );
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/grammar_results_my.php').replace(
+        queryParameters: const {'sort': 'date', 'order': 'desc'},
+      ),
+    );
+  }
+
+  /// GET [vocab_quiz_results_my.php] list cache — bust after submit or when forcing refresh.
+  Future<void> bustVocabQuizResultsMyCache({int? bookId, int limit = 100}) async {
+    final q = <String, String>{'limit': '$limit'};
+    if (bookId != null) {
+      q['book_id'] = '$bookId';
+    }
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/vocab_quiz_results_my.php').replace(
+        queryParameters: q,
+      ),
+    );
+  }
+
+  /// Clears [fetchUserVocabMarks] disk cache so the next pull matches server after add/remove.
+  Future<void> bustUserVocabMarksCache({String? kind}) async {
+    if (kind != null) {
+      await bustHttpCacheForUri(
+        Uri.parse('$baseUrl/user_vocab_marks.php').replace(
+          queryParameters: {'kind': kind},
+        ),
+      );
+      return;
+    }
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/user_vocab_marks.php').replace(
+        queryParameters: const {'kind': 'favorite'},
+      ),
+    );
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/user_vocab_marks.php').replace(
+        queryParameters: const {'kind': 'important'},
+      ),
+    );
   }
 
   void _assertAuthResponse(http.Response response) {

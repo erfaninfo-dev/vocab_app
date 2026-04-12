@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/cache/api_disk_cache.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
@@ -18,6 +19,7 @@ class FavoritesScreen extends ConsumerWidget {
       await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
       await ref.read(importantWordsProvider.notifier).pullFromServer(api);
     }
+    await ApiDiskCache.instance.clearAll();
     ref.invalidate(apiBooksProvider);
     // Re-fetch all words for all books used by favorites.
     try {

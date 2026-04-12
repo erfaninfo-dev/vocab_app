@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/stats/stats_service.dart';
+import '../../core/tts/tts_service.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
@@ -42,7 +44,8 @@ enum VocabAnswerFormat {
 enum VocabQuestionMode {
   mcqWordToMeaning(Icons.translate_rounded),
   mcqMeaningToWord(Icons.text_fields_rounded),
-  writtenMeaningToWord(Icons.edit_rounded);
+  writtenMeaningToWord(Icons.edit_rounded),
+  spellingListenAndType(Icons.hearing_rounded);
 
   const VocabQuestionMode(this.icon);
   final IconData icon;
@@ -55,6 +58,8 @@ enum VocabQuestionMode {
         return l10n.quizMcqMeaningToWord;
       case VocabQuestionMode.writtenMeaningToWord:
         return l10n.quizWrittenMeaningToWord;
+      case VocabQuestionMode.spellingListenAndType:
+        return l10n.quizSpellingListenAndType;
     }
   }
 
@@ -75,6 +80,8 @@ class _Question {
     required this.correctAnswer,
     required this.options, // 4 items, shuffled (empty for written)
     required this.kind,
+    required this.questionMode,
+    this.playsAudio = false,
   });
 
   final VocabEntry entry;
@@ -83,6 +90,10 @@ class _Question {
   final String correctAnswer;
   final List<String> options;
   final _QuestionKind kind;
+  final VocabQuestionMode questionMode;
+
+  /// TTS auto-play + replay for listen-and-spell questions.
+  final bool playsAudio;
 }
 
 // ─── Quiz Screen ──────────────────────────────────────────────────────────────
@@ -111,6 +122,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   bool _answered = false;
   int _score = 0;
   bool _sessionDone = false;
+
+  /// Per-question log for server sync (same order as [_questions] after session ends).
+  final List<Map<String, dynamic>> _sessionAnswerLog = [];
 
   /// From setup: all words in pool, or wrong-words only.
   bool _scopeWrongsOnly = false;
@@ -221,7 +235,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final shuffledWords = [...usable]..shuffle(rng);
     for (final word in shuffledWords) {
       for (final m in selected) {
-        if (m == VocabQuestionMode.writtenMeaningToWord) {
+        if (m == VocabQuestionMode.writtenMeaningToWord ||
+            m == VocabQuestionMode.spellingListenAndType) {
           final localMeaning = word.meaningFor(lang);
           final prompt = localMeaning.isNotEmpty
               ? localMeaning
@@ -239,6 +254,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               correctAnswer: word.word,
               options: const [],
               kind: _QuestionKind.written,
+              questionMode: m,
+              playsAudio: m == VocabQuestionMode.spellingListenAndType,
             ),
           );
           continue;
@@ -299,6 +316,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               correctAnswer: correct,
               options: opts,
               kind: _QuestionKind.mcq,
+              questionMode: m,
             ),
           );
         } else if (m == VocabQuestionMode.mcqMeaningToWord) {
@@ -321,22 +339,39 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               correctAnswer: correct,
               options: opts,
               kind: _QuestionKind.mcq,
+              questionMode: m,
             ),
           );
         }
       }
     }
 
+    // Break lock-step order between modes (same word was always adjacent).
+    for (final m in selected) {
+      buckets[m]!.shuffle(rng);
+    }
+
     final out = <_Question>[];
     final keys = selected.toList();
     var cursor = 0;
+    String? lastEntryId;
+
     while (out.length < cap) {
       var addedAny = false;
       for (var k = 0; k < keys.length && out.length < cap; k++) {
         final m = keys[(cursor + k) % keys.length];
         final b = buckets[m]!;
         if (b.isEmpty) continue;
-        out.add(b.removeAt(0));
+
+        var takeIndex = 0;
+        if (lastEntryId != null) {
+          final prefer = b.indexWhere((q) => q.entry.id != lastEntryId);
+          takeIndex = prefer >= 0 ? prefer : 0;
+        }
+
+        final q = b.removeAt(takeIndex);
+        out.add(q);
+        lastEntryId = q.entry.id;
         addedAny = true;
       }
       cursor = (cursor + 1) % keys.length;
@@ -376,6 +411,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       _answered = false;
       _score = 0;
       _sessionDone = false;
+      _sessionAnswerLog.clear();
     });
     _resetWrittenInput();
   }
@@ -454,9 +490,68 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     }
   }
 
+  void _appendSessionAnswerLog() {
+    if (_questions.isEmpty || !_answered) return;
+    final q = _questions[_currentIndex];
+    final ans = _selectedAnswer ?? '';
+    _sessionAnswerLog.add({
+      'word_key': q.entry.id,
+      'unit': q.entry.unit,
+      'word': q.entry.word,
+      'correct': _isCorrect(q, ans),
+      'given': ans,
+      'mode': q.questionMode.name,
+    });
+  }
+
+  Future<void> _submitVocabQuizSessionToServer() async {
+    final auth = ref.read(authProvider).valueOrNull;
+    if (auth == null) return;
+    if (_sessionAnswerLog.length != _questions.length) return;
+    String? bookTitle;
+    try {
+      final books = await ref.read(apiBooksProvider.future);
+      for (final b in books) {
+        if (b.id == widget.bookId) {
+          bookTitle = b.title;
+          break;
+        }
+      }
+      if (bookTitle == null || bookTitle.isEmpty) {
+        final studentBooks = await ref
+            .read(apiServiceProvider)
+            .fetchBooks(scope: 'student');
+        for (final b in studentBooks) {
+          if (b.id == widget.bookId) {
+            bookTitle = b.title;
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+    try {
+      await ref.read(apiServiceProvider).submitVocabQuizResult(
+            bookId: widget.bookId,
+            score: _score,
+            totalQuestions: _questions.length,
+            session: {
+              'meta': <String, dynamic>{
+                if (bookTitle != null && bookTitle.isNotEmpty)
+                  'book_title': bookTitle,
+              },
+              'items': List<Map<String, dynamic>>.from(_sessionAnswerLog),
+            },
+          );
+      ref.invalidate(myVocabQuizResultsProvider);
+    } catch (_) {}
+  }
+
   void _next() {
+    unawaited(ref.read(ttsProvider.notifier).stop());
+    _appendSessionAnswerLog();
     if (_currentIndex >= _questions.length - 1) {
       setState(() => _sessionDone = true);
+      unawaited(_submitVocabQuizSessionToServer());
     } else {
       setState(() {
         _currentIndex++;
@@ -630,9 +725,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         ),
         title: Text(l10n.quizTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_rounded),
+            tooltip: l10n.vocabQuizHistoryTitle,
+            onPressed: () => context.push('/vocab-quiz/history'),
+          ),
           if (_questions.isNotEmpty && !_sessionDone)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 8),
               child: Center(
                 child: Text(
                   '$_score / ${_currentIndex + (_answered ? 1 : 0)}',
@@ -786,7 +886,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                       final b = _questionBudget.clamp(minPick, maxQ);
                       _startQuiz(pool, lang, b);
                     },
-                    onChangeMode: () => setState(() => _questions = []),
+                    onChangeMode: () => setState(() {
+                      _questions = [];
+                      _sessionAnswerLog.clear();
+                    }),
                   );
                 }
 
@@ -1085,7 +1188,7 @@ class _ModeSelector extends StatelessWidget {
 
 // ─── Quiz Body ────────────────────────────────────────────────────────────────
 
-class _QuizBody extends StatelessWidget {
+class _QuizBody extends ConsumerStatefulWidget {
   const _QuizBody({
     required this.l10n,
     required this.question,
@@ -1123,9 +1226,222 @@ class _QuizBody extends StatelessWidget {
   final VoidCallback? onLearned;
 
   @override
+  ConsumerState<_QuizBody> createState() => _QuizBodyState();
+}
+
+class _QuizBodyState extends ConsumerState<_QuizBody> {
+  late final TtsNotifier _ttsNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    _ttsNotifier = ref.read(ttsProvider.notifier);
+    _scheduleAutoSpeak();
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuizBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.question.entry.id != widget.question.entry.id ||
+        oldWidget.question.playsAudio != widget.question.playsAudio) {
+      unawaited(_ttsNotifier.stop());
+      _scheduleAutoSpeak();
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_ttsNotifier.stop());
+    super.dispose();
+  }
+
+  void _scheduleAutoSpeak() {
+    if (!widget.question.playsAudio) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final w = widget.question.entry.word.trim();
+      if (w.isEmpty) return;
+      unawaited(ref.read(ttsProvider.notifier).speak(w));
+    });
+  }
+
+  void _replayAudio() {
+    final w = widget.question.entry.word.trim();
+    if (w.isEmpty) return;
+    unawaited(ref.read(ttsProvider.notifier).speak(w));
+  }
+
+  /// Soft tinted surface + subtle colored shadow for written-answer feedback.
+  BoxDecoration _writtenFeedbackCardDecoration(
+    BuildContext context, {
+    required bool isCorrect,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final base = isCorrect ? Colors.green : Colors.red;
+    final dark = scheme.brightness == Brightness.dark;
+    return BoxDecoration(
+      color: base.withValues(alpha: dark ? 0.16 : 0.09),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: base.withValues(alpha: dark ? 0.38 : 0.22)),
+      boxShadow: [
+        BoxShadow(
+          color: base.withValues(alpha: dark ? 0.35 : 0.16),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWrittenFeedback(BuildContext context) {
+    final l10n = widget.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final body =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 15);
+
+    if (_isWrittenCorrect()) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration:
+                _writtenFeedbackCardDecoration(context, isCorrect: true),
+            child: Text(
+              l10n.correctLine((widget.selectedAnswer ?? '').trim()),
+              style: body.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.green.shade800,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final given = (widget.selectedAnswer ?? '').trim();
+    final correct = widget.question.correctAnswer;
+    if (given.isEmpty) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration:
+                _writtenFeedbackCardDecoration(context, isCorrect: false),
+            child: RichText(
+              text: TextSpan(
+                style: body.copyWith(color: scheme.onSurfaceVariant),
+                children: [
+                  TextSpan(text: '${l10n.quizWrongBlankIntro} '),
+                  TextSpan(
+                    text: '${l10n.quizFeedbackCorrectLabel} ',
+                    style: body.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  TextSpan(
+                    text: correct,
+                    style: body.copyWith(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final labelStyle = body.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w500,
+    );
+    final wrongAnswerStyle = body.copyWith(
+      color: Colors.red.shade700,
+      fontWeight: FontWeight.w600,
+    );
+    final correctWordStyle = body.copyWith(
+      color: Colors.green.shade700,
+      fontWeight: FontWeight.w600,
+    );
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration:
+              _writtenFeedbackCardDecoration(context, isCorrect: false),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: body,
+                  children: [
+                    TextSpan(
+                      text: '${l10n.quizFeedbackWrongPrefix} ',
+                      style: labelStyle,
+                    ),
+                    TextSpan(
+                      text: given,
+                      style: wrongAnswerStyle,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              RichText(
+                text: TextSpan(
+                  style: body,
+                  children: [
+                    TextSpan(
+                      text: '${l10n.quizFeedbackCorrectLabel} ',
+                      style: labelStyle,
+                    ),
+                    TextSpan(
+                      text: correct,
+                      style: correctWordStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static TextDirection _meaningDirection(BuildContext context) {
+    final code = Localizations.localeOf(context).languageCode;
+    if (code == 'fa' || code == 'ckb') return TextDirection.rtl;
+    return TextDirection.ltr;
+  }
+
+  static TextAlign _meaningAlign(BuildContext context) {
+    final code = Localizations.localeOf(context).languageCode;
+    if (code == 'fa' || code == 'ckb') return TextAlign.right;
+    return TextAlign.center;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLast = questionNumber == total;
+    final isLast = widget.questionNumber == widget.total;
+    final q = widget.question;
+    final l10n = widget.l10n;
+    final tts = ref.watch(ttsProvider);
+    final speakingWord =
+        q.playsAudio && tts.isSpeakingText(q.entry.word.trim());
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       child: Column(
@@ -1133,9 +1449,9 @@ class _QuizBody extends StatelessWidget {
           // ── Progress ────────────────────────────────────────────────────────
           _QuizProgress(
             l10n: l10n,
-            current: questionNumber,
-            total: total,
-            score: score,
+            current: widget.questionNumber,
+            total: widget.total,
+            score: widget.score,
           ),
           const SizedBox(height: 14),
 
@@ -1156,9 +1472,12 @@ class _QuizBody extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    mode == QuizMode.wordToMeaning
-                        ? l10n.whatIsMeaningOf
-                        : l10n.whichWordMeans,
+                    q.playsAudio
+                        ? l10n.quizSpellingListenPrompt
+                        : (widget.mode == QuizMode.wordToMeaning
+                            ? l10n.whatIsMeaningOf
+                            : l10n.whichWordMeans),
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                       letterSpacing: 1.1,
@@ -1166,11 +1485,11 @@ class _QuizBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    question.entry.section == null
-                        ? l10n.wordsUnitOnly(question.entry.unit)
+                    q.entry.section == null
+                        ? l10n.wordsUnitOnly(q.entry.unit)
                         : l10n.wordsUnitSection(
-                            question.entry.unit,
-                            question.entry.section!,
+                            q.entry.unit,
+                            q.entry.section!,
                           ),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1178,21 +1497,64 @@ class _QuizBody extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    question.prompt,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+                  Directionality(
+                    textDirection: q.kind == _QuestionKind.written
+                        ? _meaningDirection(context)
+                        : TextDirection.ltr,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        q.prompt,
+                        textAlign: q.kind == _QuestionKind.written
+                            ? _meaningAlign(context)
+                            : TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
                     ),
                   ),
-                  if (question.promptSub.isNotEmpty) ...[
+                  if (q.promptSub.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(
-                      question.promptSub,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
+                    Directionality(
+                      textDirection: q.kind == _QuestionKind.written
+                          ? _meaningDirection(context)
+                          : TextDirection.ltr,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          q.promptSub,
+                          textAlign: q.kind == _QuestionKind.written
+                              ? _meaningAlign(context)
+                              : TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (q.playsAudio) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.center,
+                      child: Tooltip(
+                        message: l10n.quizReplayAudio,
+                        child: IconButton.filledTonal(
+                          onPressed: widget.answered ? null : _replayAudio,
+                          icon: speakingWord
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: scheme.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.volume_up_rounded),
+                        ),
                       ),
                     ),
                   ],
@@ -1204,14 +1566,16 @@ class _QuizBody extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Answer area ─────────────────────────────────────────────────────
-          if (question.kind == _QuestionKind.written) ...[
+          if (q.kind == _QuestionKind.written) ...[
             TextField(
-              controller: writtenController,
-              enabled: !answered,
+              controller: widget.writtenController,
+              enabled: !widget.answered,
               textInputAction: TextInputAction.done,
-              onSubmitted: (_) => onSubmitWritten(),
+              onSubmitted: (_) => widget.onSubmitWritten(),
               decoration: InputDecoration(
-                labelText: l10n.typeTheWord,
+                labelText: q.playsAudio
+                    ? l10n.quizSpellingTypeEnglish
+                    : l10n.typeTheWord,
                 hintText: l10n.typeYourAnswer,
                 border: const OutlineInputBorder(),
               ),
@@ -1220,34 +1584,23 @@ class _QuizBody extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: answered ? null : onSubmitWritten,
+                onPressed: widget.answered ? null : widget.onSubmitWritten,
                 child: Text(l10n.submit),
               ),
             ),
-            if (answered) ...[
+            if (widget.answered) ...[
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _resultLine(),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: _isWrittenCorrect()
-                        ? Colors.green.shade800
-                        : Colors.red.shade800,
-                  ),
-                ),
-              ),
+              _buildWrittenFeedback(context),
             ],
           ] else ...[
-            ...question.options.map(
+            ...q.options.map(
               (opt) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: _OptionTile(
                   text: opt,
                   state: _optionState(opt),
-                  shakeAnimation: shakeAnimation,
-                  onTap: () => onSelect(opt),
+                  shakeAnimation: widget.shakeAnimation,
+                  onTap: () => widget.onSelect(opt),
                 ),
               ),
             ),
@@ -1258,18 +1611,18 @@ class _QuizBody extends StatelessWidget {
           // ── Next button ─────────────────────────────────────────────────────
           AnimatedSlide(
             duration: const Duration(milliseconds: 250),
-            offset: answered ? Offset.zero : const Offset(0, 0.3),
+            offset: widget.answered ? Offset.zero : const Offset(0, 0.3),
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 250),
-              opacity: answered ? 1 : 0,
+              opacity: widget.answered ? 1 : 0,
               child: Column(
                 children: [
-                  if (showLearnedButton && onLearned != null) ...[
+                  if (widget.showLearnedButton && widget.onLearned != null) ...[
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: learnedBusy ? null : onLearned,
-                        icon: learnedBusy
+                        onPressed: widget.learnedBusy ? null : widget.onLearned,
+                        icon: widget.learnedBusy
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -1279,7 +1632,7 @@ class _QuizBody extends StatelessWidget {
                               )
                             : const Icon(Icons.check_circle_outline_rounded),
                         label: Text(
-                          learnedBusy
+                          widget.learnedBusy
                               ? l10n.updating
                               : l10n.learnedRemoveMistakes,
                         ),
@@ -1290,7 +1643,7 @@ class _QuizBody extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: answered ? onNext : null,
+                      onPressed: widget.answered ? widget.onNext : null,
                       icon: Icon(
                         isLast
                             ? Icons.emoji_events_rounded
@@ -1312,27 +1665,17 @@ class _QuizBody extends StatelessWidget {
   }
 
   _OptionState _optionState(String opt) {
-    if (!answered) return _OptionState.idle;
-    if (opt == question.correctAnswer) return _OptionState.correct;
-    if (opt == selectedAnswer) return _OptionState.wrong;
+    if (!widget.answered) return _OptionState.idle;
+    if (opt == widget.question.correctAnswer) return _OptionState.correct;
+    if (opt == widget.selectedAnswer) return _OptionState.wrong;
     return _OptionState.idle;
   }
 
   bool _isWrittenCorrect() {
-    if (question.kind != _QuestionKind.written) return false;
-    final a = (selectedAnswer ?? '').trim().toLowerCase();
-    final c = question.correctAnswer.trim().toLowerCase();
+    if (widget.question.kind != _QuestionKind.written) return false;
+    final a = (widget.selectedAnswer ?? '').trim().toLowerCase();
+    final c = widget.question.correctAnswer.trim().toLowerCase();
     return a.isNotEmpty && a == c;
-  }
-
-  String _resultLine() {
-    final a = (selectedAnswer ?? '').trim();
-    final correct = question.correctAnswer;
-    if (_isWrittenCorrect()) {
-      return l10n.correctLine(a);
-    }
-    if (a.isEmpty) return l10n.wrongBlankLine(correct);
-    return l10n.wrongAnswerLine(a, correct);
   }
 }
 

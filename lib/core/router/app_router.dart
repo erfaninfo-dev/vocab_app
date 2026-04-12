@@ -25,6 +25,8 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
+import '../../features/vocab_quiz/vocab_quiz_result_detail_screen.dart';
 import '../../features/units/units_screen.dart';
 import '../../features/words/words_screen.dart';
 import '../../domain/api_providers.dart';
@@ -126,6 +128,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/stats/insights',
             builder: (_, __) => const LearningInsightsScreen(),
+          ),
+          GoRoute(
+            path: '/vocab-quiz/history',
+            builder: (_, __) => const VocabQuizHistoryScreen(),
+          ),
+          GoRoute(
+            path: '/vocab-quiz/result/:resultId',
+            builder: (context, state) {
+              final id =
+                  int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
+              return VocabQuizResultDetailScreen(resultId: id);
+            },
           ),
           GoRoute(
             path: '/settings',

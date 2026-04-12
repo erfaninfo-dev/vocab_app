@@ -26,6 +26,7 @@
   "loading": "Loading…",
   "search": "Search",
   "errorGeneric": "Something went wrong. Please try again.",
+  "errServerReturnedError": "The server returned an error. Please try again later.",
   "splashTagline": "Calm, focused vocabulary practice",
   "languageSelectionTitle": "Choose app language",
   "languageSelectionSubtitle": "You can change this anytime in Settings.",
@@ -211,6 +212,10 @@
   "quizMcqWordToMeaning": "Word → Meaning",
   "quizMcqMeaningToWord": "Meaning → Word",
   "quizWrittenMeaningToWord": "Fill in the blank",
+  "quizSpellingListenAndType": "Listen & spell",
+  "quizSpellingListenPrompt": "Listen and type the English word:",
+  "quizReplayAudio": "Play again",
+  "quizSpellingTypeEnglish": "Type the English word",
   "whatIsMeaningOf": "What is the meaning of:",
   "whichWordMeans": "Which word means:",
   "typeTheWord": "Type the word",
@@ -260,6 +265,9 @@
       "correct": {"type": "String"}
     }
   },
+  "quizFeedbackWrongPrefix": "Wrong:",
+  "quizFeedbackCorrectLabel": "Correct answer:",
+  "quizWrongBlankIntro": "Wrong (blank).",
   "removedFromMistakes": "Removed from your mistake list",
   "couldNotUpdateServer": "Could not update server",
   "unitsTitle": "Units",
@@ -312,6 +320,23 @@
     }
   },
   "vocabularyQuizTitle": "Vocabulary quiz",
+  "vocabQuizHistoryTitle": "Vocabulary quiz history",
+  "vocabQuizHistorySubtitle": "Sessions are saved on your account so you can review them on any device.",
+  "vocabQuizHistoryEmpty": "No vocabulary quiz sessions yet.",
+  "vocabQuizHistorySignIn": "Sign in to save quiz results to the server and view them here.",
+  "vocabQuizHistoryLoadError": "Quiz history could not be loaded. The server may be missing the results table—run api/vocab_quiz_results_schema.sql on MySQL, or try again later.",
+  "vocabQuizResultDetailTitle": "Session details",
+  "vocabQuizResultScoreLine": "{score} / {total} correct",
+  "@vocabQuizResultScoreLine": {
+    "placeholders": {
+      "score": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "vocabQuizResultYourAnswer": "Your answer",
+  "vocabQuizResultCorrect": "Correct",
+  "vocabQuizResultIncorrect": "Wrong",
+  "vocabQuizResultQuestion": "Question",
   "bookQuizSetupIntro": "Choose units, how many questions, and whether to drill past mistakes.",
   "unitsSectionTitle": "Units",
   "couldNotLoadMistakesShort": "Could not load mistakes",

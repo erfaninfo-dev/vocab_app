@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/auth_user.dart';
 import '../../data/services/api_service.dart';
+import '../cache/api_disk_cache.dart';
 import '../../features/home/home_displayed_books_provider.dart';
 import '../profile/profile_photo_cache.dart';
 import 'auth_storage.dart';
@@ -37,6 +38,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         password: password,
       );
       await AuthStorage().saveToken(session.token);
+      await ApiDiskCache.instance.clearAll();
       state = AsyncData(session);
     } catch (e, st) {
       state = AsyncData(previous);
@@ -62,6 +64,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         studentCode: studentCode,
       );
       await AuthStorage().saveToken(session.token);
+      await ApiDiskCache.instance.clearAll();
       state = AsyncData(session);
     } catch (e, st) {
       state = AsyncData(previous);
@@ -87,6 +90,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     }
     final user = await ApiService(authToken: s.token).redeemStudentCode(code);
     state = AsyncData(AuthSession(token: s.token, user: user));
+    await ApiDiskCache.instance.clearAll();
     ref.invalidate(apiHomeBooksProvider);
   }
 
@@ -98,6 +102,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
       } catch (_) {}
     }
     await AuthStorage().clearToken();
+    await ApiDiskCache.instance.clearAll();
     state = const AsyncData(null);
   }
 

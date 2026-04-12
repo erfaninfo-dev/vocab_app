@@ -235,6 +235,9 @@ class _MyResultsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () async {
+            await ref
+                .read(apiServiceProvider)
+                .bustGrammarResultsListCaches();
             ref.invalidate(myGrammarResultsProvider);
             await ref.read(myGrammarResultsProvider.future);
           },
@@ -288,6 +291,9 @@ class _PublicResultsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () async {
+            await ref
+                .read(apiServiceProvider)
+                .bustGrammarResultsListCaches();
             ref.invalidate(publicGrammarResultsProvider);
             await ref.read(publicGrammarResultsProvider.future);
           },

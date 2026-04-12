@@ -61,6 +61,13 @@ class _BookVocabQuizSetupScreenState
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_rounded),
+            tooltip: l10n.vocabQuizHistoryTitle,
+            onPressed: () => context.push('/vocab-quiz/history'),
+          ),
+        ],
       ),
       body: unitsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

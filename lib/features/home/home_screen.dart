@@ -47,8 +47,17 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
+          child: RefreshIndicator(
+            onRefresh: () async {
+              final api = ref.read(apiServiceProvider);
+              final q = ref.read(bookSearchQueryProvider);
+              await api.bustBooksCatalogCache(searchQuery: q);
+              ref.invalidate(apiHomeBooksProvider);
+              await ref.read(apiHomeBooksProvider.future);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
               // Header جدا از booksValue — ری‌بیلد نمی‌شه
               SliverToBoxAdapter(
                 child: Padding(
@@ -180,6 +189,7 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ],
+            ),
           ),
         ),
       ),

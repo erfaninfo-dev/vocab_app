@@ -29,11 +29,21 @@ String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
 
   final text = error.toString();
 
+  if (text.contains('Server not migrated') ||
+      text.contains('vocab_quiz_results_schema')) {
+    return l10n.vocabQuizHistoryLoadError;
+  }
+
   if (_looksLikeNetworkFailure(text)) {
     return l10n.errNoInternet;
   }
 
-  if (text.contains('HTTP ') || text.contains('Failed to fetch')) {
+  // ApiService uses "HTTP {code}" when the response body is not JSON.
+  if (text.contains('HTTP ')) {
+    return l10n.errServerReturnedError;
+  }
+
+  if (text.contains('Failed to fetch')) {
     return l10n.errServer;
   }
 

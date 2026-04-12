@@ -88,6 +88,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGeneric => 'Something went wrong. Please try again.';
 
   @override
+  String get errServerReturnedError =>
+      'The server returned an error. Please try again later.';
+
+  @override
   String get splashTagline => 'Calm, focused vocabulary practice';
 
   @override
@@ -510,6 +514,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizWrittenMeaningToWord => 'Fill in the blank';
 
   @override
+  String get quizSpellingListenAndType => 'Listen & spell';
+
+  @override
+  String get quizSpellingListenPrompt => 'Listen and type the English word:';
+
+  @override
+  String get quizReplayAudio => 'Play again';
+
+  @override
+  String get quizSpellingTypeEnglish => 'Type the English word';
+
+  @override
   String get whatIsMeaningOf => 'What is the meaning of:';
 
   @override
@@ -586,6 +602,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get quizFeedbackWrongPrefix => 'Wrong:';
+
+  @override
+  String get quizFeedbackCorrectLabel => 'Correct answer:';
+
+  @override
+  String get quizWrongBlankIntro => 'Wrong (blank).';
+
+  @override
   String get removedFromMistakes => 'Removed from your mistake list';
 
   @override
@@ -650,6 +675,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vocabularyQuizTitle => 'Vocabulary quiz';
+
+  @override
+  String get vocabQuizHistoryTitle => 'Vocabulary quiz history';
+
+  @override
+  String get vocabQuizHistorySubtitle =>
+      'Sessions are saved on your account so you can review them on any device.';
+
+  @override
+  String get vocabQuizHistoryEmpty => 'No vocabulary quiz sessions yet.';
+
+  @override
+  String get vocabQuizHistorySignIn =>
+      'Sign in to save quiz results to the server and view them here.';
+
+  @override
+  String get vocabQuizHistoryLoadError =>
+      'Quiz history could not be loaded. The server may be missing the results table—run api/vocab_quiz_results_schema.sql on MySQL, or try again later.';
+
+  @override
+  String get vocabQuizResultDetailTitle => 'Session details';
+
+  @override
+  String vocabQuizResultScoreLine(int score, int total) {
+    return '$score / $total correct';
+  }
+
+  @override
+  String get vocabQuizResultYourAnswer => 'Your answer';
+
+  @override
+  String get vocabQuizResultCorrect => 'Correct';
+
+  @override
+  String get vocabQuizResultIncorrect => 'Wrong';
+
+  @override
+  String get vocabQuizResultQuestion => 'Question';
 
   @override
   String get bookQuizSetupIntro =>

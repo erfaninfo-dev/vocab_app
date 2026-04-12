@@ -256,6 +256,12 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again.'**
   String get errorGeneric;
 
+  /// No description provided for @errServerReturnedError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server returned an error. Please try again later.'**
+  String get errServerReturnedError;
+
   /// No description provided for @splashTagline.
   ///
   /// In en, this message translates to:
@@ -928,6 +934,30 @@ abstract class AppLocalizations {
   /// **'Fill in the blank'**
   String get quizWrittenMeaningToWord;
 
+  /// No description provided for @quizSpellingListenAndType.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen & spell'**
+  String get quizSpellingListenAndType;
+
+  /// No description provided for @quizSpellingListenPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen and type the English word:'**
+  String get quizSpellingListenPrompt;
+
+  /// No description provided for @quizReplayAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get quizReplayAudio;
+
+  /// No description provided for @quizSpellingTypeEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the English word'**
+  String get quizSpellingTypeEnglish;
+
   /// No description provided for @whatIsMeaningOf.
   ///
   /// In en, this message translates to:
@@ -1060,6 +1090,24 @@ abstract class AppLocalizations {
   /// **'Wrong: {given} · Correct answer: {correct}'**
   String wrongAnswerLine(String given, String correct);
 
+  /// No description provided for @quizFeedbackWrongPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong:'**
+  String get quizFeedbackWrongPrefix;
+
+  /// No description provided for @quizFeedbackCorrectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct answer:'**
+  String get quizFeedbackCorrectLabel;
+
+  /// No description provided for @quizWrongBlankIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong (blank).'**
+  String get quizWrongBlankIntro;
+
   /// No description provided for @removedFromMistakes.
   ///
   /// In en, this message translates to:
@@ -1167,6 +1215,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vocabulary quiz'**
   String get vocabularyQuizTitle;
+
+  /// No description provided for @vocabQuizHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocabulary quiz history'**
+  String get vocabQuizHistoryTitle;
+
+  /// No description provided for @vocabQuizHistorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions are saved on your account so you can review them on any device.'**
+  String get vocabQuizHistorySubtitle;
+
+  /// No description provided for @vocabQuizHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No vocabulary quiz sessions yet.'**
+  String get vocabQuizHistoryEmpty;
+
+  /// No description provided for @vocabQuizHistorySignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to save quiz results to the server and view them here.'**
+  String get vocabQuizHistorySignIn;
+
+  /// No description provided for @vocabQuizHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz history could not be loaded. The server may be missing the results table—run api/vocab_quiz_results_schema.sql on MySQL, or try again later.'**
+  String get vocabQuizHistoryLoadError;
+
+  /// No description provided for @vocabQuizResultDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session details'**
+  String get vocabQuizResultDetailTitle;
+
+  /// No description provided for @vocabQuizResultScoreLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{score} / {total} correct'**
+  String vocabQuizResultScoreLine(int score, int total);
+
+  /// No description provided for @vocabQuizResultYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer'**
+  String get vocabQuizResultYourAnswer;
+
+  /// No description provided for @vocabQuizResultCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get vocabQuizResultCorrect;
+
+  /// No description provided for @vocabQuizResultIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong'**
+  String get vocabQuizResultIncorrect;
+
+  /// No description provided for @vocabQuizResultQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get vocabQuizResultQuestion;
 
   /// No description provided for @bookQuizSetupIntro.
   ///

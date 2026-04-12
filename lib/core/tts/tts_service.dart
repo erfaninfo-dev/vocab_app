@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -28,6 +30,14 @@ class TtsNotifier extends StateNotifier<TtsState> {
 
   final _tts = FlutterTts();
 
+  /// Platform TTS callbacks can run while a [Consumer] is disposing; defer reset.
+  void _deferResetIdle() {
+    Future.microtask(() {
+      if (!mounted) return;
+      state = const TtsState();
+    });
+  }
+
   Future<void> _init() async {
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.45);
@@ -38,17 +48,11 @@ class TtsNotifier extends StateNotifier<TtsState> {
       // status updated in speak()
     });
 
-    _tts.setCompletionHandler(() {
-      state = const TtsState();
-    });
+    _tts.setCompletionHandler(_deferResetIdle);
 
-    _tts.setCancelHandler(() {
-      state = const TtsState();
-    });
+    _tts.setCancelHandler(_deferResetIdle);
 
-    _tts.setErrorHandler((_) {
-      state = const TtsState();
-    });
+    _tts.setErrorHandler((_) => _deferResetIdle());
   }
 
   /// Speak [text]. If [text] is already playing, stops it instead.
@@ -72,7 +76,11 @@ class TtsNotifier extends StateNotifier<TtsState> {
 
   @override
   void dispose() {
-    _tts.stop();
+    _tts.setStartHandler(() {});
+    _tts.setCompletionHandler(() {});
+    _tts.setCancelHandler(() {});
+    _tts.setErrorHandler((_) {});
+    unawaited(_tts.stop());
     super.dispose();
   }
 }

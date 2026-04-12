@@ -44,6 +44,13 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
     }
   }
 
+  Future<void> _onRefreshUnits() async {
+    final api = ref.read(apiServiceProvider);
+    await api.bustUnitsCache(widget.bookId);
+    ref.invalidate(apiUnitsProvider(widget.bookId));
+    await ref.read(apiUnitsProvider(widget.bookId).future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -90,73 +97,99 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
           ),
         ),
         child: SafeArea(
-          child: unitsValue.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Could not load units.\n$error',
-                  textAlign: TextAlign.center,
-                ),
+          child: RefreshIndicator(
+            onRefresh: _onRefreshUnits,
+            child: unitsValue.when(
+              loading: () => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(
+                    height: 320,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ],
               ),
-            ),
-            data: (units) {
-              if (units.isEmpty) {
-                return const Center(
-                  child: Text('No units found in this dataset.'),
-                );
-              }
-
-              final width = MediaQuery.sizeOf(context).width;
-              final crossAxisCount = width >= 1000
-                  ? 4
-                  : width >= 760
-                  ? 3
-                  : 2;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              error: (error, _) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-                    child: Text(
-                      '${units.length} units · tap a card to open',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.04,
-                        ),
-                        itemCount: units.length,
-                        itemBuilder: (context, index) {
-                          final unitInfo = units[index];
-                          return _UnitTile(
-                            unitInfo: unitInfo,
-                            delay: index * 20,
-                            isLoading: _loadingUnit == unitInfo.unit,
-                            onTap: () => _onUnitTap(unitInfo.unit),
-                            onQuiz: () => context.push(
-                              '/books/${widget.bookId}/units/${unitInfo.unit}/quiz',
-                            ),
-                          );
-                        },
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Text(
+                        'Could not load units.\n$error',
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
                 ],
-              );
-            },
+              ),
+              data: (units) {
+                if (units.isEmpty) {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: Text('No units found in this dataset.'),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                final width = MediaQuery.sizeOf(context).width;
+                final crossAxisCount = width >= 1000
+                    ? 4
+                    : width >= 760
+                    ? 3
+                    : 2;
+
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                        child: Text(
+                          '${units.length} units · tap a card to open',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.92,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final unitInfo = units[index];
+                            return Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: _UnitTile(
+                                unitInfo: unitInfo,
+                                delay: index * 20,
+                                isLoading: _loadingUnit == unitInfo.unit,
+                                onTap: () => _onUnitTap(unitInfo.unit),
+                              ),
+                            );
+                          },
+                          childCount: units.length,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -172,12 +205,10 @@ class _UnitTile extends StatefulWidget {
     required this.onTap,
     required this.delay,
     required this.isLoading,
-    required this.onQuiz,
   });
 
   final UnitInfo unitInfo;
   final VoidCallback onTap;
-  final VoidCallback onQuiz;
   final int delay;
   final bool isLoading;
 
@@ -220,11 +251,12 @@ class _UnitTileState extends State<_UnitTile> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           'Unit ${unitInfo.unit}',
-                          maxLines: 1,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.w700,
@@ -232,17 +264,7 @@ class _UnitTileState extends State<_UnitTile> {
                               ),
                         ),
                       ),
-                      const Spacer(),
-                      IconButton(
-                        tooltip: 'Quiz this unit',
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 40,
-                          minHeight: 40,
-                        ),
-                        onPressed: widget.isLoading ? null : widget.onQuiz,
-                        icon: Icon(Icons.quiz_rounded, color: scheme.primary),
-                      ),
+                      const SizedBox(width: 8),
                       Container(
                         width: 42,
                         height: 42,
@@ -272,8 +294,9 @@ class _UnitTileState extends State<_UnitTile> {
                           ? Text(
                               unitInfo.unitDetails!,
                               textAlign: TextAlign.center,
-                              maxLines: 3,
+                              maxLines: 6,
                               overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(
                                     color: scheme.onSurfaceVariant,

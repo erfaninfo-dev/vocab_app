@@ -88,6 +88,10 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get errorGeneric => 'کێشەیەک ڕوویدا. تکایە دووبارە هەوڵ بدە.';
 
   @override
+  String get errServerReturnedError =>
+      'سێرڤەر هەڵەیەکی گەڕاندەوە. دواتر دووبارە هەوڵ بدە.';
+
+  @override
   String get splashTagline => 'ڕاهێنانی وشە بە ئارامی و تەرکیز';
 
   @override
@@ -515,6 +519,18 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get quizWrittenMeaningToWord => 'پڕکردنەوەی بەشێک';
 
   @override
+  String get quizSpellingListenAndType => 'گوێگرتن و ڕێنووس';
+
+  @override
+  String get quizSpellingListenPrompt => 'گوێ بگرە و وشەی ئینگلیزی بنووسە:';
+
+  @override
+  String get quizReplayAudio => 'دووبارە پێکردنەوە';
+
+  @override
+  String get quizSpellingTypeEnglish => 'وشەی ئینگلیزی بنووسە';
+
+  @override
   String get whatIsMeaningOf => 'واتای ئەمە چییە:';
 
   @override
@@ -591,6 +607,15 @@ class AppLocalizationsCkb extends AppLocalizations {
   }
 
   @override
+  String get quizFeedbackWrongPrefix => 'هەڵە:';
+
+  @override
+  String get quizFeedbackCorrectLabel => 'وەڵامی دروست:';
+
+  @override
+  String get quizWrongBlankIntro => 'هەڵە ( بەتاڵ ).';
+
+  @override
   String get removedFromMistakes => 'لە لیستی هەڵەکانت لابرا';
 
   @override
@@ -656,6 +681,44 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get vocabularyQuizTitle => 'کویزی وشە';
+
+  @override
+  String get vocabQuizHistoryTitle => 'مێژووی تاقیکردنەوەی وشەکان';
+
+  @override
+  String get vocabQuizHistorySubtitle =>
+      'دانیشتنەکان لە هەژمارەکەتدا هەڵدەگیرێن.';
+
+  @override
+  String get vocabQuizHistoryEmpty => 'هێشتا دانیشتنێک تۆمار نەکراوە.';
+
+  @override
+  String get vocabQuizHistorySignIn =>
+      'بچۆرە ژوورەوە بۆ تۆمارکردنی ئەنجامەکان لەسەر سێرڤەر.';
+
+  @override
+  String get vocabQuizHistoryLoadError =>
+      'بارکردنی مێژوو سەرکەوتوو نەبوو. زۆرجار خشتەی ئەنجام لە داتابەیس دروست نەکراوە؛ فایلی api/vocab_quiz_results_schema.sql لەسەر MySQL جێبەجێ بکە یان دواتر دووبارە هەوڵ بدە.';
+
+  @override
+  String get vocabQuizResultDetailTitle => 'وردەکاری دانیشتن';
+
+  @override
+  String vocabQuizResultScoreLine(int score, int total) {
+    return '$score لە $total دروست';
+  }
+
+  @override
+  String get vocabQuizResultYourAnswer => 'وەڵامەکەت';
+
+  @override
+  String get vocabQuizResultCorrect => 'دروست';
+
+  @override
+  String get vocabQuizResultIncorrect => 'هەڵە';
+
+  @override
+  String get vocabQuizResultQuestion => 'پرسیار';
 
   @override
   String get bookQuizSetupIntro =>

@@ -9,6 +9,7 @@ import '../data/models/grammar_result.dart';
 import '../data/models/grammar_result_detail.dart';
 import '../data/models/unit_model.dart';
 import '../data/models/vocab_entry.dart';
+import '../data/models/vocab_quiz_result.dart';
 import '../core/auth/auth_provider.dart';
 import '../data/services/api_service.dart';
 
@@ -138,6 +139,20 @@ final grammarResultDetailProvider =
     FutureProvider.family<GrammarResultDetail, int>((ref, id) {
       return ref.read(apiServiceProvider).fetchGrammarResultDetail(id);
     });
+
+/// GET /vocab_quiz_results_my.php (requires auth). Empty when logged out.
+final myVocabQuizResultsProvider =
+    FutureProvider<List<VocabQuizResultSummary>>((ref) async {
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null) return [];
+  return ref.read(apiServiceProvider).fetchMyVocabQuizResults();
+});
+
+/// GET /vocab_quiz_result_detail.php?id= (auth).
+final vocabQuizResultDetailProvider =
+    FutureProvider.family<VocabQuizResultDetail, int>((ref, id) {
+  return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
+});
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.
 final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((
