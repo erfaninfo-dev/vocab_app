@@ -508,6 +508,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final auth = ref.read(authProvider).valueOrNull;
     if (auth == null) return;
     if (_sessionAnswerLog.length != _questions.length) return;
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final unitSet = <int>{};
+    for (final q in _questions) {
+      unitSet.add(q.entry.unit);
+    }
+    final unitsList = unitSet.toList()..sort();
     String? bookTitle;
     try {
       final books = await ref.read(apiBooksProvider.future);
@@ -538,6 +545,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               'meta': <String, dynamic>{
                 if (bookTitle != null && bookTitle.isNotEmpty)
                   'book_title': bookTitle,
+                'quiz_name': l10n.vocabularyQuizTitle,
+                'units': unitsList,
               },
               'items': List<Map<String, dynamic>>.from(_sessionAnswerLog),
             },

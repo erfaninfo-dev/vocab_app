@@ -337,6 +337,38 @@
   "vocabQuizResultCorrect": "Correct",
   "vocabQuizResultIncorrect": "Wrong",
   "vocabQuizResultQuestion": "Question",
+  "vocabQuizHistoryUnitsLine": "Units: {units}",
+  "@vocabQuizHistoryUnitsLine": {
+    "placeholders": {
+      "units": {"type": "String"}
+    }
+  },
+  "vocabQuizCorrectWrongLine": "{correct} correct · {wrong} wrong",
+  "@vocabQuizCorrectWrongLine": {
+    "placeholders": {
+      "correct": {"type": "int"},
+      "wrong": {"type": "int"}
+    }
+  },
+  "vocabQuizViewMistakes": "View mistakes",
+  "vocabQuizMistakesTitle": "Wrong answers",
+  "vocabQuizMistakesEmpty": "No wrong answers in this session.",
+  "teacherPanelTitle": "Teacher panel",
+  "teacherPanelSubtitle": "View your students' vocabulary & grammar practice and class sessions.",
+  "teacherOpenPanel": "Teacher panel",
+  "teacherStudentsEmpty": "No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.",
+  "teacherStudentDetailTitle": "Student",
+  "teacherTabVocabQuiz": "Vocabulary",
+  "teacherTabGrammar": "Grammar",
+  "teacherClassSessions": "Class sessions",
+  "teacherSessionCountLabel": "Recorded class sessions",
+  "teacherSessionSave": "Save",
+  "teacherSessionUpdated": "Saved",
+  "teacherSessionInvalid": "Enter a valid number (0 or more).",
+  "teacherAccessDenied": "Only teacher accounts can open this panel.",
+  "teacherNoResults": "No results yet",
+  "teacherNoteLabel": "Teacher note",
+  "teacherNotePlaceholder": "Private notes about this student (only you can see this)",
   "bookQuizSetupIntro": "Choose units, how many questions, and whether to drill past mistakes.",
   "unitsSectionTitle": "Units",
   "couldNotLoadMistakesShort": "Could not load mistakes",

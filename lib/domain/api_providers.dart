@@ -10,6 +10,7 @@ import '../data/models/grammar_result_detail.dart';
 import '../data/models/unit_model.dart';
 import '../data/models/vocab_entry.dart';
 import '../data/models/vocab_quiz_result.dart';
+import '../data/models/teacher_student.dart';
 import '../core/auth/auth_provider.dart';
 import '../data/services/api_service.dart';
 
@@ -151,8 +152,40 @@ final myVocabQuizResultsProvider =
 /// GET /vocab_quiz_result_detail.php?id= (auth).
 final vocabQuizResultDetailProvider =
     FutureProvider.family<VocabQuizResultDetail, int>((ref, id) {
-  return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
-});
+      return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
+    });
+
+/// GET /teacher_students.php — requires teacher role on server.
+final teacherStudentsProvider =
+    FutureProvider<List<TeacherStudentSummary>>((ref) async {
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null || !session.user.isTeacher) {
+        return [];
+      }
+      return ref.read(apiServiceProvider).fetchTeacherStudents();
+    });
+
+/// Vocabulary quiz summaries for one student (teacher panel).
+final teacherStudentVocabResultsProvider =
+    FutureProvider.family<List<VocabQuizResultSummary>, int>((ref, studentId) {
+      return ref
+          .read(apiServiceProvider)
+          .fetchTeacherStudentVocabResults(studentId);
+    });
+
+/// Grammar results for one student (teacher panel).
+final teacherStudentGrammarResultsProvider =
+    FutureProvider.family<List<GrammarResult>, int>((ref, studentId) {
+      return ref
+          .read(apiServiceProvider)
+          .fetchTeacherStudentGrammarResults(studentId);
+    });
+
+/// Class session count row (teacher panel).
+final teacherStudentSessionsProvider =
+    FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
+      return ref.read(apiServiceProvider).fetchTeacherStudentSessions(studentId);
+    });
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.
 final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((

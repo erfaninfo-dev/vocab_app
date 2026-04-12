@@ -721,6 +721,78 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get vocabQuizResultQuestion => 'پرسیار';
 
   @override
+  String vocabQuizHistoryUnitsLine(String units) {
+    return 'یەکەکان: $units';
+  }
+
+  @override
+  String vocabQuizCorrectWrongLine(int correct, int wrong) {
+    return '$correct دروست · $wrong هەڵە';
+  }
+
+  @override
+  String get vocabQuizViewMistakes => 'بینینی هەڵەکان';
+
+  @override
+  String get vocabQuizMistakesTitle => 'وەڵامە هەڵەکان';
+
+  @override
+  String get vocabQuizMistakesEmpty =>
+      'لەم دانیشتنەدا وەڵامی هەڵە تۆمار نەکراوە.';
+
+  @override
+  String get teacherPanelTitle => 'پانێلی مامۆستا';
+
+  @override
+  String get teacherPanelSubtitle =>
+      'بینینی وشە و ڕێزمانی قوتابیان و تۆمارکردنی وانەکان.';
+
+  @override
+  String get teacherOpenPanel => 'پانێلی مامۆستا';
+
+  @override
+  String get teacherStudentsEmpty =>
+      'هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.';
+
+  @override
+  String get teacherStudentDetailTitle => 'قوتابی';
+
+  @override
+  String get teacherTabVocabQuiz => 'وشەکان';
+
+  @override
+  String get teacherTabGrammar => 'ڕێزمان';
+
+  @override
+  String get teacherClassSessions => 'وانەکان';
+
+  @override
+  String get teacherSessionCountLabel => 'ژمارەی وانە تۆمارکراوەکان';
+
+  @override
+  String get teacherSessionSave => 'پاشەکەوت';
+
+  @override
+  String get teacherSessionUpdated => 'پاشەکەوت کرا';
+
+  @override
+  String get teacherSessionInvalid => 'ژمارەیەکی دروست بنووسە (٠ یان زیاتر).';
+
+  @override
+  String get teacherAccessDenied =>
+      'تەنها هەژماری مامۆستا دەتوانێت بچێتە ناو ئەم بەشە.';
+
+  @override
+  String get teacherNoResults => 'هێشتا ئەنجام نییە';
+
+  @override
+  String get teacherNoteLabel => 'تێبینی مامۆستا';
+
+  @override
+  String get teacherNotePlaceholder =>
+      'تێبینی تایبەت دەربارەی ئەم قوتابیە (تەنها تۆ دەبینیت)';
+
+  @override
   String get bookQuizSetupIntro =>
       'یەکەکان، ژمارەی پرسیار و ڕاهێنان لەسەر هەڵەکانی پێشوو هەڵبژێرە.';
 

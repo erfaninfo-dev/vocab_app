@@ -213,6 +213,38 @@
   "vocabQuizResultCorrect": "دروست",
   "vocabQuizResultIncorrect": "هەڵە",
   "vocabQuizResultQuestion": "پرسیار",
+  "vocabQuizHistoryUnitsLine": "یەکەکان: {units}",
+  "@vocabQuizHistoryUnitsLine": {
+    "placeholders": {
+      "units": {"type": "String"}
+    }
+  },
+  "vocabQuizCorrectWrongLine": "{correct} دروست · {wrong} هەڵە",
+  "@vocabQuizCorrectWrongLine": {
+    "placeholders": {
+      "correct": {"type": "int"},
+      "wrong": {"type": "int"}
+    }
+  },
+  "vocabQuizViewMistakes": "بینینی هەڵەکان",
+  "vocabQuizMistakesTitle": "وەڵامە هەڵەکان",
+  "vocabQuizMistakesEmpty": "لەم دانیشتنەدا وەڵامی هەڵە تۆمار نەکراوە.",
+  "teacherPanelTitle": "پانێلی مامۆستا",
+  "teacherPanelSubtitle": "بینینی وشە و ڕێزمانی قوتابیان و تۆمارکردنی وانەکان.",
+  "teacherOpenPanel": "پانێلی مامۆستا",
+  "teacherStudentsEmpty": "هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.",
+  "teacherStudentDetailTitle": "قوتابی",
+  "teacherTabVocabQuiz": "وشەکان",
+  "teacherTabGrammar": "ڕێزمان",
+  "teacherClassSessions": "وانەکان",
+  "teacherSessionCountLabel": "ژمارەی وانە تۆمارکراوەکان",
+  "teacherSessionSave": "پاشەکەوت",
+  "teacherSessionUpdated": "پاشەکەوت کرا",
+  "teacherSessionInvalid": "ژمارەیەکی دروست بنووسە (٠ یان زیاتر).",
+  "teacherAccessDenied": "تەنها هەژماری مامۆستا دەتوانێت بچێتە ناو ئەم بەشە.",
+  "teacherNoResults": "هێشتا ئەنجام نییە",
+  "teacherNoteLabel": "تێبینی مامۆستا",
+  "teacherNotePlaceholder": "تێبینی تایبەت دەربارەی ئەم قوتابیە (تەنها تۆ دەبینیت)",
   "bookQuizSetupIntro": "یەکەکان، ژمارەی پرسیار و ڕاهێنان لەسەر هەڵەکانی پێشوو هەڵبژێرە.",
   "unitsSectionTitle": "یەکەکان",
   "couldNotLoadMistakesShort": "بارکردنی هەڵەکان سەرکەوتوو نەبوو",

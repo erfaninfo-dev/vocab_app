@@ -25,6 +25,8 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/teacher/teacher_dashboard_screen.dart';
+import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_result_detail_screen.dart';
 import '../../features/units/units_screen.dart';
@@ -73,6 +75,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
 
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+
+      GoRoute(
+        path: '/teacher',
+        builder: (_, __) => const TeacherDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/student/:studentId',
+        builder: (context, state) {
+          final id =
+              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          return TeacherStudentDetailScreen(studentId: id);
+        },
+      ),
 
       // ── Shell: all screens share the bottom NavigationBar ─────────────────
       ShellRoute(
@@ -138,7 +153,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id =
                   int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
-              return VocabQuizResultDetailScreen(resultId: id);
+              final mistakesOnly =
+                  state.uri.queryParameters['mistakes'] == '1';
+              return VocabQuizResultDetailScreen(
+                resultId: id,
+                mistakesOnly: mistakesOnly,
+              );
             },
           ),
           GoRoute(

@@ -55,11 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) {
         return;
       }
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/home');
-      }
+      context.go('/home');
     } catch (e) {
       if (!mounted) {
         return;

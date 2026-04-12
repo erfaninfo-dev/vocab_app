@@ -1282,6 +1282,132 @@ abstract class AppLocalizations {
   /// **'Question'**
   String get vocabQuizResultQuestion;
 
+  /// No description provided for @vocabQuizHistoryUnitsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Units: {units}'**
+  String vocabQuizHistoryUnitsLine(String units);
+
+  /// No description provided for @vocabQuizCorrectWrongLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{correct} correct · {wrong} wrong'**
+  String vocabQuizCorrectWrongLine(int correct, int wrong);
+
+  /// No description provided for @vocabQuizViewMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'View mistakes'**
+  String get vocabQuizViewMistakes;
+
+  /// No description provided for @vocabQuizMistakesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong answers'**
+  String get vocabQuizMistakesTitle;
+
+  /// No description provided for @vocabQuizMistakesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No wrong answers in this session.'**
+  String get vocabQuizMistakesEmpty;
+
+  /// No description provided for @teacherPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher panel'**
+  String get teacherPanelTitle;
+
+  /// No description provided for @teacherPanelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View your students\' vocabulary & grammar practice and class sessions.'**
+  String get teacherPanelSubtitle;
+
+  /// No description provided for @teacherOpenPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher panel'**
+  String get teacherOpenPanel;
+
+  /// No description provided for @teacherStudentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.'**
+  String get teacherStudentsEmpty;
+
+  /// No description provided for @teacherStudentDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Student'**
+  String get teacherStudentDetailTitle;
+
+  /// No description provided for @teacherTabVocabQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocabulary'**
+  String get teacherTabVocabQuiz;
+
+  /// No description provided for @teacherTabGrammar.
+  ///
+  /// In en, this message translates to:
+  /// **'Grammar'**
+  String get teacherTabGrammar;
+
+  /// No description provided for @teacherClassSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Class sessions'**
+  String get teacherClassSessions;
+
+  /// No description provided for @teacherSessionCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded class sessions'**
+  String get teacherSessionCountLabel;
+
+  /// No description provided for @teacherSessionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get teacherSessionSave;
+
+  /// No description provided for @teacherSessionUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get teacherSessionUpdated;
+
+  /// No description provided for @teacherSessionInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number (0 or more).'**
+  String get teacherSessionInvalid;
+
+  /// No description provided for @teacherAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Only teacher accounts can open this panel.'**
+  String get teacherAccessDenied;
+
+  /// No description provided for @teacherNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results yet'**
+  String get teacherNoResults;
+
+  /// No description provided for @teacherNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher note'**
+  String get teacherNoteLabel;
+
+  /// No description provided for @teacherNotePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Private notes about this student (only you can see this)'**
+  String get teacherNotePlaceholder;
+
   /// No description provided for @bookQuizSetupIntro.
   ///
   /// In en, this message translates to:
