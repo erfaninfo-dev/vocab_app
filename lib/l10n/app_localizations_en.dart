@@ -24,7 +24,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabProgress => 'Progress';
 
   @override
+  String get tabYou => 'You';
+
+  @override
   String get tabSettings => 'Settings';
+
+  @override
+  String get youPageTitle => 'You';
+
+  @override
+  String get youSectionProgress => 'Progress';
+
+  @override
+  String get youSectionProgressSubtitle => 'Streaks, stats, and quiz insights';
+
+  @override
+  String get youSectionMessages => 'Your teacher';
+
+  @override
+  String get youSectionMessagesSubtitle => 'Chat with your class teacher';
+
+  @override
+  String get youTeacherPanelSubtitle => 'Students and class activity';
+
+  @override
+  String get chatSenderYou => 'You';
+
+  @override
+  String get teacherStudentChat => 'Chat';
+
+  @override
+  String get teacherChatHint => 'Message…';
+
+  @override
+  String get teacherMessagesEmpty => 'No messages yet.';
+
+  @override
+  String get teacherMessagesNoTeacher =>
+      'Use your student code so a teacher can be assigned to you.';
+
+  @override
+  String newMessagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new',
+      one: '1 new',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get tabStudents => 'Students';

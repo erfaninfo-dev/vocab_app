@@ -289,6 +289,7 @@ class _PublicResultsTab extends ConsumerWidget {
             subtitle: l10n.grammarCommunityEmptyBody,
           );
         }
+        final sorted = _sortGrammarResultRows(List<GrammarResult>.of(items), sort);
         return RefreshIndicator(
           onRefresh: () async {
             await ref
@@ -298,10 +299,22 @@ class _PublicResultsTab extends ConsumerWidget {
             await ref.read(publicGrammarResultsProvider.future);
           },
           color: scheme.primary,
-          child: _UsersPracticeLeaderboard(
-            results: items,
-            scheme: scheme,
-            sort: sort,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+            itemCount: sorted.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, i) {
+              final r = sorted[i];
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => context.push('/grammar/result/${r.id}'),
+                child: _ResultCard(
+                  r: r,
+                  variant: _ResultCardVariant.public,
+                ),
+              );
+            },
           ),
         );
       },
@@ -355,258 +368,6 @@ List<GrammarResult> _sortGrammarResultRows(
 
   items.sort(cmp);
   return items;
-}
-
-/// Average % for leaderboard row — circular ring, top-right of card.
-class _LeaderboardAvgPercentCircle extends StatelessWidget {
-  const _LeaderboardAvgPercentCircle({
-    required this.avgPct,
-    required this.scheme,
-  });
-
-  final double avgPct;
-  final ColorScheme scheme;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    final v = (avgPct / 100).clamp(0.0, 1.0);
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: CircularProgressIndicator(
-              value: v,
-              strokeWidth: 3.5,
-              backgroundColor:
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-              color: scheme.primary,
-              strokeCap: StrokeCap.round,
-            ),
-          ),
-          Text(
-            '${avgPct.round()}%',
-            style: tt.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: scheme.primary,
-              fontSize: 10,
-              height: 1.0,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UsersPracticeLeaderboard extends StatelessWidget {
-  const _UsersPracticeLeaderboard({
-    required this.results,
-    required this.scheme,
-    required this.sort,
-  });
-
-  final List<GrammarResult> results;
-  final ColorScheme scheme;
-  final GrammarResultsListSort sort;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final byUser = <String, List<GrammarResult>>{};
-    for (final r in results) {
-      final name = (r.userName ?? '').trim();
-      final key = name.isEmpty ? l10n.guestUser : name;
-      byUser.putIfAbsent(key, () => []).add(r);
-    }
-
-    final rows = byUser.entries.map((e) {
-      final name = e.key;
-      final items = e.value;
-      final attempts = items.length;
-      final latest = items
-          .map(_grammarResultCreatedAt)
-          .fold<DateTime>(
-            DateTime.fromMillisecondsSinceEpoch(0),
-            (a, b) => a.isAfter(b) ? a : b,
-          );
-
-      double? avgPct;
-      var sum = 0.0;
-      var n = 0;
-      for (final r in items) {
-        final s = r.score;
-        final t = r.totalQuestions;
-        if (s != null && t != null && t > 0) {
-          sum += (s / t) * 100;
-          n++;
-        }
-      }
-      if (n > 0) avgPct = sum / n;
-
-      GrammarResult? latestResult;
-      for (final r in items) {
-        final prev = latestResult;
-        if (prev == null ||
-            _grammarResultCreatedAt(r).isAfter(_grammarResultCreatedAt(prev))) {
-          latestResult = r;
-        }
-      }
-
-      final topicLabels = <String>{};
-      for (final gr in items) {
-        for (final t in _ResultCard._topicLabelsForResult(gr)) {
-          topicLabels.add(t);
-        }
-      }
-      final topicList = topicLabels.toList()..sort();
-
-      return (
-        name: name,
-        attempts: attempts,
-        avgPct: avgPct,
-        latest: latest,
-        avatarId: latestResult?.avatar,
-        userId: latestResult?.userId,
-        topicLabels: topicList,
-      );
-    }).toList()
-      ..sort((a, b) {
-        return switch (sort) {
-          GrammarResultsListSort.newest => b.latest.compareTo(a.latest),
-          GrammarResultsListSort.mostPractice =>
-            b.attempts.compareTo(a.attempts),
-        };
-      });
-
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-      itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final r = rows[i];
-        final medal = switch (sort) {
-          GrammarResultsListSort.newest => null,
-          GrammarResultsListSort.mostPractice => switch (i) {
-              0 => '🥇',
-              1 => '🥈',
-              2 => '🥉',
-              _ => null,
-            },
-        };
-
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.45),
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 34,
-                    child: Center(
-                      child: medal != null
-                          ? Text(medal, style: const TextStyle(fontSize: 18))
-                          : Text(
-                              '${i + 1}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _UserAvatar(
-                    scheme: scheme,
-                    avatarId: r.avatarId,
-                    userId: r.userId,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          r.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${r.attempts} practice session(s)',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                        ),
-                        if (r.topicLabels.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          _GrammarTopicChipsWrap(
-                            labels: r.topicLabels,
-                            scheme: scheme,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (r.avgPct != null) ...[
-                    const SizedBox(width: 8),
-                    _LeaderboardAvgPercentCircle(
-                      avgPct: r.avgPct!,
-                      scheme: scheme,
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 13,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatGrammarDisplayDateTime(r.latest),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 enum _ResultCardVariant { myResults, public }

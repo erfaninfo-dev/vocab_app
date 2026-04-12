@@ -5,7 +5,25 @@
   "tabGrammar": "گرامر",
   "tabReview": "مرور",
   "tabProgress": "پیشرفت",
+  "tabYou": "شما",
   "tabSettings": "تنظیمات",
+  "youPageTitle": "شما",
+  "youSectionProgress": "پیشرفت",
+  "youSectionProgressSubtitle": "استریک، آمار و نتایج آزمون",
+  "youSectionMessages": "مدرس شما",
+  "youSectionMessagesSubtitle": "گفت‌وگو با مدرس کلاس",
+  "youTeacherPanelSubtitle": "دانش‌آموزان و فعالیت کلاس",
+  "chatSenderYou": "شما",
+  "teacherStudentChat": "گفت‌وگو",
+  "teacherChatHint": "پیام…",
+  "teacherMessagesEmpty": "هنوز پیامی نیست.",
+  "teacherMessagesNoTeacher": "با کد دانش‌آموزی، مدرس به شما وصل می‌شود.",
+  "newMessagesCount": "{count, plural, =0{پیام جدیدی نیست} =1{۱ پیام جدید} other{{count} پیام جدید}}",
+  "@newMessagesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "tabStudents": "دانش‌آموز",
   "studentBooksTitle": "کتاب‌های کلاس شما",
   "registerAsStudent": "دانش‌آموز شما",

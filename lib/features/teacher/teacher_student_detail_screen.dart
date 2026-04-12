@@ -160,6 +160,23 @@ class _TeacherStudentDetailScreenState
           onPressed: () => context.pop(),
         ),
         title: Text(title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_rounded),
+            tooltip: l10n.teacherStudentChat,
+            onPressed: () {
+              final hint = student?.displayLabel;
+              if (hint != null && hint.trim().isNotEmpty) {
+                context.push(
+                  '/teacher/chat/${widget.studentId}',
+                  extra: hint.trim(),
+                );
+              } else {
+                context.push('/teacher/chat/${widget.studentId}');
+              }
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: [

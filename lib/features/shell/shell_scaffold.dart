@@ -41,10 +41,10 @@ List<_Tab> _tabs(AppLocalizations l10n) => [
     label: l10n.tabReview,
   ),
   _Tab(
-    path: '/stats',
-    icon: Icons.bar_chart_outlined,
-    activeIcon: Icons.bar_chart_rounded,
-    label: l10n.tabProgress,
+    path: '/you',
+    icon: Icons.person_outline_rounded,
+    activeIcon: Icons.person_rounded,
+    label: l10n.tabYou,
   ),
   _Tab(
     path: '/settings',
