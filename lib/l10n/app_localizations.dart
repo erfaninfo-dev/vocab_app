@@ -190,6 +190,30 @@ abstract class AppLocalizations {
   /// **'Chat'**
   String get teacherStudentChat;
 
+  /// No description provided for @teacherInboxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get teacherInboxTitle;
+
+  /// No description provided for @teacherInboxOpenPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full student list'**
+  String get teacherInboxOpenPanel;
+
+  /// No description provided for @chatListYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get chatListYesterday;
+
+  /// No description provided for @chatPreviewYouPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'You: '**
+  String get chatPreviewYouPrefix;
+
   /// No description provided for @teacherChatHint.
   ///
   /// In en, this message translates to:
@@ -1438,6 +1462,36 @@ abstract class AppLocalizations {
   /// **'Class sessions'**
   String get teacherClassSessions;
 
+  /// No description provided for @teacherClassSessionAddTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a class session'**
+  String get teacherClassSessionAddTooltip;
+
+  /// No description provided for @youClassSessionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Class sessions'**
+  String get youClassSessionsTitle;
+
+  /// No description provided for @youClassSessionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions your teacher records in your profile'**
+  String get youClassSessionsSubtitle;
+
+  /// No description provided for @youClassSessionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions recorded yet.'**
+  String get youClassSessionsEmpty;
+
+  /// No description provided for @teacherClassSessionsHintEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to record each class session. The time is saved automatically.'**
+  String get teacherClassSessionsHintEmpty;
+
   /// No description provided for @teacherSessionCountLabel.
   ///
   /// In en, this message translates to:
@@ -1449,6 +1503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get teacherSessionSave;
+
+  /// No description provided for @teacherSessionSaveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Save note'**
+  String get teacherSessionSaveNote;
 
   /// No description provided for @teacherSessionUpdated.
   ///

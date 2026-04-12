@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart'
+    show debugPrint, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_provider.dart';
@@ -81,6 +85,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return res ?? false;
   }
 
+  /// [ImageCropper] is only reliable on Android/iOS (needs file path + native UI).
+  bool get _useNativeCropper {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
+  Future<Uint8List> _jpegBytesForUpload(Uint8List raw) async {
+    try {
+      final out = await FlutterImageCompress.compressWithList(
+        raw,
+        minWidth: 512,
+        minHeight: 512,
+        quality: 85,
+        format: CompressFormat.jpeg,
+      );
+      if (out.isNotEmpty) return out;
+    } catch (e) {
+      debugPrint('FlutterImageCompress: $e');
+    }
+    if (raw.length > 10 * 1024 * 1024) {
+      throw Exception('Image too large');
+    }
+    return raw;
+  }
+
   Future<void> _pickAndUpload(ImageSource source) async {
     final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
@@ -94,35 +124,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     setState(() => _uploadingPhoto = true);
     try {
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: x.path,
-        compressFormat: ImageCompressFormat.jpg,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: l10n.profileCropPhoto,
-            toolbarColor: Theme.of(context).colorScheme.surface,
-            toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-          ),
-          IOSUiSettings(
-            title: l10n.profileCropPhoto,
-            aspectRatioLockEnabled: true,
-          ),
-        ],
-      );
-      if (cropped == null || !mounted) {
-        return;
+      late final Uint8List raw;
+
+      if (_useNativeCropper) {
+        final cropped = await ImageCropper().cropImage(
+          sourcePath: x.path,
+          compressFormat: ImageCompressFormat.jpg,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: l10n.profileCropPhoto,
+              toolbarColor: Theme.of(context).colorScheme.surface,
+              toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+            ),
+            IOSUiSettings(
+              title: l10n.profileCropPhoto,
+              aspectRatioLockEnabled: true,
+            ),
+          ],
+        );
+        if (cropped == null || !mounted) {
+          return;
+        }
+        raw = await cropped.readAsBytes();
+      } else {
+        // Windows / macOS / Linux / Web: cropper is unsupported or flaky — use picker bytes.
+        raw = await x.readAsBytes();
+        if (raw.isEmpty) {
+          throw Exception('Empty image');
+        }
       }
 
-      final raw = await cropped.readAsBytes();
-      final compressed = await FlutterImageCompress.compressWithList(
-        raw,
-        minWidth: 512,
-        minHeight: 512,
-        quality: 85,
-        format: CompressFormat.jpeg,
-      );
+      final compressed = await _jpegBytesForUpload(raw);
       await ref.read(authProvider.notifier).uploadProfilePhoto(compressed);
       if (!mounted) return;
       final u = ref.read(authProvider).valueOrNull?.user;

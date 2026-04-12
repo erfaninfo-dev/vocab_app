@@ -130,6 +130,7 @@ class YouAccountSection extends ConsumerWidget {
                           ref.invalidate(apiPublicBooksForHomeProvider);
                           ref.invalidate(apiStudentBooksForHomeProvider);
                           ref.invalidate(teacherMessagesPreviewProvider);
+                          ref.invalidate(teacherMessagesUnreadFabProvider);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(

@@ -93,3 +93,34 @@ class TeacherMessagesThread {
     );
   }
 }
+
+/// GET ?summary=1 — counts for home FAB badge.
+class TeacherMessagesUnreadSummary {
+  const TeacherMessagesUnreadSummary({
+    required this.isTeacher,
+    required this.teacherStudentsWithUnread,
+    required this.studentUnreadFromTeacher,
+  });
+
+  final bool isTeacher;
+  final int teacherStudentsWithUnread;
+  final int studentUnreadFromTeacher;
+
+  factory TeacherMessagesUnreadSummary.fromJson(Map<String, dynamic> json) {
+    return TeacherMessagesUnreadSummary(
+      isTeacher: json['is_teacher'] == true || json['is_teacher'] == 1,
+      teacherStudentsWithUnread:
+          (json['teacher_students_with_unread'] as num?)?.toInt() ?? 0,
+      studentUnreadFromTeacher:
+          (json['student_unread_from_teacher'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Badge for current role: distinct students (teacher) or message count (student).
+  int badgeForUser({required bool userIsTeacher}) {
+    if (userIsTeacher) {
+      return teacherStudentsWithUnread;
+    }
+    return studentUnreadFromTeacher;
+  }
+}

@@ -19,7 +19,11 @@ final apiPublicBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
 final apiStudentBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
   final query = ref.watch(bookSearchQueryProvider);
   final session = ref.watch(authProvider).valueOrNull;
-  if (session == null || !session.user.studentAccess) {
+  if (session == null) {
+    return <Book>[];
+  }
+  final u = session.user;
+  if (!u.studentAccess && !u.isTeacher) {
     return <Book>[];
   }
   final svc = ref.read(apiServiceProvider);

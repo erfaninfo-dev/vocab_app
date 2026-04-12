@@ -166,6 +166,16 @@ final teacherStudentsProvider =
       return ref.read(apiServiceProvider).fetchTeacherStudents();
     });
 
+/// Same as [teacherStudentsProvider] but inbox sort (unread first, then newest activity).
+final teacherInboxStudentsProvider =
+    FutureProvider<List<TeacherStudentSummary>>((ref) async {
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null || !session.user.isTeacher) {
+        return [];
+      }
+      return ref.read(apiServiceProvider).fetchTeacherStudents(inbox: true);
+    });
+
 /// Vocabulary quiz summaries for one student (teacher panel).
 final teacherStudentVocabResultsProvider =
     FutureProvider.family<List<VocabQuizResultSummary>, int>((ref, studentId) {
@@ -182,11 +192,22 @@ final teacherStudentGrammarResultsProvider =
           .fetchTeacherStudentGrammarResults(studentId);
     });
 
-/// Class session count row (teacher panel).
+/// Class session list (teacher panel — per-student).
 final teacherStudentSessionsProvider =
     FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
       return ref.read(apiServiceProvider).fetchTeacherStudentSessions(studentId);
     });
+
+/// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
+final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null ||
+      session.user.isTeacher ||
+      session.user.teacherUserId == null) {
+    return const TeacherSessionInfo(sessionCount: 0, sessions: []);
+  }
+  return ref.read(apiServiceProvider).fetchMyClassSessions();
+});
 
 /// Preview row for You hub (student + assigned teacher). Empty when not applicable.
 final teacherMessagesPreviewProvider =
@@ -196,6 +217,17 @@ final teacherMessagesPreviewProvider =
         return TeacherMessagesPreview.empty();
       }
       return ref.read(apiServiceProvider).fetchTeacherMessagesPreview();
+    });
+
+/// Home FAB badge: teachers = distinct students with unread; students = unread msgs from teacher.
+final teacherMessagesUnreadFabProvider =
+    FutureProvider<int>((ref) async {
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null) return 0;
+      final u = session.user;
+      if (!u.isTeacher && u.teacherUserId == null) return 0;
+      final s = await ref.read(apiServiceProvider).fetchTeacherMessagesUnreadSummary();
+      return s.badgeForUser(userIsTeacher: u.isTeacher);
     });
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.

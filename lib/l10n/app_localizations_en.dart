@@ -54,6 +54,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherStudentChat => 'Chat';
 
   @override
+  String get teacherInboxTitle => 'Messages';
+
+  @override
+  String get teacherInboxOpenPanel => 'Full student list';
+
+  @override
+  String get chatListYesterday => 'Yesterday';
+
+  @override
+  String get chatPreviewYouPrefix => 'You: ';
+
+  @override
   String get teacherChatHint => 'Message…';
 
   @override
@@ -808,10 +820,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherClassSessions => 'Class sessions';
 
   @override
+  String get teacherClassSessionAddTooltip => 'Add a class session';
+
+  @override
+  String get youClassSessionsTitle => 'Class sessions';
+
+  @override
+  String get youClassSessionsSubtitle =>
+      'Sessions your teacher records in your profile';
+
+  @override
+  String get youClassSessionsEmpty => 'No sessions recorded yet.';
+
+  @override
+  String get teacherClassSessionsHintEmpty =>
+      'Tap + to record each class session. The time is saved automatically.';
+
+  @override
   String get teacherSessionCountLabel => 'Recorded class sessions';
 
   @override
   String get teacherSessionSave => 'Save';
+
+  @override
+  String get teacherSessionSaveNote => 'Save note';
 
   @override
   String get teacherSessionUpdated => 'Saved';
