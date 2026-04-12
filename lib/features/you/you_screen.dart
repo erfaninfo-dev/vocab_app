@@ -7,6 +7,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../data/models/teacher_message.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import 'class_sessions_strip.dart';
 import 'you_account_section.dart';
 
 class YouScreen extends ConsumerWidget {
@@ -58,6 +59,47 @@ class YouScreen extends ConsumerWidget {
                 onTap: () => context.push('/stats'),
               ),
             ),
+            if (!isTeacher && hasTeacher) ...[
+              const SizedBox(height: 16),
+              _SectionLabel(label: l10n.youClassSessionsTitle),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.youClassSessionsSubtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      ref.watch(myClassSessionsProvider).when(
+                        loading: () => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (_, __) => ListTile(
+                          leading: Icon(
+                            Icons.error_outline_rounded,
+                            color: scheme.error,
+                          ),
+                          title: Text(l10n.errorGeneric),
+                          onTap: () =>
+                              ref.invalidate(myClassSessionsProvider),
+                        ),
+                        data: (info) => ClassSessionsStrip(
+                          sessions: info.sessions,
+                          readOnly: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             if (isTeacher) ...[
               const SizedBox(height: 16),
               _SectionLabel(label: l10n.teacherOpenPanel),

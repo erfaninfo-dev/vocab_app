@@ -656,9 +656,13 @@ class ApiService {
 
   // ── Teacher panel (requires is_teacher on server) ───────────────────────────
 
-  /// GET /teacher_students.php
-  Future<List<TeacherStudentSummary>> fetchTeacherStudents() async {
-    final uri = Uri.parse('$baseUrl/teacher_students.php');
+  /// GET /teacher_students.php — [inbox] adds unread + last activity and server sort.
+  Future<List<TeacherStudentSummary>> fetchTeacherStudents({
+    bool inbox = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_students.php').replace(
+      queryParameters: inbox ? const {'inbox': '1'} : null,
+    );
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -718,17 +722,79 @@ class ApiService {
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    final c = (map['session_count'] as num?)?.toInt() ?? 0;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  TeacherSessionInfo _parseTeacherSessionInfo(Map<String, dynamic> map) {
+    final rawList = map['sessions'] as List<dynamic>? ?? const [];
+    final sessions = rawList
+        .map(
+          (e) => ClassSessionEntry.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+    final fallbackCount = (map['session_count'] as num?)?.toInt() ?? 0;
+    final count =
+        sessions.isNotEmpty ? sessions.length : fallbackCount;
     final u = map['updated_at']?.toString();
     final rawNote = map['note']?.toString();
     return TeacherSessionInfo(
-      sessionCount: c,
+      sessionCount: count,
       updatedAt: (u != null && u.isNotEmpty) ? u : null,
       note: (rawNote != null && rawNote.trim().isNotEmpty) ? rawNote : null,
+      sessions: sessions,
     );
   }
 
-  /// POST /teacher_student_sessions.php — [note] stored per teacher–student pair.
+  /// POST — append one class session (`add_session` on server).
+  Future<TeacherSessionInfo> addTeacherClassSession(int studentId) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'add_session': true,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  /// POST — update private note only (does not change session list).
+  Future<TeacherSessionInfo> updateTeacherStudentNote({
+    required int studentId,
+    required String note,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'note': note,
+        'note_only': true,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  /// GET /my_class_sessions.php — student: read-only session list from teacher.
+  Future<TeacherSessionInfo> fetchMyClassSessions() async {
+    final uri = Uri.parse('$baseUrl/my_class_sessions.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  /// Legacy POST /teacher_student_sessions.php — prefer [addTeacherClassSession] / [updateTeacherStudentNote].
   Future<TeacherSessionInfo> setTeacherStudentSessions({
     required int studentId,
     required int sessionCount,
@@ -748,14 +814,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    final c = (map['session_count'] as num?)?.toInt() ?? sessionCount;
-    final u = map['updated_at']?.toString();
-    final rawNote = map['note']?.toString();
-    return TeacherSessionInfo(
-      sessionCount: c,
-      updatedAt: (u != null && u.isNotEmpty) ? u : null,
-      note: (rawNote != null && rawNote.trim().isNotEmpty) ? rawNote : null,
-    );
+    return _parseTeacherSessionInfo(map);
   }
 
   /// POST /upload_avatar.php — multipart field `photo` (JPEG after client compression).
@@ -774,6 +833,17 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// GET /teacher_student_messages.php?summary=1 — unread counts for home FAB.
+  Future<TeacherMessagesUnreadSummary> fetchTeacherMessagesUnreadSummary() async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
+      queryParameters: const {'summary': '1'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherMessagesUnreadSummary.fromJson(map);
   }
 
   /// GET /teacher_student_messages.php?preview=1 — auth; empty preview if no teacher.

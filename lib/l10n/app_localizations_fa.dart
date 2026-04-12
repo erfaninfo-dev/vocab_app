@@ -54,6 +54,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get teacherStudentChat => 'گفت‌وگو';
 
   @override
+  String get teacherInboxTitle => 'پیام‌ها';
+
+  @override
+  String get teacherInboxOpenPanel => 'همهٔ دانش‌آموزان';
+
+  @override
+  String get chatListYesterday => 'دیروز';
+
+  @override
+  String get chatPreviewYouPrefix => 'شما: ';
+
+  @override
   String get teacherChatHint => 'پیام…';
 
   @override
@@ -809,10 +821,30 @@ class AppLocalizationsFa extends AppLocalizations {
   String get teacherClassSessions => 'جلسات کلاس';
 
   @override
+  String get teacherClassSessionAddTooltip => 'افزودن جلسهٔ کلاس';
+
+  @override
+  String get youClassSessionsTitle => 'جلسات کلاس';
+
+  @override
+  String get youClassSessionsSubtitle =>
+      'جلسه‌هایی که استاد در پروندهٔ شما ثبت می‌کند';
+
+  @override
+  String get youClassSessionsEmpty => 'هنوز جلسه‌ای ثبت نشده است.';
+
+  @override
+  String get teacherClassSessionsHintEmpty =>
+      'با زدن + هر جلسهٔ کلاس را ثبت کنید؛ زمان به‌صورت خودکار ذخیره می‌شود.';
+
+  @override
   String get teacherSessionCountLabel => 'تعداد جلسات ثبت‌شده';
 
   @override
   String get teacherSessionSave => 'ذخیره';
+
+  @override
+  String get teacherSessionSaveNote => 'ذخیرهٔ یادداشت';
 
   @override
   String get teacherSessionUpdated => 'ذخیره شد';

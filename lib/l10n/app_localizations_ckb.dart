@@ -54,6 +54,18 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get teacherStudentChat => 'گفتوگۆ';
 
   @override
+  String get teacherInboxTitle => 'پەیامەکان';
+
+  @override
+  String get teacherInboxOpenPanel => 'هەموو قوتابیان';
+
+  @override
+  String get chatListYesterday => 'دوێنێ';
+
+  @override
+  String get chatPreviewYouPrefix => 'تۆ: ';
+
+  @override
   String get teacherChatHint => 'پەیام…';
 
   @override
@@ -816,10 +828,30 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get teacherClassSessions => 'وانەکان';
 
   @override
+  String get teacherClassSessionAddTooltip => 'زیادکردنی دانیشتنی پۆل';
+
+  @override
+  String get youClassSessionsTitle => 'دانیشتنەکانی پۆل';
+
+  @override
+  String get youClassSessionsSubtitle =>
+      'ئەو دانیشتنانەی مامۆستا لە پرۆفایلەکەتدا تۆمار دەکات';
+
+  @override
+  String get youClassSessionsEmpty => 'هێشتا دانیشتن تۆمار نەکراوە.';
+
+  @override
+  String get teacherClassSessionsHintEmpty =>
+      'بە + هەر دانیشتنێک تۆمار بکە؛ کاتەکە خۆکار پاشەکەوت دەکرێت.';
+
+  @override
   String get teacherSessionCountLabel => 'ژمارەی وانە تۆمارکراوەکان';
 
   @override
   String get teacherSessionSave => 'پاشەکەوت';
+
+  @override
+  String get teacherSessionSaveNote => 'پاشەکەوتکردنی تێبینی';
 
   @override
   String get teacherSessionUpdated => 'پاشەکەوت کرا';

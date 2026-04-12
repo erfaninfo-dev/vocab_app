@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +10,9 @@ import '../../data/models/teacher_student.dart';
 import '../../data/models/vocab_quiz_result.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../grammar/grammar_practice_result_card.dart';
+import '../you/class_sessions_strip.dart';
+import 'teacher_chat_open_args.dart';
 
 String _teacherUnitsCsv(List<int> units) {
   if (units.isEmpty) return '—';
@@ -41,40 +43,20 @@ class _TeacherStudentDetailScreenState
     extends ConsumerState<TeacherStudentDetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  final _sessionCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
-  var _sessionLoaded = false;
-  var _savingSessions = false;
+  var _noteHydrated = false;
+  var _savingNote = false;
+  var _addingSession = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    Future<void>.microtask(() async {
-      try {
-        final info = await ref
-            .read(apiServiceProvider)
-            .fetchTeacherStudentSessions(widget.studentId);
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _sessionCtrl.text = '${info.sessionCount}';
-          _noteCtrl.text = info.note ?? '';
-          _sessionLoaded = true;
-        });
-      } catch (_) {
-        if (mounted) {
-          setState(() => _sessionLoaded = true);
-        }
-      }
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _sessionCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
   }
@@ -88,19 +70,11 @@ class _TeacherStudentDetailScreenState
     return null;
   }
 
-  Future<void> _saveSessions(AppLocalizations l10n) async {
-    final parsed = int.tryParse(_sessionCtrl.text.trim());
-    if (parsed == null || parsed < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.teacherSessionInvalid)),
-      );
-      return;
-    }
-    setState(() => _savingSessions = true);
+  Future<void> _saveNote(AppLocalizations l10n) async {
+    setState(() => _savingNote = true);
     try {
-      await ref.read(apiServiceProvider).setTeacherStudentSessions(
+      await ref.read(apiServiceProvider).updateTeacherStudentNote(
             studentId: widget.studentId,
-            sessionCount: parsed,
             note: _noteCtrl.text,
           );
       ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
@@ -122,7 +96,32 @@ class _TeacherStudentDetailScreenState
       );
     } finally {
       if (mounted) {
-        setState(() => _savingSessions = false);
+        setState(() => _savingNote = false);
+      }
+    }
+  }
+
+  Future<void> _addSession(AppLocalizations l10n) async {
+    setState(() => _addingSession = true);
+    try {
+      await ref.read(apiServiceProvider).addTeacherClassSession(widget.studentId);
+      ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
+      ref.invalidate(teacherStudentsProvider);
+      if (!mounted) {
+        return;
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(userFriendlyErrorMessage(e, l10n)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _addingSession = false);
       }
     }
   }
@@ -133,6 +132,18 @@ class _TeacherStudentDetailScreenState
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final session = ref.watch(authProvider).valueOrNull;
+
+    ref.listen(
+      teacherStudentSessionsProvider(widget.studentId),
+      (prev, next) {
+        next.whenData((info) {
+          if (!_noteHydrated && mounted) {
+            _noteHydrated = true;
+            _noteCtrl.text = info.note ?? '';
+          }
+        });
+      },
+    );
 
     if (session == null || !session.user.isTeacher) {
       return Scaffold(
@@ -165,15 +176,18 @@ class _TeacherStudentDetailScreenState
             icon: const Icon(Icons.chat_rounded),
             tooltip: l10n.teacherStudentChat,
             onPressed: () {
-              final hint = student?.displayLabel;
-              if (hint != null && hint.trim().isNotEmpty) {
-                context.push(
-                  '/teacher/chat/${widget.studentId}',
-                  extra: hint.trim(),
-                );
-              } else {
-                context.push('/teacher/chat/${widget.studentId}');
-              }
+              final s = student;
+              final args = s != null
+                  ? TeacherChatOpenArgs(
+                      displayTitle: s.displayLabel,
+                      avatarId: s.avatar,
+                      userId: s.id,
+                    )
+                  : null;
+              context.push(
+                '/teacher/chat/${widget.studentId}',
+                extra: args,
+              );
             },
           ),
         ],
@@ -242,29 +256,60 @@ class _TeacherStudentDetailScreenState
                       ],
                     ),
                     const SizedBox(height: 10),
-                    TextField(
-                      controller: _sessionCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: InputDecoration(
-                        labelText: l10n.teacherSessionCountLabel,
-                        border: const OutlineInputBorder(),
-                        suffixIcon: _sessionLoaded
-                            ? null
-                            : const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
+                    ref
+                        .watch(teacherStudentSessionsProvider(widget.studentId))
+                        .when(
+                          loading: () => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 22,
+                                  height: 22,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    color: scheme.primary,
                                   ),
                                 ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  l10n.teacherClassSessions,
+                                  style: tt.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          error: (e, _) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              userFriendlyErrorMessage(e, l10n),
+                              style: tt.bodySmall?.copyWith(color: scheme.error),
+                            ),
+                          ),
+                          data: (info) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ClassSessionsStrip(
+                                sessions: info.sessions,
+                                readOnly: false,
+                                onAdd: () => _addSession(l10n),
+                                isAdding: _addingSession,
                               ),
-                      ),
-                    ),
+                              if (info.sessions.isEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    l10n.teacherClassSessionsHintEmpty,
+                                    style: tt.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                     const SizedBox(height: 14),
                     Row(
                       children: [
@@ -297,16 +342,15 @@ class _TeacherStudentDetailScreenState
                     ),
                     const SizedBox(height: 10),
                     FilledButton.icon(
-                      onPressed:
-                          _savingSessions ? null : () => _saveSessions(l10n),
-                      icon: _savingSessions
+                      onPressed: _savingNote ? null : () => _saveNote(l10n),
+                      icon: _savingNote
                           ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.save_rounded),
-                      label: Text(l10n.teacherSessionSave),
+                      label: Text(l10n.teacherSessionSaveNote),
                     ),
                   ],
                 ),
@@ -439,7 +483,6 @@ class _GrammarTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(teacherStudentGrammarResultsProvider(studentId));
 
     return async.when(
@@ -458,65 +501,17 @@ class _GrammarTab extends ConsumerWidget {
           return Center(child: Text(l10n.teacherNoResults));
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
           itemCount: rows.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, i) {
             final r = rows[i];
-            final pct = (r.score != null &&
-                    r.totalQuestions != null &&
-                    r.totalQuestions! > 0)
-                ? ((r.score! / r.totalQuestions!) * 100).round()
-                : null;
-            return Card(
-              elevation: 0,
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                  color: scheme.outlineVariant.withValues(alpha: 0.45),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      r.quizName.isNotEmpty ? r.quizName : l10n.grammarAppBar,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (r.score != null && r.totalQuestions != null) ...[
-                      Text(
-                        l10n.vocabQuizResultScoreLine(r.score!, r.totalQuestions!),
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      if (pct != null)
-                        Text(
-                          '$pct%',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                        ),
-                    ],
-                    const SizedBox(height: 6),
-                    Text(
-                      _teacherFormatDate(
-                        context,
-                        r.createdAt.isNotEmpty ? r.createdAt : null,
-                      ),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
+            return InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => context.push('/grammar/result/${r.id}'),
+              child: GrammarPracticeResultCard(
+                r: r,
+                style: GrammarPracticeResultCardStyle.personal,
               ),
             );
           },

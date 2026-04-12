@@ -27,7 +27,9 @@ import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/you/you_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
+import '../../features/teacher/teacher_chat_open_args.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
+import '../../features/teacher/teacher_inbox_screen.dart';
 import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_result_detail_screen.dart';
@@ -83,6 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const TeacherDashboardScreen(),
       ),
       GoRoute(
+        path: '/teacher/inbox',
+        builder: (_, __) => const TeacherInboxScreen(),
+      ),
+      GoRoute(
         path: '/teacher/student/:studentId',
         builder: (context, state) {
           final id =
@@ -95,8 +101,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id =
               int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
-          final hint = state.extra is String ? state.extra as String : null;
-          return TeacherChatScreen(studentId: id, peerTitleHint: hint);
+          final extra = state.extra;
+          TeacherChatOpenArgs? peer;
+          String? hint;
+          if (extra is TeacherChatOpenArgs) {
+            peer = extra;
+          } else if (extra is String) {
+            hint = extra;
+          }
+          return TeacherChatScreen(
+            studentId: id,
+            peerTitleHint: hint,
+            teacherPeer: peer,
+          );
         },
       ),
 

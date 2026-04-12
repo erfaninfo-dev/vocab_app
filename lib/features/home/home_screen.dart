@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
-import '../../core/srs/srs_provider.dart';
+import '../../data/models/auth_user.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -13,6 +13,12 @@ import 'home_book_card.dart';
 import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
 import 'series_books_screen.dart';
+
+/// IELTS / General / Students — Students tab for learners and teachers.
+bool homeShowStudentTab(AuthUser? user) {
+  if (user == null) return false;
+  return user.studentAccess || user.isTeacher;
+}
 
 int homePageIndexForTrack(HomeBookTrack track, bool showStudentTab) {
   switch (track) {
@@ -68,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _syncPageToTrack() {
     if (!mounted) return;
     final showStudent =
-        ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+        homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
     final track = ref.read(homeBookTrackProvider);
     final idx = homePageIndexForTrack(track, showStudent);
     if (_pageController.hasClients) {
@@ -82,6 +88,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await api.bustBooksCatalogCache(searchQuery: q);
     ref.invalidate(apiPublicBooksForHomeProvider);
     ref.invalidate(apiStudentBooksForHomeProvider);
+    ref.invalidate(teacherMessagesUnreadFabProvider);
+    ref.invalidate(teacherInboxStudentsProvider);
     await Future.wait([
       ref.read(apiPublicBooksForHomeProvider.future),
       ref.read(apiStudentBooksForHomeProvider.future),
@@ -90,7 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _onHomePageChanged(int index) async {
     final showStudent =
-        ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+        homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
     final track = homeTrackForPageIndex(index, showStudent);
     ref.read(homeBookTrackProvider.notifier).state = track;
     final p = await SharedPreferences.getInstance();
@@ -107,11 +115,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final showStudent =
-        ref.watch(authProvider).valueOrNull?.user.studentAccess == true;
+        homeShowStudentTab(ref.watch(authProvider).valueOrNull?.user);
 
     ref.listen(authProvider, (prev, next) {
-      final can = next.valueOrNull?.user.studentAccess == true;
-      if (can) return;
+      if (homeShowStudentTab(next.valueOrNull?.user)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (!_pageController.hasClients) return;
@@ -121,7 +128,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     });
 
+    final session = ref.watch(authProvider).valueOrNull;
+    final user = session?.user;
+    final showMessageFab = user != null &&
+        (user.isTeacher || user.teacherUserId != null);
+    final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
+    final fabCount = fabUnread.when(
+      data: (v) => v,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: showMessageFab
+          ? _HomeMessageFab(
+              count: fabCount,
+              onPressed: () {
+                final u = session!.user;
+                if (u.isTeacher) {
+                  context.push('/teacher/inbox');
+                } else {
+                  context.push('/you/messages');
+                }
+              },
+            )
+          : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -386,15 +418,15 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
     final raw = p.getString(kHomeBookTrackPrefsKey);
     if (!mounted) return;
     final session = ref.read(authProvider).valueOrNull;
-    final canStudent = session?.user.studentAccess == true;
+    final canStudentTab = homeShowStudentTab(session?.user);
     if (raw == HomeBookTrack.general.name) {
       ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.general;
-    } else if (raw == HomeBookTrack.student.name && canStudent) {
+    } else if (raw == HomeBookTrack.student.name && canStudentTab) {
       ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.student;
     }
     if (!mounted) return;
     final t = ref.read(homeBookTrackProvider);
-    final show = ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+    final show = homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!context.mounted) return;
       widget.pageController.jumpToPage(homePageIndexForTrack(t, show));
@@ -407,11 +439,11 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
     final scheme = Theme.of(context).colorScheme;
     final track = ref.watch(homeBookTrackProvider);
     final showStudentSegment =
-        ref.watch(authProvider).valueOrNull?.user.studentAccess == true;
+        homeShowStudentTab(ref.watch(authProvider).valueOrNull?.user);
 
     ref.listen(authProvider, (prev, next) {
-      final can = next.valueOrNull?.user.studentAccess == true;
-      if (!can && ref.read(homeBookTrackProvider) == HomeBookTrack.student) {
+      if (homeShowStudentTab(next.valueOrNull?.user)) return;
+      if (ref.read(homeBookTrackProvider) == HomeBookTrack.student) {
         ref.read(homeBookTrackProvider.notifier).state = HomeBookTrack.ielts;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
@@ -467,7 +499,8 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
           ref.read(homeBookTrackProvider.notifier).state = v;
           final p = await SharedPreferences.getInstance();
           await p.setString(kHomeBookTrackPrefsKey, v.name);
-          final show = ref.read(authProvider).valueOrNull?.user.studentAccess == true;
+          final show =
+              homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
           final idx = homePageIndexForTrack(v, show);
           if (widget.pageController.hasClients) {
             await widget.pageController.animateToPage(
@@ -871,72 +904,33 @@ class _GrammarPracticeBanner extends StatelessWidget {
 // ───────────────────── Review Banner ─────────────────────
 
 // ignore: unused_element
-class _ReviewBanner extends ConsumerWidget {
-  const _ReviewBanner();
+class _HomeMessageFab extends StatelessWidget {
+  const _HomeMessageFab({
+    required this.count,
+    required this.onPressed,
+  });
+
+  final int count;
+  final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final dueCount = ref.watch(
-      srsProvider.select((s) => s.dueTodayCount),
-    );
-
-    if (dueCount == 0) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.go('/review'),
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.orange.shade400,
-                  Colors.deepOrange.shade400,
-                ],
-              ),
-            ),
-            child: Row(
-              children: [
-                const Text('🔁', style: TextStyle(fontSize: 28)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reviewWordsDue(dueCount),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Text(
-                        l10n.reviewTapStart,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ],
-            ),
-          ),
-        ),
+    final scheme = Theme.of(context).colorScheme;
+    return Badge(
+      isLabelVisible: count > 0,
+      backgroundColor: scheme.error,
+      textColor: scheme.onError,
+      label: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+      ),
+      child: FloatingActionButton(
+        onPressed: onPressed,
+        tooltip: l10n.teacherStudentChat,
+        child: const Icon(Icons.chat_rounded),
       ),
     );
   }
 }
+
