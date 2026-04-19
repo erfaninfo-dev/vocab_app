@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'IELTS Essential Words';
+  String get appTitle => 'Erfan Academy';
 
   @override
   String get tabHome => 'Home';
@@ -398,7 +398,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkCopied => 'Link copied to clipboard';
 
   @override
-  String get appNameShort => 'IELTS Words';
+  String get appNameShort => 'Erfan Academy';
 
   @override
   String get byAuthor => 'By Erfan Abdi';
@@ -641,7 +641,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryAgain => 'Try Again';
 
   @override
-  String get changeMode => 'Change Mode';
+  String get backToQuiz => 'Back to quiz';
 
   @override
   String get backToWords => 'Back to Words';
@@ -669,6 +669,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quizWrongBlankIntro => 'Wrong (blank).';
+
+  @override
+  String get quizWrittenFirstLetterMismatch =>
+      'Wrong first letter — the answer doesn’t start with that.';
 
   @override
   String get removedFromMistakes => 'Removed from your mistake list';
@@ -817,10 +821,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherTabGrammar => 'Grammar';
 
   @override
+  String get teacherTabClassSessions => 'Class sessions';
+
+  @override
+  String get teacherClassSessionsTabSubtitle =>
+      'Add sessions with one tap, adjust date and time when needed, or remove an entry. Students see this list in read-only form.';
+
+  @override
+  String teacherClassSessionHeading(int number) {
+    return 'Session $number';
+  }
+
+  @override
+  String get teacherClassSessionEdit => 'Edit';
+
+  @override
+  String get teacherClassSessionDelete => 'Remove';
+
+  @override
+  String get teacherClassSessionDeleteConfirmTitle => 'Remove this session?';
+
+  @override
+  String get teacherClassSessionDeleteConfirmBody => 'This cannot be undone.';
+
+  @override
+  String get teacherClassSessionDeleted => 'Session removed';
+
+  @override
+  String get teacherClassSessionEditTitle => 'Date & time';
+
+  @override
+  String get teacherClassSessionAdded => 'Session added';
+
+  @override
   String get teacherClassSessions => 'Class sessions';
 
   @override
   String get teacherClassSessionAddTooltip => 'Add a class session';
+
+  @override
+  String get teacherClassSessionsAddButton => 'Add session';
+
+  @override
+  String get teacherClassSessionDateFieldLabel => 'Date';
+
+  @override
+  String get teacherClassSessionTimeFieldLabel => 'Time';
 
   @override
   String get youClassSessionsTitle => 'Class sessions';
@@ -831,6 +877,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youClassSessionsEmpty => 'No sessions recorded yet.';
+
+  @override
+  String get studentPanelTitle => 'Your class';
+
+  @override
+  String get studentPanelFabTooltip => 'Open class panel';
+
+  @override
+  String get studentPanelHeadline =>
+      'Teacher, sessions, and messages in one place.';
+
+  @override
+  String get studentPanelStatUnread => 'Unread';
 
   @override
   String get teacherClassSessionsHintEmpty =>
@@ -868,6 +927,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bookQuizSetupIntro =>
       'Choose units, how many questions, and whether to drill past mistakes.';
+
+  @override
+  String get bookQuizWordPoolTitle => 'Word pool';
 
   @override
   String get unitsSectionTitle => 'Units';
@@ -951,6 +1013,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsMyProgress => 'My Progress';
+
+  @override
+  String get statsTabVocab => 'Vocab';
+
+  @override
+  String get statsTabGrammar => 'Grammar';
+
+  @override
+  String get statsTabProgress => 'Progress';
 
   @override
   String get wordMastery => 'Word Mastery';

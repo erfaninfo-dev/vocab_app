@@ -1,11 +1,11 @@
 {
-    "name": "ielts_vocab_app",
-    "short_name": "ielts_vocab_app",
+    "name": "Erfan Academy",
+    "short_name": "Erfan Academy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Erfan Academy — IELTS vocabulary learning.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -3,20 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/auth/auth_provider.dart';
 import '../../core/stats/stats_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../grammar/grammar_results_screen.dart';
+import '../vocab_quiz/vocab_quiz_history_screen.dart';
 
-class StatsScreen extends ConsumerWidget {
+class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final stats   = ref.watch(statsProvider);
-    final mastery = ref.watch(wordMasteryProvider);
-    final loggedIn = ref.watch(authProvider).valueOrNull != null;
-    final scheme  = Theme.of(context).colorScheme;
+  ConsumerState<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends ConsumerState<StatsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final tt = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -25,87 +44,120 @@ class StatsScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(l10n.statsMyProgress),
-      ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              scheme.primary.withOpacity(0.07),
-              scheme.surface,
-            ],
-          ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          children: [
-            // ── Streak card ───────────────────────────────────────────────────
-            _StreakCard(
-              l10n: l10n,
-              current: stats.currentStreak,
-              longest: stats.longestStreak,
-              totalDays: stats.totalStudyDays,
-              studiedToday: stats.studiedToday,
-            ),
-
-            const SizedBox(height: 14),
-
-            // ── Word mastery ──────────────────────────────────────────────────
-            _SectionLabel(l10n.wordMastery),
-            const SizedBox(height: 8),
-            _MasteryCard(l10n: l10n, mastery: mastery),
-
-            const SizedBox(height: 14),
-
-            // ── Weekly chart ──────────────────────────────────────────────────
-            _SectionLabel(l10n.last7Days),
-            const SizedBox(height: 8),
-            _WeeklyChart(l10n: l10n, days: stats.last7Days),
-
-            const SizedBox(height: 14),
-
-            // ── Vocabulary + Grammar charts (unified) ─────────────────────────
-            _SectionLabel(l10n.quizInsights),
-            const SizedBox(height: 8),
-            _QuizInsightsEntryCard(
-              l10n: l10n,
-              scheme: scheme,
-              vocabAccuracy: stats.quizAccuracy,
-              vocabAnswered: stats.totalQuizAnswered,
-              vocabCorrect: stats.totalQuizCorrect,
-            ),
-
-            if (loggedIn) ...[
-              const SizedBox(height: 14),
-              _SectionLabel(l10n.vocabQuizHistoryTitle),
-              const SizedBox(height: 8),
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    Icons.history_edu_rounded,
-                    color: scheme.primary,
-                  ),
-                  title: Text(l10n.vocabQuizHistoryTitle),
-                  subtitle: Text(l10n.vocabQuizHistorySubtitle),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/vocab-quiz/history'),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 14),
-
-            // ── Totals ────────────────────────────────────────────────────────
-            _SectionLabel(l10n.allTime),
-            const SizedBox(height: 8),
-            _TotalsRow(
-              l10n: l10n,
-              wordsReviewed: stats.totalWordsReviewed,
-              studyDays: stats.totalStudyDays,
-            ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorWeight: 3,
+          labelStyle: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          unselectedLabelStyle:
+              tt.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+          labelColor: scheme.primary,
+          unselectedLabelColor: scheme.onSurfaceVariant,
+          dividerColor: scheme.outlineVariant.withValues(alpha: 0.35),
+          tabs: [
+            Tab(text: l10n.statsTabVocab),
+            Tab(text: l10n.statsTabGrammar),
+            Tab(text: l10n.statsTabProgress),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _StatsTabScaffold(
+            child: const VocabQuizHistoryBody(),
+          ),
+          _StatsTabScaffold(
+            child: const GrammarStatsTabPanel(),
+          ),
+          const _StatsProgressTab(),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsTabScaffold extends StatelessWidget {
+  const _StatsTabScaffold({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scheme.primary.withOpacity(0.07),
+            scheme.surface,
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _StatsProgressTab extends ConsumerWidget {
+  const _StatsProgressTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(statsProvider);
+    final mastery = ref.watch(wordMasteryProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scheme.primary.withOpacity(0.07),
+            scheme.surface,
+          ],
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          _StreakCard(
+            l10n: l10n,
+            current: stats.currentStreak,
+            longest: stats.longestStreak,
+            totalDays: stats.totalStudyDays,
+            studiedToday: stats.studiedToday,
+          ),
+          const SizedBox(height: 14),
+          _SectionLabel(l10n.wordMastery),
+          const SizedBox(height: 8),
+          _MasteryCard(l10n: l10n, mastery: mastery),
+          const SizedBox(height: 14),
+          _SectionLabel(l10n.last7Days),
+          const SizedBox(height: 8),
+          _WeeklyChart(l10n: l10n, days: stats.last7Days),
+          const SizedBox(height: 14),
+          _SectionLabel(l10n.quizInsights),
+          const SizedBox(height: 8),
+          _QuizInsightsEntryCard(
+            l10n: l10n,
+            scheme: scheme,
+            vocabAccuracy: stats.quizAccuracy,
+            vocabAnswered: stats.totalQuizAnswered,
+            vocabCorrect: stats.totalQuizCorrect,
+          ),
+          const SizedBox(height: 14),
+          _SectionLabel(l10n.allTime),
+          const SizedBox(height: 8),
+          _TotalsRow(
+            l10n: l10n,
+            wordsReviewed: stats.totalWordsReviewed,
+            studyDays: stats.totalStudyDays,
+          ),
+        ],
       ),
     );
   }
@@ -119,13 +171,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    label.toUpperCase(),
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      letterSpacing: 1.4,
-      fontWeight: FontWeight.w700,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    ),
-  );
+        label.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              letterSpacing: 1.4,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      );
 }
 
 // ─── Quiz insights entry → /stats/insights ────────────────────────────────────
@@ -372,9 +424,9 @@ class _MasteryCard extends StatelessWidget {
                 Text(
                   '${mastery.mastered}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.green.shade600,
-                  ),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green.shade600,
+                      ),
                 ),
               ],
             ),
@@ -383,9 +435,7 @@ class _MasteryCard extends StatelessWidget {
               value: total == 0 ? 0 : mastery.mastered / total,
               color: Colors.green.shade400,
             ),
-
             const SizedBox(height: 12),
-
             Row(
               children: [
                 _MasteryDot(color: Colors.orange.shade400),
@@ -395,9 +445,9 @@ class _MasteryCard extends StatelessWidget {
                 Text(
                   '${mastery.learning}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.orange.shade600,
-                  ),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orange.shade600,
+                      ),
                 ),
               ],
             ),
@@ -406,9 +456,7 @@ class _MasteryCard extends StatelessWidget {
               value: total == 0 ? 0 : mastery.learning / total,
               color: Colors.orange.shade400,
             ),
-
             const SizedBox(height: 12),
-
             Row(
               children: [
                 _MasteryDot(color: scheme.primary.withOpacity(0.6)),
@@ -418,9 +466,9 @@ class _MasteryCard extends StatelessWidget {
                 Text(
                   '${mastery.seen}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: scheme.primary,
-                  ),
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
+                      ),
                 ),
               ],
             ),
@@ -429,15 +477,14 @@ class _MasteryCard extends StatelessWidget {
               value: total == 0 ? 0 : mastery.seen / total,
               color: scheme.primary.withOpacity(0.5),
             ),
-
             if (total > 0) ...[
               const SizedBox(height: 14),
               Center(
                 child: Text(
                   l10n.statsWordsStudiedTotal(total),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                 ),
               ),
             ],
@@ -454,10 +501,10 @@ class _MasteryDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 10,
-    height: 10,
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-  );
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
 }
 
 class _MasteryBar extends StatelessWidget {
@@ -490,7 +537,8 @@ class _WeeklyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final maxWords = days.map((d) => d.wordsReviewed).fold(0, (a, b) => a > b ? a : b);
+    final maxWords =
+        days.map((d) => d.wordsReviewed).fold(0, (a, b) => a > b ? a : b);
     final maxVal = maxWords == 0 ? 1 : maxWords;
 
     return Card(
@@ -502,17 +550,19 @@ class _WeeklyChart extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 10, height: 10,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: scheme.primary, shape: BoxShape.circle,
+                    color: scheme.primary,
+                    shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   l10n.wordsReviewedPerDay,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),
@@ -676,17 +726,17 @@ class _StatBox extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: color,
-              ),
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                  ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
           ],
         ),

@@ -55,7 +55,7 @@ class IeltsVocabApp extends ConsumerWidget {
         : uiLocale;
 
     return MaterialApp.router(
-      title: 'IELTS Essential Words',
+      title: 'Erfan Academy',
       debugShowCheckedModeBanner: false,
       locale: materialLocale,
       supportedLocales: AppLocalizations.supportedLocales,

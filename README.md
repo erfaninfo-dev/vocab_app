@@ -1,4 +1,4 @@
-# IELTS Essential Words App
+# Erfan Academy
 
 Flutter app for IELTS vocabulary learning with:
 - Unit-first navigation (`Unit 1`, `Unit 2`, ...)

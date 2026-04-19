@@ -11,8 +11,8 @@ import '../../data/models/vocab_quiz_result.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../grammar/grammar_practice_result_card.dart';
-import '../you/class_sessions_strip.dart';
 import 'teacher_chat_open_args.dart';
+import 'teacher_class_sessions_panel.dart';
 
 String _teacherUnitsCsv(List<int> units) {
   if (units.isEmpty) return '—';
@@ -29,6 +29,14 @@ String _teacherFormatDate(BuildContext context, String? raw) {
   return DateFormat.yMMMd(loc).add_Hm().format(dt.toLocal());
 }
 
+bool _omitVocabQuizTypeLine(String? rawQuizName, AppLocalizations l10n) {
+  final n = rawQuizName?.trim();
+  if (n == null || n.isEmpty) return true;
+  if (n == l10n.vocabularyQuizTitle) return true;
+  if (n == 'Vocabulary quiz') return true;
+  return false;
+}
+
 class TeacherStudentDetailScreen extends ConsumerStatefulWidget {
   const TeacherStudentDetailScreen({super.key, required this.studentId});
 
@@ -43,21 +51,16 @@ class _TeacherStudentDetailScreenState
     extends ConsumerState<TeacherStudentDetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  final _noteCtrl = TextEditingController();
-  var _noteHydrated = false;
-  var _savingNote = false;
-  var _addingSession = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -70,80 +73,10 @@ class _TeacherStudentDetailScreenState
     return null;
   }
 
-  Future<void> _saveNote(AppLocalizations l10n) async {
-    setState(() => _savingNote = true);
-    try {
-      await ref.read(apiServiceProvider).updateTeacherStudentNote(
-            studentId: widget.studentId,
-            note: _noteCtrl.text,
-          );
-      ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
-      ref.invalidate(teacherStudentsProvider);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.teacherSessionUpdated)),
-      );
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(userFriendlyErrorMessage(e, l10n)),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _savingNote = false);
-      }
-    }
-  }
-
-  Future<void> _addSession(AppLocalizations l10n) async {
-    setState(() => _addingSession = true);
-    try {
-      await ref.read(apiServiceProvider).addTeacherClassSession(widget.studentId);
-      ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
-      ref.invalidate(teacherStudentsProvider);
-      if (!mounted) {
-        return;
-      }
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(userFriendlyErrorMessage(e, l10n)),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _addingSession = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final session = ref.watch(authProvider).valueOrNull;
-
-    ref.listen(
-      teacherStudentSessionsProvider(widget.studentId),
-      (prev, next) {
-        next.whenData((info) {
-          if (!_noteHydrated && mounted) {
-            _noteHydrated = true;
-            _noteCtrl.text = info.note ?? '';
-          }
-        });
-      },
-    );
 
     if (session == null || !session.user.isTeacher) {
       return Scaffold(
@@ -195,168 +128,53 @@ class _TeacherStudentDetailScreenState
           controller: _tabController,
           tabs: [
             Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.quiz_outlined, size: 20),
-                  const SizedBox(width: 8),
-                  Text(l10n.teacherTabVocabQuiz),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.quiz_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.teacherTabVocabQuiz),
+                  ],
+                ),
               ),
             ),
             Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.rule_outlined, size: 20),
-                  const SizedBox(width: 8),
-                  Text(l10n.teacherTabGrammar),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.rule_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.teacherTabGrammar),
+                  ],
+                ),
+              ),
+            ),
+            Tab(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.event_available_rounded, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.teacherTabClassSessions),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _VocabTab(studentId: widget.studentId),
-                _GrammarTab(studentId: widget.studentId),
-              ],
-            ),
-          ),
-          Material(
-            elevation: 8,
-            shadowColor: Colors.black26,
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.event_available_rounded,
-                          color: scheme.primary,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.teacherClassSessions,
-                          style: tt.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ref
-                        .watch(teacherStudentSessionsProvider(widget.studentId))
-                        .when(
-                          loading: () => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: scheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  l10n.teacherClassSessions,
-                                  style: tt.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          error: (e, _) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              userFriendlyErrorMessage(e, l10n),
-                              style: tt.bodySmall?.copyWith(color: scheme.error),
-                            ),
-                          ),
-                          data: (info) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ClassSessionsStrip(
-                                sessions: info.sessions,
-                                readOnly: false,
-                                onAdd: () => _addSession(l10n),
-                                isAdding: _addingSession,
-                              ),
-                              if (info.sessions.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(
-                                    l10n.teacherClassSessionsHintEmpty,
-                                    style: tt.labelSmall?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.sticky_note_2_outlined,
-                          color: scheme.secondary,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.teacherNoteLabel,
-                          style: tt.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _noteCtrl,
-                      minLines: 2,
-                      maxLines: 5,
-                      maxLength: 8000,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: l10n.teacherNotePlaceholder,
-                        border: const OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton.icon(
-                      onPressed: _savingNote ? null : () => _saveNote(l10n),
-                      icon: _savingNote
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_rounded),
-                      label: Text(l10n.teacherSessionSaveNote),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          _VocabTab(studentId: widget.studentId),
+          _GrammarTab(studentId: widget.studentId),
+          TeacherClassSessionsPanel(studentId: widget.studentId),
         ],
       ),
     );
@@ -399,10 +217,7 @@ class _VocabTab extends ConsumerWidget {
                 (r.bookTitle != null && r.bookTitle!.trim().isNotEmpty)
                     ? r.bookTitle!.trim()
                     : 'Book #${r.bookId}';
-            final quizTitle = (r.quizName != null &&
-                    r.quizName!.trim().isNotEmpty)
-                ? r.quizName!.trim()
-                : l10n.vocabularyQuizTitle;
+            final omitQuizType = _omitVocabQuizTypeLine(r.quizName, l10n);
             return Card(
               elevation: 0,
               color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
@@ -417,13 +232,15 @@ class _VocabTab extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      quizTitle,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
+                    if (!omitQuizType) ...[
+                      Text(
+                        r.quizName!.trim(),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     Text(
                       bookTitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(

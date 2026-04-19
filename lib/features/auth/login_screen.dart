@@ -124,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     final buf = StringBuffer()
                       ..writeln('سلام،')
                       ..writeln(
-                        'درخواست بازنشانی رمز عبور برای اپ «IELTS Essential Words» دارم.',
+                        'درخواست بازنشانی رمز عبور برای اپ «Erfan Academy» دارم.',
                       );
                     if (emailHint.isNotEmpty) {
                       buf.writeln('ایمیل ثبت‌نام: $emailHint');

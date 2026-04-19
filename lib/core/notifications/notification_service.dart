@@ -20,7 +20,7 @@ final _plugin = FlutterLocalNotificationsPlugin();
 Future<void> initNotifications() async {
   tz.initializeTimeZones();
 
-  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const androidSettings = AndroidInitializationSettings('@mipmap/app_icon');
   const initSettings = InitializationSettings(android: androidSettings);
   await _plugin.initialize(initSettings);
 }
@@ -109,16 +109,16 @@ class NotifNotifier extends StateNotifier<NotifSettings> {
 
     const androidDetails = AndroidNotificationDetails(
       'ielts_daily',
-      'Daily Study Reminder',
-      channelDescription: 'Reminds you to review IELTS vocabulary',
+      'Erfan Academy',
+      channelDescription: 'Daily vocabulary review reminders',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: '@mipmap/app_icon',
     );
 
     await _plugin.zonedSchedule(
       _notifId,
-      '📚 IELTS Study Time!',
+      '📚 Erfan Academy — Study time!',
       'You have words to review. Keep your streak going!',
       scheduled,
       const NotificationDetails(android: androidDetails),

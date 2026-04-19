@@ -7,8 +7,25 @@ import '../../core/auth/auth_provider.dart';
 import '../../data/models/teacher_message.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
-import 'class_sessions_strip.dart';
+import 'student_class_sessions_screen.dart';
 import 'you_account_section.dart';
+
+BoxDecoration _youPanelCardDecoration(ColorScheme scheme) {
+  return BoxDecoration(
+    color: scheme.surface,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: scheme.outlineVariant.withValues(alpha: 0.5),
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: scheme.shadow.withValues(alpha: 0.04),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
+}
 
 class YouScreen extends ConsumerWidget {
   const YouScreen({super.key});
@@ -23,15 +40,16 @@ class YouScreen extends ConsumerWidget {
     final previewAsync = ref.watch(teacherMessagesPreviewProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.youPageTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.youPageTitle)),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [scheme.primary.withOpacity(0.06), scheme.surface],
+            colors: [
+              scheme.primary.withValues(alpha: 0.06),
+              scheme.surface,
+            ],
           ),
         ),
         child: ListView(
@@ -40,109 +58,38 @@ class YouScreen extends ConsumerWidget {
             const YouAccountSection(),
             const SizedBox(height: 16),
             _SectionLabel(label: l10n.youSectionProgress),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: scheme.primaryContainer,
-                  child: Icon(
-                    Icons.bar_chart_rounded,
-                    color: scheme.onPrimaryContainer,
-                  ),
-                ),
-                title: Text(l10n.statsMyProgress),
-                subtitle: Text(l10n.youSectionProgressSubtitle),
-                trailing: Icon(
-                  Icons.chevron_right_rounded,
-                  color: scheme.onSurfaceVariant,
-                ),
-                onTap: () => context.push('/stats'),
-              ),
+            const SizedBox(height: 8),
+            _YouProgressInkCard(
+              scheme: scheme,
+              l10n: l10n,
+              onTap: () => context.push('/stats'),
             ),
             if (!isTeacher && hasTeacher) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _SectionLabel(label: l10n.youClassSessionsTitle),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.youClassSessionsSubtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      ref.watch(myClassSessionsProvider).when(
-                        loading: () => const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                        error: (_, __) => ListTile(
-                          leading: Icon(
-                            Icons.error_outline_rounded,
-                            color: scheme.error,
-                          ),
-                          title: Text(l10n.errorGeneric),
-                          onTap: () =>
-                              ref.invalidate(myClassSessionsProvider),
-                        ),
-                        data: (info) => ClassSessionsStrip(
-                          sessions: info.sessions,
-                          readOnly: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 8),
+              StudentClassSessionsPanel(
+                onOpenFullPage: () => context.push('/you/class-sessions'),
               ),
             ],
             if (isTeacher) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _SectionLabel(label: l10n.teacherOpenPanel),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: scheme.tertiaryContainer,
-                    child: Icon(
-                      Icons.dashboard_customize_rounded,
-                      color: scheme.onTertiaryContainer,
-                    ),
-                  ),
-                  title: Text(l10n.teacherOpenPanel),
-                  subtitle: Text(l10n.youTeacherPanelSubtitle),
-                  trailing: Icon(
-                    Icons.chevron_right_rounded,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  onTap: () => context.push('/teacher'),
-                ),
+              const SizedBox(height: 8),
+              _YouTeacherPanelInkCard(
+                scheme: scheme,
+                l10n: l10n,
+                onTap: () => context.push('/teacher'),
               ),
             ],
             if (!isTeacher && session != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _SectionLabel(label: l10n.youSectionMessages),
+              const SizedBox(height: 8),
               if (!hasTeacher)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline_rounded, color: scheme.primary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            l10n.teacherMessagesNoTeacher,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _YouNoTeacherMessagesCard(
+                  scheme: scheme,
+                  l10n: l10n,
                 )
               else
                 previewAsync.when(
@@ -151,25 +98,198 @@ class YouScreen extends ConsumerWidget {
                     preview: p,
                     onOpen: () => context.push('/you/messages'),
                   ),
-                  loading: () => const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
+                  loading: () => Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(22),
+                    decoration: _youPanelCardDecoration(scheme),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                  error: (_, __) => Card(
-                    child: ListTile(
-                      leading: Icon(Icons.error_outline_rounded,
-                          color: scheme.error),
-                      title: Text(l10n.errorGeneric),
+                  error: (_, __) => Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
                       onTap: () =>
                           ref.invalidate(teacherMessagesPreviewProvider),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: _youPanelCardDecoration(scheme),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              color: scheme.error,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.errorGeneric,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _YouProgressInkCard extends StatelessWidget {
+  const _YouProgressInkCard({
+    required this.scheme,
+    required this.l10n,
+    required this.onTap,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.tertiaryContainer,
+                child: Icon(
+                  Icons.insights_rounded,
+                  color: scheme.onTertiaryContainer,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.statsMyProgress, style: tt.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.youSectionProgressSubtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _YouTeacherPanelInkCard extends StatelessWidget {
+  const _YouTeacherPanelInkCard({
+    required this.scheme,
+    required this.l10n,
+    required this.onTap,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.tertiaryContainer,
+                child: Icon(
+                  Icons.dashboard_customize_rounded,
+                  color: scheme.onTertiaryContainer,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.teacherOpenPanel, style: tt.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.youTeacherPanelSubtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _YouNoTeacherMessagesCard extends StatelessWidget {
+  const _YouNoTeacherMessagesCard({
+    required this.scheme,
+    required this.l10n,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: _youPanelCardDecoration(scheme),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: scheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.teacherMessagesNoTeacher,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -210,135 +330,115 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onOpen,
-        borderRadius: BorderRadius.circular(12),
-        child: Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: scheme.secondaryContainer,
-                      child: Icon(
-                        Icons.forum_rounded,
-                        color: scheme.onSecondaryContainer,
-                      ),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: scheme.primaryContainer,
+                    child: Icon(
+                      Icons.chat_bubble_rounded,
+                      color: scheme.onPrimaryContainer,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: tt.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            l10n.youSectionMessagesSubtitle,
-                            style: tt.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (unread > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: scheme.error,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            unread > 99 ? '99+' : '$unread',
-                            style: TextStyle(
-                              color: scheme.onError,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                if (last != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withOpacity(0.65),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: scheme.outlineVariant.withOpacity(0.5),
-                      ),
-                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (timeLabel != null)
-                          Text(
-                            timeLabel,
-                            style: tt.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        if (timeLabel != null) const SizedBox(height: 4),
+                        Text(title, style: tt.titleMedium),
+                        const SizedBox(height: 2),
                         Text(
-                          last.body,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: tt.bodyMedium,
+                          l10n.youSectionMessagesSubtitle,
+                          style: tt.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ] else
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      l10n.teacherMessagesEmpty,
-                      style: tt.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (unread > 0)
-                      Text(
-                        l10n.newMessagesCount(unread),
-                        style: tt.labelMedium?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w700,
+                  if (unread > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.error,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: TextStyle(
+                            color: scheme.onError,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    if (unread > 0) const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: scheme.primary,
-                      size: 22,
                     ),
-                  ],
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              if (last != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.65,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (timeLabel != null)
+                        Text(
+                          timeLabel,
+                          style: tt.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      if (timeLabel != null) const SizedBox(height: 4),
+                      Text(
+                        last.body,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: tt.bodyMedium,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    l10n.teacherMessagesEmpty,
+                    style: tt.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -353,14 +453,14 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      padding: const EdgeInsets.only(left: 4),
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              letterSpacing: 1.4,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+          letterSpacing: 1.3,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

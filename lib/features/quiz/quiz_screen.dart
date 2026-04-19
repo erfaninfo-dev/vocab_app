@@ -15,7 +15,18 @@ import '../../domain/vocab_quiz_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 
-const int kVocabQuizMaxQuestions = 60;
+/// Upper bound for deep-link `?count=` only; UI max is always the live pool size.
+const int kVocabQuizRouteCountCap = 10000;
+
+bool _writtenFirstLetterMismatch(String typed, String correctAnswer) {
+  final left = typed.trimLeft();
+  if (left.isEmpty) return false;
+  final ca = correctAnswer.trim();
+  if (ca.isEmpty) return false;
+  final tFirst = left.characters.first.toLowerCase();
+  final cFirst = ca.characters.first.toLowerCase();
+  return tFirst != cFirst;
+}
 
 // ─── Quiz Mode ────────────────────────────────────────────────────────────────
 
@@ -218,7 +229,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         .toList();
     if (usableDistractors.isEmpty) return [];
 
-    final cap = maxQuestions.clamp(1, kVocabQuizMaxQuestions);
+    final cap = max(1, maxQuestions);
     final selected = modes.isEmpty
         ? <VocabQuestionMode>{VocabQuestionMode.mcqWordToMeaning}
         : {...modes};
@@ -589,7 +600,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final modesCsv = route.uri.queryParameters['modes'];
     _scopeWrongsOnly = scope == 'wrongs';
     if (c != null && c > 0) {
-      _questionBudget = c.clamp(1, kVocabQuizMaxQuestions);
+      _questionBudget = c.clamp(1, kVocabQuizRouteCountCap);
     }
     if (imp == '0' || imp == '1') {
       _routeImportant = imp == '0' ? 0 : 1;
@@ -659,7 +670,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       pool = pool.where((w) => unitFilter.contains(w.unit)).toList();
     }
     if (wrongsOnly) {
-      pool = pool.where((w) => wrongKeys.contains(w.id)).toList();
+      pool = pool
+          .where((w) => wrongKeys.any((k) => w.matchesWrongKey(k)))
+          .toList();
     }
     return pool;
   }
@@ -688,6 +701,54 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       ),
     );
     return res ?? false;
+  }
+
+  int? _firstUnitFromQuery(GoRouterState route) {
+    final unitsCsv = route.uri.queryParameters['units'] ?? '';
+    for (final part in unitsCsv.split(',')) {
+      final v = int.tryParse(part.trim());
+      if (v != null) return v;
+    }
+    return null;
+  }
+
+  void _openWordsList(BuildContext context) {
+    final route = GoRouterState.of(context);
+    if (widget.unit != null) {
+      final u = widget.unit!;
+      final s = widget.section;
+      if (s != null) {
+        context.go('/books/${widget.bookId}/units/$u/sections/$s/words');
+      } else {
+        context.go('/books/${widget.bookId}/units/$u/words');
+      }
+      return;
+    }
+    if (_questions.isNotEmpty) {
+      final e = _questions.first.entry;
+      if (e.section != null) {
+        context.go(
+          '/books/${widget.bookId}/units/${e.unit}/sections/${e.section}/words',
+        );
+      } else {
+        context.go('/books/${widget.bookId}/units/${e.unit}/words');
+      }
+      return;
+    }
+    final u = _firstUnitFromQuery(route);
+    if (u != null) {
+      context.go('/books/${widget.bookId}/units/$u/words');
+      return;
+    }
+    context.go('/books/${widget.bookId}/units');
+  }
+
+  void _backToVocabQuizSetup(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/books/${widget.bookId}/vocab-quiz');
+    }
   }
 
   @override
@@ -769,7 +830,15 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, __) => Center(child: Text(l10n.couldNotLoadMistakes)),
               data: (wrongs) {
-                final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
+                final wrongsForUnits = widget.unit != null
+                    ? wrongs
+                    : (unitFilter.isEmpty
+                        ? wrongs
+                        : wrongs
+                            .where((w) => unitFilter.contains(w.unit))
+                            .toList());
+                final wrongKeys =
+                    wrongsForUnits.map((w) => w.wordKey).toSet();
                 final basePool = _filterPool(
                   words,
                   widget.unit == null ? unitFilter : <int>{},
@@ -840,7 +909,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                 }
 
                 final loggedIn = ref.watch(authProvider).valueOrNull != null;
-                final maxQ = pool.length.clamp(1, kVocabQuizMaxQuestions);
+                final maxQ = pool.length;
                 final minPick = pool.length >= 10 ? 10 : pool.length;
 
                 if (_questions.isEmpty) {
@@ -864,7 +933,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                     selectedModes: selectedModes,
                     poolSize: pool.length,
                     scopeWrongsOnly: _scopeWrongsOnly,
-                    wrongOnServer: wrongs.length,
+                    wrongOnServer: wrongsForUnits.length,
                     questionBudget: _questionBudget.clamp(minPick, maxQ),
                     minQuestionPick: minPick,
                     maxQuestionPick: maxQ,
@@ -895,10 +964,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                       final b = _questionBudget.clamp(minPick, maxQ);
                       _startQuiz(pool, lang, b);
                     },
-                    onChangeMode: () => setState(() {
-                      _questions = [];
-                      _sessionAnswerLog.clear();
-                    }),
+                    onBackToQuiz: () => _backToVocabQuizSetup(context),
+                    onBackToWords: () => _openWordsList(context),
                   );
                 }
 
@@ -1241,16 +1308,27 @@ class _QuizBody extends ConsumerStatefulWidget {
 class _QuizBodyState extends ConsumerState<_QuizBody> {
   late final TtsNotifier _ttsNotifier;
 
+  void _onWrittenTextChanged() {
+    if (!mounted) return;
+    if (widget.answered) return;
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
     _ttsNotifier = ref.read(ttsProvider.notifier);
+    widget.writtenController.addListener(_onWrittenTextChanged);
     _scheduleAutoSpeak();
   }
 
   @override
   void didUpdateWidget(covariant _QuizBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.writtenController != widget.writtenController) {
+      oldWidget.writtenController.removeListener(_onWrittenTextChanged);
+      widget.writtenController.addListener(_onWrittenTextChanged);
+    }
     if (oldWidget.question.entry.id != widget.question.entry.id ||
         oldWidget.question.playsAudio != widget.question.playsAudio) {
       unawaited(_ttsNotifier.stop());
@@ -1260,6 +1338,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
 
   @override
   void dispose() {
+    widget.writtenController.removeListener(_onWrittenTextChanged);
     unawaited(_ttsNotifier.stop());
     super.dispose();
   }
@@ -1406,6 +1485,16 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                   ],
                 ),
               ),
+              if (_writtenFirstLetterMismatch(given, correct)) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.quizWrittenFirstLetterMismatch,
+                  style: body.copyWith(
+                    color: scheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               RichText(
                 text: TextSpan(
@@ -1579,6 +1668,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
             TextField(
               controller: widget.writtenController,
               enabled: !widget.answered,
+              textDirection: TextDirection.ltr,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => widget.onSubmitWritten(),
               decoration: InputDecoration(
@@ -1587,6 +1677,13 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                     : l10n.typeTheWord,
                 hintText: l10n.typeYourAnswer,
                 border: const OutlineInputBorder(),
+                errorText: !widget.answered &&
+                        _writtenFirstLetterMismatch(
+                          widget.writtenController.text,
+                          q.correctAnswer,
+                        )
+                    ? l10n.quizWrittenFirstLetterMismatch
+                    : null,
               ),
             ),
             const SizedBox(height: 10),
@@ -1852,14 +1949,16 @@ class _ResultScreen extends StatelessWidget {
     required this.score,
     required this.total,
     required this.onRetry,
-    required this.onChangeMode,
+    required this.onBackToQuiz,
+    required this.onBackToWords,
   });
 
   final AppLocalizations l10n;
   final int score;
   final int total;
   final VoidCallback onRetry;
-  final VoidCallback onChangeMode;
+  final VoidCallback onBackToQuiz;
+  final VoidCallback onBackToWords;
 
   String get _emoji {
     final pct = score / total;
@@ -1945,9 +2044,9 @@ class _ResultScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: onChangeMode,
-                icon: const Icon(Icons.tune_rounded),
-                label: Text(l10n.changeMode),
+                onPressed: onBackToQuiz,
+                icon: const Icon(Icons.quiz_outlined),
+                label: Text(l10n.backToQuiz),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -1955,7 +2054,7 @@ class _ResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             TextButton.icon(
-              onPressed: () => context.pop(),
+              onPressed: onBackToWords,
               icon: const Icon(Icons.arrow_back_rounded),
               label: Text(l10n.backToWords),
             ),

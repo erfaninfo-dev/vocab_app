@@ -14,6 +14,8 @@ import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
 import 'series_books_screen.dart';
 
+const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
+
 /// IELTS / General / Students — Students tab for learners and teachers.
 bool homeShowStudentTab(AuthUser? user) {
   if (user == null) return false;
@@ -142,17 +144,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: showMessageFab
-          ? _HomeMessageFab(
-              count: fabCount,
-              onPressed: () {
-                final u = session!.user;
-                if (u.isTeacher) {
-                  context.push('/teacher/inbox');
-                } else {
-                  context.push('/you/messages');
-                }
-              },
-            )
+          ? session!.user.isTeacher
+              ? _HomeMessageFab(
+                  count: fabCount,
+                  onPressed: () => context.push('/teacher/inbox'),
+                )
+              : _HomeStudentPanelFab(
+                  count: fabCount,
+                  onPressed: () => context.go('/you'),
+                )
           : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -927,8 +927,42 @@ class _HomeMessageFab extends StatelessWidget {
       ),
       child: FloatingActionButton(
         onPressed: onPressed,
+        backgroundColor: _kHomeFabHappyBlue,
+        foregroundColor: Colors.white,
         tooltip: l10n.teacherStudentChat,
         child: const Icon(Icons.chat_rounded),
+      ),
+    );
+  }
+}
+
+class _HomeStudentPanelFab extends StatelessWidget {
+  const _HomeStudentPanelFab({
+    required this.count,
+    required this.onPressed,
+  });
+
+  final int count;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Badge(
+      isLabelVisible: count > 0,
+      backgroundColor: scheme.error,
+      textColor: scheme.onError,
+      label: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+      ),
+      child: FloatingActionButton(
+        onPressed: onPressed,
+        backgroundColor: _kHomeFabHappyBlue,
+        foregroundColor: Colors.white,
+        tooltip: l10n.studentPanelFabTooltip,
+        child: const Icon(Icons.space_dashboard_rounded),
       ),
     );
   }
