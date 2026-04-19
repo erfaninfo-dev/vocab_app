@@ -180,41 +180,51 @@ class VocabQuizResultDetailScreen extends ConsumerWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    it.word,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                                Icon(
-                                  ok
-                                      ? Icons.check_circle_rounded
-                                      : Icons.cancel_rounded,
-                                  color: ok
-                                      ? Colors.green.shade700
-                                      : Colors.red.shade600,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  ok
-                                      ? l10n.vocabQuizResultCorrect
-                                      : l10n.vocabQuizResultIncorrect,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
+                            Text(
+                              it.word,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    ok
+                                        ? Icons.check_circle_rounded
+                                        : Icons.cancel_rounded,
                                     color: ok
-                                        ? Colors.green.shade800
-                                        : Colors.red.shade800,
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade600,
+                                    size: ok ? 22 : 17,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    ok
+                                        ? l10n.vocabQuizResultCorrect
+                                        : l10n.vocabQuizResultIncorrect,
+                                    style: ok
+                                        ? TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.green.shade800,
+                                          )
+                                        : Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.red.shade800,
+                                              fontSize: 12.5,
+                                            ),
+                                  ),
+                                ],
+                              ),
                             ),
                             if (!ok && it.given.isNotEmpty) ...[
                               const SizedBox(height: 8),

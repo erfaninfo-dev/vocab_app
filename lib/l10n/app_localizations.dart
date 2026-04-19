@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'IELTS Essential Words'**
+  /// **'Erfan Academy'**
   String get appTitle;
 
   /// No description provided for @tabHome.
@@ -769,7 +769,7 @@ abstract class AppLocalizations {
   /// No description provided for @appNameShort.
   ///
   /// In en, this message translates to:
-  /// **'IELTS Words'**
+  /// **'Erfan Academy'**
   String get appNameShort;
 
   /// No description provided for @byAuthor.
@@ -1162,11 +1162,11 @@ abstract class AppLocalizations {
   /// **'Try Again'**
   String get tryAgain;
 
-  /// No description provided for @changeMode.
+  /// No description provided for @backToQuiz.
   ///
   /// In en, this message translates to:
-  /// **'Change Mode'**
-  String get changeMode;
+  /// **'Back to quiz'**
+  String get backToQuiz;
 
   /// No description provided for @backToWords.
   ///
@@ -1209,6 +1209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wrong (blank).'**
   String get quizWrongBlankIntro;
+
+  /// No description provided for @quizWrittenFirstLetterMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong first letter — the answer doesn’t start with that.'**
+  String get quizWrittenFirstLetterMismatch;
 
   /// No description provided for @removedFromMistakes.
   ///
@@ -1456,6 +1462,66 @@ abstract class AppLocalizations {
   /// **'Grammar'**
   String get teacherTabGrammar;
 
+  /// No description provided for @teacherTabClassSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Class sessions'**
+  String get teacherTabClassSessions;
+
+  /// No description provided for @teacherClassSessionsTabSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add sessions with one tap, adjust date and time when needed, or remove an entry. Students see this list in read-only form.'**
+  String get teacherClassSessionsTabSubtitle;
+
+  /// No description provided for @teacherClassSessionHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Session {number}'**
+  String teacherClassSessionHeading(int number);
+
+  /// No description provided for @teacherClassSessionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get teacherClassSessionEdit;
+
+  /// No description provided for @teacherClassSessionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get teacherClassSessionDelete;
+
+  /// No description provided for @teacherClassSessionDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this session?'**
+  String get teacherClassSessionDeleteConfirmTitle;
+
+  /// No description provided for @teacherClassSessionDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get teacherClassSessionDeleteConfirmBody;
+
+  /// No description provided for @teacherClassSessionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Session removed'**
+  String get teacherClassSessionDeleted;
+
+  /// No description provided for @teacherClassSessionEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & time'**
+  String get teacherClassSessionEditTitle;
+
+  /// No description provided for @teacherClassSessionAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Session added'**
+  String get teacherClassSessionAdded;
+
   /// No description provided for @teacherClassSessions.
   ///
   /// In en, this message translates to:
@@ -1467,6 +1533,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a class session'**
   String get teacherClassSessionAddTooltip;
+
+  /// No description provided for @teacherClassSessionsAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add session'**
+  String get teacherClassSessionsAddButton;
+
+  /// No description provided for @teacherClassSessionDateFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get teacherClassSessionDateFieldLabel;
+
+  /// No description provided for @teacherClassSessionTimeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get teacherClassSessionTimeFieldLabel;
 
   /// No description provided for @youClassSessionsTitle.
   ///
@@ -1485,6 +1569,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No sessions recorded yet.'**
   String get youClassSessionsEmpty;
+
+  /// No description provided for @studentPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your class'**
+  String get studentPanelTitle;
+
+  /// No description provided for @studentPanelFabTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open class panel'**
+  String get studentPanelFabTooltip;
+
+  /// No description provided for @studentPanelHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher, sessions, and messages in one place.'**
+  String get studentPanelHeadline;
+
+  /// No description provided for @studentPanelStatUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get studentPanelStatUnread;
 
   /// No description provided for @teacherClassSessionsHintEmpty.
   ///
@@ -1551,6 +1659,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose units, how many questions, and whether to drill past mistakes.'**
   String get bookQuizSetupIntro;
+
+  /// No description provided for @bookQuizWordPoolTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Word pool'**
+  String get bookQuizWordPoolTitle;
 
   /// No description provided for @unitsSectionTitle.
   ///
@@ -1713,6 +1827,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My Progress'**
   String get statsMyProgress;
+
+  /// No description provided for @statsTabVocab.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocab'**
+  String get statsTabVocab;
+
+  /// No description provided for @statsTabGrammar.
+  ///
+  /// In en, this message translates to:
+  /// **'Grammar'**
+  String get statsTabGrammar;
+
+  /// No description provided for @statsTabProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get statsTabProgress;
 
   /// No description provided for @wordMastery.
   ///

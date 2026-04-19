@@ -504,3 +504,19 @@ class _EmptyStateScaffold extends StatelessWidget {
     );
   }
 }
+
+/// Stats → Grammar tab: same list + sort as Grammar results → My results.
+class GrammarStatsTabPanel extends ConsumerWidget {
+  const GrammarStatsTabPanel({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GrammarSortBar(),
+        Expanded(child: _MyResultsTab()),
+      ],
+    );
+  }
+}

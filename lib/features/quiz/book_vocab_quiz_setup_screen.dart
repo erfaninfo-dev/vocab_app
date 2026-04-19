@@ -32,12 +32,11 @@ class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
 class _BookVocabQuizSetupScreenState
     extends ConsumerState<BookVocabQuizSetupScreen> {
   final Set<int> _selectedUnits = {};
-  bool _wrongsOnly = false;
+  bool _filterImportant = false;
+  bool _filterMistakes = false;
   int _questionCount = 20;
   bool _seededUnits = false;
 
-  /// When the selected pool includes important words, quiz can be all words or important-only.
-  bool _quizImportantOnly = false;
   Set<VocabQuestionMode> _questionModes = {VocabQuestionMode.mcqWordToMeaning};
 
   @override
@@ -100,34 +99,50 @@ class _BookVocabQuizSetupScreenState
                 error: (_, __) =>
                     Center(child: Text(l10n.couldNotLoadMistakesShort)),
                 data: (wrongs) {
-                  final wrongKeys = wrongs.map((w) => w.wordKey).toSet();
+                  final wrongsInSelectedUnits = wrongs
+                      .where((w) => _selectedUnits.contains(w.unit))
+                      .toList();
+                  final wrongKeys =
+                      wrongsInSelectedUnits.map((w) => w.wordKey).toList();
+                  final wrongsOnly = _filterMistakes;
+                  final quizImportantOnly = _filterImportant;
+
+                  bool userImp(VocabEntry e) => importantState.isMarked(e);
+                  final allInUnits = allWords
+                      .where((e) => _selectedUnits.contains(e.unit))
+                      .toList();
+                  final hasImportantInSelection = allInUnits.any(userImp);
 
                   List<VocabEntry> basePoolForSelection() {
                     final us = _selectedUnits;
                     var w = allWords.where((e) => us.contains(e.unit)).toList();
-                    if (_wrongsOnly) {
-                      w = w.where((e) => wrongKeys.contains(e.id)).toList();
+                    if (wrongsOnly) {
+                      w = w
+                          .where(
+                            (e) => wrongKeys.any((k) => e.matchesWrongKey(k)),
+                          )
+                          .toList();
                     }
                     return w;
                   }
 
                   final basePool = basePoolForSelection();
-                  bool userImp(VocabEntry e) => importantState.isMarked(e);
-                  final hasImportant = basePool.any(userImp);
-                  final effectivePool = hasImportant && _quizImportantOnly
+                  final effectivePool =
+                      hasImportantInSelection && quizImportantOnly
                       ? basePool.where(userImp).toList()
                       : basePool;
 
-                  final pool = effectivePool.length;
+                  final poolSize = effectivePool.length;
+                  final mistakeCount = wrongsInSelectedUnits.length;
+                  final maxQ = wrongsOnly && mistakeCount > 0
+                      ? math.min(poolSize, mistakeCount)
+                      : poolSize;
                   final needsMcq = _questionModes.any((m) => m.isMcq);
-                  final allInUnits = allWords
-                      .where((e) => _selectedUnits.contains(e.unit))
-                      .toList();
-                  final distractorPool = hasImportant && _quizImportantOnly
+                  final distractorPool =
+                      hasImportantInSelection && quizImportantOnly
                       ? allInUnits.where(userImp).toList()
                       : allInUnits;
-                  final maxQ = pool.clamp(0, 60);
-                  final baseMinQ = pool >= 10 ? 10 : (pool > 0 ? pool : 0);
+                  final baseMinQ = maxQ >= 10 ? 10 : (maxQ > 0 ? maxQ : 0);
                   // Keep min questions >= selected units (when possible).
                   final minByUnits = _selectedUnits.length.clamp(0, maxQ);
                   final minQ = maxQ == 0 ? 0 : math.max(baseMinQ, minByUnits);
@@ -146,10 +161,25 @@ class _BookVocabQuizSetupScreenState
 
                   final canStart = maxQ >= 1 &&
                       (needsMcq
-                          ? (_wrongsOnly
-                              ? (pool >= 1 && distractorPool.length >= 4)
-                              : pool >= 4)
-                          : pool >= 1);
+                          ? (wrongsOnly
+                              ? (poolSize >= 1 &&
+                                  distractorPool.length >= 4)
+                              : poolSize >= 4)
+                          : poolSize >= 1);
+
+                  if (_filterImportant && !hasImportantInSelection) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      setState(() => _filterImportant = false);
+                    });
+                  }
+                  if (_filterMistakes &&
+                      (!loggedIn || wrongsInSelectedUnits.isEmpty)) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      setState(() => _filterMistakes = false);
+                    });
+                  }
 
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -193,61 +223,84 @@ class _BookVocabQuizSetupScreenState
                         ),
                       ),
                       const SizedBox(height: 20),
-                      if (loggedIn) ...[
-                        SwitchListTile(
-                          value: _wrongsOnly,
-                          onChanged: wrongs.isEmpty
-                              ? null
-                              : (v) => setState(() => _wrongsOnly = v),
-                          title: Text(l10n.onlyPastMistakes),
-                          subtitle: Text(
-                            wrongs.isEmpty
-                                ? l10n.noMistakesYet
-                                : l10n.mistakesOnServer(wrongs.length),
+                      Text(
+                        l10n.bookQuizWordPoolTitle,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilterChip(
+                            label: Text(l10n.allWordsChip),
+                            selected:
+                                !_filterImportant && !_filterMistakes,
+                            showCheckmark: false,
+                            onSelected: (v) {
+                              if (v) {
+                                setState(() {
+                                  _filterImportant = false;
+                                  _filterMistakes = false;
+                                });
+                              }
+                            },
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                      ] else ...[
-                        Text(
-                          l10n.signInForMistakes,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (hasImportant) ...[
-                        Text(
-                          l10n.importantWordsSection,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 8),
+                          FilterChip(
+                            avatar: Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 18,
+                              color: !hasImportantInSelection
+                                  ? scheme.onSurfaceVariant
+                                  : _filterImportant
+                                      ? scheme.onSecondaryContainer
+                                      : scheme.primary,
+                            ),
+                            label: Text(l10n.importantOnlyChip),
+                            selected: _filterImportant,
+                            showCheckmark: false,
+                            onSelected: hasImportantInSelection
+                                ? (v) =>
+                                    setState(() => _filterImportant = v)
+                                : null,
+                          ),
+                          FilterChip(
+                            label: Text(
+                              '${l10n.onlyPastMistakes} (${wrongsInSelectedUnits.length})',
+                            ),
+                            selected: _filterMistakes,
+                            showCheckmark: false,
+                            onSelected: loggedIn &&
+                                    wrongsInSelectedUnits.isNotEmpty
+                                ? (v) =>
+                                    setState(() => _filterMistakes = v)
+                                : null,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (quizImportantOnly && hasImportantInSelection)
                         Text(
                           l10n.importantWordsServerHint,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ChoiceChip(
-                              label: Text(l10n.allWordsChip),
-                              selected: !_quizImportantOnly,
-                              onSelected: (_) =>
-                                  setState(() => _quizImportantOnly = false),
-                            ),
-                            ChoiceChip(
-                              label: Text(l10n.importantOnlyChip),
-                              selected: _quizImportantOnly,
-                              onSelected: (_) =>
-                                  setState(() => _quizImportantOnly = true),
-                            ),
-                          ],
+                      if (wrongsOnly && loggedIn && wrongsInSelectedUnits.isEmpty)
+                        Text(
+                          l10n.noMistakesYet,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
-                        const SizedBox(height: 20),
+                      if (!loggedIn) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.signInForMistakes,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
                       ],
+                      const SizedBox(height: 20),
                       Text(
                         l10n.questionModes,
                         style: Theme.of(context).textTheme.titleMedium
@@ -301,13 +354,9 @@ class _BookVocabQuizSetupScreenState
                         onPressed: canStart
                             ? () {
                                 final u = _selectedUnits.toList()..sort();
-                                final scope = _wrongsOnly ? 'wrongs' : 'all';
+                                final scope = wrongsOnly ? 'wrongs' : 'all';
                                 var path =
-                                    '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope';
-                                if (hasImportant) {
-                                  path +=
-                                      '&important=${_quizImportantOnly ? 1 : 0}';
-                                }
+                                    '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${_filterImportant ? 1 : 0}';
                                 final csv =
                                     _questionModes.map((m) => m.name).toList()
                                       ..sort();
@@ -323,11 +372,15 @@ class _BookVocabQuizSetupScreenState
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
-                            pool == 0 && hasImportant && _quizImportantOnly
+                            poolSize == 0 &&
+                                hasImportantInSelection &&
+                                quizImportantOnly
                                 ? l10n.bookQuizPoolTooSmallImportant
-                                : pool == 0 && loggedIn && _wrongsOnly
+                                : poolSize == 0 && loggedIn && wrongsOnly
                                 ? l10n.quizNotEnoughWrongs
-                                : needsMcq && pool > 0 && distractorPool.length < 4
+                                : needsMcq &&
+                                        poolSize > 0 &&
+                                        distractorPool.length < 4
                                 ? l10n.quizNeedFourWords
                                 : l10n.bookQuizPoolTooSmall,
                             style: Theme.of(context).textTheme.bodySmall

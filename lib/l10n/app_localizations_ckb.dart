@@ -9,7 +9,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   AppLocalizationsCkb([String locale = 'ckb']) : super(locale);
 
   @override
-  String get appTitle => 'وشەکانی پێویستی ئایێڵتس';
+  String get appTitle => 'Erfan Academy';
 
   @override
   String get tabHome => 'سەرەکی';
@@ -400,7 +400,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get linkCopied => 'بەستەر لە کلیپبۆرد کۆپی کرا';
 
   @override
-  String get appNameShort => 'وشەکانی ئایێڵتس';
+  String get appNameShort => 'Erfan Academy';
 
   @override
   String get byAuthor => 'لەلایەن عیرفان عەبدی';
@@ -647,7 +647,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get tryAgain => 'دووبارە';
 
   @override
-  String get changeMode => 'گۆڕینی دۆخ';
+  String get backToQuiz => 'گەڕانەوە بۆ تاقیکردنەوە';
 
   @override
   String get backToWords => 'گەڕانەوە بۆ وشەکان';
@@ -675,6 +675,10 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get quizWrongBlankIntro => 'هەڵە ( بەتاڵ ).';
+
+  @override
+  String get quizWrittenFirstLetterMismatch =>
+      'پیتەی یەکەم هەڵەیە؛ وەڵام بەم پیتەیە دەست پێناکات.';
 
   @override
   String get removedFromMistakes => 'لە لیستی هەڵەکانت لابرا';
@@ -825,10 +829,53 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get teacherTabGrammar => 'ڕێزمان';
 
   @override
+  String get teacherTabClassSessions => 'دانیشتنەکان';
+
+  @override
+  String get teacherClassSessionsTabSubtitle =>
+      'دانیشتن بە یەک داگرتن زیاد بکە، کاتەکە ڕاست بکەوە یان سڕینەوە. قوتابی تەنها دەتوانێت لیستەکە ببینێت.';
+
+  @override
+  String teacherClassSessionHeading(int number) {
+    return 'دانیشتن $number';
+  }
+
+  @override
+  String get teacherClassSessionEdit => 'دەستکاری';
+
+  @override
+  String get teacherClassSessionDelete => 'سڕینەوە';
+
+  @override
+  String get teacherClassSessionDeleteConfirmTitle =>
+      'ئەم دانیشتنە بسڕدرێتەوە؟';
+
+  @override
+  String get teacherClassSessionDeleteConfirmBody => 'ناتوانرێت بگەڕێندرێتەوە.';
+
+  @override
+  String get teacherClassSessionDeleted => 'دانیشتن سڕایەوە';
+
+  @override
+  String get teacherClassSessionEditTitle => 'بەروار و کات';
+
+  @override
+  String get teacherClassSessionAdded => 'دانیشتن زیادکرا';
+
+  @override
   String get teacherClassSessions => 'وانەکان';
 
   @override
   String get teacherClassSessionAddTooltip => 'زیادکردنی دانیشتنی پۆل';
+
+  @override
+  String get teacherClassSessionsAddButton => 'زیادکردنی دانیشتن';
+
+  @override
+  String get teacherClassSessionDateFieldLabel => 'بەروار';
+
+  @override
+  String get teacherClassSessionTimeFieldLabel => 'کات';
 
   @override
   String get youClassSessionsTitle => 'دانیشتنەکانی پۆل';
@@ -839,6 +886,19 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get youClassSessionsEmpty => 'هێشتا دانیشتن تۆمار نەکراوە.';
+
+  @override
+  String get studentPanelTitle => 'پانێلی پۆل';
+
+  @override
+  String get studentPanelFabTooltip => 'کردنەوەی پانێلی پۆل';
+
+  @override
+  String get studentPanelHeadline =>
+      'مامۆستا، دانیشتن و پەیامەکان لە یەک شوێن.';
+
+  @override
+  String get studentPanelStatUnread => 'نەخوێندراوە';
 
   @override
   String get teacherClassSessionsHintEmpty =>
@@ -876,6 +936,9 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get bookQuizSetupIntro =>
       'یەکەکان، ژمارەی پرسیار و ڕاهێنان لەسەر هەڵەکانی پێشوو هەڵبژێرە.';
+
+  @override
+  String get bookQuizWordPoolTitle => 'کۆمەڵەی وشەکان';
 
   @override
   String get unitsSectionTitle => 'یەکەکان';
@@ -959,6 +1022,15 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get statsMyProgress => 'پێشکەوتنم';
+
+  @override
+  String get statsTabVocab => 'وشەکان';
+
+  @override
+  String get statsTabGrammar => 'ڕێزمان';
+
+  @override
+  String get statsTabProgress => 'پێشکەوتن';
 
   @override
   String get wordMastery => 'تەواوکردنی وشە';

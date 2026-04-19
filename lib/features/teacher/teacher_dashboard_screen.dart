@@ -177,22 +177,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
                                           color: scheme.onSurfaceVariant,
                                         ),
                                   ),
-                                  if (s.teacherNote != null &&
-                                      s.teacherNote!.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      s.teacherNote!,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: scheme.secondary,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                    ),
-                                  ],
                                 ],
                               ),
                             ),

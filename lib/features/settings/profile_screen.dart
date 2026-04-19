@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart'
     show debugPrint, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -113,13 +112,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _pickAndUpload(ImageSource source) async {
     final l10n = AppLocalizations.of(context)!;
-    final picker = ImagePicker();
-    final x = await picker.pickImage(
-      source: source,
-      maxWidth: 2048,
-      maxHeight: 2048,
-      imageQuality: 90,
-    );
+    XFile? x;
+    try {
+      final picker = ImagePicker();
+      x = await picker.pickImage(
+        source: source,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 90,
+      );
+    } on PlatformException catch (e, st) {
+      debugPrint('ImagePicker: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileUploadFailed)),
+      );
+      return;
+    }
     if (x == null || !mounted) return;
 
     setState(() => _uploadingPhoto = true);
@@ -127,29 +136,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       late final Uint8List raw;
 
       if (_useNativeCropper) {
-        final cropped = await ImageCropper().cropImage(
-          sourcePath: x.path,
-          compressFormat: ImageCompressFormat.jpg,
-          uiSettings: [
-            AndroidUiSettings(
-              toolbarTitle: l10n.profileCropPhoto,
-              toolbarColor: Theme.of(context).colorScheme.surface,
-              toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
-              initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: true,
-            ),
-            IOSUiSettings(
-              title: l10n.profileCropPhoto,
-              aspectRatioLockEnabled: true,
-            ),
-          ],
-        );
-        if (cropped == null || !mounted) {
-          return;
+        try {
+          final cropped = await ImageCropper().cropImage(
+            sourcePath: x.path,
+            compressFormat: ImageCompressFormat.jpg,
+            uiSettings: [
+              AndroidUiSettings(
+                toolbarTitle: l10n.profileCropPhoto,
+                toolbarColor: Theme.of(context).colorScheme.surface,
+                toolbarWidgetColor: Theme.of(context).colorScheme.onSurface,
+                initAspectRatio: CropAspectRatioPreset.square,
+                lockAspectRatio: true,
+              ),
+              IOSUiSettings(
+                title: l10n.profileCropPhoto,
+                aspectRatioLockEnabled: true,
+              ),
+            ],
+          );
+          if (cropped == null || !mounted) {
+            return;
+          }
+          raw = await cropped.readAsBytes();
+        } catch (e, st) {
+          debugPrint('ImageCropper: $e\n$st');
+          raw = await x.readAsBytes();
+          if (raw.isEmpty) {
+            throw Exception('Empty image');
+          }
         }
-        raw = await cropped.readAsBytes();
       } else {
-        // Windows / macOS / Linux / Web: cropper is unsupported or flaky — use picker bytes.
         raw = await x.readAsBytes();
         if (raw.isEmpty) {
           throw Exception('Empty image');
@@ -167,7 +183,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.profilePhotoUpdated)),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Profile photo upload: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

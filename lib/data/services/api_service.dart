@@ -785,6 +785,51 @@ class ApiService {
     return _parseTeacherSessionInfo(map);
   }
 
+  /// POST — delete one class session row by server id.
+  Future<TeacherSessionInfo> deleteTeacherClassSession({
+    required int studentId,
+    required int sessionId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'delete_session_id': sessionId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  /// POST — change [recordedAt] for an existing session (local wall time sent as UTC ISO).
+  Future<TeacherSessionInfo> updateTeacherClassSessionTime({
+    required int studentId,
+    required int sessionId,
+    required DateTime recordedAt,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'update_session': true,
+        'session_id': sessionId,
+        'recorded_at': recordedAt.toUtc().toIso8601String(),
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
   /// GET /my_class_sessions.php — student: read-only session list from teacher.
   Future<TeacherSessionInfo> fetchMyClassSessions() async {
     final uri = Uri.parse('$baseUrl/my_class_sessions.php');

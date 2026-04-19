@@ -26,6 +26,7 @@ import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/you/you_screen.dart';
+import '../../features/you/student_class_sessions_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
@@ -170,6 +171,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/you/messages',
             builder: (_, __) => const TeacherChatScreen(),
+          ),
+          GoRoute(
+            path: '/you/class-sessions',
+            builder: (_, __) => const StudentClassSessionsScreen(),
           ),
           GoRoute(path: '/you', builder: (_, __) => const YouScreen()),
           GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),

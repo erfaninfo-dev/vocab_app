@@ -41,6 +41,23 @@ class VocabEntry {
   String get id =>
       '${bookId.toLowerCase()}|${word.toLowerCase()}|${section ?? 0}-$unit|${meaningFa.toLowerCase()}';
 
+  /// Backward-compatible match for vocab-quiz "wrong" keys stored on server.
+  ///
+  /// Historical keys used [id], which included `meaningFa` and could change when
+  /// translations/content changed. We therefore also accept the legacy *prefix*
+  /// without the meaning part, so existing mistakes still match current words.
+  bool matchesWrongKey(String rawKey) {
+    final key = rawKey.trim();
+    if (key.isEmpty) return false;
+    if (key == id) return true;
+    // Some servers/clients may store the DB row id as the key.
+    if (key == rowId.toString()) return true;
+    final lower = key.toLowerCase();
+    final legacyPrefix =
+        '${bookId.toLowerCase()}|${word.toLowerCase()}|${section ?? 0}-$unit|';
+    return lower.startsWith(legacyPrefix);
+  }
+
   bool matchesQuery(String rawQuery) {
     final query = rawQuery.trim().toLowerCase();
     if (query.isEmpty) return true;

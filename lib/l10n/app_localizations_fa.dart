@@ -9,7 +9,7 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
-  String get appTitle => 'لغات ضروری آیلتس';
+  String get appTitle => 'Erfan Academy';
 
   @override
   String get tabHome => 'خانه';
@@ -399,7 +399,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get linkCopied => 'لینک در کلیپ‌بورد کپی شد';
 
   @override
-  String get appNameShort => 'لغات آیلتس';
+  String get appNameShort => 'Erfan Academy';
 
   @override
   String get byAuthor => 'اثر عرفان عبدی';
@@ -641,7 +641,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tryAgain => 'دوباره';
 
   @override
-  String get changeMode => 'تغییر حالت';
+  String get backToQuiz => 'بازگشت به کوییز';
 
   @override
   String get backToWords => 'بازگشت به لغات';
@@ -669,6 +669,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get quizWrongBlankIntro => 'غلط (خالی).';
+
+  @override
+  String get quizWrittenFirstLetterMismatch =>
+      'حرف اول نادرست است؛ پاسخ با این حرف شروع نمی‌شود.';
 
   @override
   String get removedFromMistakes => 'از لیست اشتباهات شما حذف شد';
@@ -818,10 +822,52 @@ class AppLocalizationsFa extends AppLocalizations {
   String get teacherTabGrammar => 'گرامر';
 
   @override
+  String get teacherTabClassSessions => 'جلسات کلاس';
+
+  @override
+  String get teacherClassSessionsTabSubtitle =>
+      'جلسه را با یک ضربه اضافه کنید، در صورت نیاز تاریخ و ساعت را اصلاح کنید یا یک مورد را حذف کنید. شاگرد این فهرست را فقط به‌صورت مشاهده می‌بیند.';
+
+  @override
+  String teacherClassSessionHeading(int number) {
+    return 'جلسه $number';
+  }
+
+  @override
+  String get teacherClassSessionEdit => 'ویرایش';
+
+  @override
+  String get teacherClassSessionDelete => 'حذف';
+
+  @override
+  String get teacherClassSessionDeleteConfirmTitle => 'این جلسه حذف شود؟';
+
+  @override
+  String get teacherClassSessionDeleteConfirmBody => 'این کار برگشت‌پذیر نیست.';
+
+  @override
+  String get teacherClassSessionDeleted => 'جلسه حذف شد';
+
+  @override
+  String get teacherClassSessionEditTitle => 'تاریخ و ساعت';
+
+  @override
+  String get teacherClassSessionAdded => 'جلسه اضافه شد';
+
+  @override
   String get teacherClassSessions => 'جلسات کلاس';
 
   @override
   String get teacherClassSessionAddTooltip => 'افزودن جلسهٔ کلاس';
+
+  @override
+  String get teacherClassSessionsAddButton => 'افزودن جلسه';
+
+  @override
+  String get teacherClassSessionDateFieldLabel => 'تاریخ';
+
+  @override
+  String get teacherClassSessionTimeFieldLabel => 'ساعت';
 
   @override
   String get youClassSessionsTitle => 'جلسات کلاس';
@@ -832,6 +878,18 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get youClassSessionsEmpty => 'هنوز جلسه‌ای ثبت نشده است.';
+
+  @override
+  String get studentPanelTitle => 'پنل کلاس';
+
+  @override
+  String get studentPanelFabTooltip => 'باز کردن پنل کلاس';
+
+  @override
+  String get studentPanelHeadline => 'استاد، جلسات و پیام‌ها در یک نگاه.';
+
+  @override
+  String get studentPanelStatUnread => 'خوانده‌نشده';
 
   @override
   String get teacherClassSessionsHintEmpty =>
@@ -868,6 +926,9 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get bookQuizSetupIntro =>
       'یونیت‌ها، تعداد سؤال و حالت تمرین روی اشتباهات قبلی را انتخاب کنید.';
+
+  @override
+  String get bookQuizWordPoolTitle => 'محدودهٔ لغات';
 
   @override
   String get unitsSectionTitle => 'یونیت‌ها';
@@ -951,6 +1012,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get statsMyProgress => 'پیشرفت من';
+
+  @override
+  String get statsTabVocab => 'واژگان';
+
+  @override
+  String get statsTabGrammar => 'گرامر';
+
+  @override
+  String get statsTabProgress => 'پیشرفت';
 
   @override
   String get wordMastery => 'تسلط بر لغات';
