@@ -91,7 +91,7 @@ class SeriesBooksScreen extends StatelessWidget {
                           crossAxisCount: crossAxisCount,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: crossAxisCount == 1 ? 1.5 : 1.08,
+                          childAspectRatio: crossAxisCount == 1 ? 2.15 : 1.42,
                         ),
                         itemCount: sortedBooks.length,
                         itemBuilder: (context, index) {

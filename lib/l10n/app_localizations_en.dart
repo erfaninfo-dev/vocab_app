@@ -1648,4 +1648,58 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminUsersTitle => 'User management';
+
+  @override
+  String get adminUserManagement => 'User management';
+
+  @override
+  String get adminSearchUsersHint => 'Search by email or name…';
+
+  @override
+  String get adminStudentAccess => 'Student account';
+
+  @override
+  String get adminAssignedTeacher => 'Class teacher';
+
+  @override
+  String get adminNoTeacher => 'No teacher';
+
+  @override
+  String get adminSave => 'Save';
+
+  @override
+  String get adminUpdated => 'Saved';
+
+  @override
+  String get adminAccessDenied => 'You do not have admin access.';
+
+  @override
+  String get adminTeacherInvalid => 'Pick a valid teacher account.';
+
+  @override
+  String get adminNoUsers => 'No users returned from the server.';
+
+  @override
+  String get adminNoSearchResults => 'No users match this search.';
+
+  @override
+  String get adminRoleTeacher => 'Teacher';
+
+  @override
+  String get adminRoleAdmin => 'Admin';
+
+  @override
+  String get youSectionAdmin => 'Administration';
+
+  @override
+  String get youAdminPanelSubtitle => 'Student access, teachers, and accounts';
+
+  @override
+  String get adminScreenSubtitle => 'Search and tap a user to edit';
+
+  @override
+  String get adminEditUserSheetTitle => 'Edit access';
 }

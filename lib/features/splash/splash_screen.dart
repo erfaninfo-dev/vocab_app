@@ -18,6 +18,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   var _visible = false;
+  static const _logoAssetPath = 'assets/branding/logo.png';
 
   @override
   void initState() {
@@ -106,10 +107,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.auto_stories_rounded,
-                      size: 38,
-                      color: Colors.white,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(26),
+                      child: Image.asset(
+                        _logoAssetPath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Icon(
+                              Icons.auto_stories_rounded,
+                              size: 38,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../../core/cache/api_disk_cache.dart';
+import '../models/admin_user_row.dart';
 import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
@@ -652,6 +653,46 @@ class ApiService {
     }
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// GET /admin_users.php — requires [authToken] and server `is_admin`.
+  Future<List<AdminUserRow>> fetchAdminUsers({String? q}) async {
+    final uri = Uri.parse('$baseUrl/admin_users.php').replace(
+      queryParameters: (q != null && q.trim().isNotEmpty)
+          ? {'q': q.trim()}
+          : null,
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['users'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => AdminUserRow.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /admin_user_student.php — requires admin. Sets student flags in one request.
+  Future<AdminUserRow> adminSetUserStudentFlags({
+    required int userId,
+    required bool studentAccess,
+    int? teacherUserId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/admin_user_student.php');
+    final body = <String, dynamic>{
+      'user_id': userId,
+      'student_access': studentAccess,
+      'teacher_user_id': studentAccess ? teacherUserId : null,
+    };
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return AdminUserRow.fromJson(map['user'] as Map<String, dynamic>);
   }
 
   // ── Teacher panel (requires is_teacher on server) ───────────────────────────

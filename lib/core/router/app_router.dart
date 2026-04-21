@@ -18,6 +18,7 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/shell/shell_scaffold.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/admin/admin_users_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/auth/auth_hub_screen.dart';
 import '../../features/onboarding/language_selection_screen.dart';
@@ -80,6 +81,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
 
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+
+      GoRoute(
+        path: '/admin/users',
+        builder: (_, __) => const AdminUsersScreen(),
+      ),
 
       GoRoute(
         path: '/teacher',

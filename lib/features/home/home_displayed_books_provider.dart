@@ -23,7 +23,7 @@ final apiStudentBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
     return <Book>[];
   }
   final u = session.user;
-  if (!u.studentAccess && !u.isTeacher) {
+  if (!u.studentAccess && !u.isTeacher && !u.isAdmin) {
     return <Book>[];
   }
   final svc = ref.read(apiServiceProvider);

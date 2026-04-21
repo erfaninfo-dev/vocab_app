@@ -12,6 +12,23 @@ import '../../domain/api_providers.dart';
 class YouAccountSection extends ConsumerWidget {
   const YouAccountSection({super.key});
 
+  static BoxDecoration _cardDecoration(ColorScheme scheme) {
+    return BoxDecoration(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: scheme.outlineVariant.withValues(alpha: 0.5),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: scheme.shadow.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -25,7 +42,8 @@ class YouAccountSection extends ConsumerWidget {
         authAsync.when(
           data: (session) {
             if (session == null) {
-              return Card(
+              return Container(
+                decoration: _cardDecoration(scheme),
                 child: Column(
                   children: [
                     ListTile(
@@ -50,7 +68,8 @@ class YouAccountSection extends ConsumerWidget {
                 ),
               );
             }
-            return Card(
+            return Container(
+              decoration: _cardDecoration(scheme),
               child: Column(
                 children: [
                   ListTile(
@@ -191,7 +210,8 @@ class YouAccountSection extends ConsumerWidget {
               ),
             );
           },
-          loading: () => Card(
+          loading: () => Container(
+            decoration: _cardDecoration(scheme),
             child: ListTile(
               leading: SizedBox(
                 width: 28,

@@ -16,10 +16,10 @@ import 'series_books_screen.dart';
 
 const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
 
-/// IELTS / General / Students — Students tab for learners and teachers.
+/// IELTS / General / Students — Students tab for learners, teachers, and app admins.
 bool homeShowStudentTab(AuthUser? user) {
   if (user == null) return false;
-  return user.studentAccess || user.isTeacher;
+  return user.studentAccess || user.isTeacher || user.isAdmin;
 }
 
 int homePageIndexForTrack(HomeBookTrack track, bool showStudentTab) {
@@ -75,8 +75,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _syncPageToTrack() {
     if (!mounted) return;
-    final showStudent =
-        homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
+    final showStudent = homeShowStudentTab(
+      ref.read(authProvider).valueOrNull?.user,
+    );
     final track = ref.read(homeBookTrackProvider);
     final idx = homePageIndexForTrack(track, showStudent);
     if (_pageController.hasClients) {
@@ -99,8 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _onHomePageChanged(int index) async {
-    final showStudent =
-        homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
+    final showStudent = homeShowStudentTab(
+      ref.read(authProvider).valueOrNull?.user,
+    );
     final track = homeTrackForPageIndex(index, showStudent);
     ref.read(homeBookTrackProvider.notifier).state = track;
     final p = await SharedPreferences.getInstance();
@@ -116,8 +118,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final showStudent =
-        homeShowStudentTab(ref.watch(authProvider).valueOrNull?.user);
+    final showStudent = homeShowStudentTab(
+      ref.watch(authProvider).valueOrNull?.user,
+    );
 
     ref.listen(authProvider, (prev, next) {
       if (homeShowStudentTab(next.valueOrNull?.user)) return;
@@ -132,8 +135,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final session = ref.watch(authProvider).valueOrNull;
     final user = session?.user;
-    final showMessageFab = user != null &&
-        (user.isTeacher || user.teacherUserId != null);
+    final showMessageFab =
+        user != null && (user.isTeacher || user.teacherUserId != null);
     final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
     final fabCount = fabUnread.when(
       data: (v) => v,
@@ -145,14 +148,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: showMessageFab
           ? session!.user.isTeacher
-              ? _HomeMessageFab(
-                  count: fabCount,
-                  onPressed: () => context.push('/teacher/inbox'),
-                )
-              : _HomeStudentPanelFab(
-                  count: fabCount,
-                  onPressed: () => context.go('/you'),
-                )
+                ? _HomeMessageFab(
+                    count: fabCount,
+                    onPressed: () => context.push('/teacher/inbox'),
+                  )
+                : _HomeStudentPanelFab(
+                    count: fabCount,
+                    onPressed: () => context.go('/you'),
+                  )
           : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -205,10 +208,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HomeTrackBookPage extends ConsumerWidget {
-  const _HomeTrackBookPage({
-    required this.track,
-    required this.onRefresh,
-  });
+  const _HomeTrackBookPage({required this.track, required this.onRefresh});
 
   final HomeBookTrack track;
   final Future<void> Function() onRefresh;
@@ -238,8 +238,8 @@ class _HomeTrackBookPage extends ConsumerWidget {
                         l10n.homeReceivingBooks,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -280,8 +280,8 @@ class _HomeTrackBookPage extends ConsumerWidget {
                     final crossAxisCount = width >= 1100
                         ? 3
                         : width >= 700
-                            ? 2
-                            : 1;
+                        ? 2
+                        : 1;
 
                     final entries = _trackHomeEntriesForTrack(books);
                     return Padding(
@@ -293,19 +293,19 @@ class _HomeTrackBookPage extends ConsumerWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
-                            childAspectRatio:
-                                crossAxisCount == 1 ? 1.5 : 1.08,
-                          ),
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: crossAxisCount == 1
+                                    ? 2.15
+                                    : 1.42,
+                              ),
                           itemCount: entries.length,
                           itemBuilder: (context, i) {
                             final e = entries[i];
                             if (e.isSeries) {
                               final seriesTitle =
-                                  (e.books!.first.seriesTitle ?? '')
-                                      .trim();
+                                  (e.books!.first.seriesTitle ?? '').trim();
                               return _IeltsSeriesCard(
                                 title: seriesTitle,
                                 bookCount: e.books!.length,
@@ -326,9 +326,8 @@ class _HomeTrackBookPage extends ConsumerWidget {
                             return HomeBookCard(
                               book: e.book!,
                               index: i,
-                              onTap: () => context.push(
-                                '/books/${e.book!.id}/units',
-                              ),
+                              onTap: () =>
+                                  context.push('/books/${e.book!.id}/units'),
                             );
                           },
                         ),
@@ -372,16 +371,19 @@ class _HomeHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            track.isStudentCatalog ? l10n.studentBooksTitle : l10n.chooseYourBook,
-            style: Theme.of(context).textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
+            track.isStudentCatalog
+                ? l10n.studentBooksTitle
+                : l10n.chooseYourBook,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 5),
           Text(
             l10n.booksAvailable(bookCount),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           const _SearchField(),
@@ -438,8 +440,9 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final track = ref.watch(homeBookTrackProvider);
-    final showStudentSegment =
-        homeShowStudentTab(ref.watch(authProvider).valueOrNull?.user);
+    final showStudentSegment = homeShowStudentTab(
+      ref.watch(authProvider).valueOrNull?.user,
+    );
 
     ref.listen(authProvider, (prev, next) {
       if (homeShowStudentTab(next.valueOrNull?.user)) return;
@@ -461,9 +464,9 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
     }
 
     final segmentTextStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
-        );
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
 
     final segments = <ButtonSegment<HomeBookTrack>>[
       ButtonSegment<HomeBookTrack>(
@@ -499,8 +502,9 @@ class _HomeTrackSegmentState extends ConsumerState<_HomeTrackSegment> {
           ref.read(homeBookTrackProvider.notifier).state = v;
           final p = await SharedPreferences.getInstance();
           await p.setString(kHomeBookTrackPrefsKey, v.name);
-          final show =
-              homeShowStudentTab(ref.read(authProvider).valueOrNull?.user);
+          final show = homeShowStudentTab(
+            ref.read(authProvider).valueOrNull?.user,
+          );
           final idx = homePageIndexForTrack(v, show);
           if (widget.pageController.hasClients) {
             await widget.pageController.animateToPage(
@@ -586,13 +590,8 @@ List<({String groupKey, List<Book> books})> _groupBooksBySeries(
 }
 
 class _IeltsHomeEntry {
-  _IeltsHomeEntry._({
-    this.groupKey,
-    this.books,
-    this.book,
-  }) : assert(
-          (groupKey != null && books != null) || book != null,
-        );
+  _IeltsHomeEntry._({this.groupKey, this.books, this.book})
+    : assert((groupKey != null && books != null) || book != null);
 
   factory _IeltsHomeEntry.series(String groupKey, List<Book> books) {
     return _IeltsHomeEntry._(groupKey: groupKey, books: books);
@@ -683,8 +682,9 @@ List<_IeltsHomeEntry> _trackHomeEntriesForTrack(List<Book> books) {
       return a.entry.isSeries ? -1 : 1;
     }
     if (a.entry.isSeries && b.entry.isSeries) {
-      c = a.entry.books!.first.seriesSortOrder
-          .compareTo(b.entry.books!.first.seriesSortOrder);
+      c = a.entry.books!.first.seriesSortOrder.compareTo(
+        b.entry.books!.first.seriesSortOrder,
+      );
       if (c != 0) return c;
       final ida = a.entry.books!.first.seriesId;
       final idb = b.entry.books!.first.seriesId;
@@ -738,15 +738,15 @@ class _IeltsSeriesCard extends StatelessWidget {
               ],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: accents.first.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(16),
@@ -754,7 +754,7 @@ class _IeltsSeriesCard extends StatelessWidget {
                     child: Icon(
                       Icons.collections_bookmark_rounded,
                       color: accents.first,
-                      size: 26,
+                      size: 22,
                     ),
                   ),
                   const Spacer(),
@@ -764,17 +764,17 @@ class _IeltsSeriesCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 10),
               Text(
                 title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  height: 1.2,
+                  height: 1.15,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
               SizedBox(
                 width: double.infinity,
                 child: Directionality(
@@ -783,8 +783,7 @@ class _IeltsSeriesCard extends StatelessWidget {
                       : TextDirection.ltr,
                   child: Text(
                     l10n.homeSeriesVolumesCount(bookCount),
-                    textAlign:
-                        rtlSubtitle ? TextAlign.right : TextAlign.left,
+                    textAlign: rtlSubtitle ? TextAlign.right : TextAlign.left,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -859,11 +858,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.rule_rounded,
-                  color: scheme.onPrimary,
-                  size: 32,
-                ),
+                Icon(Icons.rule_rounded, color: scheme.onPrimary, size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -905,10 +900,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
 
 // ignore: unused_element
 class _HomeMessageFab extends StatelessWidget {
-  const _HomeMessageFab({
-    required this.count,
-    required this.onPressed,
-  });
+  const _HomeMessageFab({required this.count, required this.onPressed});
 
   final int count;
   final VoidCallback onPressed;
@@ -937,10 +929,7 @@ class _HomeMessageFab extends StatelessWidget {
 }
 
 class _HomeStudentPanelFab extends StatelessWidget {
-  const _HomeStudentPanelFab({
-    required this.count,
-    required this.onPressed,
-  });
+  const _HomeStudentPanelFab({required this.count, required this.onPressed});
 
   final int count;
   final VoidCallback onPressed;
@@ -967,4 +956,3 @@ class _HomeStudentPanelFab extends StatelessWidget {
     );
   }
 }
-

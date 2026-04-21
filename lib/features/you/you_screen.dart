@@ -56,6 +56,16 @@ class YouScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             const YouAccountSection(),
+            if (session?.user.isAdmin == true) ...[
+              const SizedBox(height: 20),
+              _SectionLabel(label: l10n.youSectionAdmin),
+              const SizedBox(height: 8),
+              _YouAdminUsersInkCard(
+                scheme: scheme,
+                l10n: l10n,
+                onTap: () => context.push('/admin/users'),
+              ),
+            ],
             const SizedBox(height: 16),
             _SectionLabel(label: l10n.youSectionProgress),
             const SizedBox(height: 8),
@@ -138,6 +148,66 @@ class YouScreen extends ConsumerWidget {
                 ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _YouAdminUsersInkCard extends StatelessWidget {
+  const _YouAdminUsersInkCard({
+    required this.scheme,
+    required this.l10n,
+    required this.onTap,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.errorContainer,
+                child: Icon(
+                  Icons.manage_accounts_rounded,
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.adminUserManagement, style: tt.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.youAdminPanelSubtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

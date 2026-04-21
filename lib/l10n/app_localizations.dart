@@ -2895,6 +2895,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 day} other{{count} days}}'**
   String statsDaysOnly(int count);
+
+  /// No description provided for @adminUsersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'User management'**
+  String get adminUsersTitle;
+
+  /// No description provided for @adminUserManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'User management'**
+  String get adminUserManagement;
+
+  /// No description provided for @adminSearchUsersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by email or name…'**
+  String get adminSearchUsersHint;
+
+  /// No description provided for @adminStudentAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Student account'**
+  String get adminStudentAccess;
+
+  /// No description provided for @adminAssignedTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Class teacher'**
+  String get adminAssignedTeacher;
+
+  /// No description provided for @adminNoTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'No teacher'**
+  String get adminNoTeacher;
+
+  /// No description provided for @adminSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get adminSave;
+
+  /// No description provided for @adminUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get adminUpdated;
+
+  /// No description provided for @adminAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have admin access.'**
+  String get adminAccessDenied;
+
+  /// No description provided for @adminTeacherInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a valid teacher account.'**
+  String get adminTeacherInvalid;
+
+  /// No description provided for @adminNoUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'No users returned from the server.'**
+  String get adminNoUsers;
+
+  /// No description provided for @adminNoSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No users match this search.'**
+  String get adminNoSearchResults;
+
+  /// No description provided for @adminRoleTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher'**
+  String get adminRoleTeacher;
+
+  /// No description provided for @adminRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get adminRoleAdmin;
+
+  /// No description provided for @youSectionAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration'**
+  String get youSectionAdmin;
+
+  /// No description provided for @youAdminPanelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Student access, teachers, and accounts'**
+  String get youAdminPanelSubtitle;
+
+  /// No description provided for @adminScreenSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search and tap a user to edit'**
+  String get adminScreenSubtitle;
+
+  /// No description provided for @adminEditUserSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit access'**
+  String get adminEditUserSheetTitle;
 }
 
 class _AppLocalizationsDelegate
