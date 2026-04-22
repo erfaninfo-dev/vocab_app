@@ -39,21 +39,50 @@ class TeacherPeerInfo {
   }
 }
 
+/// GET ?student_peers=1 — one row per chat (teacher or admin).
+class StudentMessagePeerRow {
+  const StudentMessagePeerRow({
+    required this.teacherUserId,
+    this.displayName,
+    required this.unreadCount,
+    this.lastMessageAt,
+  });
+
+  final int teacherUserId;
+  final String? displayName;
+  final int unreadCount;
+  final String? lastMessageAt;
+
+  factory StudentMessagePeerRow.fromJson(Map<String, dynamic> json) {
+    return StudentMessagePeerRow(
+      teacherUserId: (json['teacher_user_id'] as num).toInt(),
+      displayName: json['display_name'] as String?,
+      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
+      lastMessageAt: json['last_message_at'] as String?,
+    );
+  }
+}
+
 class TeacherMessagesPreview {
   const TeacherMessagesPreview({
     required this.unreadCount,
     this.lastMessage,
     this.teacher,
+    this.peerCount = 1,
   });
 
   final int unreadCount;
   final TeacherMessageRow? lastMessage;
   final TeacherPeerInfo? teacher;
 
+  /// Distinct chat threads (class teacher + admin, etc.).
+  final int peerCount;
+
   static TeacherMessagesPreview empty() => const TeacherMessagesPreview(
         unreadCount: 0,
         lastMessage: null,
         teacher: null,
+        peerCount: 0,
       );
 
   factory TeacherMessagesPreview.fromJson(Map<String, dynamic> json) {
@@ -64,6 +93,7 @@ class TeacherMessagesPreview {
           ? TeacherMessageRow.fromJson(last)
           : null,
       teacher: TeacherPeerInfo.maybeFromJson(json['teacher'] as Map<String, dynamic>?),
+      peerCount: (json['peer_count'] as num?)?.toInt() ?? 1,
     );
   }
 }

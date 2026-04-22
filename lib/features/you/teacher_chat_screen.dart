@@ -16,12 +16,16 @@ class TeacherChatScreen extends ConsumerStatefulWidget {
   const TeacherChatScreen({
     super.key,
     this.studentId,
+    this.peerTeacherId,
     this.peerTitleHint,
     this.teacherPeer,
   });
 
   /// When set, current user is the teacher chatting with this student.
   final int? studentId;
+
+  /// Learner: which staff thread (`teacher_user_id` in API). Required when multiple chats.
+  final int? peerTeacherId;
 
   /// Legacy: title hint when [teacherPeer] is null.
   final String? peerTitleHint;
@@ -54,14 +58,20 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
   bool get _isTeacherView => _sid != null;
 
   Future<TeacherMessagesThread> _fetch() {
-    return ref.read(apiServiceProvider).fetchTeacherMessages(studentId: _sid);
+    return ref.read(apiServiceProvider).fetchTeacherMessages(
+          studentId: _sid,
+          peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+        );
   }
 
   Future<void> _markReadOnce() async {
     if (_didMarkRead) return;
     _didMarkRead = true;
     try {
-      await ref.read(apiServiceProvider).markTeacherMessagesRead(studentId: _sid);
+      await ref.read(apiServiceProvider).markTeacherMessagesRead(
+            studentId: _sid,
+            peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+          );
       ref.invalidate(teacherMessagesPreviewProvider);
       ref.invalidate(teacherMessagesUnreadFabProvider);
       ref.invalidate(teacherInboxStudentsProvider);
@@ -80,7 +90,11 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
     _text.clear();
     FocusScope.of(context).unfocus();
     try {
-      await ref.read(apiServiceProvider).sendTeacherMessage(t, studentId: _sid);
+      await ref.read(apiServiceProvider).sendTeacherMessage(
+            t,
+            studentId: _sid,
+            peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+          );
       ref.invalidate(teacherMessagesPreviewProvider);
       ref.invalidate(teacherMessagesUnreadFabProvider);
       ref.invalidate(teacherInboxStudentsProvider);

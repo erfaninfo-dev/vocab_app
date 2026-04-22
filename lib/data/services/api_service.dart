@@ -943,10 +943,14 @@ class ApiService {
     return TeacherMessagesPreview.fromJson(map);
   }
 
-  /// GET /teacher_student_messages.php — full thread (student: no params; teacher: student_id).
-  Future<TeacherMessagesThread> fetchTeacherMessages({int? studentId}) async {
+  /// GET /teacher_student_messages.php — full thread (teacher: student_id; learner: peer_teacher_id).
+  Future<TeacherMessagesThread> fetchTeacherMessages({
+    int? studentId,
+    int? peerTeacherId,
+  }) async {
     final q = <String, String>{};
     if (studentId != null) q['student_id'] = '$studentId';
+    if (peerTeacherId != null) q['peer_teacher_id'] = '$peerTeacherId';
     final uri = Uri.parse('$baseUrl/teacher_student_messages.php')
         .replace(queryParameters: q.isEmpty ? null : q);
     final response = await http.get(uri, headers: _mergeHeaders());
@@ -955,11 +959,29 @@ class ApiService {
     return TeacherMessagesThread.fromJson(map);
   }
 
+  /// GET ?student_peers=1 — learner: list chats (teacher + admin).
+  Future<List<StudentMessagePeerRow>> fetchStudentMessagePeers() async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
+      queryParameters: const {'student_peers': '1'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['peers'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => StudentMessagePeerRow.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// POST mark_read — student or teacher (with student_id).
-  Future<void> markTeacherMessagesRead({int? studentId}) async {
+  Future<void> markTeacherMessagesRead({
+    int? studentId,
+    int? peerTeacherId,
+  }) async {
     final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
     final body = <String, dynamic>{'mark_read': true};
     if (studentId != null) body['student_id'] = studentId;
+    if (peerTeacherId != null) body['peer_teacher_id'] = peerTeacherId;
     final response = await http.post(
       uri,
       headers: _mergeHeaders({
@@ -978,10 +1000,12 @@ class ApiService {
   Future<TeacherMessageRow> sendTeacherMessage(
     String text, {
     int? studentId,
+    int? peerTeacherId,
   }) async {
     final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
     final body = <String, dynamic>{'body': text.trim()};
     if (studentId != null) body['student_id'] = studentId;
+    if (peerTeacherId != null) body['peer_teacher_id'] = peerTeacherId;
     final response = await http.post(
       uri,
       headers: _mergeHeaders({

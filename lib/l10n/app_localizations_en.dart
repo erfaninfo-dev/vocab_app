@@ -42,7 +42,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youSectionMessages => 'Your teacher';
 
   @override
+  String get youSectionMessagesHub => 'Messages';
+
+  @override
   String get youSectionMessagesSubtitle => 'Chat with your class teacher';
+
+  @override
+  String get youSectionMessagesSubtitleHub =>
+      'Chats with your teacher and staff';
+
+  @override
+  String get youMessagesPickTitle => 'Your chats';
 
   @override
   String get youTeacherPanelSubtitle => 'Students and class activity';
@@ -1656,7 +1666,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminUserManagement => 'User management';
 
   @override
-  String get adminSearchUsersHint => 'Search by email or name…';
+  String get adminSearchUsersHint => 'Search by email, name, or teacher…';
 
   @override
   String get adminStudentAccess => 'Student account';

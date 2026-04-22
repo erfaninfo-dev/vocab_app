@@ -42,7 +42,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get youSectionMessages => 'مدرس شما';
 
   @override
+  String get youSectionMessagesHub => 'پیام‌ها';
+
+  @override
   String get youSectionMessagesSubtitle => 'گفت‌وگو با مدرس کلاس';
+
+  @override
+  String get youSectionMessagesSubtitleHub => 'گفت‌وگو با مدرس و پشتیبان';
+
+  @override
+  String get youMessagesPickTitle => 'گفت‌وگوها';
 
   @override
   String get youTeacherPanelSubtitle => 'دانش‌آموزان و فعالیت کلاس';
@@ -1653,7 +1662,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get adminUserManagement => 'مدیریت کاربران';
 
   @override
-  String get adminSearchUsersHint => 'جستجو با ایمیل یا نام…';
+  String get adminSearchUsersHint => 'جستجو با ایمیل، نام یا معلم…';
 
   @override
   String get adminStudentAccess => 'حساب دانش‌آموز';

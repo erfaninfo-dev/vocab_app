@@ -28,6 +28,7 @@ import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/you/you_screen.dart';
 import '../../features/you/student_class_sessions_screen.dart';
+import '../../features/you/student_message_peers_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
@@ -175,8 +176,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/review', builder: (_, __) => const ReviewScreen()),
           GoRoute(
+            path: '/you/messages/pick',
+            builder: (_, __) => const StudentMessagePeersScreen(),
+          ),
+          GoRoute(
             path: '/you/messages',
-            builder: (_, __) => const TeacherChatScreen(),
+            builder: (context, state) {
+              final raw = state.uri.queryParameters['peer_teacher_id'];
+              final pid = int.tryParse(raw ?? '');
+              return TeacherChatScreen(
+                peerTeacherId: pid != null && pid > 0 ? pid : null,
+              );
+            },
           ),
           GoRoute(
             path: '/you/class-sessions',

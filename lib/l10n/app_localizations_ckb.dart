@@ -42,7 +42,16 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get youSectionMessages => 'مامۆستاکەت';
 
   @override
+  String get youSectionMessagesHub => 'پەیامەکان';
+
+  @override
   String get youSectionMessagesSubtitle => 'گفتوگۆ لەگەڵ مامۆستای پۆلەکەت';
+
+  @override
+  String get youSectionMessagesSubtitleHub => 'گفتوگۆ لەگەڵ مامۆستا و ستاف';
+
+  @override
+  String get youMessagesPickTitle => 'گفتوگۆکان';
 
   @override
   String get youTeacherPanelSubtitle => 'قوتابیان و چالاکی پۆل';
@@ -1666,7 +1675,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get adminUserManagement => 'بەڕێوەبردنی بەکارهێنەران';
 
   @override
-  String get adminSearchUsersHint => 'گەڕان بە ئیمەیڵ یان ناو…';
+  String get adminSearchUsersHint => 'گەڕان بە ئیمەیڵ، ناو یان مامۆستا…';
 
   @override
   String get adminStudentAccess => 'هەژماری قوتابی';

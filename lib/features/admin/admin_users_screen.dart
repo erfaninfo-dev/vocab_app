@@ -59,6 +59,14 @@ bool _teacherIdInPool(int? tid, List<AdminUserRow> pool) {
   }
 }
 
+String _adminTeacherLabel(AdminUserRow u) {
+  final n = u.teacherName?.trim();
+  if (n != null && n.isNotEmpty) return n;
+  final id = u.teacherUserId;
+  if (id != null) return '#$id';
+  return '';
+}
+
 String _userInitials(AdminUserRow u) {
   final n = u.displayName?.trim();
   if (n != null && n.isNotEmpty) {
@@ -100,7 +108,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     return all.where((u) {
       if (u.email.toLowerCase().contains(q)) return true;
       final dn = u.displayName?.toLowerCase() ?? '';
-      return dn.contains(q);
+      if (dn.contains(q)) return true;
+      final tn = u.teacherName?.toLowerCase() ?? '';
+      return tn.contains(q);
     }).toList();
   }
 
@@ -791,6 +801,34 @@ class _AdminUserTile extends StatelessWidget {
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (user.studentAccess) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.school_outlined,
+                              size: 18,
+                              color: scheme.primary.withValues(alpha: 0.9),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                user.teacherUserId != null
+                                    ? '${l10n.adminAssignedTeacher}: ${_adminTeacherLabel(user)}'
+                                    : '${l10n.adminAssignedTeacher}: ${l10n.adminNoTeacher}',
+                                style: tt.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.35,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: 10),

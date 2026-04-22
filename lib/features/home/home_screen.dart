@@ -135,28 +135,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final session = ref.watch(authProvider).valueOrNull;
     final user = session?.user;
-    final showMessageFab =
-        user != null && (user.isTeacher || user.teacherUserId != null);
-    final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
-    final fabCount = fabUnread.when(
-      data: (v) => v,
-      loading: () => 0,
-      error: (_, __) => 0,
-    );
+    final showMessageFab = user != null &&
+        (user.isTeacher || user.isAdmin || user.teacherUserId != null);
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: showMessageFab
-          ? session!.user.isTeacher
-                ? _HomeMessageFab(
-                    count: fabCount,
-                    onPressed: () => context.push('/teacher/inbox'),
-                  )
-                : _HomeStudentPanelFab(
-                    count: fabCount,
-                    onPressed: () => context.go('/you'),
-                  )
-          : null,
+      floatingActionButton:
+          showMessageFab ? const _HomeTeacherOrStudentFab() : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -898,31 +883,51 @@ class _GrammarPracticeBanner extends StatelessWidget {
 
 // ───────────────────── Review Banner ─────────────────────
 
-// ignore: unused_element
-class _HomeMessageFab extends StatelessWidget {
-  const _HomeMessageFab({required this.count, required this.onPressed});
+/// Teacher / admin: open student list (`/teacher`). Student with teacher: You hub + badge.
+class _HomeTeacherOrStudentFab extends ConsumerWidget {
+  const _HomeTeacherOrStudentFab();
 
-  final int count;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(authProvider).valueOrNull;
+    if (session == null) return const SizedBox.shrink();
+    final u = session.user;
+    if (u.isTeacher || u.isAdmin) {
+      return _HomeTeacherStudentsFab(
+        onPressed: () => context.push('/teacher'),
+      );
+    }
+    final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
+    final fabCount = fabUnread.when(
+      data: (v) => v,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+    return _HomeStudentPanelFab(
+      count: fabCount,
+      onPressed: () => context.go('/you'),
+    );
+  }
+}
+
+class _HomeTeacherStudentsFab extends StatelessWidget {
+  const _HomeTeacherStudentsFab({required this.onPressed});
+
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return Badge(
-      isLabelVisible: count > 0,
-      backgroundColor: scheme.error,
-      textColor: scheme.onError,
+    return FloatingActionButton.extended(
+      heroTag: 'home_teacher_students_fab',
+      onPressed: onPressed,
+      backgroundColor: _kHomeFabHappyBlue,
+      foregroundColor: Colors.white,
+      tooltip: l10n.tabStudents,
+      icon: const Icon(Icons.groups_rounded),
       label: Text(
-        count > 99 ? '99+' : '$count',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-      ),
-      child: FloatingActionButton(
-        onPressed: onPressed,
-        backgroundColor: _kHomeFabHappyBlue,
-        foregroundColor: Colors.white,
-        tooltip: l10n.teacherStudentChat,
-        child: const Icon(Icons.chat_rounded),
+        l10n.tabStudents,
+        style: const TextStyle(fontWeight: FontWeight.w700),
       ),
     );
   }

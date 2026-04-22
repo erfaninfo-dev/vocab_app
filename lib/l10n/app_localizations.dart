@@ -166,11 +166,29 @@ abstract class AppLocalizations {
   /// **'Your teacher'**
   String get youSectionMessages;
 
+  /// No description provided for @youSectionMessagesHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get youSectionMessagesHub;
+
   /// No description provided for @youSectionMessagesSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Chat with your class teacher'**
   String get youSectionMessagesSubtitle;
+
+  /// No description provided for @youSectionMessagesSubtitleHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats with your teacher and staff'**
+  String get youSectionMessagesSubtitleHub;
+
+  /// No description provided for @youMessagesPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your chats'**
+  String get youMessagesPickTitle;
 
   /// No description provided for @youTeacherPanelSubtitle.
   ///
@@ -2911,7 +2929,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminSearchUsersHint.
   ///
   /// In en, this message translates to:
-  /// **'Search by email or name…'**
+  /// **'Search by email, name, or teacher…'**
   String get adminSearchUsersHint;
 
   /// No description provided for @adminStudentAccess.

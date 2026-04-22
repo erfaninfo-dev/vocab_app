@@ -8,6 +8,7 @@ import '../../core/profile/profile_avatar.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import 'teacher_chat_ui.dart';
 
 class TeacherDashboardScreen extends ConsumerWidget {
   const TeacherDashboardScreen({super.key});
@@ -31,7 +32,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
       );
     }
 
-    if (!session.user.isTeacher) {
+    if (!session.user.isTeacher && !session.user.isAdmin) {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -57,23 +58,23 @@ class TeacherDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: scheme.surface.withValues(alpha: 0.88),
+        surfaceTintColor: scheme.primary.withValues(alpha: 0.12),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
         title: Text(l10n.teacherPanelTitle),
+        actions: [
+          IconButton.filledTonal(
+            tooltip: l10n.teacherInboxTitle,
+            onPressed: () => context.push('/teacher/inbox'),
+            icon: const Icon(Icons.chat_rounded),
+          ),
+        ],
       ),
       body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              scheme.primary.withValues(alpha: 0.07),
-              scheme.surface,
-            ],
-          ),
-        ),
+        decoration: TeacherChatUi.teacherPanelBackground(scheme),
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Padding(
@@ -103,9 +104,9 @@ class TeacherDashboardScreen extends ConsumerWidget {
                 children: [
                   const SizedBox(height: 24),
                   Icon(
-                    Icons.groups_outlined,
-                    size: 64,
-                    color: scheme.outlineVariant,
+                    Icons.groups_rounded,
+                    size: 72,
+                    color: scheme.primary.withValues(alpha: 0.55),
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -131,13 +132,13 @@ class TeacherDashboardScreen extends ConsumerWidget {
                 itemBuilder: (context, i) {
                   final s = students[i];
                   return Card(
-                    elevation: 0,
-                    color:
-                        scheme.surfaceContainerHighest.withValues(alpha: 0.75),
+                    elevation: 2,
+                    shadowColor: scheme.primary.withValues(alpha: 0.18),
+                    color: scheme.surface.withValues(alpha: 0.96),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.4),
+                        color: scheme.outlineVariant.withValues(alpha: 0.35),
                       ),
                     ),
                     child: InkWell(
