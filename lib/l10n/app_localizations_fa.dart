@@ -42,7 +42,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get youSectionMessages => 'مدرس شما';
 
   @override
+  String get youSectionMessagesHub => 'پیام‌ها';
+
+  @override
   String get youSectionMessagesSubtitle => 'گفت‌وگو با مدرس کلاس';
+
+  @override
+  String get youSectionMessagesSubtitleHub => 'گفت‌وگو با مدرس و پشتیبان';
+
+  @override
+  String get youMessagesPickTitle => 'گفت‌وگوها';
 
   @override
   String get youTeacherPanelSubtitle => 'دانش‌آموزان و فعالیت کلاس';
@@ -1645,4 +1654,58 @@ class AppLocalizationsFa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminUsersTitle => 'مدیریت کاربران';
+
+  @override
+  String get adminUserManagement => 'مدیریت کاربران';
+
+  @override
+  String get adminSearchUsersHint => 'جستجو با ایمیل، نام یا معلم…';
+
+  @override
+  String get adminStudentAccess => 'حساب دانش‌آموز';
+
+  @override
+  String get adminAssignedTeacher => 'معلم کلاس';
+
+  @override
+  String get adminNoTeacher => 'بدون معلم';
+
+  @override
+  String get adminSave => 'ذخیره';
+
+  @override
+  String get adminUpdated => 'ذخیره شد';
+
+  @override
+  String get adminAccessDenied => 'دسترسی ادمین ندارید.';
+
+  @override
+  String get adminTeacherInvalid => 'یک حساب معلم معتبر انتخاب کنید.';
+
+  @override
+  String get adminNoUsers => 'کاربری از سرور برنگشت.';
+
+  @override
+  String get adminNoSearchResults => 'کاربری با این جستجو پیدا نشد.';
+
+  @override
+  String get adminRoleTeacher => 'معلم';
+
+  @override
+  String get adminRoleAdmin => 'ادمین';
+
+  @override
+  String get youSectionAdmin => 'مدیریت';
+
+  @override
+  String get youAdminPanelSubtitle => 'دسترسی دانش‌آموز، معلم و حساب‌ها';
+
+  @override
+  String get adminScreenSubtitle => 'جستجو کنید و برای ویرایش روی کاربر بزنید';
+
+  @override
+  String get adminEditUserSheetTitle => 'ویرایش دسترسی';
 }

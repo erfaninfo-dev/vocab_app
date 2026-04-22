@@ -42,7 +42,16 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get youSectionMessages => 'مامۆستاکەت';
 
   @override
+  String get youSectionMessagesHub => 'پەیامەکان';
+
+  @override
   String get youSectionMessagesSubtitle => 'گفتوگۆ لەگەڵ مامۆستای پۆلەکەت';
+
+  @override
+  String get youSectionMessagesSubtitleHub => 'گفتوگۆ لەگەڵ مامۆستا و ستاف';
+
+  @override
+  String get youMessagesPickTitle => 'گفتوگۆکان';
 
   @override
   String get youTeacherPanelSubtitle => 'قوتابیان و چالاکی پۆل';
@@ -1658,4 +1667,60 @@ class AppLocalizationsCkb extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminUsersTitle => 'بەڕێوەبردنی بەکارهێنەران';
+
+  @override
+  String get adminUserManagement => 'بەڕێوەبردنی بەکارهێنەران';
+
+  @override
+  String get adminSearchUsersHint => 'گەڕان بە ئیمەیڵ، ناو یان مامۆستا…';
+
+  @override
+  String get adminStudentAccess => 'هەژماری قوتابی';
+
+  @override
+  String get adminAssignedTeacher => 'مامۆستای پۆل';
+
+  @override
+  String get adminNoTeacher => 'بێ مامۆستا';
+
+  @override
+  String get adminSave => 'پاشەکەوت';
+
+  @override
+  String get adminUpdated => 'پاشەکەوت کرا';
+
+  @override
+  String get adminAccessDenied => 'دەستپێگەیشتنی بەڕێوەبەرت نییە.';
+
+  @override
+  String get adminTeacherInvalid => 'هەژماری مامۆستایەکی دروست هەڵبژێرە.';
+
+  @override
+  String get adminNoUsers => 'هیچ بەکارهێنەرێک لە سێرڤەر نەهاتەوە.';
+
+  @override
+  String get adminNoSearchResults => 'بەکارهێنەر بەم گەڕانەوە نییە.';
+
+  @override
+  String get adminRoleTeacher => 'مامۆستا';
+
+  @override
+  String get adminRoleAdmin => 'بەڕێوەبەر';
+
+  @override
+  String get youSectionAdmin => 'بەڕێوەبردن';
+
+  @override
+  String get youAdminPanelSubtitle =>
+      'دەستپێگەیشتنی قوتابی، مامۆستا و هەژمارەکان';
+
+  @override
+  String get adminScreenSubtitle =>
+      'بگەڕێ و بۆ دەستکاری کرتە لەسەر بەکارهێنەر بکە';
+
+  @override
+  String get adminEditUserSheetTitle => 'دەستکاری دەستپێگەیشتن';
 }

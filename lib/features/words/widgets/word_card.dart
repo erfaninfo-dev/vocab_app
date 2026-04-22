@@ -203,7 +203,9 @@ class WordCard extends ConsumerWidget {
                   _SpeakButton(word: entry.word, example: entry.exampleEn),
                   const Spacer(),
                   Text(
-                    'U${entry.unit}  S${entry.section}',
+                    entry.section == null || entry.section == 0
+                        ? 'U${entry.unit}'
+                        : 'U${entry.unit}  S${entry.section}',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,

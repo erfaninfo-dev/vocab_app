@@ -35,9 +35,13 @@ class YouScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final session = ref.watch(authProvider).valueOrNull;
-    final isTeacher = session?.user.isTeacher == true;
+    final isTeacherPanel =
+        session?.user.isTeacher == true || session?.user.isAdmin == true;
     final hasTeacher = session?.user.teacherUserId != null;
+    final studentAccess = session?.user.studentAccess == true;
     final previewAsync = ref.watch(teacherMessagesPreviewProvider);
+    final showLearnerMessages =
+        !isTeacherPanel && session != null && (hasTeacher || studentAccess);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.youPageTitle)),
@@ -56,6 +60,16 @@ class YouScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             const YouAccountSection(),
+            if (session?.user.isAdmin == true) ...[
+              const SizedBox(height: 20),
+              _SectionLabel(label: l10n.youSectionAdmin),
+              const SizedBox(height: 8),
+              _YouAdminUsersInkCard(
+                scheme: scheme,
+                l10n: l10n,
+                onTap: () => context.push('/admin/users'),
+              ),
+            ],
             const SizedBox(height: 16),
             _SectionLabel(label: l10n.youSectionProgress),
             const SizedBox(height: 8),
@@ -64,7 +78,7 @@ class YouScreen extends ConsumerWidget {
               l10n: l10n,
               onTap: () => context.push('/stats'),
             ),
-            if (!isTeacher && hasTeacher) ...[
+            if (!isTeacherPanel && hasTeacher) ...[
               const SizedBox(height: 20),
               _SectionLabel(label: l10n.youClassSessionsTitle),
               const SizedBox(height: 8),
@@ -72,7 +86,7 @@ class YouScreen extends ConsumerWidget {
                 onOpenFullPage: () => context.push('/you/class-sessions'),
               ),
             ],
-            if (isTeacher) ...[
+            if (isTeacherPanel) ...[
               const SizedBox(height: 20),
               _SectionLabel(label: l10n.teacherOpenPanel),
               const SizedBox(height: 8),
@@ -82,62 +96,172 @@ class YouScreen extends ConsumerWidget {
                 onTap: () => context.push('/teacher'),
               ),
             ],
-            if (!isTeacher && session != null) ...[
+            if (showLearnerMessages) ...[
               const SizedBox(height: 20),
-              _SectionLabel(label: l10n.youSectionMessages),
-              const SizedBox(height: 8),
-              if (!hasTeacher)
-                _YouNoTeacherMessagesCard(
-                  scheme: scheme,
-                  l10n: l10n,
-                )
-              else
-                previewAsync.when(
-                  data: (TeacherMessagesPreview p) =>
-                      _TeacherMessagesPreviewCard(
-                    preview: p,
-                    onOpen: () => context.push('/you/messages'),
-                  ),
-                  loading: () => Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(22),
-                    decoration: _youPanelCardDecoration(scheme),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, __) => Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () =>
-                          ref.invalidate(teacherMessagesPreviewProvider),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+              previewAsync.when(
+                data: (TeacherMessagesPreview p) {
+                  final noThreadYet = p.peerCount == 0 &&
+                      p.lastMessage == null &&
+                      !hasTeacher;
+                  if (noThreadYet) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SectionLabel(label: l10n.youSectionMessages),
+                        const SizedBox(height: 8),
+                        _YouNoTeacherMessagesCard(
+                          scheme: scheme,
+                          l10n: l10n,
                         ),
-                        decoration: _youPanelCardDecoration(scheme),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              color: scheme.error,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.errorGeneric,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                      ],
+                    );
+                  }
+                  final hub = p.peerCount > 1;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _SectionLabel(
+                        label: hub
+                            ? l10n.youSectionMessagesHub
+                            : l10n.youSectionMessages,
+                      ),
+                      const SizedBox(height: 8),
+                      _TeacherMessagesPreviewCard(
+                        preview: p,
+                        useHubCopy: hub,
+                        onOpen: () {
+                          if (p.peerCount > 1) {
+                            context.push('/you/messages/pick');
+                          } else {
+                            final id = p.teacher?.id;
+                            if (id != null && id > 0) {
+                              context.push(
+                                '/you/messages?peer_teacher_id=$id',
+                              );
+                            } else {
+                              context.push('/you/messages');
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SectionLabel(label: l10n.youSectionMessages),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(22),
+                      decoration: _youPanelCardDecoration(scheme),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                ),
+                error: (_, __) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SectionLabel(label: l10n.youSectionMessages),
+                    const SizedBox(height: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () =>
+                            ref.invalidate(teacherMessagesPreviewProvider),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: _youPanelCardDecoration(scheme),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                color: scheme.error,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  l10n.errorGeneric,
+                                  style:
+                                      Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
+              ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _YouAdminUsersInkCard extends StatelessWidget {
+  const _YouAdminUsersInkCard({
+    required this.scheme,
+    required this.l10n,
+    required this.onTap,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.errorContainer,
+                child: Icon(
+                  Icons.manage_accounts_rounded,
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.adminUserManagement, style: tt.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.youAdminPanelSubtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -299,10 +423,12 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
   const _TeacherMessagesPreviewCard({
     required this.preview,
     required this.onOpen,
+    this.useHubCopy = false,
   });
 
   final TeacherMessagesPreview preview;
   final VoidCallback onOpen;
+  final bool useHubCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -355,7 +481,9 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
                         Text(title, style: tt.titleMedium),
                         const SizedBox(height: 2),
                         Text(
-                          l10n.youSectionMessagesSubtitle,
+                          useHubCopy
+                              ? l10n.youSectionMessagesSubtitleHub
+                              : l10n.youSectionMessagesSubtitle,
                           style: tt.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

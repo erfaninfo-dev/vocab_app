@@ -32,8 +32,7 @@ class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
 class _BookVocabQuizSetupScreenState
     extends ConsumerState<BookVocabQuizSetupScreen> {
   final Set<int> _selectedUnits = {};
-  bool _filterImportant = false;
-  bool _filterMistakes = false;
+  _WordPoolChoice _wordPool = _WordPoolChoice.all;
   int _questionCount = 20;
   bool _seededUnits = false;
 
@@ -78,7 +77,8 @@ class _BookVocabQuizSetupScreenState
               if (!mounted) return;
               setState(() {
                 final available = units.map((e) => e.unit).toSet();
-                final seed = widget.initialSelectedUnits
+                final seed =
+                    widget.initialSelectedUnits
                         ?.where((u) => available.contains(u))
                         .toSet() ??
                     <int>{};
@@ -102,10 +102,12 @@ class _BookVocabQuizSetupScreenState
                   final wrongsInSelectedUnits = wrongs
                       .where((w) => _selectedUnits.contains(w.unit))
                       .toList();
-                  final wrongKeys =
-                      wrongsInSelectedUnits.map((w) => w.wordKey).toList();
-                  final wrongsOnly = _filterMistakes;
-                  final quizImportantOnly = _filterImportant;
+                  final wrongKeys = wrongsInSelectedUnits
+                      .map((w) => w.wordKey)
+                      .toList();
+                  final wrongsOnly = _wordPool == _WordPoolChoice.mistakesOnly;
+                  final quizImportantOnly =
+                      _wordPool == _WordPoolChoice.importantOnly;
 
                   bool userImp(VocabEntry e) => importantState.isMarked(e);
                   final allInUnits = allWords
@@ -159,36 +161,32 @@ class _BookVocabQuizSetupScreenState
                     });
                   }
 
-                  final canStart = maxQ >= 1 &&
+                  final canStart =
+                      maxQ >= 1 &&
                       (needsMcq
                           ? (wrongsOnly
-                              ? (poolSize >= 1 &&
-                                  distractorPool.length >= 4)
-                              : poolSize >= 4)
+                                ? (poolSize >= 1 && distractorPool.length >= 4)
+                                : poolSize >= 4)
                           : poolSize >= 1);
 
-                  if (_filterImportant && !hasImportantInSelection) {
+                  if (_wordPool == _WordPoolChoice.importantOnly &&
+                      !hasImportantInSelection) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;
-                      setState(() => _filterImportant = false);
+                      setState(() => _wordPool = _WordPoolChoice.all);
                     });
                   }
-                  if (_filterMistakes &&
+                  if (_wordPool == _WordPoolChoice.mistakesOnly &&
                       (!loggedIn || wrongsInSelectedUnits.isEmpty)) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;
-                      setState(() => _filterMistakes = false);
+                      setState(() => _wordPool = _WordPoolChoice.all);
                     });
                   }
 
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                     children: [
-                      Text(
-                        l10n.bookQuizSetupIntro,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: 18),
                       Text(
                         l10n.unitsSectionTitle,
                         style: Theme.of(context).textTheme.titleMedium
@@ -229,77 +227,74 @@ class _BookVocabQuizSetupScreenState
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FilterChip(
-                            label: Text(l10n.allWordsChip),
-                            selected:
-                                !_filterImportant && !_filterMistakes,
-                            showCheckmark: false,
-                            onSelected: (v) {
-                              if (v) {
-                                setState(() {
-                                  _filterImportant = false;
-                                  _filterMistakes = false;
-                                });
-                              }
-                            },
+                      Container(
+                        decoration: BoxDecoration(
+                          color: scheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.8),
                           ),
-                          FilterChip(
-                            avatar: Icon(
-                              Icons.local_fire_department_rounded,
-                              size: 18,
-                              color: !hasImportantInSelection
-                                  ? scheme.onSurfaceVariant
-                                  : _filterImportant
-                                      ? scheme.onSecondaryContainer
-                                      : scheme.primary,
+                        ),
+                        child: Column(
+                          children: [
+                            _WordPoolToggleTile(
+                              title: Text(l10n.allWordsChip),
+                              value: _wordPool == _WordPoolChoice.all,
+                              onChanged: (v) {
+                                if (!v) return;
+                                setState(() => _wordPool = _WordPoolChoice.all);
+                              },
                             ),
-                            label: Text(l10n.importantOnlyChip),
-                            selected: _filterImportant,
-                            showCheckmark: false,
-                            onSelected: hasImportantInSelection
-                                ? (v) =>
-                                    setState(() => _filterImportant = v)
-                                : null,
-                          ),
-                          FilterChip(
-                            label: Text(
-                              '${l10n.onlyPastMistakes} (${wrongsInSelectedUnits.length})',
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color:
+                                  scheme.outlineVariant.withValues(alpha: 0.5),
                             ),
-                            selected: _filterMistakes,
-                            showCheckmark: false,
-                            onSelected: loggedIn &&
-                                    wrongsInSelectedUnits.isNotEmpty
-                                ? (v) =>
-                                    setState(() => _filterMistakes = v)
-                                : null,
-                          ),
-                        ],
+                            _WordPoolToggleTile(
+                              title: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.local_fire_department_rounded,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.importantOnlyChip),
+                                ],
+                              ),
+                              value: _wordPool == _WordPoolChoice.importantOnly,
+                              onChanged: hasImportantInSelection
+                                  ? (v) {
+                                      if (!v) return;
+                                      setState(() => _wordPool =
+                                          _WordPoolChoice.importantOnly);
+                                    }
+                                  : null,
+                            ),
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color:
+                                  scheme.outlineVariant.withValues(alpha: 0.5),
+                            ),
+                            _WordPoolToggleTile(
+                              title: Text(
+                                '${l10n.onlyPastMistakes} (${wrongsInSelectedUnits.length})',
+                              ),
+                              value: _wordPool == _WordPoolChoice.mistakesOnly,
+                              onChanged: loggedIn &&
+                                      wrongsInSelectedUnits.isNotEmpty
+                                  ? (v) {
+                                      if (!v) return;
+                                      setState(() => _wordPool =
+                                          _WordPoolChoice.mistakesOnly);
+                                    }
+                                  : null,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      if (quizImportantOnly && hasImportantInSelection)
-                        Text(
-                          l10n.importantWordsServerHint,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      if (wrongsOnly && loggedIn && wrongsInSelectedUnits.isEmpty)
-                        Text(
-                          l10n.noMistakesYet,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      if (!loggedIn) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.signInForMistakes,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
                       const SizedBox(height: 20),
                       Text(
                         l10n.questionModes,
@@ -356,7 +351,7 @@ class _BookVocabQuizSetupScreenState
                                 final u = _selectedUnits.toList()..sort();
                                 final scope = wrongsOnly ? 'wrongs' : 'all';
                                 var path =
-                                    '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${_filterImportant ? 1 : 0}';
+                                    '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${quizImportantOnly ? 1 : 0}';
                                 final csv =
                                     _questionModes.map((m) => m.name).toList()
                                       ..sort();
@@ -373,14 +368,14 @@ class _BookVocabQuizSetupScreenState
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
                             poolSize == 0 &&
-                                hasImportantInSelection &&
-                                quizImportantOnly
+                                    hasImportantInSelection &&
+                                    quizImportantOnly
                                 ? l10n.bookQuizPoolTooSmallImportant
                                 : poolSize == 0 && loggedIn && wrongsOnly
                                 ? l10n.quizNotEnoughWrongs
                                 : needsMcq &&
-                                        poolSize > 0 &&
-                                        distractorPool.length < 4
+                                      poolSize > 0 &&
+                                      distractorPool.length < 4
                                 ? l10n.quizNeedFourWords
                                 : l10n.bookQuizPoolTooSmall,
                             style: Theme.of(context).textTheme.bodySmall
@@ -395,6 +390,52 @@ class _BookVocabQuizSetupScreenState
           );
         },
       ),
+    );
+  }
+}
+
+enum _WordPoolChoice {
+  all,
+  importantOnly,
+  mistakesOnly,
+}
+
+class _WordPoolToggleTile extends StatelessWidget {
+  const _WordPoolToggleTile({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final Widget title;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final effective = onChanged == null ? null : (bool v) => onChanged!(v);
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      title: DefaultTextStyle.merge(
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+        child: title,
+      ),
+      trailing: Transform.scale(
+        scale: 0.9,
+        child: Switch(
+          value: value,
+          onChanged: effective,
+        ),
+      ),
+      onTap: effective == null
+          ? null
+          : () {
+              if (!value) effective(true);
+            },
     );
   }
 }

@@ -78,7 +78,8 @@ class _TeacherStudentDetailScreenState
     final l10n = AppLocalizations.of(context)!;
     final session = ref.watch(authProvider).valueOrNull;
 
-    if (session == null || !session.user.isTeacher) {
+    if (session == null ||
+        (!session.user.isTeacher && !session.user.isAdmin)) {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(

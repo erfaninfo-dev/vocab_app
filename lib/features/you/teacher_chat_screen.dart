@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
@@ -15,12 +16,16 @@ class TeacherChatScreen extends ConsumerStatefulWidget {
   const TeacherChatScreen({
     super.key,
     this.studentId,
+    this.peerTeacherId,
     this.peerTitleHint,
     this.teacherPeer,
   });
 
   /// When set, current user is the teacher chatting with this student.
   final int? studentId;
+
+  /// Learner: which staff thread (`teacher_user_id` in API). Required when multiple chats.
+  final int? peerTeacherId;
 
   /// Legacy: title hint when [teacherPeer] is null.
   final String? peerTitleHint;
@@ -53,14 +58,20 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
   bool get _isTeacherView => _sid != null;
 
   Future<TeacherMessagesThread> _fetch() {
-    return ref.read(apiServiceProvider).fetchTeacherMessages(studentId: _sid);
+    return ref.read(apiServiceProvider).fetchTeacherMessages(
+          studentId: _sid,
+          peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+        );
   }
 
   Future<void> _markReadOnce() async {
     if (_didMarkRead) return;
     _didMarkRead = true;
     try {
-      await ref.read(apiServiceProvider).markTeacherMessagesRead(studentId: _sid);
+      await ref.read(apiServiceProvider).markTeacherMessagesRead(
+            studentId: _sid,
+            peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+          );
       ref.invalidate(teacherMessagesPreviewProvider);
       ref.invalidate(teacherMessagesUnreadFabProvider);
       ref.invalidate(teacherInboxStudentsProvider);
@@ -79,7 +90,11 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
     _text.clear();
     FocusScope.of(context).unfocus();
     try {
-      await ref.read(apiServiceProvider).sendTeacherMessage(t, studentId: _sid);
+      await ref.read(apiServiceProvider).sendTeacherMessage(
+            t,
+            studentId: _sid,
+            peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+          );
       ref.invalidate(teacherMessagesPreviewProvider);
       ref.invalidate(teacherMessagesUnreadFabProvider);
       ref.invalidate(teacherInboxStudentsProvider);
@@ -358,11 +373,32 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
                       final senderCaption = showSender
                           ? (mine ? l10n.chatSenderYou : _otherSenderLabel(l10n, thread))
                           : null;
-                      return _Bubble(
+                      final localeName = Localizations.localeOf(context).toLanguageTag();
+                      final dt = TeacherChatUi.tryParseApiDate(m.createdAt);
+                      final prevDt = i > 0
+                          ? TeacherChatUi.tryParseApiDate(msgs[i - 1].createdAt)
+                          : null;
+                      final showDayHeader = i == 0 ||
+                          (dt != null && (prevDt == null || !_sameDay(dt, prevDt)));
+
+                      final bubble = _Bubble(
                         message: m,
                         isMine: mine,
                         scheme: scheme,
                         senderCaption: senderCaption,
+                        timestampLocal: dt,
+                        localeName: localeName,
+                      );
+
+                      if (!showDayHeader) return bubble;
+                      return Column(
+                        children: [
+                          _DaySeparator(
+                            dateLocal: dt,
+                            localeName: localeName,
+                          ),
+                          bubble,
+                        ],
                       );
                     },
                   );
@@ -445,12 +481,16 @@ class _Bubble extends StatelessWidget {
     required this.message,
     required this.isMine,
     required this.scheme,
+    required this.localeName,
+    this.timestampLocal,
     this.senderCaption,
   });
 
   final TeacherMessageRow message;
   final bool isMine;
   final ColorScheme scheme;
+  final String localeName;
+  final DateTime? timestampLocal;
   final String? senderCaption;
 
   @override
@@ -498,17 +538,76 @@ class _Bubble extends StatelessWidget {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                child: Text(
-                  message.body,
-                  style: TextStyle(
-                    color: fg,
-                    height: 1.38,
-                    fontSize: 15.5,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message.body,
+                      style: TextStyle(
+                        color: fg,
+                        height: 1.38,
+                        fontSize: 15.5,
+                      ),
+                    ),
+                    if (timestampLocal != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        DateFormat.jm(localeName).format(timestampLocal!),
+                        style: cap.labelSmall?.copyWith(
+                          color: fg.withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+class _DaySeparator extends StatelessWidget {
+  const _DaySeparator({
+    required this.dateLocal,
+    required this.localeName,
+  });
+
+  final DateTime? dateLocal;
+  final String localeName;
+
+  @override
+  Widget build(BuildContext context) {
+    if (dateLocal == null) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    final label = DateFormat.yMMMMd(localeName).format(dateLocal!);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 10),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ class AuthUser {
     this.avatar = 'm1',
     this.studentAccess = false,
     this.isTeacher = false,
+    this.isAdmin = false,
     this.teacherUserId,
   });
 
@@ -22,6 +23,9 @@ class AuthUser {
   /// Server `is_teacher` — teacher panel access.
   final bool isTeacher;
 
+  /// App admin — can manage users via admin API (server `is_admin`).
+  final bool isAdmin;
+
   /// Assigned teacher user id for learners (server `teacher_user_id`).
   final int? teacherUserId;
 
@@ -29,6 +33,7 @@ class AuthUser {
     final av = json['avatar'] as String?;
     final sa = json['student_access'];
     final it = json['is_teacher'];
+    final ia = json['is_admin'];
     final tuid = json['teacher_user_id'];
     return AuthUser(
       id: (json['id'] as num).toInt(),
@@ -37,6 +42,7 @@ class AuthUser {
       avatar: (av != null && av.isNotEmpty) ? av : 'm1',
       studentAccess: sa == true || sa == 1,
       isTeacher: it == true || it == 1,
+      isAdmin: ia == true || ia == 1,
       teacherUserId: tuid == null ? null : (tuid as num).toInt(),
     );
   }

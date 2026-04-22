@@ -45,15 +45,15 @@ class HomeBookCard extends ConsumerWidget {
               ],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: accents.first.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(16),
@@ -61,7 +61,7 @@ class HomeBookCard extends ConsumerWidget {
                     child: Icon(
                       Icons.auto_stories_rounded,
                       color: accents.first,
-                      size: 26,
+                      size: 22,
                     ),
                   ),
                   const Spacer(),
@@ -72,26 +72,28 @@ class HomeBookCard extends ConsumerWidget {
                 ],
               ),
 
-              const Spacer(),
+              const SizedBox(height: 10),
 
               Text(
                 book.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  height: 1.2,
+                  height: 1.15,
                 ),
               ),
 
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
 
               Align(
-                alignment:
-                    rtlUnitLine ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: rtlUnitLine
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Directionality(
-                  textDirection:
-                      rtlUnitLine ? TextDirection.rtl : TextDirection.ltr,
+                  textDirection: rtlUnitLine
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
                   child: Text(
                     unitsValue.when(
                       loading: () => l10n.loadingEllipsis,
@@ -108,13 +110,13 @@ class HomeBookCard extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
 
               if ((book.description ?? '').isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 7,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.surface.withValues(alpha: 0.75),
@@ -125,7 +127,7 @@ class HomeBookCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.info_outline_rounded,
-                        size: 16,
+                        size: 15,
                         color: accents.first,
                       ),
                       const SizedBox(width: 8),
@@ -133,7 +135,7 @@ class HomeBookCard extends ConsumerWidget {
                         child: Text(
                           book.description!,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelMedium
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ),

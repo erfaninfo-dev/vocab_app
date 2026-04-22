@@ -36,7 +36,7 @@ class TeacherInboxScreen extends ConsumerWidget {
       );
     }
 
-    if (!session.user.isTeacher) {
+    if (!session.user.isTeacher && !session.user.isAdmin) {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -64,6 +64,8 @@ class TeacherInboxScreen extends ConsumerWidget {
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0.5,
+        backgroundColor: scheme.surface.withValues(alpha: 0.82),
+        surfaceTintColor: scheme.secondary.withValues(alpha: 0.14),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -83,224 +85,234 @@ class TeacherInboxScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: DecoratedBox(
-        decoration: TeacherChatUi.screenBackground(scheme),
-        child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    userFriendlyErrorMessage(err, l10n),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: () =>
-                        ref.invalidate(teacherInboxStudentsProvider),
-                    child: Text(l10n.retry),
-                  ),
-                ],
-              ),
-            ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: TeacherChatUi.inboxListBackgroundDecor(scheme),
           ),
-          data: (List<TeacherStudentSummary> students) {
-            if (students.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
+          Positioned.fill(
+            child: async.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.forum_outlined,
-                        size: 72,
-                        color: scheme.outlineVariant,
-                      ),
-                      const SizedBox(height: 20),
                       Text(
-                        l10n.teacherStudentsEmpty,
+                        userFriendlyErrorMessage(err, l10n),
                         textAlign: TextAlign.center,
-                        style: tt.bodyLarge?.copyWith(
-                          height: 1.45,
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.tonal(
+                        onPressed: () =>
+                            ref.invalidate(teacherInboxStudentsProvider),
+                        child: Text(l10n.retry),
                       ),
                     ],
                   ),
                 ),
-              );
-            }
-            return RefreshIndicator(
-              color: scheme.primary,
-              onRefresh: () async {
-                ref.invalidate(teacherInboxStudentsProvider);
-                ref.invalidate(teacherMessagesUnreadFabProvider);
-                await ref.read(teacherInboxStudentsProvider.future);
-              },
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                itemCount: students.length,
-                itemBuilder: (context, i) {
-                  final s = students[i];
-                  final now = DateTime.now();
-                  final lastDt =
-                      TeacherChatUi.tryParseApiDate(s.lastMessageAt);
-                  final timeStr = lastDt != null
-                      ? TeacherChatUi.formatListTimestamp(
-                          messageLocal: lastDt,
-                          nowLocal: now,
-                          l10n: l10n,
-                          localeName: localeName,
-                        )
-                      : null;
-
-                  var preview = '';
-                  if (s.lastMessagePreview != null &&
-                      s.lastMessagePreview!.trim().isNotEmpty) {
-                    if (s.lastMessageFromTeacher == true) {
-                      preview =
-                          '${l10n.chatPreviewYouPrefix}${s.lastMessagePreview}';
-                    } else {
-                      preview = s.lastMessagePreview!;
-                    }
-                  }
-
-                  final hasUnread = s.unreadFromStudent > 0;
-                  final openArgs = TeacherChatOpenArgs(
-                    displayTitle: s.displayLabel,
-                    avatarId: s.avatar,
-                    userId: s.id,
-                  );
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Material(
-                      color: scheme.surface.withValues(alpha: 0.92),
-                      clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        side: BorderSide(
-                          color: hasUnread
-                              ? scheme.primary.withValues(alpha: 0.35)
-                              : scheme.outlineVariant.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          context.push(
-                            '/teacher/chat/${s.id}',
-                            extra: openArgs,
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
+              ),
+              data: (List<TeacherStudentSummary> students) {
+                if (students.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.mark_chat_unread_rounded,
+                            size: 80,
+                            color: scheme.primary.withValues(alpha: 0.55),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ProfileAvatar(
-                                avatarId: s.avatar,
-                                userId: s.id,
-                                size: 58,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      s.displayLabel,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tt.titleMedium?.copyWith(
-                                        fontWeight: hasUnread
-                                            ? FontWeight.w900
-                                            : FontWeight.w700,
-                                        letterSpacing: -0.2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    if (preview.isNotEmpty)
-                                      Text(
-                                        preview,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: tt.bodyMedium?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                          height: 1.25,
-                                          fontWeight: hasUnread
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                        ),
-                                      )
-                                    else
-                                      Text(
-                                        s.email,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: tt.bodySmall?.copyWith(
-                                          color: scheme.onSurfaceVariant
-                                              .withValues(alpha: 0.85),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  if (timeStr != null)
-                                    Text(
-                                      timeStr,
-                                      style: tt.labelMedium?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  if (hasUnread) ...[
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: scheme.primary,
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        s.unreadFromStudent > 99
-                                            ? '99+'
-                                            : '${s.unreadFromStudent}',
-                                        style: TextStyle(
-                                          color: scheme.onPrimary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
+                          const SizedBox(height: 20),
+                          Text(
+                            l10n.teacherStudentsEmpty,
+                            textAlign: TextAlign.center,
+                            style: tt.bodyLarge?.copyWith(
+                              height: 1.45,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   );
-                },
-              ),
-            );
-          },
-        ),
+                }
+                return RefreshIndicator(
+                  color: scheme.primary,
+                  onRefresh: () async {
+                    ref.invalidate(teacherInboxStudentsProvider);
+                    ref.invalidate(teacherMessagesUnreadFabProvider);
+                    await ref.read(teacherInboxStudentsProvider.future);
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    itemCount: students.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final s = students[i];
+                      final now = DateTime.now();
+                      final lastDt =
+                          TeacherChatUi.tryParseApiDate(s.lastMessageAt);
+                      final timeStr = lastDt != null
+                          ? TeacherChatUi.formatListTimestamp(
+                              messageLocal: lastDt,
+                              nowLocal: now,
+                              l10n: l10n,
+                              localeName: localeName,
+                            )
+                          : null;
+
+                      var preview = '';
+                      if (s.lastMessagePreview != null &&
+                          s.lastMessagePreview!.trim().isNotEmpty) {
+                        if (s.lastMessageFromTeacher == true) {
+                          preview =
+                              '${l10n.chatPreviewYouPrefix}${s.lastMessagePreview}';
+                        } else {
+                          preview = s.lastMessagePreview!;
+                        }
+                      }
+
+                      final hasUnread = s.unreadFromStudent > 0;
+                      final openArgs = TeacherChatOpenArgs(
+                        displayTitle: s.displayLabel,
+                        avatarId: s.avatar,
+                        userId: s.id,
+                      );
+
+                      return Card(
+                        elevation: hasUnread ? 3 : 2,
+                        shadowColor:
+                            scheme.primary.withValues(alpha: hasUnread ? 0.24 : 0.16),
+                        color: scheme.surface.withValues(alpha: 0.96),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: hasUnread
+                                ? scheme.primary.withValues(alpha: 0.42)
+                                : scheme.outlineVariant.withValues(alpha: 0.35),
+                            width: hasUnread ? 1.5 : 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            context.push(
+                              '/teacher/chat/${s.id}',
+                              extra: openArgs,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ProfileAvatar(
+                                  avatarId: s.avatar,
+                                  userId: s.id,
+                                  size: 54,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        s.displayLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: tt.titleMedium?.copyWith(
+                                          fontWeight: hasUnread
+                                              ? FontWeight.w900
+                                              : FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      if (preview.isNotEmpty)
+                                        Text(
+                                          preview,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: tt.bodyMedium?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                            height: 1.25,
+                                            fontWeight: hasUnread
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                          ),
+                                        )
+                                      else
+                                        Text(
+                                          s.email,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: tt.bodySmall?.copyWith(
+                                            color: scheme.onSurfaceVariant
+                                                .withValues(alpha: 0.85),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (timeStr != null)
+                                      Text(
+                                        timeStr,
+                                        style: tt.labelMedium?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    if (hasUnread) ...[
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: scheme.primary,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          s.unreadFromStudent > 99
+                                              ? '99+'
+                                              : '${s.unreadFromStudent}',
+                                          style: TextStyle(
+                                            color: scheme.onPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

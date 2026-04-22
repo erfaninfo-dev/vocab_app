@@ -217,23 +217,26 @@ class _AboutCard extends StatelessWidget {
             children: [
               // ── App icon ──────────────────────────────────────────────────
               Container(
-                width: 72,
-                height: 72,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
-                  color: scheme.primary,
-                  borderRadius: BorderRadius.circular(20),
+                  // No background "frame" behind the logo — only shadow.
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: scheme.primary.withOpacity(0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      color: scheme.shadow.withValues(alpha: 0.12),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: Icon(
-                  Icons.menu_book_rounded,
-                  size: 38,
-                  color: scheme.onPrimary,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/app_icon.png',
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                  ),
                 ),
               ),
 

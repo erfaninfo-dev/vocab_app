@@ -42,7 +42,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youSectionMessages => 'Your teacher';
 
   @override
+  String get youSectionMessagesHub => 'Messages';
+
+  @override
   String get youSectionMessagesSubtitle => 'Chat with your class teacher';
+
+  @override
+  String get youSectionMessagesSubtitleHub =>
+      'Chats with your teacher and staff';
+
+  @override
+  String get youMessagesPickTitle => 'Your chats';
 
   @override
   String get youTeacherPanelSubtitle => 'Students and class activity';
@@ -1648,4 +1658,58 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminUsersTitle => 'User management';
+
+  @override
+  String get adminUserManagement => 'User management';
+
+  @override
+  String get adminSearchUsersHint => 'Search by email, name, or teacher…';
+
+  @override
+  String get adminStudentAccess => 'Student account';
+
+  @override
+  String get adminAssignedTeacher => 'Class teacher';
+
+  @override
+  String get adminNoTeacher => 'No teacher';
+
+  @override
+  String get adminSave => 'Save';
+
+  @override
+  String get adminUpdated => 'Saved';
+
+  @override
+  String get adminAccessDenied => 'You do not have admin access.';
+
+  @override
+  String get adminTeacherInvalid => 'Pick a valid teacher account.';
+
+  @override
+  String get adminNoUsers => 'No users returned from the server.';
+
+  @override
+  String get adminNoSearchResults => 'No users match this search.';
+
+  @override
+  String get adminRoleTeacher => 'Teacher';
+
+  @override
+  String get adminRoleAdmin => 'Admin';
+
+  @override
+  String get youSectionAdmin => 'Administration';
+
+  @override
+  String get youAdminPanelSubtitle => 'Student access, teachers, and accounts';
+
+  @override
+  String get adminScreenSubtitle => 'Search and tap a user to edit';
+
+  @override
+  String get adminEditUserSheetTitle => 'Edit access';
 }

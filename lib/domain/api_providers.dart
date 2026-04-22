@@ -160,7 +160,8 @@ final vocabQuizResultDetailProvider =
 final teacherStudentsProvider =
     FutureProvider<List<TeacherStudentSummary>>((ref) async {
       final session = ref.watch(authProvider).valueOrNull;
-      if (session == null || !session.user.isTeacher) {
+      if (session == null ||
+          (!session.user.isTeacher && !session.user.isAdmin)) {
         return [];
       }
       return ref.read(apiServiceProvider).fetchTeacherStudents();
@@ -170,7 +171,8 @@ final teacherStudentsProvider =
 final teacherInboxStudentsProvider =
     FutureProvider<List<TeacherStudentSummary>>((ref) async {
       final session = ref.watch(authProvider).valueOrNull;
-      if (session == null || !session.user.isTeacher) {
+      if (session == null ||
+          (!session.user.isTeacher && !session.user.isAdmin)) {
         return [];
       }
       return ref.read(apiServiceProvider).fetchTeacherStudents(inbox: true);
@@ -203,6 +205,7 @@ final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null ||
       session.user.isTeacher ||
+      session.user.isAdmin ||
       session.user.teacherUserId == null) {
     return const TeacherSessionInfo(sessionCount: 0, sessions: []);
   }
@@ -213,7 +216,9 @@ final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
 final teacherMessagesPreviewProvider =
     FutureProvider<TeacherMessagesPreview>((ref) async {
       final session = ref.watch(authProvider).valueOrNull;
-      if (session == null || session.user.isTeacher) {
+      if (session == null ||
+          session.user.isTeacher ||
+          session.user.isAdmin) {
         return TeacherMessagesPreview.empty();
       }
       return ref.read(apiServiceProvider).fetchTeacherMessagesPreview();
@@ -225,9 +230,11 @@ final teacherMessagesUnreadFabProvider =
       final session = ref.watch(authProvider).valueOrNull;
       if (session == null) return 0;
       final u = session.user;
-      if (!u.isTeacher && u.teacherUserId == null) return 0;
+      if (!u.isTeacher && !u.isAdmin && u.teacherUserId == null) return 0;
       final s = await ref.read(apiServiceProvider).fetchTeacherMessagesUnreadSummary();
-      return s.badgeForUser(userIsTeacher: u.isTeacher);
+      return s.badgeForUser(
+        userIsTeacher: u.isTeacher || u.isAdmin,
+      );
     });
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.

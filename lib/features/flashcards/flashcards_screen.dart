@@ -409,6 +409,9 @@ class _RatingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nextInterval = Sm2.rate(card, rating).interval;
+    final label = rating == SrsRating.easy
+        ? '🙂 Easy'
+        : rating.label;
 
     return InkWell(
       onTap: onTap,
@@ -422,7 +425,7 @@ class _RatingButton extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              rating.label,
+              label,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
