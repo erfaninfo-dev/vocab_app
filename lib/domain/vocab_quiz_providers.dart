@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/auth/auth_provider.dart';
 import 'api_providers.dart';
+import 'api_remote_data_epoch.dart';
 
 /// Wrong answers tracked on the server (requires auth). Empty when logged out.
 final vocabQuizWrongsProvider =
@@ -9,6 +10,7 @@ final vocabQuizWrongsProvider =
   ref,
   arg,
 ) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null || session.token.isEmpty) return [];
   return ref.read(apiServiceProvider).fetchVocabQuizWrongs(

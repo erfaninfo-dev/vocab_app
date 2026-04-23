@@ -82,6 +82,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherMessagesEmpty => 'No messages yet.';
 
   @override
+  String get chatMessageEdit => 'Edit';
+
+  @override
+  String get chatMessageEditTitle => 'Edit message';
+
+  @override
+  String get chatMessageEditHint => 'Update your message…';
+
+  @override
+  String get chatMessageEdited => 'edited';
+
+  @override
+  String get chatMessageEditFailedRead =>
+      'This message has already been read and can\'t be edited.';
+
+  @override
+  String get chatMessageEditSave => 'Save';
+
+  @override
+  String get chatMessageReadStateSent => 'Sent';
+
+  @override
+  String get chatMessageReadStateRead => 'Read';
+
+  @override
   String get teacherMessagesNoTeacher =>
       'Use your student code so a teacher can be assigned to you.';
 
@@ -822,6 +847,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.';
 
   @override
+  String get teacherPanelTabStudents => 'Students';
+
+  @override
+  String get teacherPanelTabMessages => 'Messages';
+
+  @override
   String get teacherStudentDetailTitle => 'Student';
 
   @override
@@ -1011,6 +1042,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createAnAccount => 'Create an account';
+
+  @override
+  String get goToAuth => 'Sign in / Create account';
 
   @override
   String get accountTitle => 'Account';
@@ -1261,6 +1295,44 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetBody =>
       'Due to internet restrictions, email reset may not work. For help, message erfaninfox on Bale or Rubika.';
+
+  @override
+  String get passwordResetSendCode => 'Send code';
+
+  @override
+  String get passwordResetCodeSent => 'Code sent to your email';
+
+  @override
+  String get passwordResetSendFailed => 'Could not send the code';
+
+  @override
+  String get passwordResetHelper =>
+      'If your email exists in our system, a code will be sent.';
+
+  @override
+  String get passwordResetCodeLabel => '6-digit code';
+
+  @override
+  String get passwordResetNewPassword => 'New password';
+
+  @override
+  String get passwordResetConfirmPassword => 'Confirm new password';
+
+  @override
+  String get passwordResetChangeButton => 'Change password';
+
+  @override
+  String get passwordResetInvalidCode => 'Invalid or expired code';
+
+  @override
+  String get passwordResetPasswordsMismatch => 'Passwords do not match';
+
+  @override
+  String get passwordResetSuccess => 'Password changed successfully';
+
+  @override
+  String get passwordResetChangeFailed =>
+      'Could not change password. Please try again.';
 
   @override
   String get copySupportLink => 'Copy support link';

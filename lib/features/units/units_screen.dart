@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/unit_model.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -45,9 +46,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
   }
 
   Future<void> _onRefreshUnits() async {
-    final api = ref.read(apiServiceProvider);
-    await api.bustUnitsCache(widget.bookId);
-    ref.invalidate(apiUnitsProvider(widget.bookId));
+    await refreshAllRemoteApiData(ref);
     await ref.read(apiUnitsProvider(widget.bookId).future);
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,20 +13,75 @@ import 'auth_storage.dart';
 final authProvider =
     AsyncNotifierProvider<AuthNotifier, AuthSession?>(AuthNotifier.new);
 
+/// Handles sign-in, sign-out and cold-start session restoration.
+///
+/// Cold-start contract (this is where the "I got logged out on every launch"
+/// bug used to live):
+///
+///   1. If there's no saved token → user is signed out. Simple.
+///   2. If there's a saved token AND a cached user → return the cached session
+///      immediately so the UI doesn't flash "signed out". Then verify with the
+///      server in the background. Only an explicit 401 clears the token;
+///      network/timeout/5xx errors leave the session intact.
+///   3. If there's a saved token but no cached user → wait for one network
+///      call (with a 10 s timeout). On success cache the user and return the
+///      session. On 401 clear the token. **On any other failure keep the
+///      token** but return null for this launch; the next launch retries.
 class AuthNotifier extends AsyncNotifier<AuthSession?> {
+  final AuthStorage _storage = AuthStorage();
+
   @override
   Future<AuthSession?> build() async {
-    final storage = AuthStorage();
-    final token = await storage.readToken();
+    final token = await _storage.readToken();
     if (token == null || token.isEmpty) {
       return null;
     }
+
+    final cachedUser = await _storage.readCachedUser();
+    if (cachedUser != null) {
+      // Resume immediately; verify in the background without blocking the UI.
+      unawaited(_verifyInBackground(token));
+      return AuthSession(token: token, user: cachedUser);
+    }
+
+    // No cache yet → we have to hit /me.php once to learn who the user is.
     try {
       final user = await ApiService(authToken: token).fetchCurrentUser();
+      await _storage.saveCachedUser(user);
       return AuthSession(token: token, user: user);
-    } catch (_) {
-      await storage.clearToken();
+    } on UnauthorizedException {
+      // Server said "this token is dead" — wipe it so we stop showing the
+      // half-signed-in state next launch.
+      await _storage.clearToken();
       return null;
+    } catch (_) {
+      // Network/timeout/5xx — keep the token so the user stays signed in once
+      // connectivity returns. The UI will prompt for sign-in for this session
+      // only, and the next cold start will try again.
+      return null;
+    }
+  }
+
+  /// Verifies [token] against the server and reconciles state silently.
+  ///
+  /// This is fired-and-forgotten from [build] when we already restored a
+  /// cached session. It never throws and never flips the UI to "signed out"
+  /// unless the server explicitly rejects the token (401).
+  Future<void> _verifyInBackground(String token) async {
+    try {
+      final user = await ApiService(authToken: token).fetchCurrentUser();
+      await _storage.saveCachedUser(user);
+      final current = state.valueOrNull;
+      // Only update if we're still logged in with the same token — otherwise
+      // the user signed out between our request and the response.
+      if (current != null && current.token == token) {
+        state = AsyncData(AuthSession(token: token, user: user));
+      }
+    } on UnauthorizedException {
+      await _storage.clearToken();
+      state = const AsyncData(null);
+    } catch (_) {
+      // Swallow transient errors; the cached session stays as-is.
     }
   }
 
@@ -37,7 +93,8 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         email: email,
         password: password,
       );
-      await AuthStorage().saveToken(session.token);
+      await _storage.saveToken(session.token);
+      await _storage.saveCachedUser(session.user);
       await ApiDiskCache.instance.clearAll();
       state = AsyncData(session);
     } catch (e, st) {
@@ -63,7 +120,8 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         registerAsStudent: registerAsStudent,
         studentCode: studentCode,
       );
-      await AuthStorage().saveToken(session.token);
+      await _storage.saveToken(session.token);
+      await _storage.saveCachedUser(session.user);
       await ApiDiskCache.instance.clearAll();
       state = AsyncData(session);
     } catch (e, st) {
@@ -73,13 +131,23 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
   }
 
   /// Refreshes profile from GET /me.php (e.g. after redeeming student code).
+  ///
+  /// Only clears the session on an explicit 401; network failures leave the
+  /// current session untouched so the user isn't punished for a flaky
+  /// connection.
   Future<void> refreshSession() async {
     final s = state.valueOrNull;
     if (s == null) return;
     try {
       final user = await ApiService(authToken: s.token).fetchCurrentUser();
+      await _storage.saveCachedUser(user);
       state = AsyncData(AuthSession(token: s.token, user: user));
-    } catch (_) {}
+    } on UnauthorizedException {
+      await _storage.clearToken();
+      state = const AsyncData(null);
+    } catch (_) {
+      // Transient: keep the current session.
+    }
   }
 
   /// POST /student_redeem_code.php — updates session user.
@@ -89,6 +157,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
       throw StateError('Not signed in');
     }
     final user = await ApiService(authToken: s.token).redeemStudentCode(code);
+    await _storage.saveCachedUser(user);
     state = AsyncData(AuthSession(token: s.token, user: user));
     await ApiDiskCache.instance.clearAll();
     ref.invalidate(apiPublicBooksForHomeProvider);
@@ -102,7 +171,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
         await ApiService(authToken: s.token).logout();
       } catch (_) {}
     }
-    await AuthStorage().clearToken();
+    await _storage.clearToken();
     await ApiDiskCache.instance.clearAll();
     state = const AsyncData(null);
   }
@@ -120,6 +189,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
       displayName: displayName,
       avatar: avatar,
     );
+    await _storage.saveCachedUser(user);
     state = AsyncData(AuthSession(token: s.token, user: user));
   }
 
@@ -132,6 +202,7 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     final user = await ApiService(authToken: s.token).uploadProfilePhoto(
       jpegBytes,
     );
+    await _storage.saveCachedUser(user);
     ref.read(profilePhotoCacheNonceProvider.notifier).state++;
     state = AsyncData(AuthSession(token: s.token, user: user));
   }

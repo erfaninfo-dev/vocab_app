@@ -14,6 +14,7 @@ import '../data/models/teacher_student.dart';
 import '../data/models/teacher_message.dart';
 import '../core/auth/auth_provider.dart';
 import '../data/services/api_service.dart';
+import 'api_remote_data_epoch.dart';
 
 // ─── Shared service instance (includes auth bearer when logged in) ───────────
 
@@ -27,6 +28,7 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 // Corresponds to: GET /books.php
 
 final apiBooksProvider = FutureProvider<List<Book>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchBooks(scope: 'public');
 });
 
@@ -37,6 +39,7 @@ final apiUnitsProvider = FutureProvider.family<List<UnitInfo>, int>((
   ref,
   bookId,
 ) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchUnits(bookId);
 });
 
@@ -50,6 +53,7 @@ final apiSectionsProvider = FutureProvider.family<List<int>, BookUnit>((
   ref,
   arg,
 ) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchSections(arg.bookId, arg.unit);
 });
 
@@ -62,6 +66,7 @@ typedef BookUnitSection = ({int bookId, int unit, int? section});
 
 final apiWordsProvider =
     FutureProvider.family<List<VocabEntry>, BookUnitSection>((ref, arg) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref
           .read(apiServiceProvider)
           .fetchWords(arg.bookId, arg.unit, section: arg.section);
@@ -72,6 +77,7 @@ final apiWordsProvider =
 
 final apiAllWordsForBookProvider = FutureProvider.family<List<VocabEntry>, int>(
   (ref, bookId) {
+    ref.watch(apiRemoteDataEpochProvider);
     return ref.read(apiServiceProvider).fetchAllWordsForBook(bookId);
   },
 );
@@ -81,11 +87,13 @@ final apiAllWordsForBookProvider = FutureProvider.family<List<VocabEntry>, int>(
 final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
   ref,
 ) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchGrammarTopics();
 });
 
 final apiGrammarQuestionsProvider =
     FutureProvider.family<List<GrammarQuestion>, String>((ref, topic) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchGrammarQuestions(topic);
     });
 
@@ -111,8 +119,8 @@ int grammarQuizMinQuestionsForTopics(int topicCount) {
   return max(kGrammarQuizMinBaseQuestions, topicCount);
 }
 
-/// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length.
-typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount});
+/// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length + session seed.
+typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount, int seed});
 
 /// Sort mode for grammar result screens (UI only; lists are fetched date-desc then reordered).
 enum GrammarResultsListSort { newest, mostPractice }
@@ -124,6 +132,7 @@ final grammarResultsListSortProvider =
 
 /// GET /grammar_results_my.php (requires auth)
 final myGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref
       .read(apiServiceProvider)
       .fetchMyGrammarResults(sort: 'date', order: 'desc');
@@ -131,6 +140,7 @@ final myGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
 
 /// GET /grammar_results_public.php (no auth)
 final publicGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
   return ref
       .read(apiServiceProvider)
       .fetchPublicGrammarResults(sort: 'date', order: 'desc');
@@ -139,12 +149,14 @@ final publicGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
 /// GET /grammar_result_detail.php?id= (auth). For review screen.
 final grammarResultDetailProvider =
     FutureProvider.family<GrammarResultDetail, int>((ref, id) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchGrammarResultDetail(id);
     });
 
 /// GET /vocab_quiz_results_my.php (requires auth). Empty when logged out.
 final myVocabQuizResultsProvider =
     FutureProvider<List<VocabQuizResultSummary>>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null) return [];
   return ref.read(apiServiceProvider).fetchMyVocabQuizResults();
@@ -153,12 +165,14 @@ final myVocabQuizResultsProvider =
 /// GET /vocab_quiz_result_detail.php?id= (auth).
 final vocabQuizResultDetailProvider =
     FutureProvider.family<VocabQuizResultDetail, int>((ref, id) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
     });
 
 /// GET /teacher_students.php — requires teacher role on server.
 final teacherStudentsProvider =
     FutureProvider<List<TeacherStudentSummary>>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
       final session = ref.watch(authProvider).valueOrNull;
       if (session == null ||
           (!session.user.isTeacher && !session.user.isAdmin)) {
@@ -170,6 +184,7 @@ final teacherStudentsProvider =
 /// Same as [teacherStudentsProvider] but inbox sort (unread first, then newest activity).
 final teacherInboxStudentsProvider =
     FutureProvider<List<TeacherStudentSummary>>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
       final session = ref.watch(authProvider).valueOrNull;
       if (session == null ||
           (!session.user.isTeacher && !session.user.isAdmin)) {
@@ -181,6 +196,7 @@ final teacherInboxStudentsProvider =
 /// Vocabulary quiz summaries for one student (teacher panel).
 final teacherStudentVocabResultsProvider =
     FutureProvider.family<List<VocabQuizResultSummary>, int>((ref, studentId) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref
           .read(apiServiceProvider)
           .fetchTeacherStudentVocabResults(studentId);
@@ -189,6 +205,7 @@ final teacherStudentVocabResultsProvider =
 /// Grammar results for one student (teacher panel).
 final teacherStudentGrammarResultsProvider =
     FutureProvider.family<List<GrammarResult>, int>((ref, studentId) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref
           .read(apiServiceProvider)
           .fetchTeacherStudentGrammarResults(studentId);
@@ -197,11 +214,13 @@ final teacherStudentGrammarResultsProvider =
 /// Class session list (teacher panel — per-student).
 final teacherStudentSessionsProvider =
     FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
+      ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchTeacherStudentSessions(studentId);
     });
 
 /// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
 final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null ||
       session.user.isTeacher ||
@@ -215,6 +234,7 @@ final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
 /// Preview row for You hub (student + assigned teacher). Empty when not applicable.
 final teacherMessagesPreviewProvider =
     FutureProvider<TeacherMessagesPreview>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
       final session = ref.watch(authProvider).valueOrNull;
       if (session == null ||
           session.user.isTeacher ||
@@ -227,6 +247,7 @@ final teacherMessagesPreviewProvider =
 /// Home FAB badge: teachers = distinct students with unread; students = unread msgs from teacher.
 final teacherMessagesUnreadFabProvider =
     FutureProvider<int>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
       final session = ref.watch(authProvider).valueOrNull;
       if (session == null) return 0;
       final u = session.user;
@@ -241,6 +262,7 @@ final teacherMessagesUnreadFabProvider =
 final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((
   ref,
 ) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null) return [];
   return ref
@@ -256,6 +278,7 @@ final apiGrammarQuizSessionProvider =
       ref,
       params,
     ) async {
+      ref.watch(apiRemoteDataEpochProvider);
       final topicsKey = params.topicsKey;
       if (topicsKey.isEmpty) return [];
       final topics = topicsKey
@@ -277,7 +300,8 @@ final apiGrammarQuizSessionProvider =
         merged.addAll(list);
       }
       if (merged.isEmpty) return [];
-      merged.shuffle(Random());
+      // Seed ensures "Practice again" produces a different order even when repeated quickly.
+      merged.shuffle(Random(params.seed));
       final poolCap = min(merged.length, kGrammarQuizSessionSize);
       final take = min(want, poolCap);
       return merged.sublist(0, take);
@@ -290,6 +314,7 @@ final bookSearchQueryProvider = StateProvider<String>((ref) => '');
 
 // Books list with search
 final apiSearchBooksProvider = FutureProvider<List<Book>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
   final query = ref.watch(bookSearchQueryProvider); // Watch the query state
 
   // If the query is empty, fetch all books (like before)

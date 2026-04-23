@@ -46,6 +46,20 @@ class AuthUser {
       teacherUserId: tuid == null ? null : (tuid as num).toInt(),
     );
   }
+
+  /// Round-trips the user over disk cache / shared_preferences. The keys must
+  /// stay identical to the server's `/me.php` payload so [AuthUser.fromJson]
+  /// can be reused to rehydrate cached copies.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'email': email,
+        'display_name': displayName,
+        'avatar': avatar,
+        'student_access': studentAccess,
+        'is_teacher': isTeacher,
+        'is_admin': isAdmin,
+        'teacher_user_id': teacherUserId,
+      };
 }
 
 class AuthSession {

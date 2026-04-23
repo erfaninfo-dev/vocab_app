@@ -48,7 +48,11 @@ class SectionsScreen extends ConsumerWidget {
           ),
           data: (sections) {
             if (sections.isEmpty) {
-              return const Center(child: Text('No sections found.'));
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!context.mounted) return;
+                context.go('/books/$bookId/units/$unit/words');
+              });
+              return const Center(child: CircularProgressIndicator());
             }
             return _SectionList(
               sections: sections,

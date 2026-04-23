@@ -99,6 +99,9 @@ class ShellScaffold extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _tabs(l10n);
 
+    final hideBottomBar = location.startsWith('/grammar/practice') ||
+        (location.contains('/quiz') && !location.contains('vocab-quiz'));
+
     int currentIndex = 0;
     for (int i = 0; i < tabs.length; i++) {
       if (location.startsWith(tabs[i].path)) {
@@ -109,22 +112,25 @@ class ShellScaffold extends ConsumerWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) {
-          if (index == 0) {
-            FocusManager.instance.primaryFocus?.unfocus();
-            context.go(tabs[0].path);
-          } else if (!location.startsWith(tabs[index].path)) {
-            context.push(tabs[index].path);
-          }
-        },
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: [
-          for (int i = 0; i < tabs.length; i++)
-            _navDestination(tabs[i], dueCount),
-        ],
-      ),
+      bottomNavigationBar: hideBottomBar
+          ? null
+          : NavigationBar(
+              selectedIndex: currentIndex,
+              onDestinationSelected: (index) {
+                if (index == 0) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.go(tabs[0].path);
+                } else if (!location.startsWith(tabs[index].path)) {
+                  context.push(tabs[index].path);
+                }
+              },
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              height: 80,
+              destinations: [
+                for (int i = 0; i < tabs.length; i++)
+                  _navDestination(tabs[i], dueCount),
+              ],
+            ),
     );
   }
 }

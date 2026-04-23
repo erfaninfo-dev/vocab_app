@@ -259,15 +259,27 @@ Future<bool> _confirmExitQuiz(BuildContext context) async {
         icon: Icon(Icons.quiz_outlined, size: 32, color: scheme.primary),
         title: Text(l10n.exitExerciseTitle),
         content: Text(l10n.exitExerciseBody),
-        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.stay),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.exit),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: Text(l10n.stay),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text(l10n.exit),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       );
@@ -301,6 +313,7 @@ class GrammarQuizScreen extends ConsumerStatefulWidget {
 
 class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   int _index = 0;
+  int _sessionSeed = DateTime.now().microsecondsSinceEpoch;
 
   /// Once set per question index, the choice cannot be changed (including after Back).
   final Map<int, String> _answers = {};
@@ -323,14 +336,19 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   }
 
   void _resetForNewQuestions() {
+    final oldSeed = _sessionSeed;
+    final newSeed = DateTime.now().microsecondsSinceEpoch;
+    // Drop the old session from Riverpod cache, then switch to a new seeded session.
     ref.invalidate(
       apiGrammarQuizSessionProvider((
         topicsKey: grammarTopicsCacheKey(widget.topics),
         questionCount: widget.questionCount,
+        seed: oldSeed,
       )),
     );
     setState(() {
       _index = 0;
+      _sessionSeed = newSeed;
       _answers.clear();
       _score = 0;
       _sessionDone = false;
@@ -380,6 +398,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       apiGrammarQuizSessionProvider((
         topicsKey: topicsKey,
         questionCount: widget.questionCount,
+        seed: _sessionSeed,
       )),
     );
     final scheme = Theme.of(context).colorScheme;
@@ -846,7 +865,7 @@ class _QuizBottomBar extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      minimum: EdgeInsets.zero,
+      minimum: const EdgeInsets.only(bottom: 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: 0.97),
@@ -864,7 +883,7 @@ class _QuizBottomBar extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -7,6 +7,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/book_model.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'home_book_card.dart';
@@ -86,16 +87,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _onRefresh() async {
-    final api = ref.read(apiServiceProvider);
-    final q = ref.read(bookSearchQueryProvider);
-    await api.bustBooksCatalogCache(searchQuery: q);
-    ref.invalidate(apiPublicBooksForHomeProvider);
-    ref.invalidate(apiStudentBooksForHomeProvider);
-    ref.invalidate(teacherMessagesUnreadFabProvider);
-    ref.invalidate(teacherInboxStudentsProvider);
+    await refreshAllRemoteApiData(ref);
     await Future.wait([
       ref.read(apiPublicBooksForHomeProvider.future),
       ref.read(apiStudentBooksForHomeProvider.future),
+      ref.read(teacherMessagesUnreadFabProvider.future),
+      ref.read(teacherInboxStudentsProvider.future),
     ]);
   }
 

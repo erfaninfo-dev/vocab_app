@@ -78,8 +78,7 @@ class _TeacherStudentDetailScreenState
     final l10n = AppLocalizations.of(context)!;
     final session = ref.watch(authProvider).valueOrNull;
 
-    if (session == null ||
-        (!session.user.isTeacher && !session.user.isAdmin)) {
+    if (session == null || (!session.user.isTeacher && !session.user.isAdmin)) {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -118,10 +117,7 @@ class _TeacherStudentDetailScreenState
                       userId: s.id,
                     )
                   : null;
-              context.push(
-                '/teacher/chat/${widget.studentId}',
-                extra: args,
-              );
+              context.push('/teacher/chat/${widget.studentId}', extra: args);
             },
           ),
         ],
@@ -216,8 +212,8 @@ class _VocabTab extends ConsumerWidget {
             final r = rows[i];
             final bookTitle =
                 (r.bookTitle != null && r.bookTitle!.trim().isNotEmpty)
-                    ? r.bookTitle!.trim()
-                    : 'Book #${r.bookId}';
+                ? r.bookTitle!.trim()
+                : 'Book #${r.bookId}';
             final omitQuizType = _omitVocabQuizTypeLine(r.quizName, l10n);
             return Card(
               elevation: 0,
@@ -237,33 +233,31 @@ class _VocabTab extends ConsumerWidget {
                       Text(
                         r.quizName!.trim(),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 4),
                     ],
                     Text(
                       bookTitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      l10n.vocabQuizHistoryUnitsLine(
-                        _teacherUnitsCsv(r.units),
-                      ),
+                      l10n.vocabQuizHistoryUnitsLine(_teacherUnitsCsv(r.units)),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       l10n.vocabQuizCorrectWrongLine(r.correct, r.wrong),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     if (r.createdAt != null &&
                         r.createdAt!.trim().isNotEmpty) ...[
@@ -271,14 +265,9 @@ class _VocabTab extends ConsumerWidget {
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
                         child: Text(
-                          _teacherFormatDate(
-                            context,
-                            r.createdAt,
-                          ),
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
+                          _teacherFormatDate(context, r.createdAt),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ),
                     ],

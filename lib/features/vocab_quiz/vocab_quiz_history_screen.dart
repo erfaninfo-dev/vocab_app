@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_quiz_result.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -16,6 +17,8 @@ class VocabQuizHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final auth = ref.watch(authProvider).valueOrNull;
+    final scheme = Theme.of(context).colorScheme;
+    final from = Uri.encodeComponent(GoRouterState.of(context).uri.toString());
 
     if (auth == null) {
       return Scaffold(
@@ -26,15 +29,12 @@ class VocabQuizHistoryScreen extends ConsumerWidget {
           ),
           title: Text(l10n.vocabQuizHistoryTitle),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Text(
-              l10n.vocabQuizHistorySignIn,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
+        body: _SignInRequiredBody(
+          iconColor: scheme.tertiary,
+          title: l10n.grammarSignInRequiredTitle,
+          subtitle: l10n.vocabQuizHistorySignIn,
+          actionLabel: l10n.goToAuth,
+          onAction: () => context.push('/auth?from=$from'),
         ),
       );
     }
@@ -84,17 +84,15 @@ class VocabQuizHistoryBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final auth = ref.watch(authProvider).valueOrNull;
+    final from = Uri.encodeComponent(GoRouterState.of(context).uri.toString());
 
     if (auth == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            l10n.vocabQuizHistorySignIn,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
+      return _SignInRequiredBody(
+        iconColor: scheme.tertiary,
+        title: l10n.grammarSignInRequiredTitle,
+        subtitle: l10n.vocabQuizHistorySignIn,
+        actionLabel: l10n.goToAuth,
+        onAction: () => context.push('/auth?from=$from'),
       );
     }
 
@@ -116,9 +114,7 @@ class VocabQuizHistoryBody extends ConsumerWidget {
               const SizedBox(height: 20),
               FilledButton.tonal(
                 onPressed: () async {
-                  await ref
-                      .read(apiServiceProvider)
-                      .bustVocabQuizResultsMyCache();
+                  await refreshAllRemoteApiData(ref);
                   ref.invalidate(myVocabQuizResultsProvider);
                 },
                 child: Text(l10n.retry),
@@ -141,8 +137,7 @@ class VocabQuizHistoryBody extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () async {
-            await ref.read(apiServiceProvider).bustVocabQuizResultsMyCache();
-            ref.invalidate(myVocabQuizResultsProvider);
+            await refreshAllRemoteApiData(ref);
             await ref.read(myVocabQuizResultsProvider.future);
           },
           child: ListView.separated(
@@ -260,6 +255,83 @@ class VocabQuizHistoryBody extends ConsumerWidget {
                 ),
               );
             },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SignInRequiredBody extends StatelessWidget {
+  const _SignInRequiredBody({
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: iconColor.withValues(alpha: 0.12),
+                        border: Border.all(
+                          color: iconColor.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.lock_person_rounded,
+                        size: 48,
+                        color: iconColor,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      title,
+                      style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      subtitle,
+                      style: tt.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.tonal(
+                      onPressed: onAction,
+                      child: Text(actionLabel),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },

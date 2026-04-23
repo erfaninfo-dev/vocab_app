@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/grammar_topic_summary.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -89,9 +90,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
   }
 
   Future<void> _onRefreshTopics() async {
-    final api = ref.read(apiServiceProvider);
-    await api.bustGrammarTopicsCache();
-    ref.invalidate(apiGrammarTopicsProvider);
+    await refreshAllRemoteApiData(ref);
     await ref.read(apiGrammarTopicsProvider.future);
   }
 

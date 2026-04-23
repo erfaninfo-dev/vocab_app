@@ -32,13 +32,20 @@ import '../../features/you/student_message_peers_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
-import '../../features/teacher/teacher_inbox_screen.dart';
 import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_result_detail_screen.dart';
 import '../../features/units/units_screen.dart';
 import '../../features/words/words_screen.dart';
 import '../../domain/api_providers.dart';
+
+/// Root stack (routes outside [ShellRoute], e.g. `/teacher/...`).
+final GlobalKey<NavigatorState> _routerRootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'routerRoot');
+
+/// Inner stack for tab shell (`/home`, `/grammar`, …).
+final GlobalKey<NavigatorState> _routerShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'routerShell');
 
 List<String> _grammarPracticeTopics(GoRouterState state) {
   final multi = state.uri.queryParametersAll['topic'];
@@ -62,6 +69,7 @@ int _grammarPracticeQuestionCount(GoRouterState state) {
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: _routerRootNavigatorKey,
     initialLocation: '/',
     routes: [
       // ── Splash (no shell) ──────────────────────────────────────────────────
@@ -90,25 +98,32 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/teacher',
-        builder: (_, __) => const TeacherDashboardScreen(),
+        builder: (context, state) {
+          final tab = state.uri.queryParameters['tab'];
+          return TeacherDashboardScreen(
+            initialTab: tab == 'messages'
+                ? TeacherPanelTab.messages
+                : TeacherPanelTab.students,
+          );
+        },
       ),
+      // Legacy entry point — the teacher inbox is now the Messages tab of the
+      // unified panel. Redirect so old deep links keep working.
       GoRoute(
         path: '/teacher/inbox',
-        builder: (_, __) => const TeacherInboxScreen(),
+        redirect: (_, __) => '/teacher?tab=messages',
       ),
       GoRoute(
         path: '/teacher/student/:studentId',
         builder: (context, state) {
-          final id =
-              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
           return TeacherStudentDetailScreen(studentId: id);
         },
       ),
       GoRoute(
         path: '/teacher/chat/:studentId',
         builder: (context, state) {
-          final id =
-              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
           final extra = state.extra;
           TeacherChatOpenArgs? peer;
           String? hint;
@@ -125,8 +140,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Full-screen grammar review on the root stack (outside [ShellRoute]).
+      // Pushing `/grammar/result/...` from `/teacher/...` must not target the
+      // shell navigator — that caused duplicate route key assertions.
+      GoRoute(
+        path: '/grammar/result/:resultId',
+        builder: (context, state) {
+          final id =
+              int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
+          return GrammarResultReviewScreen(
+            key: ValueKey<String>('grammar_result_$id'),
+            resultId: id,
+          );
+        },
+      ),
+
       // ── Shell: all screens share the bottom NavigationBar ─────────────────
       ShellRoute(
+        navigatorKey: _routerShellNavigatorKey,
         builder: (context, state, child) =>
             ShellScaffold(location: state.uri.path, child: child),
         routes: [
@@ -153,14 +184,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/grammar/results',
             builder: (_, __) => const GrammarResultsScreen(),
-          ),
-          GoRoute(
-            path: '/grammar/result/:resultId',
-            builder: (context, state) {
-              final id =
-                  int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
-              return GrammarResultReviewScreen(resultId: id);
-            },
           ),
           GoRoute(
             path: '/grammar/practice',
@@ -208,8 +231,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id =
                   int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
-              final mistakesOnly =
-                  state.uri.queryParameters['mistakes'] == '1';
+              final mistakesOnly = state.uri.queryParameters['mistakes'] == '1';
               return VocabQuizResultDetailScreen(
                 resultId: id,
                 mistakesOnly: mistakesOnly,

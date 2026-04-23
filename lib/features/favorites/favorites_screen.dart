@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/cache/api_disk_cache.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_entry.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/widgets/word_card.dart';
@@ -15,18 +15,16 @@ class FavoritesScreen extends ConsumerWidget {
 
   Future<void> _refresh(WidgetRef ref) async {
     final api = ref.read(apiServiceProvider);
+    await refreshAllRemoteApiData(ref);
     if (api.authToken != null && api.authToken!.isNotEmpty) {
       await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
       await ref.read(importantWordsProvider.notifier).pullFromServer(api);
     }
-    await ApiDiskCache.instance.clearAll();
-    ref.invalidate(apiBooksProvider);
-    // Re-fetch all words for all books used by favorites.
     try {
       final books = await ref.read(apiBooksProvider.future);
-      for (final b in books) {
-        ref.invalidate(apiAllWordsForBookProvider(b.id));
-      }
+      await Future.wait(
+        books.map((b) => ref.read(apiAllWordsForBookProvider(b.id).future)),
+      );
     } catch (_) {}
   }
 
