@@ -169,6 +169,35 @@ class _BookVocabQuizSetupScreenState
                                 : poolSize >= 4)
                           : poolSize >= 1);
 
+                  final disabledReason =
+                      canStart
+                          ? null
+                          : poolSize == 0 &&
+                                  hasImportantInSelection &&
+                                  quizImportantOnly
+                          ? l10n.bookQuizPoolTooSmallImportant
+                          : poolSize == 0 && loggedIn && wrongsOnly
+                          ? l10n.quizNotEnoughWrongs
+                          : needsMcq &&
+                                  poolSize > 0 &&
+                                  distractorPool.length < 4
+                          ? l10n.quizNeedFourWords
+                          : l10n.bookQuizPoolTooSmall;
+
+                  void startQuiz() {
+                    final u = _selectedUnits.toList()..sort();
+                    final scope = wrongsOnly ? 'wrongs' : 'all';
+                    var path =
+                        '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${quizImportantOnly ? 1 : 0}';
+                    final csv = _questionModes.map((m) => m.name).toList()
+                      ..sort();
+                    path += '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
+                    context.push(path);
+                  }
+
+                  // Keep enough padding so the bottom CTA never overlaps content.
+                  const bottomCtaSpace = 120.0;
+
                   if (_wordPool == _WordPoolChoice.importantOnly &&
                       !hasImportantInSelection) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -184,9 +213,10 @@ class _BookVocabQuizSetupScreenState
                     });
                   }
 
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                    children: [
+                  return Scaffold(
+                    body: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, bottomCtaSpace),
+                      children: [
                       Text(
                         l10n.unitsSectionTitle,
                         style: Theme.of(context).textTheme.titleMedium
@@ -344,45 +374,45 @@ class _BookVocabQuizSetupScreenState
                             ? null
                             : (v) => setState(() => _questionCount = v.round()),
                       ),
-                      const SizedBox(height: 20),
-                      FilledButton.icon(
-                        onPressed: canStart
-                            ? () {
-                                final u = _selectedUnits.toList()..sort();
-                                final scope = wrongsOnly ? 'wrongs' : 'all';
-                                var path =
-                                    '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${quizImportantOnly ? 1 : 0}';
-                                final csv =
-                                    _questionModes.map((m) => m.name).toList()
-                                      ..sort();
-                                path +=
-                                    '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
-                                context.push(path);
-                              }
-                            : null,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text(l10n.startQuiz),
-                      ),
-                      if (!canStart)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            poolSize == 0 &&
-                                    hasImportantInSelection &&
-                                    quizImportantOnly
-                                ? l10n.bookQuizPoolTooSmallImportant
-                                : poolSize == 0 && loggedIn && wrongsOnly
-                                ? l10n.quizNotEnoughWrongs
-                                : needsMcq &&
-                                      poolSize > 0 &&
-                                      distractorPool.length < 4
-                                ? l10n.quizNeedFourWords
-                                : l10n.bookQuizPoolTooSmall,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: scheme.error),
+                    ],
+                    ),
+                    bottomNavigationBar: SafeArea(
+                      top: false,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                        decoration: BoxDecoration(
+                          color: scheme.surface.withValues(alpha: 0.98),
+                          border: Border(
+                            top: BorderSide(
+                              color: scheme.outlineVariant.withValues(alpha: 0.45),
+                            ),
                           ),
                         ),
-                    ],
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (disabledReason != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Text(
+                                  disabledReason,
+                                  textAlign: TextAlign.start,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: scheme.error,
+                                        height: 1.3,
+                                      ),
+                                ),
+                              ),
+                            FilledButton.icon(
+                              onPressed: canStart ? startQuiz : null,
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: Text(l10n.startQuiz),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   );
                 },
               );

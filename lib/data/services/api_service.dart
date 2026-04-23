@@ -21,6 +21,18 @@ import '../models/teacher_message.dart';
 // Example: 'https://yourdomain.com/api'
 const String kApiBaseUrl = 'http://erfaninfo.com/wordsapi';
 
+/// Thrown when the server explicitly rejects the current bearer token (HTTP
+/// 401). Call sites use this to distinguish "token is truly invalid — sign the
+/// user out" from transient network issues (timeout, DNS, 5xx) where the token
+/// is still valid and we should simply retry later.
+class UnauthorizedException implements Exception {
+  const UnauthorizedException([this.message]);
+  final String? message;
+  @override
+  String toString() =>
+      message == null ? 'UnauthorizedException' : 'UnauthorizedException: $message';
+}
+
 // ─── GET response disk cache (never used for words.php — see [_httpCacheKey]). ─
 const Duration _ttlBooks = Duration(minutes: 25);
 const Duration _ttlUnitsSections = Duration(hours: 8);
@@ -128,17 +140,8 @@ class ApiService {
   // ── GET /sections.php?book_id={id}&unit={unit} ────────────────────────────
   Future<List<int>> fetchSections(int bookId, int unit) async {
     final uri = Uri.parse('$baseUrl/sections.php?book_id=$bookId&unit=$unit');
-    final cached = await _readGetCache(uri);
-    if (cached != null) {
-      final data = jsonDecode(cached) as List<dynamic>;
-      return data
-          .map((e) => (e['section'] as num).toInt())
-          .where((s) => s > 0)
-          .toList();
-    }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'sections');
-    await _writeGetCache(uri, response.body, _ttlUnitsSections);
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
         .map((e) => (e['section'] as num).toInt())
@@ -691,9 +694,25 @@ class ApiService {
   }
 
   /// GET /me.php — requires [authToken].
-  Future<AuthUser> fetchCurrentUser() async {
+  /// Resolves the current user from the bearer token.
+  ///
+  /// The optional [timeout] caps how long we wait before giving up; slow
+  /// networks used to block the splash screen indefinitely, which in turn led
+  /// to the auth layer mistaking the timeout for an invalid token and wiping
+  /// the user's saved session.
+  ///
+  /// Throws [UnauthorizedException] **only** when the server explicitly
+  /// rejects the token (HTTP 401). Every other failure — network, DNS, 5xx,
+  /// timeout — surfaces as a plain [Exception] so callers can distinguish
+  /// "token is dead" from "network is flaky".
+  Future<AuthUser> fetchCurrentUser({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
     final uri = Uri.parse('$baseUrl/me.php');
-    final response = await http.get(uri, headers: _mergeHeaders());
+    final response = await http.get(uri, headers: _mergeHeaders()).timeout(timeout);
+    if (response.statusCode == 401) {
+      throw UnauthorizedException(_errorMessageFromBody(response));
+    }
     if (response.statusCode != 200) {
       _throwFromJsonBody(response);
     }
@@ -1055,6 +1074,40 @@ class ApiService {
     return TeacherMessageRow.fromJson(m);
   }
 
+  /// POST edit — rewrites an own message that the recipient has not read yet.
+  ///
+  /// Throws [TeacherMessageAlreadyReadException] when the recipient already saw
+  /// the message (HTTP 409 from the server), so callers can surface a friendly
+  /// message ("You can't edit a read message").
+  Future<TeacherMessageRow> editTeacherMessage({
+    required int messageId,
+    required String newBody,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
+    final payload = <String, dynamic>{
+      'edit': true,
+      'message_id': messageId,
+      'body': newBody.trim(),
+    };
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(payload),
+    );
+    if (response.statusCode == 409) {
+      throw const TeacherMessageAlreadyReadException();
+    }
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final m = map['message'] as Map<String, dynamic>?;
+    if (m == null) {
+      throw Exception(map['error']?.toString() ?? 'Edit failed');
+    }
+    return TeacherMessageRow.fromJson(m);
+  }
+
   /// POST /update_profile.php — requires [authToken].
   Future<AuthUser> updateProfile({
     required String displayName,
@@ -1176,19 +1229,26 @@ class ApiService {
     if (code >= 200 && code < 300) {
       return;
     }
+    if (code == 401) {
+      throw UnauthorizedException(_errorMessageFromBody(response));
+    }
     _throwFromJsonBody(response);
   }
 
   void _throwFromJsonBody(http.Response response) {
-    var msg = 'HTTP ${response.statusCode}';
+    final msg = _errorMessageFromBody(response) ?? 'HTTP ${response.statusCode}';
+    throw Exception(msg);
+  }
+
+  /// Best-effort decode of a server `{"error":"..."}` payload; returns null
+  /// when the body isn't a JSON object with an error message.
+  String? _errorMessageFromBody(http.Response response) {
     try {
       final m = jsonDecode(response.body) as Map<String, dynamic>?;
       final e = m?['error'] as String?;
-      if (e != null && e.isNotEmpty) {
-        msg = e;
-      }
+      if (e != null && e.isNotEmpty) return e;
     } catch (_) {}
-    throw Exception(msg);
+    return null;
   }
 
   void _assertOk(http.Response response, String resource) {

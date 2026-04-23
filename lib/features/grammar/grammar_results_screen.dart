@@ -68,8 +68,9 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
               indicatorSize: TabBarIndicatorSize.label,
               indicatorWeight: 3,
               labelStyle: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-              unselectedLabelStyle:
-                  tt.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+              unselectedLabelStyle: tt.titleSmall?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
               labelColor: scheme.primary,
               unselectedLabelColor: scheme.onSurfaceVariant,
               dividerColor: scheme.outlineVariant.withValues(alpha: 0.35),
@@ -119,10 +120,7 @@ class _GrammarResultsScreenState extends ConsumerState<GrammarResultsScreen>
               ),
               child: TabBarView(
                 controller: _tabController,
-                children: const [
-                  _MyResultsTab(),
-                  _PublicResultsTab(),
-                ],
+                children: const [_MyResultsTab(), _PublicResultsTab()],
               ),
             ),
           ),
@@ -162,9 +160,9 @@ class _GrammarSortBar extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               l10n.grammarSortLabel,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -174,10 +172,7 @@ class _GrammarSortBar extends ConsumerWidget {
                   value: match.label,
                   items: [
                     for (final o in options)
-                      DropdownMenuItem(
-                        value: o.label,
-                        child: Text(o.label),
-                      ),
+                      DropdownMenuItem(value: o.label, child: Text(o.label)),
                   ],
                   onChanged: (label) {
                     if (label == null) return;
@@ -205,13 +200,16 @@ class _MyResultsTab extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     if (session == null) {
+      final from = Uri.encodeComponent(
+        GoRouterState.of(context).uri.toString(),
+      );
       return _EmptyStateScaffold(
         icon: Icons.lock_person_rounded,
         iconColor: scheme.tertiary,
         title: l10n.grammarSignInRequiredTitle,
         subtitle: l10n.grammarSignInRequiredBody,
-        actionLabel: l10n.grammarGoToSignIn,
-        onAction: () => context.push('/settings'),
+        actionLabel: l10n.goToAuth,
+        onAction: () => context.push('/auth?from=$from'),
       );
     }
 
@@ -219,11 +217,13 @@ class _MyResultsTab extends ConsumerWidget {
     final sort = ref.watch(grammarResultsListSortProvider);
     return async.when(
       loading: () => _LoadingState(message: l10n.grammarLoadingYourResults),
-      error: (_, __) => _ErrorState(
-        onRetry: () => ref.invalidate(myGrammarResultsProvider),
-      ),
+      error: (_, __) =>
+          _ErrorState(onRetry: () => ref.invalidate(myGrammarResultsProvider)),
       data: (items) {
-        final sorted = _sortGrammarResultRows(List<GrammarResult>.of(items), sort);
+        final sorted = _sortGrammarResultRows(
+          List<GrammarResult>.of(items),
+          sort,
+        );
         if (sorted.isEmpty) {
           return _EmptyStateScaffold(
             icon: Icons.quiz_outlined,
@@ -285,7 +285,10 @@ class _PublicResultsTab extends ConsumerWidget {
             subtitle: l10n.grammarCommunityEmptyBody,
           );
         }
-        final sorted = _sortGrammarResultRows(List<GrammarResult>.of(items), sort);
+        final sorted = _sortGrammarResultRows(
+          List<GrammarResult>.of(items),
+          sort,
+        );
         return RefreshIndicator(
           onRefresh: () async {
             await refreshAllRemoteApiData(ref);
@@ -470,7 +473,9 @@ class _EmptyStateScaffold extends StatelessWidget {
                     const SizedBox(height: 22),
                     Text(
                       title,
-                      style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                      style: tt.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),

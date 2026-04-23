@@ -688,14 +688,27 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.vocabQuizExitTitle),
         content: Text(l10n.vocabQuizExitBody),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.continueLabel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.exit),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: Text(l10n.continueLabel),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: Text(l10n.exit),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

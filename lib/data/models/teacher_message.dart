@@ -1,9 +1,20 @@
+/// Raised by `editTeacherMessage` when the recipient already read the target
+/// message (server responds 409). The chat UI turns this into a friendly
+/// "You can't edit a message that has been read" snackbar.
+class TeacherMessageAlreadyReadException implements Exception {
+  const TeacherMessageAlreadyReadException();
+
+  @override
+  String toString() => 'TeacherMessageAlreadyReadException';
+}
+
 class TeacherMessageRow {
   const TeacherMessageRow({
     required this.id,
     required this.senderUserId,
     required this.body,
     this.readAt,
+    this.editedAt,
     required this.createdAt,
   });
 
@@ -11,7 +22,16 @@ class TeacherMessageRow {
   final int senderUserId;
   final String body;
   final String? readAt;
+
+  /// Set when the sender rewrote this message while it was still unread.
+  final String? editedAt;
   final String createdAt;
+
+  /// True once the recipient has opened the chat and marked it as read.
+  bool get isRead => readAt != null && readAt!.trim().isNotEmpty;
+
+  /// True for messages the sender rewrote after the original send.
+  bool get isEdited => editedAt != null && editedAt!.trim().isNotEmpty;
 
   factory TeacherMessageRow.fromJson(Map<String, dynamic> json) {
     return TeacherMessageRow(
@@ -19,6 +39,7 @@ class TeacherMessageRow {
       senderUserId: (json['sender_user_id'] as num).toInt(),
       body: json['body'] as String,
       readAt: json['read_at'] as String?,
+      editedAt: json['edited_at'] as String?,
       createdAt: json['created_at'] as String,
     );
   }

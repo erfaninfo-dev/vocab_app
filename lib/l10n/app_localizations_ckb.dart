@@ -81,6 +81,31 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get teacherMessagesEmpty => 'هێشتا پەیام نییە.';
 
   @override
+  String get chatMessageEdit => 'دەستکاری';
+
+  @override
+  String get chatMessageEditTitle => 'دەستکاری پەیام';
+
+  @override
+  String get chatMessageEditHint => 'پەیامەکەت نوێ بکەوە…';
+
+  @override
+  String get chatMessageEdited => 'دەستکاری کراوە';
+
+  @override
+  String get chatMessageEditFailedRead =>
+      'ئەم پەیامە خوێندراوەتەوە و ناتوانرێت دەستکاری بکرێت.';
+
+  @override
+  String get chatMessageEditSave => 'پاشەکەوت';
+
+  @override
+  String get chatMessageReadStateSent => 'نێردرا';
+
+  @override
+  String get chatMessageReadStateRead => 'بینراوە';
+
+  @override
   String get teacherMessagesNoTeacher =>
       'کۆدی قوتابی بەکاربهێنە بۆ پەیوەندی مامۆستا.';
 
@@ -394,6 +419,15 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get reminderTime => 'کاتی بیرخەرەوە';
+
+  @override
+  String get sectionSound => 'Sound';
+
+  @override
+  String get splashSoundTitle => 'Splash screen sound';
+
+  @override
+  String get splashSoundSubtitle => 'Play a calming chime when opening the app';
 
   @override
   String get sectionAbout => 'دەربارە';
@@ -829,6 +863,12 @@ class AppLocalizationsCkb extends AppLocalizations {
       'هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.';
 
   @override
+  String get teacherPanelTabStudents => 'قوتابیان';
+
+  @override
+  String get teacherPanelTabMessages => 'نامەکان';
+
+  @override
   String get teacherStudentDetailTitle => 'قوتابی';
 
   @override
@@ -1019,6 +1059,9 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get createAnAccount => 'دروستکردنی هەژمار';
+
+  @override
+  String get goToAuth => 'چوونەژوورەوە / تۆمارکردن';
 
   @override
   String get accountTitle => 'هەژمار';
@@ -1271,6 +1314,44 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get passwordResetBody =>
       'بەهۆی سنووردارکردنی ئینتەرنێتەوە، دووبارەکردنەوە بە ئیمەیڵ ڕەنگە کار نەکات. بۆ یارمەتی پەیام بۆ erfaninfox لە بەلە یان ڕوبیکا بنێرە.';
+
+  @override
+  String get passwordResetSendCode => 'ناردنی کۆد';
+
+  @override
+  String get passwordResetCodeSent => 'کۆد بۆ ئیمەیڵ نێردرا';
+
+  @override
+  String get passwordResetSendFailed => 'ناردنی کۆد سەرکەوتوو نەبوو';
+
+  @override
+  String get passwordResetHelper =>
+      'ئەگەر ئیمەیڵەکەت لە سیستەم هەبێت، کۆد دەنێردرێت.';
+
+  @override
+  String get passwordResetCodeLabel => 'کۆدی ٦ ژمارەیی';
+
+  @override
+  String get passwordResetNewPassword => 'وشەی نهێنی نوێ';
+
+  @override
+  String get passwordResetConfirmPassword => 'دووبارەکردنەوەی وشەی نهێنی نوێ';
+
+  @override
+  String get passwordResetChangeButton => 'گۆڕینی وشەی نهێنی';
+
+  @override
+  String get passwordResetInvalidCode => 'کۆدەکە نادروستە یان بەسەرچووە';
+
+  @override
+  String get passwordResetPasswordsMismatch => 'وشەکانی نهێنی یەک نین';
+
+  @override
+  String get passwordResetSuccess => 'وشەی نهێنی بەسەرکەوتوویی گۆڕدرا';
+
+  @override
+  String get passwordResetChangeFailed =>
+      'گۆڕینی وشەی نهێنی سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.';
 
   @override
   String get copySupportLink => 'کۆپی بەستەری پاڵپشتی';

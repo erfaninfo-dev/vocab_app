@@ -108,11 +108,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         .requestPasswordResetEmailCode(email);
                     sent = true;
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('کد به ایمیل ارسال شد')),
+                      SnackBar(content: Text(l10n.passwordResetCodeSent)),
                     );
                   } catch (_) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('ارسال کد ناموفق بود')),
+                      SnackBar(content: Text(l10n.passwordResetSendFailed)),
                     );
                   } finally {
                     setModalState(() => sending = false);
@@ -126,7 +126,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   final p2 = pass2Ctrl.text;
                   if (code.length != 6) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('کد باید ۶ رقم باشد')),
+                      SnackBar(content: Text(l10n.passwordResetInvalidCode)),
                     );
                     return;
                   }
@@ -138,7 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   }
                   if (p1 != p2) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('تکرار رمز عبور یکسان نیست')),
+                      SnackBar(content: Text(l10n.passwordResetPasswordsMismatch)),
                     );
                     return;
                   }
@@ -153,15 +153,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Navigator.pop(ctx);
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('رمز عبور با موفقیت تغییر کرد')),
+                      SnackBar(content: Text(l10n.passwordResetSuccess)),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
                       SnackBar(
                         content: Text(
                           e.toString().contains('Invalid code')
-                              ? 'کد نامعتبر یا منقضی است'
-                              : 'تغییر رمز ناموفق بود',
+                              ? l10n.passwordResetInvalidCode
+                              : l10n.passwordResetChangeFailed,
                         ),
                       ),
                     );
@@ -200,15 +200,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.mark_email_unread_rounded),
-                      label: const Text('ارسال کد'),
+                      label: Text(l10n.passwordResetSendCode),
                     ),
                     const SizedBox(height: 12),
                     if (sent) ...[
                       TextField(
                         controller: codeCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'کد ۶ رقمی',
+                        decoration: InputDecoration(
+                          labelText: l10n.passwordResetCodeLabel,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -217,7 +217,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: passCtrl,
                         obscureText: true,
                         decoration: InputDecoration(
-                          labelText: l10n.password,
+                          labelText: l10n.passwordResetNewPassword,
                           border: const OutlineInputBorder(),
                         ),
                       ),
@@ -225,8 +225,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextField(
                         controller: pass2Ctrl,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'تکرار رمز عبور',
+                        decoration: InputDecoration(
+                          labelText: l10n.passwordResetConfirmPassword,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -239,12 +239,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 height: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('تغییر رمز'),
+                            : Text(l10n.passwordResetChangeButton),
                       ),
                     ] else ...[
                       const SizedBox(height: 4),
                       Text(
-                        'اگر ایمیل شما در سیستم باشد، کد برایتان ارسال می‌شود.',
+                        l10n.passwordResetHelper,
                         style: Theme.of(ctx).textTheme.bodySmall,
                       ),
                     ],

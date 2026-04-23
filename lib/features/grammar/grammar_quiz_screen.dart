@@ -259,15 +259,27 @@ Future<bool> _confirmExitQuiz(BuildContext context) async {
         icon: Icon(Icons.quiz_outlined, size: 32, color: scheme.primary),
         title: Text(l10n.exitExerciseTitle),
         content: Text(l10n.exitExerciseBody),
-        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.stay),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.exit),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: Text(l10n.stay),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text(l10n.exit),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       );
@@ -853,7 +865,7 @@ class _QuizBottomBar extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      minimum: EdgeInsets.zero,
+      minimum: const EdgeInsets.only(bottom: 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: 0.97),
@@ -871,7 +883,7 @@ class _QuizBottomBar extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -81,6 +81,31 @@ class AppLocalizationsFa extends AppLocalizations {
   String get teacherMessagesEmpty => 'هنوز پیامی نیست.';
 
   @override
+  String get chatMessageEdit => 'ویرایش';
+
+  @override
+  String get chatMessageEditTitle => 'ویرایش پیام';
+
+  @override
+  String get chatMessageEditHint => 'پیام خود را به‌روزرسانی کنید…';
+
+  @override
+  String get chatMessageEdited => 'ویرایش‌شده';
+
+  @override
+  String get chatMessageEditFailedRead =>
+      'این پیام خوانده شده و دیگر قابل ویرایش نیست.';
+
+  @override
+  String get chatMessageEditSave => 'ذخیره';
+
+  @override
+  String get chatMessageReadStateSent => 'ارسال شد';
+
+  @override
+  String get chatMessageReadStateRead => 'دیده شد';
+
+  @override
   String get teacherMessagesNoTeacher =>
       'با کد دانش‌آموزی، مدرس به شما وصل می‌شود.';
 
@@ -393,6 +418,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get reminderTime => 'زمان یادآور';
+
+  @override
+  String get sectionSound => 'صدا';
+
+  @override
+  String get splashSoundTitle => 'صدای صفحهٔ شروع';
+
+  @override
+  String get splashSoundSubtitle => 'پخش یک صدای آرامبخش هنگام باز کردن برنامه';
 
   @override
   String get sectionAbout => 'درباره';
@@ -822,6 +856,12 @@ class AppLocalizationsFa extends AppLocalizations {
       'هنوز شاگردی متصل نیست. روی سرور، کدهای دانش‌آموزی را به حساب استاد خودتان وصل کنید؛ با همان کد ثبت‌نام کنند تا اینجا بیایند.';
 
   @override
+  String get teacherPanelTabStudents => 'شاگردان';
+
+  @override
+  String get teacherPanelTabMessages => 'پیام‌ها';
+
+  @override
   String get teacherStudentDetailTitle => 'شاگرد';
 
   @override
@@ -1009,6 +1049,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get createAnAccount => 'ساخت حساب';
+
+  @override
+  String get goToAuth => 'ورود / ثبت‌نام';
 
   @override
   String get accountTitle => 'حساب';
@@ -1258,6 +1301,44 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get passwordResetBody =>
       'به‌دلیل محدودیت اینترنت، بازنشانی با ایمیل ممکن نیست. برای کمک در بله یا روبیکا به erfaninfox پیام دهید.';
+
+  @override
+  String get passwordResetSendCode => 'ارسال کد';
+
+  @override
+  String get passwordResetCodeSent => 'کد به ایمیل ارسال شد';
+
+  @override
+  String get passwordResetSendFailed => 'ارسال کد ناموفق بود';
+
+  @override
+  String get passwordResetHelper =>
+      'اگر ایمیل شما در سیستم باشد، کد برایتان ارسال می‌شود.';
+
+  @override
+  String get passwordResetCodeLabel => 'کد ۶ رقمی';
+
+  @override
+  String get passwordResetNewPassword => 'رمز جدید';
+
+  @override
+  String get passwordResetConfirmPassword => 'تکرار رمز جدید';
+
+  @override
+  String get passwordResetChangeButton => 'تغییر رمز';
+
+  @override
+  String get passwordResetInvalidCode => 'کد نامعتبر یا منقضی است';
+
+  @override
+  String get passwordResetPasswordsMismatch => 'تکرار رمز یکسان نیست';
+
+  @override
+  String get passwordResetSuccess => 'رمز با موفقیت تغییر کرد';
+
+  @override
+  String get passwordResetChangeFailed =>
+      'تغییر رمز ناموفق بود. دوباره تلاش کنید.';
 
   @override
   String get copySupportLink => 'کپی لینک پشتیبانی';

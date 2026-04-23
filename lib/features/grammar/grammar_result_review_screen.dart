@@ -348,6 +348,7 @@ class _QuestionReviewCardState extends State<_QuestionReviewCard> {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        key: ValueKey<String>('q_${widget.index}_${widget.item.questionId}'),
         initiallyExpanded: false,
         tilePadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),

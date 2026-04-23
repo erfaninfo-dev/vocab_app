@@ -244,6 +244,54 @@ abstract class AppLocalizations {
   /// **'No messages yet.'**
   String get teacherMessagesEmpty;
 
+  /// No description provided for @chatMessageEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get chatMessageEdit;
+
+  /// No description provided for @chatMessageEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit message'**
+  String get chatMessageEditTitle;
+
+  /// No description provided for @chatMessageEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your message…'**
+  String get chatMessageEditHint;
+
+  /// No description provided for @chatMessageEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get chatMessageEdited;
+
+  /// No description provided for @chatMessageEditFailedRead.
+  ///
+  /// In en, this message translates to:
+  /// **'This message has already been read and can\'t be edited.'**
+  String get chatMessageEditFailedRead;
+
+  /// No description provided for @chatMessageEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get chatMessageEditSave;
+
+  /// No description provided for @chatMessageReadStateSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get chatMessageReadStateSent;
+
+  /// No description provided for @chatMessageReadStateRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get chatMessageReadStateRead;
+
   /// No description provided for @teacherMessagesNoTeacher.
   ///
   /// In en, this message translates to:
@@ -759,6 +807,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reminder time'**
   String get reminderTime;
+
+  /// No description provided for @sectionSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get sectionSound;
+
+  /// No description provided for @splashSoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Splash screen sound'**
+  String get splashSoundTitle;
+
+  /// No description provided for @splashSoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a calming chime when opening the app'**
+  String get splashSoundSubtitle;
 
   /// No description provided for @sectionAbout.
   ///
@@ -1462,6 +1528,18 @@ abstract class AppLocalizations {
   /// **'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.'**
   String get teacherStudentsEmpty;
 
+  /// No description provided for @teacherPanelTabStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'Students'**
+  String get teacherPanelTabStudents;
+
+  /// No description provided for @teacherPanelTabMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get teacherPanelTabMessages;
+
   /// No description provided for @teacherStudentDetailTitle.
   ///
   /// In en, this message translates to:
@@ -1821,6 +1899,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create an account'**
   String get createAnAccount;
+
+  /// No description provided for @goToAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in / Create account'**
+  String get goToAuth;
 
   /// No description provided for @accountTitle.
   ///
@@ -2265,6 +2349,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Due to internet restrictions, email reset may not work. For help, message erfaninfox on Bale or Rubika.'**
   String get passwordResetBody;
+
+  /// No description provided for @passwordResetSendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordResetSendCode;
+
+  /// No description provided for @passwordResetCodeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to your email'**
+  String get passwordResetCodeSent;
+
+  /// No description provided for @passwordResetSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send the code'**
+  String get passwordResetSendFailed;
+
+  /// No description provided for @passwordResetHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'If your email exists in our system, a code will be sent.'**
+  String get passwordResetHelper;
+
+  /// No description provided for @passwordResetCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code'**
+  String get passwordResetCodeLabel;
+
+  /// No description provided for @passwordResetNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get passwordResetNewPassword;
+
+  /// No description provided for @passwordResetConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get passwordResetConfirmPassword;
+
+  /// No description provided for @passwordResetChangeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get passwordResetChangeButton;
+
+  /// No description provided for @passwordResetInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code'**
+  String get passwordResetInvalidCode;
+
+  /// No description provided for @passwordResetPasswordsMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordResetPasswordsMismatch;
+
+  /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
+  String get passwordResetSuccess;
+
+  /// No description provided for @passwordResetChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change password. Please try again.'**
+  String get passwordResetChangeFailed;
 
   /// No description provided for @copySupportLink.
   ///

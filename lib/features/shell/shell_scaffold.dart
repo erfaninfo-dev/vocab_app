@@ -125,6 +125,7 @@ class ShellScaffold extends ConsumerWidget {
                 }
               },
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              height: 80,
               destinations: [
                 for (int i = 0; i < tabs.length; i++)
                   _navDestination(tabs[i], dueCount),

@@ -20,6 +20,20 @@ class _AuthHubScreenState extends ConsumerState<AuthHubScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
 
+  void _exitAuth(BuildContext context) {
+    final state = GoRouterState.of(context);
+    final from = state.uri.queryParameters['from']?.trim();
+    if (from != null && from.isNotEmpty) {
+      context.go(from);
+      return;
+    }
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go('/home');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,12 +67,12 @@ class _AuthHubScreenState extends ConsumerState<AuthHubScreen>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/home'),
+          onPressed: () => _exitAuth(context),
         ),
         title: Text(l10n.accountTitle),
         actions: [
           TextButton(
-            onPressed: () => context.go('/home'),
+            onPressed: () => _exitAuth(context),
             child: Text(l10n.skip),
           ),
         ],

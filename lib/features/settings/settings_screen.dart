@@ -14,13 +14,13 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode    = ref.watch(themeModeProvider);
-    final theme   = ref.read(themeModeProvider.notifier);
-    final notif   = ref.watch(notifProvider);
-    final notifN  = ref.read(notifProvider.notifier);
-    final lang    = ref.watch(langProvider);
-    final langN   = ref.read(langProvider.notifier);
-    final scheme  = Theme.of(context).colorScheme;
+    final mode = ref.watch(themeModeProvider);
+    final theme = ref.read(themeModeProvider.notifier);
+    final notif = ref.watch(notifProvider);
+    final notifN = ref.read(notifProvider.notifier);
+    final lang = ref.watch(langProvider);
+    final langN = ref.read(langProvider.notifier);
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final uiLoc = ref.watch(uiLocaleProvider);
     final uiLocN = ref.read(uiLocaleProvider.notifier);
@@ -85,7 +85,9 @@ class SettingsScreen extends ConsumerWidget {
                   return RadioListTile<TranslationLang>(
                     value: l,
                     groupValue: lang,
-                    onChanged: (v) { if (v != null) langN.setLang(v); },
+                    onChanged: (v) {
+                      if (v != null) langN.setLang(v);
+                    },
                     secondary: Text(
                       l == TranslationLang.fa ? '🇮🇷' : '🟢',
                       style: const TextStyle(fontSize: 22),
@@ -111,19 +113,25 @@ class SettingsScreen extends ConsumerWidget {
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.system,
                     groupValue: mode,
-                    onChanged: (v) { if (v != null) theme.setThemeMode(v); },
+                    onChanged: (v) {
+                      if (v != null) theme.setThemeMode(v);
+                    },
                     title: Text(l10n.systemTheme),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.light,
                     groupValue: mode,
-                    onChanged: (v) { if (v != null) theme.setThemeMode(v); },
+                    onChanged: (v) {
+                      if (v != null) theme.setThemeMode(v);
+                    },
                     title: Text(l10n.lightMode),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.dark,
                     groupValue: mode,
-                    onChanged: (v) { if (v != null) theme.setThemeMode(v); },
+                    onChanged: (v) {
+                      if (v != null) theme.setThemeMode(v);
+                    },
                     title: Text(l10n.darkMode),
                   ),
                 ],
@@ -205,10 +213,7 @@ class _AboutCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              scheme.primaryContainer,
-              scheme.secondaryContainer,
-            ],
+            colors: [scheme.primaryContainer, scheme.secondaryContainer],
           ),
         ),
         child: Padding(
@@ -277,29 +282,38 @@ class _AboutCard extends StatelessWidget {
               // ── Website ───────────────────────────────────────────────────
               GestureDetector(
                 onTap: () {
-                  Clipboard.setData(const ClipboardData(text: 'www.erfaninfo.com'));
+                  Clipboard.setData(
+                    const ClipboardData(text: 'www.erfaninfo.com'),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(l10n.linkCopied),
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 20,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: scheme.primary.withOpacity(0.3),
-                    ),
+                    border: Border.all(color: scheme.primary.withOpacity(0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.language_rounded, size: 18, color: scheme.primary),
+                      Icon(
+                        Icons.language_rounded,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'www.erfaninfo.com',
