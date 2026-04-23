@@ -421,15 +421,6 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get reminderTime => 'کاتی بیرخەرەوە';
 
   @override
-  String get sectionSound => 'Sound';
-
-  @override
-  String get splashSoundTitle => 'Splash screen sound';
-
-  @override
-  String get splashSoundSubtitle => 'Play a calming chime when opening the app';
-
-  @override
   String get sectionAbout => 'دەربارە';
 
   @override

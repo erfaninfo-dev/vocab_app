@@ -808,24 +808,6 @@ abstract class AppLocalizations {
   /// **'Reminder time'**
   String get reminderTime;
 
-  /// No description provided for @sectionSound.
-  ///
-  /// In en, this message translates to:
-  /// **'Sound'**
-  String get sectionSound;
-
-  /// No description provided for @splashSoundTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Splash screen sound'**
-  String get splashSoundTitle;
-
-  /// No description provided for @splashSoundSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Play a calming chime when opening the app'**
-  String get splashSoundSubtitle;
-
   /// No description provided for @sectionAbout.
   ///
   /// In en, this message translates to:

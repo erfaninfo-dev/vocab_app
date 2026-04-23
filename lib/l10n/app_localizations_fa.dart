@@ -420,15 +420,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get reminderTime => 'زمان یادآور';
 
   @override
-  String get sectionSound => 'صدا';
-
-  @override
-  String get splashSoundTitle => 'صدای صفحهٔ شروع';
-
-  @override
-  String get splashSoundSubtitle => 'پخش یک صدای آرامبخش هنگام باز کردن برنامه';
-
-  @override
   String get sectionAbout => 'درباره';
 
   @override
