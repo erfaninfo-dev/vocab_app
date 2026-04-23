@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/teacher_student.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'teacher_chat_ui.dart';
@@ -122,7 +123,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
             }
             return RefreshIndicator(
               onRefresh: () async {
-                ref.invalidate(teacherStudentsProvider);
+                await refreshAllRemoteApiData(ref);
                 await ref.read(teacherStudentsProvider.future);
               },
               child: ListView.separated(

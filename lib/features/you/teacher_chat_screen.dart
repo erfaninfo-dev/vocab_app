@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +39,10 @@ class TeacherChatScreen extends ConsumerStatefulWidget {
   ConsumerState<TeacherChatScreen> createState() => _TeacherChatScreenState();
 }
 
-class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
+class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
+    with WidgetsBindingObserver {
+  static const _kPollInterval = Duration(seconds: 4);
+
   final TextEditingController _text = TextEditingController();
   final ScrollController _scroll = ScrollController();
   Future<TeacherMessagesThread>? _threadFuture;
@@ -46,11 +51,78 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
   String? _resolvedPeerTitle;
   TeacherMessagesThread? _threadForAppBar;
 
+  Timer? _pollTimer;
+  int? _threadFingerprint;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startChatPolling());
+  }
+
   @override
   void dispose() {
+    _stopChatPolling();
+    WidgetsBinding.instance.removeObserver(this);
     _text.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startChatPolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _stopChatPolling();
+    }
+  }
+
+  void _startChatPolling() {
+    if (!mounted) return;
+    _pollTimer?.cancel();
+    unawaited(_pollThread());
+    _pollTimer = Timer.periodic(_kPollInterval, (_) => _pollThread());
+  }
+
+  void _stopChatPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  /// Changes when messages are added/removed (not live WebSocket — polling).
+  int _fingerprint(TeacherMessagesThread t) {
+    if (t.messages.isEmpty) return 0;
+    final last = t.messages.last;
+    return Object.hash(t.messages.length, last.id);
+  }
+
+  Future<void> _pollThread() async {
+    if (!mounted) return;
+    try {
+      final next = await _fetch();
+      if (!mounted) return;
+      final fp = _fingerprint(next);
+      if (_threadFingerprint != fp) {
+        setState(() {
+          _threadFingerprint = fp;
+          _threadFuture = Future.value(next);
+        });
+        try {
+          await ref.read(apiServiceProvider).markTeacherMessagesRead(
+                studentId: _sid,
+                peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
+              );
+        } catch (_) {}
+        if (!mounted) return;
+        ref.invalidate(teacherMessagesPreviewProvider);
+        ref.invalidate(teacherMessagesUnreadFabProvider);
+        ref.invalidate(teacherInboxStudentsProvider);
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+      }
+    } catch (_) {}
   }
 
   int? get _sid => widget.studentId;
@@ -104,8 +176,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
           _threadFuture = next;
         });
       }
-      await next;
+      final thread = await next;
       if (mounted) {
+        _threadFingerprint = _fingerprint(thread);
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
       }
     } catch (e) {
@@ -300,6 +373,7 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
                               onPressed: () {
                                 setState(() {
                                   _threadFuture = _fetch();
+                                  _threadFingerprint = null;
                                   _didMarkRead = false;
                                   _didScheduleScroll = false;
                                   _threadForAppBar = null;
@@ -313,6 +387,7 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen> {
                     );
                   }
                   final thread = snap.data!;
+                  _threadFingerprint ??= _fingerprint(thread);
                   if (!identical(_threadForAppBar, thread)) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;

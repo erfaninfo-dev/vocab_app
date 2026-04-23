@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
 import '../../l10n/app_localizations.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import 'important_words_controller.dart';
 import 'word_preferences_controller.dart';
@@ -31,22 +32,20 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
   Future<void> _refresh() async {
     final api = ref.read(apiServiceProvider);
+    await refreshAllRemoteApiData(ref);
     if (api.authToken != null && api.authToken!.isNotEmpty) {
-      await api.bustUserVocabMarksCache();
       await ref.read(wordPreferencesProvider.notifier).pullFromServer(api);
       await ref.read(importantWordsProvider.notifier).pullFromServer(api);
     }
-    ref.invalidate(apiAllWordsForBookProvider(widget.bookId));
-    ref.invalidate(
-      apiWordsProvider((
-        bookId: widget.bookId,
-        unit: widget.unit,
-        section: widget.section,
-      )),
-    );
-    // Wait for at least one request so RefreshIndicator doesn't instantly stop.
     try {
       await ref.read(apiAllWordsForBookProvider(widget.bookId).future);
+      await ref.read(
+        apiWordsProvider((
+          bookId: widget.bookId,
+          unit: widget.unit,
+          section: widget.section,
+        )).future,
+      );
     } catch (_) {}
   }
 

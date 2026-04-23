@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/teacher_student.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'teacher_chat_open_args.dart';
@@ -144,9 +145,9 @@ class TeacherInboxScreen extends ConsumerWidget {
                 return RefreshIndicator(
                   color: scheme.primary,
                   onRefresh: () async {
-                    ref.invalidate(teacherInboxStudentsProvider);
-                    ref.invalidate(teacherMessagesUnreadFabProvider);
+                    await refreshAllRemoteApiData(ref);
                     await ref.read(teacherInboxStudentsProvider.future);
+                    await ref.read(teacherMessagesUnreadFabProvider.future);
                   },
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),

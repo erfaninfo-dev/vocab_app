@@ -1045,6 +1045,12 @@ class ApiService {
     await ApiDiskCache.instance.remove(_httpCacheKey(uri));
   }
 
+  /// Drops every persisted GET body (books, units, sections, grammar lists, quiz lists,
+  /// user vocab marks, …). Use with a global UI refresh so providers refetch from network.
+  Future<void> bustAllHttpGetDiskCache() async {
+    await ApiDiskCache.instance.clearAll();
+  }
+
   /// Busts `books.php` caches for catalog + optional search (both scopes), matching [fetchBooks] / [searchBooks].
   Future<void> bustBooksCatalogCache({String? searchQuery}) async {
     final q = searchQuery?.trim() ?? '';

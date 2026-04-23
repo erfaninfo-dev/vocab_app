@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
+import '../../domain/api_remote_data_epoch.dart';
 import 'home_book_track_provider.dart';
 
 /// Public catalog for home (IELTS + General filters); independent of selected tab.
 final apiPublicBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final query = ref.watch(bookSearchQueryProvider);
   final svc = ref.read(apiServiceProvider);
   if (query.trim().isEmpty) {
@@ -17,6 +19,7 @@ final apiPublicBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
 
 /// Student catalog when logged in with access; empty otherwise.
 final apiStudentBooksForHomeProvider = FutureProvider<List<Book>>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
   final query = ref.watch(bookSearchQueryProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null) {

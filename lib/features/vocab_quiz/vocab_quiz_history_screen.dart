@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_quiz_result.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -116,9 +117,7 @@ class VocabQuizHistoryBody extends ConsumerWidget {
               const SizedBox(height: 20),
               FilledButton.tonal(
                 onPressed: () async {
-                  await ref
-                      .read(apiServiceProvider)
-                      .bustVocabQuizResultsMyCache();
+                  await refreshAllRemoteApiData(ref);
                   ref.invalidate(myVocabQuizResultsProvider);
                 },
                 child: Text(l10n.retry),
@@ -141,8 +140,7 @@ class VocabQuizHistoryBody extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () async {
-            await ref.read(apiServiceProvider).bustVocabQuizResultsMyCache();
-            ref.invalidate(myVocabQuizResultsProvider);
+            await refreshAllRemoteApiData(ref);
             await ref.read(myVocabQuizResultsProvider.future);
           },
           child: ListView.separated(

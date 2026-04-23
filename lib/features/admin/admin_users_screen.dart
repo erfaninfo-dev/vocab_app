@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../data/models/admin_user_row.dart';
 import '../../data/services/api_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -257,7 +258,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       ? RefreshIndicator(
                           color: scheme.primary,
                           onRefresh: () async {
-                            ref.invalidate(adminUsersListProvider);
+                            await refreshAllRemoteApiData(ref);
                             await ref.read(adminUsersListProvider.future);
                           },
                           child: SingleChildScrollView(
@@ -296,7 +297,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       : RefreshIndicator(
                           color: scheme.primary,
                           onRefresh: () async {
-                            ref.invalidate(adminUsersListProvider);
+                            await refreshAllRemoteApiData(ref);
                             await ref.read(adminUsersListProvider.future);
                           },
                           child: ListView.separated(

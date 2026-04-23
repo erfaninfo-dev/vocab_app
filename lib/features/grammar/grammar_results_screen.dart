@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../data/models/grammar_result.dart';
 import 'grammar_practice_result_card.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -233,10 +234,7 @@ class _MyResultsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () async {
-            await ref
-                .read(apiServiceProvider)
-                .bustGrammarResultsListCaches();
-            ref.invalidate(myGrammarResultsProvider);
+            await refreshAllRemoteApiData(ref);
             await ref.read(myGrammarResultsProvider.future);
           },
           color: scheme.primary,
@@ -290,10 +288,7 @@ class _PublicResultsTab extends ConsumerWidget {
         final sorted = _sortGrammarResultRows(List<GrammarResult>.of(items), sort);
         return RefreshIndicator(
           onRefresh: () async {
-            await ref
-                .read(apiServiceProvider)
-                .bustGrammarResultsListCaches();
-            ref.invalidate(publicGrammarResultsProvider);
+            await refreshAllRemoteApiData(ref);
             await ref.read(publicGrammarResultsProvider.future);
           },
           color: scheme.primary,
