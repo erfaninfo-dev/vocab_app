@@ -99,16 +99,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/teacher/student/:studentId',
         builder: (context, state) {
-          final id =
-              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
           return TeacherStudentDetailScreen(studentId: id);
         },
       ),
       GoRoute(
         path: '/teacher/chat/:studentId',
         builder: (context, state) {
-          final id =
-              int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
           final extra = state.extra;
           TeacherChatOpenArgs? peer;
           String? hint;
@@ -208,8 +206,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id =
                   int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
-              final mistakesOnly =
-                  state.uri.queryParameters['mistakes'] == '1';
+              final mistakesOnly = state.uri.queryParameters['mistakes'] == '1';
               return VocabQuizResultDetailScreen(
                 resultId: id,
                 mistakesOnly: mistakesOnly,

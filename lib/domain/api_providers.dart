@@ -119,8 +119,8 @@ int grammarQuizMinQuestionsForTopics(int topicCount) {
   return max(kGrammarQuizMinBaseQuestions, topicCount);
 }
 
-/// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length.
-typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount});
+/// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length + session seed.
+typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount, int seed});
 
 /// Sort mode for grammar result screens (UI only; lists are fetched date-desc then reordered).
 enum GrammarResultsListSort { newest, mostPractice }
@@ -300,7 +300,8 @@ final apiGrammarQuizSessionProvider =
         merged.addAll(list);
       }
       if (merged.isEmpty) return [];
-      merged.shuffle(Random());
+      // Seed ensures "Practice again" produces a different order even when repeated quickly.
+      merged.shuffle(Random(params.seed));
       final poolCap = min(merged.length, kGrammarQuizSessionSize);
       final take = min(want, poolCap);
       return merged.sublist(0, take);

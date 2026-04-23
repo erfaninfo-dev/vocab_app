@@ -72,9 +72,9 @@ class ApiService {
 
   /// [scope] `public` (default) = main catalog; `student` = student tab (auth + server-side access).
   Future<List<Book>> fetchBooks({String scope = 'public'}) async {
-    final uri = Uri.parse('$baseUrl/books.php').replace(
-      queryParameters: {'scope': scope},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/books.php',
+    ).replace(queryParameters: {'scope': scope});
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final data = jsonDecode(cached) as List<dynamic>;
@@ -87,10 +87,13 @@ class ApiService {
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<Book>> searchBooks(String query, {String scope = 'public'}) async {
-    final uri = Uri.parse('$baseUrl/books.php').replace(
-      queryParameters: {'search': query, 'scope': scope},
-    );
+  Future<List<Book>> searchBooks(
+    String query, {
+    String scope = 'public',
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/books.php',
+    ).replace(queryParameters: {'search': query, 'scope': scope});
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final data = jsonDecode(cached) as List<dynamic>;
@@ -128,13 +131,19 @@ class ApiService {
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final data = jsonDecode(cached) as List<dynamic>;
-      return data.map((e) => (e['section'] as num).toInt()).toList();
+      return data
+          .map((e) => (e['section'] as num).toInt())
+          .where((s) => s > 0)
+          .toList();
     }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'sections');
     await _writeGetCache(uri, response.body, _ttlUnitsSections);
     final data = jsonDecode(response.body) as List<dynamic>;
-    return data.map((e) => (e['section'] as num).toInt()).toList();
+    return data
+        .map((e) => (e['section'] as num).toInt())
+        .where((s) => s > 0)
+        .toList();
   }
 
   // ── GET /words.php?book_id={id}&unit={unit}[&section={section}] ───────────
@@ -144,7 +153,7 @@ class ApiService {
     int? section,
   }) async {
     var uriStr = '$baseUrl/words.php?book_id=$bookId&unit=$unit';
-    if (section != null) uriStr += '&section=$section';
+    if (section != null && section > 0) uriStr += '&section=$section';
     final response = await http.get(
       Uri.parse(uriStr),
       headers: _mergeHeaders(),
@@ -436,16 +445,17 @@ class ApiService {
     if (bookId != null) {
       q['book_id'] = '$bookId';
     }
-    final uri = Uri.parse('$baseUrl/vocab_quiz_results_my.php')
-        .replace(queryParameters: q);
+    final uri = Uri.parse(
+      '$baseUrl/vocab_quiz_results_my.php',
+    ).replace(queryParameters: q);
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final map = jsonDecode(cached) as Map<String, dynamic>;
       final list = map['results'] as List<dynamic>? ?? const [];
       return list
-          .map((e) => VocabQuizResultSummary.fromJson(
-                e as Map<String, dynamic>,
-              ))
+          .map(
+            (e) => VocabQuizResultSummary.fromJson(e as Map<String, dynamic>),
+          )
           .toList();
     }
     final response = await http.get(uri, headers: _mergeHeaders());
@@ -454,18 +464,16 @@ class ApiService {
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['results'] as List<dynamic>? ?? const [];
     return list
-        .map((e) => VocabQuizResultSummary.fromJson(
-              e as Map<String, dynamic>,
-            ))
+        .map((e) => VocabQuizResultSummary.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   /// GET /vocab_quiz_result_detail.php?id= — requires auth.
   /// Not cached: response includes per-word session data (same policy as words.php).
   Future<VocabQuizResultDetail> fetchVocabQuizResultDetail(int id) async {
-    final uri = Uri.parse('$baseUrl/vocab_quiz_result_detail.php').replace(
-      queryParameters: {'id': '$id'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/vocab_quiz_result_detail.php',
+    ).replace(queryParameters: {'id': '$id'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -503,9 +511,9 @@ class ApiService {
   /// GET /user_vocab_marks.php?kind=favorite|important — requires auth.
   /// Caches id sets only (not word text).
   Future<Set<int>> fetchUserVocabMarks({required String kind}) async {
-    final uri = Uri.parse('$baseUrl/user_vocab_marks.php').replace(
-      queryParameters: {'kind': kind},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/user_vocab_marks.php',
+    ).replace(queryParameters: {'kind': kind});
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final map = jsonDecode(cached) as Map<String, dynamic>;
@@ -542,9 +550,9 @@ class ApiService {
     required String kind,
     required int wordId,
   }) async {
-    final uri = Uri.parse('$baseUrl/user_vocab_marks.php').replace(
-      queryParameters: {'kind': kind, 'word_id': '$wordId'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/user_vocab_marks.php',
+    ).replace(queryParameters: {'kind': kind, 'word_id': '$wordId'});
     final response = await http.delete(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     await bustUserVocabMarksCache(kind: kind);
@@ -611,6 +619,44 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthSession.fromAuthResponse(map);
+  }
+
+  /// POST /password_reset_request.php
+  Future<void> requestPasswordResetEmailCode(String email) async {
+    final uri = Uri.parse('$baseUrl/password_reset_request.php');
+    final response = await http.post(
+      uri,
+      headers: const {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({'email': email.trim()}),
+    );
+    if (response.statusCode != 200) {
+      _throwFromJsonBody(response);
+    }
+  }
+
+  /// POST /password_reset_confirm.php
+  Future<void> confirmPasswordResetEmailCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final uri = Uri.parse('$baseUrl/password_reset_confirm.php');
+    final response = await http.post(
+      uri,
+      headers: const {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({
+        'email': email.trim(),
+        'code': code.trim(),
+        'new_password': newPassword,
+      }),
+    );
+    if (response.statusCode != 200) {
+      _throwFromJsonBody(response);
+    }
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Password reset failed');
+    }
   }
 
   /// POST /student_redeem_code.php — requires auth.
@@ -701,17 +747,15 @@ class ApiService {
   Future<List<TeacherStudentSummary>> fetchTeacherStudents({
     bool inbox = false,
   }) async {
-    final uri = Uri.parse('$baseUrl/teacher_students.php').replace(
-      queryParameters: inbox ? const {'inbox': '1'} : null,
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_students.php',
+    ).replace(queryParameters: inbox ? const {'inbox': '1'} : null);
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['students'] as List<dynamic>? ?? const [];
     return list
-        .map(
-          (e) => TeacherStudentSummary.fromJson(e as Map<String, dynamic>),
-        )
+        .map((e) => TeacherStudentSummary.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -720,21 +764,15 @@ class ApiService {
     int studentId, {
     int limit = 100,
   }) async {
-    final uri =
-        Uri.parse('$baseUrl/teacher_student_vocab_results.php').replace(
-      queryParameters: {
-        'student_id': '$studentId',
-        'limit': '$limit',
-      },
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_vocab_results.php',
+    ).replace(queryParameters: {'student_id': '$studentId', 'limit': '$limit'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['results'] as List<dynamic>? ?? const [];
     return list
-        .map(
-          (e) => VocabQuizResultSummary.fromJson(e as Map<String, dynamic>),
-        )
+        .map((e) => VocabQuizResultSummary.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -742,10 +780,9 @@ class ApiService {
   Future<List<GrammarResult>> fetchTeacherStudentGrammarResults(
     int studentId,
   ) async {
-    final uri =
-        Uri.parse('$baseUrl/teacher_student_grammar_results.php').replace(
-      queryParameters: {'student_id': '$studentId'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_grammar_results.php',
+    ).replace(queryParameters: {'student_id': '$studentId'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -757,9 +794,9 @@ class ApiService {
 
   /// GET /teacher_student_sessions.php
   Future<TeacherSessionInfo> fetchTeacherStudentSessions(int studentId) async {
-    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php').replace(
-      queryParameters: {'student_id': '$studentId'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_sessions.php',
+    ).replace(queryParameters: {'student_id': '$studentId'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -769,13 +806,10 @@ class ApiService {
   TeacherSessionInfo _parseTeacherSessionInfo(Map<String, dynamic> map) {
     final rawList = map['sessions'] as List<dynamic>? ?? const [];
     final sessions = rawList
-        .map(
-          (e) => ClassSessionEntry.fromJson(e as Map<String, dynamic>),
-        )
+        .map((e) => ClassSessionEntry.fromJson(e as Map<String, dynamic>))
         .toList();
     final fallbackCount = (map['session_count'] as num?)?.toInt() ?? 0;
-    final count =
-        sessions.isNotEmpty ? sessions.length : fallbackCount;
+    final count = sessions.isNotEmpty ? sessions.length : fallbackCount;
     final u = map['updated_at']?.toString();
     final rawNote = map['note']?.toString();
     return TeacherSessionInfo(
@@ -794,10 +828,7 @@ class ApiService {
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'student_id': studentId,
-        'add_session': true,
-      }),
+      body: jsonEncode({'student_id': studentId, 'add_session': true}),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -922,10 +953,11 @@ class ApiService {
   }
 
   /// GET /teacher_student_messages.php?summary=1 — unread counts for home FAB.
-  Future<TeacherMessagesUnreadSummary> fetchTeacherMessagesUnreadSummary() async {
-    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
-      queryParameters: const {'summary': '1'},
-    );
+  Future<TeacherMessagesUnreadSummary>
+  fetchTeacherMessagesUnreadSummary() async {
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_messages.php',
+    ).replace(queryParameters: const {'summary': '1'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -934,9 +966,9 @@ class ApiService {
 
   /// GET /teacher_student_messages.php?preview=1 — auth; empty preview if no teacher.
   Future<TeacherMessagesPreview> fetchTeacherMessagesPreview() async {
-    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
-      queryParameters: const {'preview': '1'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_messages.php',
+    ).replace(queryParameters: const {'preview': '1'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -951,8 +983,9 @@ class ApiService {
     final q = <String, String>{};
     if (studentId != null) q['student_id'] = '$studentId';
     if (peerTeacherId != null) q['peer_teacher_id'] = '$peerTeacherId';
-    final uri = Uri.parse('$baseUrl/teacher_student_messages.php')
-        .replace(queryParameters: q.isEmpty ? null : q);
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_messages.php',
+    ).replace(queryParameters: q.isEmpty ? null : q);
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -961,9 +994,9 @@ class ApiService {
 
   /// GET ?student_peers=1 — learner: list chats (teacher + admin).
   Future<List<StudentMessagePeerRow>> fetchStudentMessagePeers() async {
-    final uri = Uri.parse('$baseUrl/teacher_student_messages.php').replace(
-      queryParameters: const {'student_peers': '1'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_messages.php',
+    ).replace(queryParameters: const {'student_peers': '1'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -1055,25 +1088,25 @@ class ApiService {
   Future<void> bustBooksCatalogCache({String? searchQuery}) async {
     final q = searchQuery?.trim() ?? '';
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/books.php').replace(
-        queryParameters: {'scope': 'public'},
-      ),
+      Uri.parse(
+        '$baseUrl/books.php',
+      ).replace(queryParameters: {'scope': 'public'}),
     );
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/books.php').replace(
-        queryParameters: {'scope': 'student'},
-      ),
+      Uri.parse(
+        '$baseUrl/books.php',
+      ).replace(queryParameters: {'scope': 'student'}),
     );
     if (q.isNotEmpty) {
       await bustHttpCacheForUri(
-        Uri.parse('$baseUrl/books.php').replace(
-          queryParameters: {'search': q, 'scope': 'public'},
-        ),
+        Uri.parse(
+          '$baseUrl/books.php',
+        ).replace(queryParameters: {'search': q, 'scope': 'public'}),
       );
       await bustHttpCacheForUri(
-        Uri.parse('$baseUrl/books.php').replace(
-          queryParameters: {'search': q, 'scope': 'student'},
-        ),
+        Uri.parse(
+          '$baseUrl/books.php',
+        ).replace(queryParameters: {'search': q, 'scope': 'student'}),
       );
     }
   }
@@ -1089,27 +1122,30 @@ class ApiService {
   /// Clears GET caches for grammar result lists ([fetchPublicGrammarResults] / [fetchMyGrammarResults] defaults).
   Future<void> bustGrammarResultsListCaches() async {
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/grammar_results_public.php').replace(
-        queryParameters: const {'sort': 'date', 'order': 'desc'},
-      ),
+      Uri.parse(
+        '$baseUrl/grammar_results_public.php',
+      ).replace(queryParameters: const {'sort': 'date', 'order': 'desc'}),
     );
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/grammar_results_my.php').replace(
-        queryParameters: const {'sort': 'date', 'order': 'desc'},
-      ),
+      Uri.parse(
+        '$baseUrl/grammar_results_my.php',
+      ).replace(queryParameters: const {'sort': 'date', 'order': 'desc'}),
     );
   }
 
   /// GET [vocab_quiz_results_my.php] list cache — bust after submit or when forcing refresh.
-  Future<void> bustVocabQuizResultsMyCache({int? bookId, int limit = 100}) async {
+  Future<void> bustVocabQuizResultsMyCache({
+    int? bookId,
+    int limit = 100,
+  }) async {
     final q = <String, String>{'limit': '$limit'};
     if (bookId != null) {
       q['book_id'] = '$bookId';
     }
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/vocab_quiz_results_my.php').replace(
-        queryParameters: q,
-      ),
+      Uri.parse(
+        '$baseUrl/vocab_quiz_results_my.php',
+      ).replace(queryParameters: q),
     );
   }
 
@@ -1117,21 +1153,21 @@ class ApiService {
   Future<void> bustUserVocabMarksCache({String? kind}) async {
     if (kind != null) {
       await bustHttpCacheForUri(
-        Uri.parse('$baseUrl/user_vocab_marks.php').replace(
-          queryParameters: {'kind': kind},
-        ),
+        Uri.parse(
+          '$baseUrl/user_vocab_marks.php',
+        ).replace(queryParameters: {'kind': kind}),
       );
       return;
     }
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/user_vocab_marks.php').replace(
-        queryParameters: const {'kind': 'favorite'},
-      ),
+      Uri.parse(
+        '$baseUrl/user_vocab_marks.php',
+      ).replace(queryParameters: const {'kind': 'favorite'}),
     );
     await bustHttpCacheForUri(
-      Uri.parse('$baseUrl/user_vocab_marks.php').replace(
-        queryParameters: const {'kind': 'important'},
-      ),
+      Uri.parse(
+        '$baseUrl/user_vocab_marks.php',
+      ).replace(queryParameters: const {'kind': 'important'}),
     );
   }
 

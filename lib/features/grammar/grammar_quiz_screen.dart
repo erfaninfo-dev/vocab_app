@@ -301,6 +301,7 @@ class GrammarQuizScreen extends ConsumerStatefulWidget {
 
 class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   int _index = 0;
+  int _sessionSeed = DateTime.now().microsecondsSinceEpoch;
 
   /// Once set per question index, the choice cannot be changed (including after Back).
   final Map<int, String> _answers = {};
@@ -323,14 +324,19 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   }
 
   void _resetForNewQuestions() {
+    final oldSeed = _sessionSeed;
+    final newSeed = DateTime.now().microsecondsSinceEpoch;
+    // Drop the old session from Riverpod cache, then switch to a new seeded session.
     ref.invalidate(
       apiGrammarQuizSessionProvider((
         topicsKey: grammarTopicsCacheKey(widget.topics),
         questionCount: widget.questionCount,
+        seed: oldSeed,
       )),
     );
     setState(() {
       _index = 0;
+      _sessionSeed = newSeed;
       _answers.clear();
       _score = 0;
       _sessionDone = false;
@@ -380,6 +386,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       apiGrammarQuizSessionProvider((
         topicsKey: topicsKey,
         questionCount: widget.questionCount,
+        seed: _sessionSeed,
       )),
     );
     final scheme = Theme.of(context).colorScheme;
