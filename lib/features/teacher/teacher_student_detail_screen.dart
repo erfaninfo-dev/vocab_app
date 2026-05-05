@@ -12,6 +12,7 @@ import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../grammar/grammar_practice_result_card.dart';
 import 'teacher_chat_open_args.dart';
+import 'teacher_class_schedule_panel.dart';
 import 'teacher_class_sessions_panel.dart';
 
 String _teacherUnitsCsv(List<int> units) {
@@ -55,7 +56,7 @@ class _TeacherStudentDetailScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -123,6 +124,7 @@ class _TeacherStudentDetailScreenState
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: [
             Tab(
               child: FittedBox(
@@ -163,6 +165,19 @@ class _TeacherStudentDetailScreenState
                 ),
               ),
             ),
+            Tab(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.teacherTabWeeklySchedule),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -172,6 +187,7 @@ class _TeacherStudentDetailScreenState
           _VocabTab(studentId: widget.studentId),
           _GrammarTab(studentId: widget.studentId),
           TeacherClassSessionsPanel(studentId: widget.studentId),
+          TeacherClassSchedulePanel(studentId: widget.studentId),
         ],
       ),
     );

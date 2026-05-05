@@ -14,6 +14,7 @@ import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
+import 'widgets/slider_with_value_below.dart';
 
 /// Upper bound for deep-link `?count=` only; UI max is always the live pool size.
 const int kVocabQuizRouteCountCap = 10000;
@@ -245,7 +246,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
     final shuffledWords = [...usable]..shuffle(rng);
     for (final word in shuffledWords) {
-      for (final m in selected) {
+      // Mistakes pool is small: one question per word so the same headword
+      // does not repeat back-to-back in different modes. Full mix stays for
+      // normal (non-mistakes) quizzes.
+      final modesThisWord = _scopeWrongsOnly
+          ? ([...selected]..shuffle(rng))
+          : selected.toList();
+      for (final m in modesThisWord) {
         if (m == VocabQuestionMode.writtenMeaningToWord ||
             m == VocabQuestionMode.spellingListenAndType) {
           final localMeaning = word.meaningFor(lang);
@@ -269,13 +276,15 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               playsAudio: m == VocabQuestionMode.spellingListenAndType,
             ),
           );
+          if (_scopeWrongsOnly) break;
           continue;
         }
 
         // Distractor preference order (fast + higher quality):
         // 1) same section (if any) → 2) same unit → 3) rest of distractor scope
-        final candidates =
-            usableDistractors.where((w) => w.id != word.id).toList();
+        final candidates = usableDistractors
+            .where((w) => w.id != word.id)
+            .toList();
 
         List<VocabEntry> shuffled(List<VocabEntry> xs) {
           final out = [...xs]..shuffle(rng);
@@ -315,9 +324,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
         if (m == VocabQuestionMode.mcqWordToMeaning) {
           final correct = meaningForQuiz(word);
-          final wrongs = wrongPool
-              .map(meaningForQuiz)
-              .toList();
+          final wrongs = wrongPool.map(meaningForQuiz).toList();
           final opts = [correct, ...wrongs]..shuffle(rng);
           buckets[m]!.add(
             _Question(
@@ -330,6 +337,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               questionMode: m,
             ),
           );
+          if (_scopeWrongsOnly) break;
         } else if (m == VocabQuestionMode.mcqMeaningToWord) {
           final localMeaning = word.meaningFor(lang);
           final prompt = localMeaning.isNotEmpty
@@ -353,6 +361,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               questionMode: m,
             ),
           );
+          if (_scopeWrongsOnly) break;
         }
       }
     }
@@ -463,6 +472,23 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           _invalidateWrongs();
         } catch (_) {}
       }
+    } else if (_scopeWrongsOnly) {
+      // In mistakes-only drill, a correct recall should clear this word from the
+      // server list so counts (e.g. setup "Only past mistakes (n)") stay honest.
+      final session = ref.read(authProvider).valueOrNull;
+      if (session != null) {
+        final api = ref.read(apiServiceProvider);
+        unawaited(() async {
+          try {
+            await api.removeVocabQuizWrong(
+              bookId: widget.bookId,
+              unit: q.entry.unit,
+              wordKey: q.entry.id,
+            );
+            _invalidateWrongs();
+          } catch (_) {}
+        }());
+      }
     }
   }
 
@@ -485,9 +511,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       _invalidateWrongs();
       if (mounted) {
         final msg = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg.removedFromMistakes)));
+        // Advance first so feedback is not stuck on the answered question;
+        // show SnackBar after layout so it targets the updated screen.
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _next();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(msg.removedFromMistakes)));
+        });
       }
     } catch (_) {
       if (mounted) {
@@ -548,7 +581,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       }
     } catch (_) {}
     try {
-      await ref.read(apiServiceProvider).submitVocabQuizResult(
+      await ref
+          .read(apiServiceProvider)
+          .submitVocabQuizResult(
             bookId: widget.bookId,
             score: _score,
             totalQuestions: _questions.length,
@@ -829,10 +864,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         ],
       ),
       body: PopScope(
+        canPop: !_inActiveSession,
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop) return;
           final ok = await _confirmExitQuiz();
-          if (!ok || !mounted) return;
+          if (!ok || !context.mounted) return;
           Navigator.of(context).pop();
         },
         child: wordsAsync.when(
@@ -846,12 +882,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                 final wrongsForUnits = widget.unit != null
                     ? wrongs
                     : (unitFilter.isEmpty
-                        ? wrongs
-                        : wrongs
-                            .where((w) => unitFilter.contains(w.unit))
-                            .toList());
-                final wrongKeys =
-                    wrongsForUnits.map((w) => w.wordKey).toSet();
+                          ? wrongs
+                          : wrongs
+                                .where((w) => unitFilter.contains(w.unit))
+                                .toList());
+                final wrongKeys = wrongsForUnits.map((w) => w.wordKey).toSet();
                 final basePool = _filterPool(
                   words,
                   widget.unit == null ? unitFilter : <int>{},
@@ -904,18 +939,48 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                       resolvedScope == 1 &&
                       hasImportant &&
                       basePool.length >= 4;
+                  final message = importantTooSmall
+                      ? l10n.quizNotEnoughImportant
+                      : _scopeWrongsOnly && pool.isEmpty
+                          ? l10n.quizNotEnoughWrongs
+                          : needsMcq
+                              ? l10n.quizNeedFourWords
+                              : l10n.quizNeedOneWord;
                   return Center(
-                    child: Padding(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: Text(
-                        importantTooSmall
-                            ? l10n.quizNotEnoughImportant
-                            : _scopeWrongsOnly && pool.isEmpty
-                                ? l10n.quizNotEnoughWrongs
-                                : needsMcq
-                                    ? l10n.quizNeedFourWords
-                                    : l10n.quizNeedOneWord,
-                        textAlign: TextAlign.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              message,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () =>
+                                    _backToVocabQuizSetup(context),
+                                icon: const Icon(Icons.quiz_outlined),
+                                label: Text(l10n.backToQuiz),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextButton.icon(
+                              onPressed: () => _openWordsList(context),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: Text(l10n.backToWords),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -923,7 +988,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
 
                 final loggedIn = ref.watch(authProvider).valueOrNull != null;
                 final maxQ = pool.length;
-                final minPick = pool.length >= 10 ? 10 : pool.length;
+                final minPick = _scopeWrongsOnly
+                    ? (maxQ > 0 ? 1 : 0)
+                    : (pool.length >= 10 ? 10 : pool.length);
 
                 if (_questions.isEmpty) {
                   if (autoStartFromRoute) {
@@ -1195,12 +1262,13 @@ class _ModeSelector extends StatelessWidget {
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-            Slider(
+            SliderWithValueBelow(
               min: low,
               max: high,
               divisions: divisions,
-              label: '$questionBudget',
-              value: questionBudget
+              displayValue:
+                  questionBudget.clamp(minQuestionPick, maxQuestionPick),
+              sliderValue: questionBudget
                   .clamp(minQuestionPick, maxQuestionPick)
                   .toDouble(),
               onChanged: maxQuestionPick < 1
@@ -1408,8 +1476,10 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration:
-                _writtenFeedbackCardDecoration(context, isCorrect: true),
+            decoration: _writtenFeedbackCardDecoration(
+              context,
+              isCorrect: true,
+            ),
             child: Text(
               l10n.correctLine((widget.selectedAnswer ?? '').trim()),
               style: body.copyWith(
@@ -1432,8 +1502,10 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration:
-                _writtenFeedbackCardDecoration(context, isCorrect: false),
+            decoration: _writtenFeedbackCardDecoration(
+              context,
+              isCorrect: false,
+            ),
             child: RichText(
               text: TextSpan(
                 style: body.copyWith(color: scheme.onSurfaceVariant),
@@ -1478,8 +1550,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
-          decoration:
-              _writtenFeedbackCardDecoration(context, isCorrect: false),
+          decoration: _writtenFeedbackCardDecoration(context, isCorrect: false),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1491,10 +1562,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                       text: '${l10n.quizFeedbackWrongPrefix} ',
                       style: labelStyle,
                     ),
-                    TextSpan(
-                      text: given,
-                      style: wrongAnswerStyle,
-                    ),
+                    TextSpan(text: given, style: wrongAnswerStyle),
                   ],
                 ),
               ),
@@ -1517,10 +1585,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                       text: '${l10n.quizFeedbackCorrectLabel} ',
                       style: labelStyle,
                     ),
-                    TextSpan(
-                      text: correct,
-                      style: correctWordStyle,
-                    ),
+                    TextSpan(text: correct, style: correctWordStyle),
                   ],
                 ),
               ),
@@ -1586,8 +1651,8 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                     q.playsAudio
                         ? l10n.quizSpellingListenPrompt
                         : (widget.mode == QuizMode.wordToMeaning
-                            ? l10n.whatIsMeaningOf
-                            : l10n.whichWordMeans),
+                              ? l10n.whatIsMeaningOf
+                              : l10n.whichWordMeans),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -1598,14 +1663,11 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                   Text(
                     q.entry.section == null
                         ? l10n.wordsUnitOnly(q.entry.unit)
-                        : l10n.wordsUnitSection(
-                            q.entry.unit,
-                            q.entry.section!,
-                          ),
+                        : l10n.wordsUnitSection(q.entry.unit, q.entry.section!),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Directionality(
@@ -1620,8 +1682,8 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                             ? _meaningAlign(context)
                             : TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ),
@@ -1638,11 +1700,11 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                           textAlign: q.kind == _QuestionKind.written
                               ? _meaningAlign(context)
                               : TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
                         ),
                       ),
                     ),
@@ -1690,7 +1752,8 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                     : l10n.typeTheWord,
                 hintText: l10n.typeYourAnswer,
                 border: const OutlineInputBorder(),
-                errorText: !widget.answered &&
+                errorText:
+                    !widget.answered &&
                         _writtenFirstLetterMismatch(
                           widget.writtenController.text,
                           q.correctAnswer,

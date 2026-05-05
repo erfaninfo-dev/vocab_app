@@ -2,12 +2,158 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/app_info/package_info_provider.dart';
+import '../../core/audio/splash_sound_controller.dart';
+import '../../core/update/android_apk_installer.dart';
+import '../../domain/app_update_provider.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'theme_mode_controller.dart';
+
+const _kSupportPhoneDisplay = '09107837602';
+const _kSupportPhoneUri = 'tel:+989107837602';
+
+final _aboutUpdateDismissedProvider = StateProvider.autoDispose<bool>((ref) {
+  return false;
+});
+
+class _ApkDownloadProgress {
+  const _ApkDownloadProgress({
+    required this.progress,
+    required this.receivedBytes,
+    required this.totalBytes,
+  });
+
+  final double progress; // -1 for indeterminate
+  final int receivedBytes;
+  final int totalBytes; // -1 when unknown
+}
+
+Future<void> _downloadApkUpdate(BuildContext context, String url) async {
+  final l10n = AppLocalizations.of(context)!;
+  if (!context.mounted) return;
+  final progressN = ValueNotifier<_ApkDownloadProgress>(
+    const _ApkDownloadProgress(
+      progress: -1,
+      receivedBytes: 0,
+      totalBytes: -1,
+    ),
+  );
+
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => ValueListenableBuilder<_ApkDownloadProgress>(
+      valueListenable: progressN,
+      builder: (context, p, _) {
+        final percent =
+            p.progress >= 0 ? (p.progress * 100).clamp(0, 100) : null;
+        final receivedMb = p.receivedBytes / 1024 / 1024;
+        final totalMb = p.totalBytes > 0 ? p.totalBytes / 1024 / 1024 : null;
+        return AlertDialog(
+          title: Text(l10n.aboutDownloadingApk),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(value: p.progress >= 0 ? p.progress : null),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (percent != null)
+                    Text(
+                      '${percent.toStringAsFixed(0)}%',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    )
+                  else
+                    const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      totalMb != null
+                          ? '${receivedMb.toStringAsFixed(1)} / ${totalMb.toStringAsFixed(1)} MB'
+                          : '${receivedMb.toStringAsFixed(1)} MB',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+  try {
+    await downloadAndOpenAndroidApk(
+      url,
+      onProgress: (p, r, t) {
+        progressN.value = _ApkDownloadProgress(
+          progress: p,
+          receivedBytes: r,
+          totalBytes: t,
+        );
+      },
+    );
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutDownloadApkFailed)),
+      );
+    }
+  } finally {
+    progressN.dispose();
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+}
+
+Future<void> _openLatestDownloadLink(BuildContext context, String url) async {
+  final l10n = AppLocalizations.of(context)!;
+  final uri = Uri.parse(url);
+  try {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
+      );
+    }
+  }
+}
+
+Future<void> _openSupportPhone(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  final uri = Uri.parse(_kSupportPhoneUri);
+  try {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
+      );
+    }
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -18,6 +164,8 @@ class SettingsScreen extends ConsumerWidget {
     final theme = ref.read(themeModeProvider.notifier);
     final notif = ref.watch(notifProvider);
     final notifN = ref.read(notifProvider.notifier);
+    final splashSound = ref.watch(splashSoundProvider);
+    final splashSoundN = ref.read(splashSoundProvider.notifier);
     final lang = ref.watch(langProvider);
     final langN = ref.read(langProvider.notifier);
     final scheme = Theme.of(context).colorScheme;
@@ -189,9 +337,23 @@ class SettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
+            // ── Sound ─────────────────────────────────────────────────────────
+            _SectionLabel(label: l10n.sectionSound),
+            Card(
+              child: SwitchListTile(
+                secondary: const Icon(Icons.music_note_rounded),
+                title: Text(l10n.splashSoundTitle),
+                subtitle: Text(l10n.splashSoundSubtitle),
+                value: splashSound,
+                onChanged: (v) => splashSoundN.setEnabled(v),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // ── About ──────────────────────────────────────────────────────────
             _SectionLabel(label: l10n.sectionAbout),
-            _AboutCard(),
+            const _AboutCard(),
           ],
         ),
       ),
@@ -199,12 +361,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _AboutCard extends StatelessWidget {
+class _AboutCard extends ConsumerWidget {
+  const _AboutCard();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final l10nEn = lookupAppLocalizations(const Locale('en'));
+    final packageAsync = ref.watch(packageInfoProvider);
+    final updateAsync = ref.watch(appUpdateCheckProvider);
+    final dismissed = ref.watch(_aboutUpdateDismissedProvider);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -275,6 +442,174 @@ class _AboutCard extends StatelessWidget {
                 ],
               ),
 
+              const SizedBox(height: 16),
+
+              packageAsync.when(
+                data: (info) => Column(
+                  children: [
+                    Text(
+                      l10n.aboutAppVersion(info.version, info.buildNumber),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSecondaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    updateAsync.when(
+                      data: (check) {
+                        if (check.androidEligible) {
+                          if (check.checkFailed) {
+                            return Column(
+                              children: [
+                                Text(
+                                  l10n.aboutUpdateCheckFailed,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: scheme.onSecondaryContainer,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton.icon(
+                                  onPressed: () => ref.invalidate(
+                                    appUpdateCheckProvider,
+                                  ),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: Text(l10n.aboutRetryUpdateCheck),
+                                ),
+                              ],
+                            );
+                          }
+                          if (check.updateAvailable &&
+                              check.apkUrl != null &&
+                              check.apkUrl!.isNotEmpty) {
+                            final verLabel =
+                                (check.remoteVersionName ?? '').trim().isNotEmpty
+                                ? check.remoteVersionName!.trim()
+                                : '${check.remoteVersionCode ?? ''}';
+                            return Column(
+                              children: [
+                                Text(
+                                  l10n.aboutUpdateAvailableVersion(verLabel),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: scheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                const SizedBox(height: 12),
+                                if (!dismissed || check.forceUpdate)
+                                  Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: 12,
+                                    runSpacing: 8,
+                                    children: [
+                                      FilledButton.icon(
+                                        onPressed: () => _downloadApkUpdate(
+                                          context,
+                                          check.apkUrl!,
+                                        ),
+                                        icon: const Icon(Icons.download_rounded),
+                                        label: Text(l10n.aboutDownloadApkUpdate),
+                                      ),
+                                      if (!check.forceUpdate)
+                                        TextButton(
+                                          onPressed: () => ref
+                                              .read(
+                                                _aboutUpdateDismissedProvider
+                                                    .notifier,
+                                              )
+                                              .state = true,
+                                          child: Text(l10n.aboutLater),
+                                        ),
+                                    ],
+                                  ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  check.forceUpdate
+                                      ? l10n.aboutForcedUpdateNote
+                                      : l10n.aboutInstallApkHint,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: scheme.onSecondaryContainer,
+                                      ),
+                                ),
+                              ],
+                            );
+                          }
+                          return Text(
+                            l10n.aboutAppUpToDate,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onSecondaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          );
+                        }
+                        if (check.apkUrl == null || check.apkUrl!.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return FilledButton.tonalIcon(
+                          onPressed: () => _openLatestDownloadLink(
+                            context,
+                            check.apkUrl!,
+                          ),
+                          icon: const Icon(Icons.system_update_rounded),
+                          label: Text(l10n.aboutUpdateFromPlayStore),
+                        );
+                      },
+                      loading: () => const SizedBox(
+                        height: 36,
+                        child: Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, __) => Column(
+                        children: [
+                          Text(
+                            l10n.aboutUpdateCheckFailed,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: scheme.onSecondaryContainer),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: () =>
+                                ref.invalidate(appUpdateCheckProvider),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: Text(l10n.aboutRetryUpdateCheck),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                loading: () => const SizedBox(
+                  height: 28,
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
               const SizedBox(height: 20),
               Divider(color: scheme.outline.withOpacity(0.3)),
               const SizedBox(height: 16),
@@ -323,6 +658,68 @@ class _AboutCard extends StatelessWidget {
                           fontSize: 14,
                           decoration: TextDecoration.underline,
                           decorationColor: scheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              GestureDetector(
+                onTap: () => _openSupportPhone(context),
+                onLongPress: () {
+                  Clipboard.setData(
+                    const ClipboardData(text: _kSupportPhoneDisplay),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.aboutPhoneCopied),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: scheme.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.phone_rounded,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${l10n.aboutPhoneLabel}: ',
+                        style: TextStyle(
+                          color: scheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          _kSupportPhoneDisplay,
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],

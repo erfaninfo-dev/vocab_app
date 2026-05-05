@@ -177,6 +177,20 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get loading => 'بارکردن…';
 
   @override
+  String get unitSamplesOpen => 'دەقی نموونە';
+
+  @override
+  String unitSamplesTitle(int unit) {
+    return 'یونیت $unit — دەقی نموونە';
+  }
+
+  @override
+  String get unitSamplesEmpty => 'هێشتا بۆ ئەم یونیتە دەقی نموونە نییە.';
+
+  @override
+  String get unitSamplesLoadFailed => 'بارکردنی دەقی نموونە سەرکەوتوو نەبوو.';
+
+  @override
   String get search => 'گەڕان';
 
   @override
@@ -421,6 +435,15 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get reminderTime => 'کاتی بیرخەرەوە';
 
   @override
+  String get sectionSound => 'دەنگ';
+
+  @override
+  String get splashSoundTitle => 'دەنگی دەستپێکردن';
+
+  @override
+  String get splashSoundSubtitle => 'کاتێک ئەپ دەکرێتەوە دەنگێکی هێمن لێ بدە';
+
+  @override
   String get sectionAbout => 'دەربارە';
 
   @override
@@ -438,6 +461,58 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get byAuthor => 'لەلایەن عیرفان عەبدی';
+
+  @override
+  String aboutAppVersion(String version, String buildNumber) {
+    return 'وەشان $version ($buildNumber)';
+  }
+
+  @override
+  String get aboutUpdateFromPlayStore => 'وەشانی نوێ دابگرە';
+
+  @override
+  String get aboutAppUpToDate => 'دوایین وەشان دامەزراوە.';
+
+  @override
+  String aboutUpdateAvailableVersion(String version) {
+    return 'وەشانێکی نوێ بەردەستە: $version';
+  }
+
+  @override
+  String get aboutDownloadApkUpdate => 'داگرتنی نوێکردنەوە';
+
+  @override
+  String get aboutDownloadingApk => 'داگرتن…';
+
+  @override
+  String get aboutDownloadApkFailed =>
+      'داگرتن سەرکەوتوو نەبوو. پەیوەندی بپشکنە و دووبارە هەوڵ بدە.';
+
+  @override
+  String get aboutInstallApkHint =>
+      'ئەگەر داواکرا، لە ڕێکخستنەکاندا ڕێگە بدە بە دامەزراندن لەم ئەپەوە.';
+
+  @override
+  String get aboutForcedUpdateNote =>
+      'ئەم نوێکردنەوەیە پێویستە. تکایە دوایین وەشان دابگرە و دامەزرێنە.';
+
+  @override
+  String get aboutUpdateCheckFailed => 'پشکنینی نوێکردنەوە سەرکەوتوو نەبوو.';
+
+  @override
+  String get aboutRetryUpdateCheck => 'دووبارە هەوڵ بدە';
+
+  @override
+  String get aboutLater => 'دواتر';
+
+  @override
+  String get aboutCouldNotOpenLink => 'بۆکردنەوەی بەستەر سەرکەوتوو نەبوو.';
+
+  @override
+  String get aboutPhoneLabel => 'تەلەفۆن';
+
+  @override
+  String get aboutPhoneCopied => 'ژمارەکە لە کلیپبۆرد کۆپی کرا';
 
   @override
   String get errNoInternet => 'پەیوەندی ئینتەرنێت نییە. تۆڕ بپشکنە.';
@@ -857,7 +932,24 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get teacherPanelTabStudents => 'قوتابیان';
 
   @override
+  String get teacherPanelTabSchedule => 'خشتەی وانە';
+
+  @override
   String get teacherPanelTabMessages => 'نامەکان';
+
+  @override
+  String get teacherScheduleEmpty =>
+      'لە ٧ ڕۆژی داهاتوودا هیچ نییە. کاتەکانی هەفتانە لە هەر قوتابییەک زیاد بکە، یان هەموو کاتە نزیکەکان پێشتر تۆمارکراون.';
+
+  @override
+  String get teacherScheduleTabSubtitle =>
+      '٧ ڕۆژی داهاتوو لە خشتەی هەفتانەی هەر قوتابییەک. دوای تۆمارکردنی هەمان وانە لە دانیشتنەکان، لێرە دەردەچێت.';
+
+  @override
+  String get sessionDayToday => 'ئەمڕۆ';
+
+  @override
+  String get sessionDayTomorrow => 'سبەی';
 
   @override
   String get teacherStudentDetailTitle => 'قوتابی';
@@ -870,6 +962,66 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get teacherTabClassSessions => 'دانیشتنەکان';
+
+  @override
+  String get teacherTabWeeklySchedule => 'خشتەی هەفتانە';
+
+  @override
+  String get teacherClassScheduleSubtitle =>
+      'ڕۆژەکانی هەفتە و کاتەکانی وانە دیاری بکە — قوتابی تەنها دەبینێت.';
+
+  @override
+  String get teacherClassScheduleAddButton => 'زیادکردنی کات';
+
+  @override
+  String get teacherClassScheduleEditTitle => 'دەستکاریکردنی کات';
+
+  @override
+  String get classScheduleWeekdayLabel => 'ڕۆژی هەفتە';
+
+  @override
+  String get classScheduleStartLabel => 'کاتی دەستپێک';
+
+  @override
+  String get classScheduleEndLabel => 'کاتی کۆتایی';
+
+  @override
+  String get classScheduleIncludeEnd => 'کاتی کۆتاییش بنووسە';
+
+  @override
+  String get classScheduleHasEndSubtitle =>
+      'ئارەزوومەندانە — ئەگەر نەبێت تەنها دەستپێک دەردەکەوێت.';
+
+  @override
+  String get classScheduleLabelHint => 'تێبینی (ئارەزوومەندانە)';
+
+  @override
+  String get classScheduleEmpty => 'هێشتا کاتێک تۆمار نەکراوە.';
+
+  @override
+  String get classScheduleSlotAdded => 'کات زیادکرا';
+
+  @override
+  String get classScheduleSlotUpdated => 'کات نوێکرایەوە';
+
+  @override
+  String get classScheduleSlotDeleted => 'کات سڕایەوە';
+
+  @override
+  String get classScheduleRemove => 'سڕینەوە';
+
+  @override
+  String get classScheduleDeleteConfirmTitle => 'ئەم کاتە بسڕدرێتەوە؟';
+
+  @override
+  String get classScheduleDeleteConfirmBody => 'گەڕانەوە نییە.';
+
+  @override
+  String get classScheduleInvalidRange => 'کاتی کۆتایی دەبێت دوای دەستپێک بێت.';
+
+  @override
+  String get youClassScheduleSubtitle =>
+      'ڕۆژ و کاتی وانەی دووبارە لە مامۆستاکەت';
 
   @override
   String get teacherClassSessionsTabSubtitle =>
@@ -1646,6 +1798,17 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get grammarCommunityEmptyBody =>
       'کاتێک لە کۆتایی کویزدا «نیشاندان لە ئەنجامەکانی کۆمەڵگا» هەڵدەبژێریت، لێرە دەردەکەوێت.';
+
+  @override
+  String grammarCommunityQuizTotal(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تاقیکردنەوەی گرامەر تەواوکراو',
+      one: '١ تاقیکردنەوەی گرامەر تەواوکراو',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get guestUser => 'میوان';

@@ -35,6 +35,7 @@ import '../../features/teacher/teacher_dashboard_screen.dart';
 import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_result_detail_screen.dart';
+import '../../features/unit_samples/unit_samples_screen.dart';
 import '../../features/units/units_screen.dart';
 import '../../features/words/words_screen.dart';
 import '../../domain/api_providers.dart';
@@ -101,9 +102,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final tab = state.uri.queryParameters['tab'];
           return TeacherDashboardScreen(
-            initialTab: tab == 'messages'
-                ? TeacherPanelTab.messages
-                : TeacherPanelTab.students,
+            initialTab: switch (tab) {
+              'messages' => TeacherPanelTab.messages,
+              'schedule' => TeacherPanelTab.schedule,
+              _ => TeacherPanelTab.students,
+            },
           );
         },
       ),
@@ -214,7 +217,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/you/class-sessions',
-            builder: (_, __) => const StudentClassSessionsScreen(),
+            builder: (context, state) {
+              final tab = state.uri.queryParameters['tab'];
+              final initial = tab == 'schedule' ? 1 : 0;
+              return StudentClassSessionsScreen(initialTabIndex: initial);
+            },
           ),
           GoRoute(path: '/you', builder: (_, __) => const YouScreen()),
           GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
@@ -307,6 +314,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               final unit =
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
               return WordsScreen(bookId: bookId, unit: unit, section: null);
+            },
+          ),
+
+          // Unit → Sample texts
+          GoRoute(
+            path: '/books/:bookId/units/:unit/samples',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              final unit =
+                  int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
+              return UnitSamplesScreen(bookId: bookId, unit: unit);
             },
           ),
 

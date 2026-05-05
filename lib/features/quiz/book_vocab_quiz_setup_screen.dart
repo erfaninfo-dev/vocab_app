@@ -12,6 +12,7 @@ import '../../domain/vocab_quiz_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 import 'quiz_screen.dart';
+import 'widgets/slider_with_value_below.dart';
 
 /// Pick unit(s), question count (min 10 when enough words exist), and scope for book-level quiz.
 class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
@@ -144,10 +145,18 @@ class _BookVocabQuizSetupScreenState
                       hasImportantInSelection && quizImportantOnly
                       ? allInUnits.where(userImp).toList()
                       : allInUnits;
-                  final baseMinQ = maxQ >= 10 ? 10 : (maxQ > 0 ? maxQ : 0);
-                  // Keep min questions >= selected units (when possible).
-                  final minByUnits = _selectedUnits.length.clamp(0, maxQ);
-                  final minQ = maxQ == 0 ? 0 : math.max(baseMinQ, minByUnits);
+                  // Mistakes drill: allow 1 … all mistakes in pool. Other pools:
+                  // at least 10 when possible, else never below per-unit spread.
+                  final int minQ;
+                  if (maxQ == 0) {
+                    minQ = 0;
+                  } else if (wrongsOnly) {
+                    minQ = 1;
+                  } else {
+                    final baseMinQ = maxQ >= 10 ? 10 : maxQ;
+                    final minByUnits = _selectedUnits.length.clamp(0, maxQ);
+                    minQ = math.max(baseMinQ, minByUnits);
+                  }
                   if (_questionCount > maxQ && maxQ > 0) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;
@@ -362,17 +371,19 @@ class _BookVocabQuizSetupScreenState
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
-                      Slider(
+                      SliderWithValueBelow(
                         min: minQ > 0 ? minQ.toDouble() : 1,
                         max: maxQ > 0 ? maxQ.toDouble() : 1,
                         divisions: maxQ > minQ ? maxQ - minQ : null,
-                        label: '$_questionCount',
-                        value: _questionCount
+                        displayValue:
+                            _questionCount.clamp(minQ, maxQ > 0 ? maxQ : 1),
+                        sliderValue: _questionCount
                             .clamp(minQ, maxQ > 0 ? maxQ : 1)
                             .toDouble(),
                         onChanged: maxQ <= 0
                             ? null
-                            : (v) => setState(() => _questionCount = v.round()),
+                            : (v) =>
+                                setState(() => _questionCount = v.round()),
                       ),
                     ],
                     ),

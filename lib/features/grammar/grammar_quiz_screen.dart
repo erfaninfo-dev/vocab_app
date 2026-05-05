@@ -776,7 +776,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
           );
       if (!mounted) return;
       ref.invalidate(myGrammarResultsProvider);
-      ref.invalidate(publicGrammarResultsProvider);
+      ref.invalidate(publicGrammarCommunityProvider);
       setState(() {
         _resultSubmitted = true;
         _resultSubmitting = false;

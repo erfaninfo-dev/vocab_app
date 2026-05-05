@@ -14,13 +14,14 @@ import '../../l10n/app_localizations.dart';
 import 'messages_updating.dart';
 import 'teacher_chat_open_args.dart';
 import 'teacher_chat_ui.dart';
+import 'teacher_schedule_tab.dart';
 
 /// Tabs exposed by the teacher panel. Stored as an enum so deep links like
 /// `/teacher?tab=messages` can preselect the right tab without magic ints.
-enum TeacherPanelTab { students, messages }
+enum TeacherPanelTab { students, schedule, messages }
 
-/// Unified teacher panel with two tabs: a roster of students and a
-/// Telegram-style message inbox. Messages tab polls in the background so the
+/// Unified teacher panel: student roster, week schedule, and a Telegram-style
+/// message inbox. Messages tab polls in the background so the
 /// unread badge and previews stay fresh without a manual pull-to-refresh.
 class TeacherDashboardScreen extends ConsumerStatefulWidget {
   const TeacherDashboardScreen({
@@ -49,16 +50,20 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   void initState() {
     super.initState();
     _tabs = TabController(
-      length: 2,
+      length: 3,
       vsync: this,
-      initialIndex: widget.initialTab == TeacherPanelTab.messages ? 1 : 0,
+      initialIndex: switch (widget.initialTab) {
+        TeacherPanelTab.messages => 2,
+        TeacherPanelTab.schedule => 1,
+        TeacherPanelTab.students => 0,
+      },
     )..addListener(_onTabChanged);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeStartInboxPoll();
       // If we launched directly into Messages, fetch immediately instead of
       // waiting a full poll interval.
-      if (_tabs.index == 1) _refreshInbox();
+      if (_tabs.index == 2) _refreshInbox();
     });
   }
 
@@ -85,7 +90,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   /// Students tab doesn't need the network traffic.
   void _onTabChanged() {
     if (_tabs.indexIsChanging) return;
-    if (_tabs.index == 1) {
+    if (_tabs.index == 2) {
       _maybeStartInboxPoll();
       // Trigger one immediate refresh when the user switches onto Messages so
       // they don't wait up to 15 s to see the latest state.
@@ -96,7 +101,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   }
 
   void _maybeStartInboxPoll() {
-    if (_tabs.index != 1) return;
+    if (_tabs.index != 2) return;
     _inboxPollTimer?.cancel();
     _inboxPollTimer = startMessagesPolling(
       interval: _kInboxPollInterval,
@@ -177,7 +182,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
             Text(l10n.teacherPanelTitle),
             // Surface the live "Updating…" hint right next to the title while
             // the Messages tab is fetching so teachers know data is in motion.
-            if (_tabs.index == 1 && updating)
+            if (_tabs.index == 2 && updating)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: MessagesUpdatingLabel(
@@ -192,6 +197,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         ),
         bottom: TabBar(
           controller: _tabs,
+          isScrollable: true,
           labelColor: scheme.primary,
           unselectedLabelColor: scheme.onSurfaceVariant,
           indicatorColor: scheme.primary,
@@ -200,6 +206,10 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
             Tab(
               icon: const Icon(Icons.groups_2_rounded),
               text: l10n.teacherPanelTabStudents,
+            ),
+            Tab(
+              icon: const Icon(Icons.calendar_view_week_rounded),
+              text: l10n.teacherPanelTabSchedule,
             ),
             Tab(
               icon: const Icon(Icons.chat_rounded),
@@ -212,6 +222,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         controller: _tabs,
         children: [
           _StudentsTab(l10n: l10n, scheme: scheme),
+          TeacherScheduleTab(l10n: l10n, scheme: scheme),
           _MessagesTab(
             l10n: l10n,
             scheme: scheme,

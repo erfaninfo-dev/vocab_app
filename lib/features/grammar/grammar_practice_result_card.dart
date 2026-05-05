@@ -6,8 +6,9 @@ import '../../core/profile/profile_avatar.dart';
 import '../../data/models/grammar_result.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Same card as "My results" / community grammar list: topic chips, time row,
-/// optional privacy pill, circular score ring on the right.
+enum GrammarLeaderboardMedal { gold, silver, bronze }
+
+/// Personal vs community styling for grammar result rows.
 enum GrammarPracticeResultCardStyle {
   /// Logged-in user or teacher viewing a student: chips + time + privacy + ring.
   personal,
@@ -21,10 +22,16 @@ class GrammarPracticeResultCard extends StatelessWidget {
     super.key,
     required this.r,
     required this.style,
+    this.rank,
+    this.leaderboardMedal,
+    this.practiceTotalsLabel,
   });
 
   final GrammarResult r;
   final GrammarPracticeResultCardStyle style;
+  final int? rank;
+  final GrammarLeaderboardMedal? leaderboardMedal;
+  final String? practiceTotalsLabel;
 
   /// Topic labels: JSON [selectedGrammarsRaw] or `quizName` split by ` + `.
   static List<String> topicLabelsForResult(GrammarResult r) {
@@ -108,9 +115,17 @@ class GrammarPracticeResultCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+              if (showCommunityHeader && rank != null) ...[
+                _CommunityRankBadge(
+                  rank: rank!,
+                  medal: leaderboardMedal,
+                  scheme: scheme,
+                ),
+                const SizedBox(width: 6),
+              ],
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -127,14 +142,32 @@ class GrammarPracticeResultCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              displayName,
-                              style: tt.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.primary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: tt.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.primary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (practiceTotalsLabel != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    practiceTotalsLabel!,
+                                    style: tt.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -260,6 +293,60 @@ class _GrammarTopicChipsWrap extends StatelessWidget {
   }
 }
 
+class _CommunityRankBadge extends StatelessWidget {
+  const _CommunityRankBadge({
+    required this.rank,
+    required this.scheme,
+    this.medal,
+  });
+
+  final int rank;
+  final ColorScheme scheme;
+  final GrammarLeaderboardMedal? medal;
+
+  Color? _medalColor() {
+    switch (medal) {
+      case GrammarLeaderboardMedal.gold:
+        return const Color(0xFFC9A227);
+      case GrammarLeaderboardMedal.silver:
+        return const Color(0xFF90A4AE);
+      case GrammarLeaderboardMedal.bronze:
+        return const Color(0xFFB87333);
+      case null:
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final mc = _medalColor();
+    return SizedBox(
+      width: 40,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (medal != null)
+            Icon(
+              Icons.emoji_events_rounded,
+              size: 22,
+              color: mc ?? scheme.primary,
+            ),
+          Text(
+            '$rank',
+            textAlign: TextAlign.center,
+            style: tt.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: scheme.onSurface,
+              height: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UserAvatar extends StatelessWidget {
   const _UserAvatar({
     required this.scheme,
@@ -363,6 +450,10 @@ class _ScoreRing extends StatelessWidget {
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     final pct = hasScore ? (ratio * 100).round() : null;
+    final ratioLabel = hasScore ? '$score/$total' : '';
+    final totalQ = total;
+    final compact = hasScore &&
+        (ratioLabel.length > 5 || (totalQ != null && totalQ >= 100));
 
     return SizedBox(
       width: 56,
@@ -383,34 +474,41 @@ class _ScoreRing extends StatelessWidget {
               strokeCap: StrokeCap.round,
             ),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasScore) ...[
-                Text(
-                  '$score/$total',
-                  style: tt.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1.0,
-                  ),
-                ),
-                Text(
-                  '$pct%',
-                  style: tt.labelSmall?.copyWith(
-                    fontSize: 10,
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ] else
-                Text(
-                  '—',
-                  style: tt.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasScore) ...[
+                    Text(
+                      ratioLabel,
+                      style: tt.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        height: 1.0,
+                        fontSize: compact ? 9.5 : null,
+                      ),
+                    ),
+                    Text(
+                      '$pct%',
+                      style: tt.labelSmall?.copyWith(
+                        fontSize: compact ? 8.5 : 10,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ] else
+                    Text(
+                      '—',
+                      style: tt.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

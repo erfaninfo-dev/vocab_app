@@ -8,6 +8,7 @@ import 'grammar_practice_result_card.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import 'grammar_practice_leaderboard_merge.dart';
 
 class GrammarResultsScreen extends ConsumerStatefulWidget {
   const GrammarResultsScreen({super.key});
@@ -150,8 +151,15 @@ class _GrammarSortBar extends ConsumerWidget {
       orElse: () => options.first,
     );
 
+    final tt = Theme.of(context).textTheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(
+        color: scheme.outlineVariant.withValues(alpha: 0.45),
+      ),
+    );
     return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: scheme.surface.withValues(alpha: 0.72),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
@@ -160,27 +168,49 @@ class _GrammarSortBar extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               l10n.grammarSortLabel,
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: tt.labelLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: match.label,
-                  items: [
-                    for (final o in options)
-                      DropdownMenuItem(value: o.label, child: Text(o.label)),
-                  ],
-                  onChanged: (label) {
-                    if (label == null) return;
-                    final o = options.firstWhere((x) => x.label == label);
-                    ref.read(grammarResultsListSortProvider.notifier).state =
-                        o.value;
-                  },
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                isDense: true,
+                value: match.label,
+                borderRadius: BorderRadius.circular(12),
+                dropdownColor: scheme.surface,
+                style: tt.bodyMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
+                icon: Icon(
+                  Icons.expand_more_rounded,
+                  color: scheme.onSurfaceVariant,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  filled: true,
+                  fillColor: scheme.surface,
+                  border: border,
+                  enabledBorder: border,
+                  focusedBorder: border,
+                ),
+                items: [
+                  for (final o in options)
+                    DropdownMenuItem(
+                      value: o.label,
+                      child: Text(o.label),
+                    ),
+                ],
+                onChanged: (label) {
+                  if (label == null) return;
+                  final o = options.firstWhere((x) => x.label == label);
+                  ref.read(grammarResultsListSortProvider.notifier).state =
+                      o.value;
+                },
               ),
             ),
           ],
@@ -264,20 +294,32 @@ class _MyResultsTab extends ConsumerWidget {
 class _PublicResultsTab extends ConsumerWidget {
   const _PublicResultsTab();
 
+  void _maybeLoadMore(ScrollMetrics m, WidgetRef ref) {
+    if (!m.hasViewportDimension) return;
+    if (m.maxScrollExtent <= 0) return;
+    if (m.pixels < m.maxScrollExtent - 280) return;
+    ref.read(publicGrammarCommunityProvider.notifier).loadMore();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final async = ref.watch(publicGrammarResultsProvider);
+    final async = ref.watch(publicGrammarCommunityProvider);
     final sort = ref.watch(grammarResultsListSortProvider);
+    final practiceMode = sort == GrammarResultsListSort.mostPractice;
     return async.when(
       loading: () =>
           _LoadingState(message: l10n.grammarLoadingCommunityResults),
       error: (_, __) => _ErrorState(
-        onRetry: () => ref.invalidate(publicGrammarResultsProvider),
+        onRetry: () => ref.invalidate(publicGrammarCommunityProvider),
       ),
-      data: (items) {
-        if (items.isEmpty) {
+      data: (state) {
+        final raw = state.rawItems;
+        final items = practiceMode
+            ? mergeGrammarPracticeLeaderboard(raw)
+            : raw;
+        if (raw.isEmpty) {
           return _EmptyStateScaffold(
             icon: Icons.public_off_rounded,
             iconColor: scheme.onSurfaceVariant,
@@ -285,29 +327,86 @@ class _PublicResultsTab extends ConsumerWidget {
             subtitle: l10n.grammarCommunityEmptyBody,
           );
         }
-        final sorted = _sortGrammarResultRows(
-          List<GrammarResult>.of(items),
-          sort,
-        );
         return RefreshIndicator(
           onRefresh: () async {
             await refreshAllRemoteApiData(ref);
-            await ref.read(publicGrammarResultsProvider.future);
+            ref.invalidate(publicGrammarCommunityProvider);
+            try {
+              await ref.read(publicGrammarCommunityProvider.future);
+            } catch (_) {}
           },
           color: scheme.primary,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-            itemCount: sorted.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              final r = sorted[i];
-              // Public leaderboard: display-only (no navigation to detail).
-              return GrammarPracticeResultCard(
-                r: r,
-                style: GrammarPracticeResultCardStyle.community,
-              );
+          child: NotificationListener<ScrollMetricsNotification>(
+            onNotification: (ScrollMetricsNotification n) {
+              final m = n.metrics;
+              if (m.hasViewportDimension &&
+                  m.maxScrollExtent <= 8 &&
+                  m.axis == Axis.vertical) {
+                final s = ref.read(publicGrammarCommunityProvider).valueOrNull;
+                if (s != null &&
+                    s.hasMore &&
+                    !s.isLoadingMore &&
+                    s.rawItems.isNotEmpty) {
+                  ref.read(publicGrammarCommunityProvider.notifier).loadMore();
+                }
+              }
+              return false;
             },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification n) {
+                if (n is ScrollUpdateNotification ||
+                    n is ScrollEndNotification) {
+                  _maybeLoadMore(n.metrics, ref);
+                }
+                return false;
+              },
+              child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+              itemCount:
+                  items.length + ((state.hasMore || state.isLoadingMore) ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                if (i >= items.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: state.isLoadingMore
+                            ? CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: scheme.primary,
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                  );
+                }
+                final r = items[i];
+                final rank = i + 1;
+                GrammarLeaderboardMedal? medal;
+                if (practiceMode && rank <= 3) {
+                  medal = rank == 1
+                      ? GrammarLeaderboardMedal.gold
+                      : rank == 2
+                          ? GrammarLeaderboardMedal.silver
+                          : GrammarLeaderboardMedal.bronze;
+                }
+                final totalsLabel = practiceMode && r.grammarQuizTotal != null
+                    ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
+                    : null;
+                return GrammarPracticeResultCard(
+                  r: r,
+                  style: GrammarPracticeResultCardStyle.community,
+                  rank: rank,
+                  leaderboardMedal: medal,
+                  practiceTotalsLabel: totalsLabel,
+                );
+              },
+            ),
+            ),
           ),
         );
       },

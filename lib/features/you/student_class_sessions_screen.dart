@@ -2,17 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/datetime/class_session_recorded_at.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
-
-DateTime? _parseSessionLocal(String raw) {
-  final t = raw.trim();
-  if (t.isEmpty) return null;
-  final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
-  return DateTime.tryParse(normalized)?.toLocal();
-}
+import 'student_class_schedule_panel.dart';
 
 List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
   List<ClassSessionEntry> sessions,
@@ -20,7 +15,7 @@ List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
   final map = <DateTime, List<ClassSessionEntry>>{};
   final unparsed = <ClassSessionEntry>[];
   for (final s in sessions) {
-    final dt = _parseSessionLocal(s.recordedAtRaw);
+    final dt = parseClassSessionRecordedAtFromApi(s.recordedAtRaw);
     if (dt == null) {
       unparsed.add(s);
       continue;
@@ -30,8 +25,8 @@ List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
   }
   for (final list in map.values) {
     list.sort((a, b) {
-      final da = _parseSessionLocal(a.recordedAtRaw);
-      final db = _parseSessionLocal(b.recordedAtRaw);
+      final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
+      final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
       if (da == null || db == null) return 0;
       return db.compareTo(da);
     });
@@ -44,24 +39,72 @@ List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
   return out;
 }
 
-class StudentClassSessionsScreen extends ConsumerWidget {
-  const StudentClassSessionsScreen({super.key});
+class StudentClassSessionsScreen extends StatefulWidget {
+  const StudentClassSessionsScreen({super.key, this.initialTabIndex = 0});
+
+  /// 0 = class sessions, 1 = weekly schedule.
+  final int initialTabIndex;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<StudentClassSessionsScreen> createState() =>
+      _StudentClassSessionsScreenState();
+}
+
+class _StudentClassSessionsScreenState extends State<StudentClassSessionsScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final gradient = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [scheme.primary.withValues(alpha: 0.08), scheme.surface],
+      ),
+    );
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.youClassSessionsTitle)),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.08), scheme.surface],
-          ),
+      appBar: AppBar(
+        title: Text(l10n.studentPanelTitle),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            Tab(text: l10n.teacherTabClassSessions),
+            Tab(text: l10n.teacherTabWeeklySchedule),
+          ],
         ),
-        child: const StudentClassSessionsPanel(fullPage: true),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          DecoratedBox(
+            decoration: gradient,
+            child: const StudentClassSessionsPanel(fullPage: true),
+          ),
+          DecoratedBox(
+            decoration: gradient,
+            child: const StudentClassSchedulePanel(),
+          ),
+        ],
       ),
     );
   }
@@ -105,10 +148,7 @@ class StudentClassSessionsPanel extends ConsumerWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(
-                  l10n.youClassSessionsTitle,
-                  style: tt.titleMedium,
-                ),
+                child: Text(l10n.youClassSessionsTitle, style: tt.titleMedium),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -192,8 +232,8 @@ class StudentClassSessionsPanel extends ConsumerWidget {
 
       final sortedForIndex = List<ClassSessionEntry>.from(sessions);
       sortedForIndex.sort((a, b) {
-        final da = _parseSessionLocal(a.recordedAtRaw);
-        final db = _parseSessionLocal(b.recordedAtRaw);
+        final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
+        final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
         if (da == null && db == null) return 0;
         if (da == null) return 1;
         if (db == null) return -1;
@@ -244,7 +284,7 @@ class StudentClassSessionsPanel extends ConsumerWidget {
                     ),
                   ],
                   ...g.value.map((e) {
-                    final dt = _parseSessionLocal(e.recordedAtRaw);
+                    final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
                     final idx = displayIndexFor[e.id] ?? 1;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -319,9 +359,12 @@ class _StudentSessionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-      borderRadius: BorderRadius.circular(16),
+      color: scheme.surface,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
@@ -370,6 +413,21 @@ class _StudentSessionTile extends StatelessWidget {
                     ],
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: scheme.primary.withValues(alpha: 0.1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 18,
+                  color: scheme.primary,
+                ),
               ),
             ),
           ],

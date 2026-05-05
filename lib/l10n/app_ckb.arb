@@ -57,6 +57,15 @@
   "close": "داخستن",
   "retry": "دووبارە هەوڵ بدە",
   "loading": "بارکردن…",
+  "unitSamplesOpen": "دەقی نموونە",
+  "unitSamplesTitle": "یونیت {unit} — دەقی نموونە",
+  "@unitSamplesTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "unitSamplesEmpty": "هێشتا بۆ ئەم یونیتە دەقی نموونە نییە.",
+  "unitSamplesLoadFailed": "بارکردنی دەقی نموونە سەرکەوتوو نەبوو.",
   "search": "گەڕان",
   "errorGeneric": "کێشەیەک ڕوویدا. تکایە دووبارە هەوڵ بدە.",
   "errServerReturnedError": "سێرڤەر هەڵەیەکی گەڕاندەوە. دواتر دووبارە هەوڵ بدە.",
@@ -133,12 +142,41 @@
   "reminderSetAt": "بیرخەرەوە لە {time}",
   "tapToEnableReminder": "بگرە بۆ چالاککردن",
   "reminderTime": "کاتی بیرخەرەوە",
+  "sectionSound": "دەنگ",
+  "splashSoundTitle": "دەنگی دەستپێکردن",
+  "splashSoundSubtitle": "کاتێک ئەپ دەکرێتەوە دەنگێکی هێمن لێ بدە",
   "sectionAbout": "دەربارە",
   "sectionAppLanguage": "زمانی بەرنامە",
   "appLanguageSubtitle": "زمانی ڕووکار (ئینگلیزی، فارسی یان کوردی سورانی)",
   "linkCopied": "بەستەر لە کلیپبۆرد کۆپی کرا",
   "appNameShort": "Erfan Academy",
   "byAuthor": "لەلایەن عیرفان عەبدی",
+  "aboutAppVersion": "وەشان {version} ({buildNumber})",
+  "@aboutAppVersion": {
+    "placeholders": {
+      "version": {"type": "String"},
+      "buildNumber": {"type": "String"}
+    }
+  },
+  "aboutUpdateFromPlayStore": "وەشانی نوێ دابگرە",
+  "aboutAppUpToDate": "دوایین وەشان دامەزراوە.",
+  "aboutUpdateAvailableVersion": "وەشانێکی نوێ بەردەستە: {version}",
+  "@aboutUpdateAvailableVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "aboutDownloadApkUpdate": "داگرتنی نوێکردنەوە",
+  "aboutDownloadingApk": "داگرتن…",
+  "aboutDownloadApkFailed": "داگرتن سەرکەوتوو نەبوو. پەیوەندی بپشکنە و دووبارە هەوڵ بدە.",
+  "aboutInstallApkHint": "ئەگەر داواکرا، لە ڕێکخستنەکاندا ڕێگە بدە بە دامەزراندن لەم ئەپەوە.",
+  "aboutForcedUpdateNote": "ئەم نوێکردنەوەیە پێویستە. تکایە دوایین وەشان دابگرە و دامەزرێنە.",
+  "aboutUpdateCheckFailed": "پشکنینی نوێکردنەوە سەرکەوتوو نەبوو.",
+  "aboutRetryUpdateCheck": "دووبارە هەوڵ بدە",
+  "aboutLater": "دواتر",
+  "aboutCouldNotOpenLink": "بۆکردنەوەی بەستەر سەرکەوتوو نەبوو.",
+  "aboutPhoneLabel": "تەلەفۆن",
+  "aboutPhoneCopied": "ژمارەکە لە کلیپبۆرد کۆپی کرا",
   "errNoInternet": "پەیوەندی ئینتەرنێت نییە. تۆڕ بپشکنە.",
   "errBadData": "خوێندنەوەی داتا سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.",
   "errServer": "پەیوەندی بە سێرڤەرەوە سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.",
@@ -268,11 +306,35 @@
   "teacherOpenPanel": "پانێلی مامۆستا",
   "teacherStudentsEmpty": "هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.",
   "teacherPanelTabStudents": "قوتابیان",
+  "teacherPanelTabSchedule": "خشتەی وانە",
   "teacherPanelTabMessages": "نامەکان",
+  "teacherScheduleEmpty": "لە ٧ ڕۆژی داهاتوودا هیچ نییە. کاتەکانی هەفتانە لە هەر قوتابییەک زیاد بکە، یان هەموو کاتە نزیکەکان پێشتر تۆمارکراون.",
+  "teacherScheduleTabSubtitle": "٧ ڕۆژی داهاتوو لە خشتەی هەفتانەی هەر قوتابییەک. دوای تۆمارکردنی هەمان وانە لە دانیشتنەکان، لێرە دەردەچێت.",
+  "sessionDayToday": "ئەمڕۆ",
+  "sessionDayTomorrow": "سبەی",
   "teacherStudentDetailTitle": "قوتابی",
   "teacherTabVocabQuiz": "وشەکان",
   "teacherTabGrammar": "ڕێزمان",
   "teacherTabClassSessions": "دانیشتنەکان",
+  "teacherTabWeeklySchedule": "خشتەی هەفتانە",
+  "teacherClassScheduleSubtitle": "ڕۆژەکانی هەفتە و کاتەکانی وانە دیاری بکە — قوتابی تەنها دەبینێت.",
+  "teacherClassScheduleAddButton": "زیادکردنی کات",
+  "teacherClassScheduleEditTitle": "دەستکاریکردنی کات",
+  "classScheduleWeekdayLabel": "ڕۆژی هەفتە",
+  "classScheduleStartLabel": "کاتی دەستپێک",
+  "classScheduleEndLabel": "کاتی کۆتایی",
+  "classScheduleIncludeEnd": "کاتی کۆتاییش بنووسە",
+  "classScheduleHasEndSubtitle": "ئارەزوومەندانە — ئەگەر نەبێت تەنها دەستپێک دەردەکەوێت.",
+  "classScheduleLabelHint": "تێبینی (ئارەزوومەندانە)",
+  "classScheduleEmpty": "هێشتا کاتێک تۆمار نەکراوە.",
+  "classScheduleSlotAdded": "کات زیادکرا",
+  "classScheduleSlotUpdated": "کات نوێکرایەوە",
+  "classScheduleSlotDeleted": "کات سڕایەوە",
+  "classScheduleRemove": "سڕینەوە",
+  "classScheduleDeleteConfirmTitle": "ئەم کاتە بسڕدرێتەوە؟",
+  "classScheduleDeleteConfirmBody": "گەڕانەوە نییە.",
+  "classScheduleInvalidRange": "کاتی کۆتایی دەبێت دوای دەستپێک بێت.",
+  "youClassScheduleSubtitle": "ڕۆژ و کاتی وانەی دووبارە لە مامۆستاکەت",
   "teacherClassSessionsTabSubtitle": "دانیشتن بە یەک داگرتن زیاد بکە، کاتەکە ڕاست بکەوە یان سڕینەوە. قوتابی تەنها دەتوانێت لیستەکە ببینێت.",
   "teacherClassSessionHeading": "دانیشتن {number}",
   "@teacherClassSessionHeading": {
@@ -509,6 +571,12 @@
   "grammarNoPersonalResultsBody": "دوای تەواوکردنی دانیشتنی ڕێزمان، نمرەکەت لێرە دەردەکەوێت.",
   "grammarCommunityEmptyTitle": "هێشتا هیچ نییە",
   "grammarCommunityEmptyBody": "کاتێک لە کۆتایی کویزدا «نیشاندان لە ئەنجامەکانی کۆمەڵگا» هەڵدەبژێریت، لێرە دەردەکەوێت.",
+  "grammarCommunityQuizTotal": "{count, plural, =1{١ تاقیکردنەوەی گرامەر تەواوکراو} other{{count} تاقیکردنەوەی گرامەر تەواوکراو}}",
+  "@grammarCommunityQuizTotal": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "guestUser": "میوان",
   "resultVisibilityPublic": "گشتی",
   "resultVisibilityPrivate": "تایبەت",

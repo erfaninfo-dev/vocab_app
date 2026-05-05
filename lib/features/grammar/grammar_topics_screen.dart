@@ -100,14 +100,31 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     final async = ref.watch(apiGrammarTopicsProvider);
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return PopScope(
+      canPop: _selected.isEmpty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_selected.isNotEmpty) {
+          setState(_selected.clear);
+        }
+      },
+      child: Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: l10n.back,
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/home'),
+          onPressed: () {
+            if (_selected.isNotEmpty) {
+              setState(_selected.clear);
+              return;
+            }
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
         title: Text(
           l10n.grammarPracticeAppBar,
@@ -259,6 +276,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

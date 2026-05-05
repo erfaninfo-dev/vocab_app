@@ -177,6 +177,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading…';
 
   @override
+  String get unitSamplesOpen => 'Sample texts';
+
+  @override
+  String unitSamplesTitle(int unit) {
+    return 'Unit $unit — Sample texts';
+  }
+
+  @override
+  String get unitSamplesEmpty => 'No sample texts for this unit yet.';
+
+  @override
+  String get unitSamplesLoadFailed => 'Could not load sample texts.';
+
+  @override
   String get search => 'Search';
 
   @override
@@ -420,6 +434,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderTime => 'Reminder time';
 
   @override
+  String get sectionSound => 'Sound';
+
+  @override
+  String get splashSoundTitle => 'Startup chime';
+
+  @override
+  String get splashSoundSubtitle => 'Play a calming sound when the app opens';
+
+  @override
   String get sectionAbout => 'About';
 
   @override
@@ -437,6 +460,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get byAuthor => 'By Erfan Abdi';
+
+  @override
+  String aboutAppVersion(String version, String buildNumber) {
+    return 'Version $version ($buildNumber)';
+  }
+
+  @override
+  String get aboutUpdateFromPlayStore => 'Get the latest version';
+
+  @override
+  String get aboutAppUpToDate => 'You have the latest version installed.';
+
+  @override
+  String aboutUpdateAvailableVersion(String version) {
+    return 'New version available: $version';
+  }
+
+  @override
+  String get aboutDownloadApkUpdate => 'Download update';
+
+  @override
+  String get aboutDownloadingApk => 'Downloading update…';
+
+  @override
+  String get aboutDownloadApkFailed =>
+      'Download failed. Check your connection and try again.';
+
+  @override
+  String get aboutInstallApkHint =>
+      'If prompted, allow installing updates from this app in system settings.';
+
+  @override
+  String get aboutForcedUpdateNote =>
+      'This update is required. Please download and install the latest version.';
+
+  @override
+  String get aboutUpdateCheckFailed => 'Could not check for updates.';
+
+  @override
+  String get aboutRetryUpdateCheck => 'Retry';
+
+  @override
+  String get aboutLater => 'Later';
+
+  @override
+  String get aboutCouldNotOpenLink => 'Could not open the link.';
+
+  @override
+  String get aboutPhoneLabel => 'Phone';
+
+  @override
+  String get aboutPhoneCopied => 'Phone number copied to clipboard';
 
   @override
   String get errNoInternet =>
@@ -850,7 +925,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherPanelTabStudents => 'Students';
 
   @override
+  String get teacherPanelTabSchedule => 'Schedule';
+
+  @override
   String get teacherPanelTabMessages => 'Messages';
+
+  @override
+  String get teacherScheduleEmpty =>
+      'Nothing in the next 7 days. Add weekly class times under each student (Weekly schedule tab), or every upcoming slot was already logged under Class sessions.';
+
+  @override
+  String get teacherScheduleTabSubtitle =>
+      'Next 7 days from each student\'s Weekly schedule. When you log the matching session under Class sessions, it disappears here.';
+
+  @override
+  String get sessionDayToday => 'Today';
+
+  @override
+  String get sessionDayTomorrow => 'Tomorrow';
 
   @override
   String get teacherStudentDetailTitle => 'Student';
@@ -863,6 +955,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherTabClassSessions => 'Class sessions';
+
+  @override
+  String get teacherTabWeeklySchedule => 'Weekly schedule';
+
+  @override
+  String get teacherClassScheduleSubtitle =>
+      'Set which weekdays and times this student has class. Learners see this list as read-only.';
+
+  @override
+  String get teacherClassScheduleAddButton => 'Add time slot';
+
+  @override
+  String get teacherClassScheduleEditTitle => 'Edit time slot';
+
+  @override
+  String get classScheduleWeekdayLabel => 'Day of week';
+
+  @override
+  String get classScheduleStartLabel => 'Start time';
+
+  @override
+  String get classScheduleEndLabel => 'End time';
+
+  @override
+  String get classScheduleIncludeEnd => 'Include end time';
+
+  @override
+  String get classScheduleHasEndSubtitle =>
+      'Optional — leave off for a single start time.';
+
+  @override
+  String get classScheduleLabelHint => 'Note (optional)';
+
+  @override
+  String get classScheduleEmpty => 'No weekly times set yet.';
+
+  @override
+  String get classScheduleSlotAdded => 'Time slot added';
+
+  @override
+  String get classScheduleSlotUpdated => 'Time slot updated';
+
+  @override
+  String get classScheduleSlotDeleted => 'Time slot removed';
+
+  @override
+  String get classScheduleRemove => 'Remove';
+
+  @override
+  String get classScheduleDeleteConfirmTitle => 'Remove this time slot?';
+
+  @override
+  String get classScheduleDeleteConfirmBody => 'This cannot be undone.';
+
+  @override
+  String get classScheduleInvalidRange => 'End time must be after start time.';
+
+  @override
+  String get youClassScheduleSubtitle =>
+      'Recurring class days and times from your teacher';
 
   @override
   String get teacherClassSessionsTabSubtitle =>
@@ -1637,6 +1789,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get grammarCommunityEmptyBody =>
       'When you choose “Show in community results” at the end of a quiz, it will appear in this list.';
+
+  @override
+  String grammarCommunityQuizTotal(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grammar quizzes completed',
+      one: '1 grammar quiz completed',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get guestUser => 'Guest';
