@@ -57,6 +57,15 @@
   "close": "Close",
   "retry": "Retry",
   "loading": "Loading…",
+  "unitSamplesOpen": "Sample texts",
+  "unitSamplesTitle": "Unit {unit} — Sample texts",
+  "@unitSamplesTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "unitSamplesEmpty": "No sample texts for this unit yet.",
+  "unitSamplesLoadFailed": "Could not load sample texts.",
   "search": "Search",
   "errorGeneric": "Something went wrong. Please try again.",
   "errServerReturnedError": "The server returned an error. Please try again later.",
@@ -153,12 +162,41 @@
   },
   "tapToEnableReminder": "Tap to enable",
   "reminderTime": "Reminder time",
+  "sectionSound": "Sound",
+  "splashSoundTitle": "Startup chime",
+  "splashSoundSubtitle": "Play a calming sound when the app opens",
   "sectionAbout": "About",
   "sectionAppLanguage": "App language",
   "appLanguageSubtitle": "Interface language (English, Persian, or Kurdish Sorani)",
   "linkCopied": "Link copied to clipboard",
   "appNameShort": "Erfan Academy",
   "byAuthor": "By Erfan Abdi",
+  "aboutAppVersion": "Version {version} ({buildNumber})",
+  "@aboutAppVersion": {
+    "placeholders": {
+      "version": {"type": "String"},
+      "buildNumber": {"type": "String"}
+    }
+  },
+  "aboutUpdateFromPlayStore": "Get the latest version",
+  "aboutAppUpToDate": "You have the latest version installed.",
+  "aboutUpdateAvailableVersion": "New version available: {version}",
+  "@aboutUpdateAvailableVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "aboutDownloadApkUpdate": "Download update",
+  "aboutDownloadingApk": "Downloading update…",
+  "aboutDownloadApkFailed": "Download failed. Check your connection and try again.",
+  "aboutInstallApkHint": "If prompted, allow installing updates from this app in system settings.",
+  "aboutForcedUpdateNote": "This update is required. Please download and install the latest version.",
+  "aboutUpdateCheckFailed": "Could not check for updates.",
+  "aboutRetryUpdateCheck": "Retry",
+  "aboutLater": "Later",
+  "aboutCouldNotOpenLink": "Could not open the link.",
+  "aboutPhoneLabel": "Phone",
+  "aboutPhoneCopied": "Phone number copied to clipboard",
   "errNoInternet": "No internet connection. Please check your network.",
   "errBadData": "Could not read data. Please try again.",
   "errServer": "Could not reach the server. Please try again.",
@@ -392,11 +430,35 @@
   "teacherOpenPanel": "Teacher panel",
   "teacherStudentsEmpty": "No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.",
   "teacherPanelTabStudents": "Students",
+  "teacherPanelTabSchedule": "Schedule",
   "teacherPanelTabMessages": "Messages",
+  "teacherScheduleEmpty": "Nothing in the next 7 days. Add weekly class times under each student (Weekly schedule tab), or every upcoming slot was already logged under Class sessions.",
+  "teacherScheduleTabSubtitle": "Next 7 days from each student's Weekly schedule. When you log the matching session under Class sessions, it disappears here.",
+  "sessionDayToday": "Today",
+  "sessionDayTomorrow": "Tomorrow",
   "teacherStudentDetailTitle": "Student",
   "teacherTabVocabQuiz": "Vocabulary",
   "teacherTabGrammar": "Grammar",
   "teacherTabClassSessions": "Class sessions",
+  "teacherTabWeeklySchedule": "Weekly schedule",
+  "teacherClassScheduleSubtitle": "Set which weekdays and times this student has class. Learners see this list as read-only.",
+  "teacherClassScheduleAddButton": "Add time slot",
+  "teacherClassScheduleEditTitle": "Edit time slot",
+  "classScheduleWeekdayLabel": "Day of week",
+  "classScheduleStartLabel": "Start time",
+  "classScheduleEndLabel": "End time",
+  "classScheduleIncludeEnd": "Include end time",
+  "classScheduleHasEndSubtitle": "Optional — leave off for a single start time.",
+  "classScheduleLabelHint": "Note (optional)",
+  "classScheduleEmpty": "No weekly times set yet.",
+  "classScheduleSlotAdded": "Time slot added",
+  "classScheduleSlotUpdated": "Time slot updated",
+  "classScheduleSlotDeleted": "Time slot removed",
+  "classScheduleRemove": "Remove",
+  "classScheduleDeleteConfirmTitle": "Remove this time slot?",
+  "classScheduleDeleteConfirmBody": "This cannot be undone.",
+  "classScheduleInvalidRange": "End time must be after start time.",
+  "youClassScheduleSubtitle": "Recurring class days and times from your teacher",
   "teacherClassSessionsTabSubtitle": "Add sessions with one tap, adjust date and time when needed, or remove an entry. Students see this list in read-only form.",
   "teacherClassSessionHeading": "Session {number}",
   "@teacherClassSessionHeading": {
@@ -684,6 +746,12 @@
   "grammarNoPersonalResultsBody": "After you finish a grammar session, your score will appear here.",
   "grammarCommunityEmptyTitle": "Nothing here yet",
   "grammarCommunityEmptyBody": "When you choose “Show in community results” at the end of a quiz, it will appear in this list.",
+  "grammarCommunityQuizTotal": "{count, plural, =1{1 grammar quiz completed} other{{count} grammar quizzes completed}}",
+  "@grammarCommunityQuizTotal": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "guestUser": "Guest",
   "resultVisibilityPublic": "Public",
   "resultVisibilityPrivate": "Private",

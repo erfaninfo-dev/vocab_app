@@ -49,5 +49,10 @@
 	<string>We need access to your photos to set your profile picture.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We use the camera to take a profile picture.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>https</string>
+	</array>
 </dict>
 </plist>

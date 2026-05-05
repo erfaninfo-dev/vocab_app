@@ -80,6 +80,13 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         title: Text(appBarTitle),
         actions: [
           IconButton(
+            tooltip: l10n.unitSamplesOpen,
+            onPressed: () => context.push(
+              '/books/${widget.bookId}/units/${widget.unit}/samples',
+            ),
+            icon: const Icon(Icons.article_rounded),
+          ),
+          IconButton(
             tooltip: l10n.tooltipQuiz,
             onPressed: () => context.push(quizRoute),
             icon: const Icon(Icons.quiz_rounded),

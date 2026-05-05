@@ -126,13 +126,18 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                 if (units.isEmpty) {
                   return ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: Text('No units found in this dataset.'),
+                    children: [
+                      const SizedBox(height: 120),
+                      const Center(child: Text('No units found in this dataset.')),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: OutlinedButton.icon(
+                          onPressed: _onRefreshUnits,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: Text(l10n.retry),
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
                   );
                 }

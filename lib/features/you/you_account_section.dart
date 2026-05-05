@@ -16,9 +16,7 @@ class YouAccountSection extends ConsumerWidget {
     return BoxDecoration(
       color: scheme.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: scheme.outlineVariant.withValues(alpha: 0.5),
-      ),
+      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
       boxShadow: [
         BoxShadow(
           color: scheme.shadow.withValues(alpha: 0.04),
@@ -32,8 +30,13 @@ class YouAccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final authAsync = ref.watch(authProvider);
     final l10n = AppLocalizations.of(context)!;
+    final signOutTitleStyle =
+        (ListTileTheme.of(context).titleTextStyle ??
+                theme.textTheme.titleMedium)
+            ?.copyWith(color: scheme.onError);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -47,10 +50,7 @@ class YouAccountSection extends ConsumerWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(
-                        Icons.login_rounded,
-                        color: scheme.primary,
-                      ),
+                      leading: Icon(Icons.login_rounded, color: scheme.primary),
                       title: Text(l10n.signIn),
                       subtitle: Text(l10n.signInSubtitle),
                       onTap: () => context.push('/login'),
@@ -85,7 +85,8 @@ class YouAccountSection extends ConsumerWidget {
                           ? '${session.user.displayName!}\n${session.user.email}'
                           : session.user.email,
                     ),
-                    isThreeLine: session.user.displayName != null &&
+                    isThreeLine:
+                        session.user.displayName != null &&
                         session.user.displayName!.trim().isNotEmpty,
                     trailing: Icon(
                       Icons.chevron_right_rounded,
@@ -160,9 +161,7 @@ class YouAccountSection extends ConsumerWidget {
                         } catch (_) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.invalidStudentCode),
-                              ),
+                              SnackBar(content: Text(l10n.invalidStudentCode)),
                             );
                           }
                         }
@@ -170,41 +169,60 @@ class YouAccountSection extends ConsumerWidget {
                     ),
                   ],
                   const Divider(height: 0),
-                  ListTile(
-                    leading: const Icon(Icons.logout_rounded),
-                    title: Text(l10n.signOut),
-                    onTap: () async {
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) {
-                          return AlertDialog(
-                            title: Text(l10n.signOutTitle),
-                            content: Text(l10n.signOutBody),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(ctx).pop(false),
-                                child: Text(l10n.cancel),
-                              ),
-                              FilledButton(
-                                onPressed: () =>
-                                    Navigator.of(ctx).pop(true),
-                                child: Text(l10n.signOut),
-                              ),
-                            ],
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15),
+                    ),
+                    child: Material(
+                      color: Color.lerp(
+                        scheme.errorContainer,
+                        scheme.error,
+                        0.82,
+                      )!,
+                      child: ListTile(
+                        iconColor: scheme.onError,
+                        leading: const Icon(Icons.logout_rounded),
+                        title: Text(
+                          l10n.signOut,
+                          style:
+                              signOutTitleStyle ??
+                              TextStyle(color: scheme.onError),
+                        ),
+                        onTap: () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) {
+                              return AlertDialog(
+                                title: Text(l10n.signOutTitle),
+                                content: Text(l10n.signOutBody),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: Text(l10n.cancel),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: Text(l10n.signOut),
+                                  ),
+                                ],
+                              );
+                            },
                           );
+                          if (ok != true) {
+                            return;
+                          }
+                          await ref.read(authProvider.notifier).logout();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.signedOut)),
+                            );
+                          }
                         },
-                      );
-                      if (ok != true) {
-                        return;
-                      }
-                      await ref.read(authProvider.notifier).logout();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.signedOut)),
-                        );
-                      }
-                    },
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -242,10 +260,10 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              letterSpacing: 1.4,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+          letterSpacing: 1.4,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

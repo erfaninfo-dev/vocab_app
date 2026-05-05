@@ -34,6 +34,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
+    ref.listenManual(authProvider, (prev, next) {
+      next.whenData((session) {
+        if (!mounted || session == null || _loadedUserFields) return;
+        setState(() => _syncFromUser(session.user));
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadedUserFields) return;
+      final session = ref.read(authProvider).valueOrNull;
+      if (session != null) {
+        setState(() => _syncFromUser(session.user));
+      }
+    });
   }
 
   void _syncFromUser(AuthUser user) {
@@ -239,8 +252,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    _syncFromUser(session.user);
-
     final boys = kProfilePresets.where((p) => p.id.startsWith('m')).toList();
     final girls = kProfilePresets.where((p) => p.id.startsWith('f')).toList();
 
@@ -293,8 +304,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
                   onPressed: _uploadingPhoto || _saving
@@ -303,7 +316,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
                   label: Text(l10n.profileGallery),
                 ),
-                const SizedBox(width: 10),
                 OutlinedButton.icon(
                   onPressed: _uploadingPhoto || _saving
                       ? null
@@ -372,7 +384,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             FilledButton(
               onPressed: (_saving || _uploadingPhoto) ? null : _save,
               style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
+                minimumSize: const Size(0, 52),
               ),
               child: (_saving || _uploadingPhoto)
                   ? const SizedBox(

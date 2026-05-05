@@ -8,14 +8,17 @@ import '../models/admin_user_row.dart';
 import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
+import '../models/unit_sample.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
 import '../models/grammar_result.dart';
 import '../models/grammar_result_detail.dart';
 import '../models/unit_model.dart';
+import '../models/app_update_manifest.dart';
 import '../models/vocab_entry.dart';
 import '../models/vocab_quiz_result.dart';
 import '../models/teacher_message.dart';
+import '../models/class_schedule_slot.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
@@ -118,6 +121,19 @@ class ApiService {
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// GET /app_update.php — sideload APK manifest (no auth, not disk-cached).
+  Future<AppUpdateManifest?> fetchAppUpdateManifest() async {
+    final uri = Uri.parse('$baseUrl/app_update.php');
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      if (response.statusCode != 200) return null;
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      return AppUpdateManifest.fromJson(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── GET /units.php?book_id={id} ───────────────────────────────────────────
   Future<List<UnitInfo>> fetchUnits(int bookId) async {
     final uri = Uri.parse('$baseUrl/units.php?book_id=$bookId');
@@ -146,6 +162,18 @@ class ApiService {
     return data
         .map((e) => (e['section'] as num).toInt())
         .where((s) => s > 0)
+        .toList();
+  }
+
+  // ── GET /unit_samples.php?book_id={id}&unit={unit} ────────────────────────
+  Future<List<UnitSample>> fetchUnitSamples(int bookId, int unit) async {
+    final uri =
+        Uri.parse('$baseUrl/unit_samples.php?book_id=$bookId&unit=$unit');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'unit samples');
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((e) => UnitSample.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -323,30 +351,45 @@ class ApiService {
         .toList();
   }
 
-  /// GET /grammar_results_public.php
-  Future<List<GrammarResult>> fetchPublicGrammarResults({
-    String sort = 'date',
+  /// GET /grammar_results_public.php — paginated; [sort] `date`|`score`|`practice`.
+  Future<PublicGrammarResultsPage> fetchPublicGrammarResultsPage({
+    required String sort,
     String order = 'desc',
+    int limit = 30,
+    int offset = 0,
   }) async {
-    final uri = Uri.parse(
-      '$baseUrl/grammar_results_public.php',
-    ).replace(queryParameters: {'sort': sort, 'order': order});
+    final uri = Uri.parse('$baseUrl/grammar_results_public.php').replace(
+      queryParameters: <String, String>{
+        'sort': sort,
+        'order': order,
+        'limit': '${limit.clamp(1, 100)}',
+        'offset': '${offset < 0 ? 0 : offset}',
+      },
+    );
     final cached = await _readGetCache(uri);
     if (cached != null) {
       final map = jsonDecode(cached) as Map<String, dynamic>;
       final list = (map['results'] as List<dynamic>? ?? const []);
-      return list
-          .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final hasMore = map['has_more'] == true;
+      return PublicGrammarResultsPage(
+        results: list
+            .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        hasMore: hasMore,
+      );
     }
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'grammar results (public)');
     await _writeGetCache(uri, response.body, _ttlGrammarResultsPublic);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = (map['results'] as List<dynamic>? ?? const []);
-    return list
-        .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final hasMore = map['has_more'] == true;
+    return PublicGrammarResultsPage(
+      results: list
+          .map((e) => GrammarResult.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      hasMore: hasMore,
+    );
   }
 
   /// GET /vocab_quiz_wrongs.php?book_id=&unit= (optional unit)
@@ -840,6 +883,7 @@ class ApiService {
   }
 
   /// POST — append one class session (`add_session` on server).
+  /// Sends the current instant in UTC ISO8601 so it matches the device clock worldwide.
   Future<TeacherSessionInfo> addTeacherClassSession(int studentId) async {
     final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
     final response = await http.post(
@@ -847,7 +891,11 @@ class ApiService {
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({'student_id': studentId, 'add_session': true}),
+      body: jsonEncode({
+        'student_id': studentId,
+        'add_session': true,
+        'recorded_at': DateTime.now().toUtc().toIso8601String(),
+      }),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -897,7 +945,8 @@ class ApiService {
     return _parseTeacherSessionInfo(map);
   }
 
-  /// POST — change [recordedAt] for an existing session (local wall time sent as UTC ISO).
+  /// POST — change [recordedAt] for an existing session.
+  /// [recordedAt] is the calendar date and clock time on the device; sent as a UTC instant (ISO8601 Z).
   Future<TeacherSessionInfo> updateTeacherClassSessionTime({
     required int studentId,
     required int sessionId,
@@ -928,6 +977,117 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return _parseTeacherSessionInfo(map);
+  }
+
+  List<ClassScheduleSlot> _parseScheduleSlots(Map<String, dynamic> map) {
+    final raw = map['slots'] as List<dynamic>? ?? const [];
+    return raw
+        .map((e) => ClassScheduleSlot.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /teacher_student_schedule.php?student_id=
+  Future<List<ClassScheduleSlot>> fetchTeacherStudentSchedule(
+    int studentId,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_schedule.php',
+    ).replace(queryParameters: {'student_id': '$studentId'});
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleSlots(map);
+  }
+
+  /// GET /my_class_schedule.php — learner: weekly slots for this account.
+  Future<List<ClassScheduleSlot>> fetchMyClassSchedule() async {
+    final uri = Uri.parse('$baseUrl/my_class_schedule.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleSlots(map);
+  }
+
+  Future<List<ClassScheduleSlot>> addTeacherScheduleSlot({
+    required int studentId,
+    required int weekday,
+    required String startTimeHm,
+    String? endTimeHm,
+    String? label,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_schedule.php');
+    final body = <String, dynamic>{
+      'student_id': studentId,
+      'add_schedule_slot': true,
+      'weekday': weekday,
+      'start_time': startTimeHm,
+    };
+    if (endTimeHm != null && endTimeHm.isNotEmpty) {
+      body['end_time'] = endTimeHm;
+    }
+    if (label != null && label.trim().isNotEmpty) {
+      body['label'] = label.trim();
+    }
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleSlots(map);
+  }
+
+  Future<List<ClassScheduleSlot>> updateTeacherScheduleSlot({
+    required int studentId,
+    required int slotId,
+    required int weekday,
+    required String startTimeHm,
+    String? endTimeHm,
+    String? label,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_schedule.php');
+    final body = <String, dynamic>{
+      'student_id': studentId,
+      'update_schedule_slot': true,
+      'slot_id': slotId,
+      'weekday': weekday,
+      'start_time': startTimeHm,
+      'end_time': endTimeHm,
+      'label': label,
+    };
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleSlots(map);
+  }
+
+  Future<List<ClassScheduleSlot>> deleteTeacherScheduleSlot({
+    required int studentId,
+    required int slotId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_schedule.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'delete_schedule_slot_id': slotId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleSlots(map);
   }
 
   /// Legacy POST /teacher_student_sessions.php — prefer [addTeacherClassSession] / [updateTeacherStudentNote].
@@ -1172,13 +1332,27 @@ class ApiService {
     await bustHttpCacheForUri(Uri.parse('$baseUrl/grammar_topics.php'));
   }
 
-  /// Clears GET caches for grammar result lists ([fetchPublicGrammarResults] / [fetchMyGrammarResults] defaults).
+  /// Clears GET caches for grammar result lists ([fetchPublicGrammarResultsPage] / [fetchMyGrammarResults] defaults).
   Future<void> bustGrammarResultsListCaches() async {
     await bustHttpCacheForUri(
       Uri.parse(
         '$baseUrl/grammar_results_public.php',
       ).replace(queryParameters: const {'sort': 'date', 'order': 'desc'}),
     );
+    for (final sort in const ['date', 'practice']) {
+      for (var off = 0; off <= 360; off += 30) {
+        await bustHttpCacheForUri(
+          Uri.parse('$baseUrl/grammar_results_public.php').replace(
+            queryParameters: <String, String>{
+              'sort': sort,
+              'order': 'desc',
+              'limit': '30',
+              'offset': '$off',
+            },
+          ),
+        );
+      }
+    }
     await bustHttpCacheForUri(
       Uri.parse(
         '$baseUrl/grammar_results_my.php',

@@ -412,6 +412,30 @@ abstract class AppLocalizations {
   /// **'Loading…'**
   String get loading;
 
+  /// No description provided for @unitSamplesOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample texts'**
+  String get unitSamplesOpen;
+
+  /// No description provided for @unitSamplesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit {unit} — Sample texts'**
+  String unitSamplesTitle(int unit);
+
+  /// No description provided for @unitSamplesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sample texts for this unit yet.'**
+  String get unitSamplesEmpty;
+
+  /// No description provided for @unitSamplesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load sample texts.'**
+  String get unitSamplesLoadFailed;
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:
@@ -808,6 +832,24 @@ abstract class AppLocalizations {
   /// **'Reminder time'**
   String get reminderTime;
 
+  /// No description provided for @sectionSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get sectionSound;
+
+  /// No description provided for @splashSoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Startup chime'**
+  String get splashSoundTitle;
+
+  /// No description provided for @splashSoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a calming sound when the app opens'**
+  String get splashSoundSubtitle;
+
   /// No description provided for @sectionAbout.
   ///
   /// In en, this message translates to:
@@ -843,6 +885,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By Erfan Abdi'**
   String get byAuthor;
+
+  /// No description provided for @aboutAppVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} ({buildNumber})'**
+  String aboutAppVersion(String version, String buildNumber);
+
+  /// No description provided for @aboutUpdateFromPlayStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the latest version'**
+  String get aboutUpdateFromPlayStore;
+
+  /// No description provided for @aboutAppUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You have the latest version installed.'**
+  String get aboutAppUpToDate;
+
+  /// No description provided for @aboutUpdateAvailableVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available: {version}'**
+  String aboutUpdateAvailableVersion(String version);
+
+  /// No description provided for @aboutDownloadApkUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Download update'**
+  String get aboutDownloadApkUpdate;
+
+  /// No description provided for @aboutDownloadingApk.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update…'**
+  String get aboutDownloadingApk;
+
+  /// No description provided for @aboutDownloadApkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Check your connection and try again.'**
+  String get aboutDownloadApkFailed;
+
+  /// No description provided for @aboutInstallApkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If prompted, allow installing updates from this app in system settings.'**
+  String get aboutInstallApkHint;
+
+  /// No description provided for @aboutForcedUpdateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This update is required. Please download and install the latest version.'**
+  String get aboutForcedUpdateNote;
+
+  /// No description provided for @aboutUpdateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates.'**
+  String get aboutUpdateCheckFailed;
+
+  /// No description provided for @aboutRetryUpdateCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get aboutRetryUpdateCheck;
+
+  /// No description provided for @aboutLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get aboutLater;
+
+  /// No description provided for @aboutCouldNotOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link.'**
+  String get aboutCouldNotOpenLink;
+
+  /// No description provided for @aboutPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get aboutPhoneLabel;
+
+  /// No description provided for @aboutPhoneCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number copied to clipboard'**
+  String get aboutPhoneCopied;
 
   /// No description provided for @errNoInternet.
   ///
@@ -1516,11 +1648,41 @@ abstract class AppLocalizations {
   /// **'Students'**
   String get teacherPanelTabStudents;
 
+  /// No description provided for @teacherPanelTabSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get teacherPanelTabSchedule;
+
   /// No description provided for @teacherPanelTabMessages.
   ///
   /// In en, this message translates to:
   /// **'Messages'**
   String get teacherPanelTabMessages;
+
+  /// No description provided for @teacherScheduleEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the next 7 days. Add weekly class times under each student (Weekly schedule tab), or every upcoming slot was already logged under Class sessions.'**
+  String get teacherScheduleEmpty;
+
+  /// No description provided for @teacherScheduleTabSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 7 days from each student\'s Weekly schedule. When you log the matching session under Class sessions, it disappears here.'**
+  String get teacherScheduleTabSubtitle;
+
+  /// No description provided for @sessionDayToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get sessionDayToday;
+
+  /// No description provided for @sessionDayTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get sessionDayTomorrow;
 
   /// No description provided for @teacherStudentDetailTitle.
   ///
@@ -1545,6 +1707,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Class sessions'**
   String get teacherTabClassSessions;
+
+  /// No description provided for @teacherTabWeeklySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly schedule'**
+  String get teacherTabWeeklySchedule;
+
+  /// No description provided for @teacherClassScheduleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set which weekdays and times this student has class. Learners see this list as read-only.'**
+  String get teacherClassScheduleSubtitle;
+
+  /// No description provided for @teacherClassScheduleAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add time slot'**
+  String get teacherClassScheduleAddButton;
+
+  /// No description provided for @teacherClassScheduleEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit time slot'**
+  String get teacherClassScheduleEditTitle;
+
+  /// No description provided for @classScheduleWeekdayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Day of week'**
+  String get classScheduleWeekdayLabel;
+
+  /// No description provided for @classScheduleStartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get classScheduleStartLabel;
+
+  /// No description provided for @classScheduleEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get classScheduleEndLabel;
+
+  /// No description provided for @classScheduleIncludeEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Include end time'**
+  String get classScheduleIncludeEnd;
+
+  /// No description provided for @classScheduleHasEndSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — leave off for a single start time.'**
+  String get classScheduleHasEndSubtitle;
+
+  /// No description provided for @classScheduleLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get classScheduleLabelHint;
+
+  /// No description provided for @classScheduleEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No weekly times set yet.'**
+  String get classScheduleEmpty;
+
+  /// No description provided for @classScheduleSlotAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Time slot added'**
+  String get classScheduleSlotAdded;
+
+  /// No description provided for @classScheduleSlotUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Time slot updated'**
+  String get classScheduleSlotUpdated;
+
+  /// No description provided for @classScheduleSlotDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Time slot removed'**
+  String get classScheduleSlotDeleted;
+
+  /// No description provided for @classScheduleRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get classScheduleRemove;
+
+  /// No description provided for @classScheduleDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this time slot?'**
+  String get classScheduleDeleteConfirmTitle;
+
+  /// No description provided for @classScheduleDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get classScheduleDeleteConfirmBody;
+
+  /// No description provided for @classScheduleInvalidRange.
+  ///
+  /// In en, this message translates to:
+  /// **'End time must be after start time.'**
+  String get classScheduleInvalidRange;
+
+  /// No description provided for @youClassScheduleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring class days and times from your teacher'**
+  String get youClassScheduleSubtitle;
 
   /// No description provided for @teacherClassSessionsTabSubtitle.
   ///
@@ -2931,6 +3207,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When you choose “Show in community results” at the end of a quiz, it will appear in this list.'**
   String get grammarCommunityEmptyBody;
+
+  /// No description provided for @grammarCommunityQuizTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 grammar quiz completed} other{{count} grammar quizzes completed}}'**
+  String grammarCommunityQuizTotal(int count);
 
   /// No description provided for @guestUser.
   ///

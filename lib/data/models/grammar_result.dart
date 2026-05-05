@@ -10,6 +10,7 @@ class GrammarResult {
     this.public,
     this.selectedGrammarsRaw,
     this.avatar,
+    this.grammarQuizTotal,
   });
 
   final int id;
@@ -25,6 +26,9 @@ class GrammarResult {
   /// Preset avatar id from `users.avatar` when joined (e.g. m1, f2).
   final String? avatar;
 
+  /// Public grammar leaderboard (`sort=practice`): number of shared quiz rows for this user.
+  final int? grammarQuizTotal;
+
   factory GrammarResult.fromJson(Map<String, dynamic> json) {
     return GrammarResult(
       id: (json['id'] as num).toInt(),
@@ -37,7 +41,19 @@ class GrammarResult {
       public: (json['public'] as num?)?.toInt(),
       selectedGrammarsRaw: json['selected_grammars'] as String?,
       avatar: json['avatar'] as String?,
+      grammarQuizTotal: (json['quiz_count'] as num?)?.toInt(),
     );
   }
+}
+
+/// One page from [ApiService.fetchPublicGrammarResultsPage].
+class PublicGrammarResultsPage {
+  const PublicGrammarResultsPage({
+    required this.results,
+    required this.hasMore,
+  });
+
+  final List<GrammarResult> results;
+  final bool hasMore;
 }
 

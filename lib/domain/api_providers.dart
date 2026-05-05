@@ -1,13 +1,18 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
+import '../data/models/class_schedule_slot.dart';
+import '../data/models/teacher_upcoming_slot.dart';
+import '../features/teacher/teacher_week_upcoming.dart';
 import '../data/models/grammar_result.dart';
 import '../data/models/grammar_result_detail.dart';
 import '../data/models/unit_model.dart';
+import '../data/models/unit_sample.dart';
 import '../data/models/vocab_entry.dart';
 import '../data/models/vocab_quiz_result.dart';
 import '../data/models/teacher_student.dart';
@@ -55,6 +60,15 @@ final apiSectionsProvider = FutureProvider.family<List<int>, BookUnit>((
 ) {
   ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchSections(arg.bookId, arg.unit);
+});
+
+// ─── Unit Samples (text samples per unit) ────────────────────────────────────
+// Corresponds to: GET /unit_samples.php?book_id={bookId}&unit={unit}
+
+final apiUnitSamplesProvider =
+    FutureProvider.family<List<UnitSample>, BookUnit>((ref, arg) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchUnitSamples(arg.bookId, arg.unit);
 });
 
 // ─── Words ────────────────────────────────────────────────────────────────────
@@ -138,13 +152,93 @@ final myGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
       .fetchMyGrammarResults(sort: 'date', order: 'desc');
 });
 
-/// GET /grammar_results_public.php (no auth)
-final publicGrammarResultsProvider = FutureProvider<List<GrammarResult>>((ref) {
-  ref.watch(apiRemoteDataEpochProvider);
-  return ref
-      .read(apiServiceProvider)
-      .fetchPublicGrammarResults(sort: 'date', order: 'desc');
-});
+/// Paginated community grammar list (Grammar results → Users tab).
+/// [rawItems] are rows returned by the API (before merging duplicates for «Most practice» UI).
+/// [nextFetchOffset] is the server `offset` for the next page (length of raw rows fetched so far).
+@immutable
+class PublicGrammarPagedState {
+  const PublicGrammarPagedState({
+    required this.rawItems,
+    required this.hasMore,
+    required this.nextFetchOffset,
+    this.isLoadingMore = false,
+  });
+
+  final List<GrammarResult> rawItems;
+  final bool hasMore;
+  final int nextFetchOffset;
+  final bool isLoadingMore;
+
+  PublicGrammarPagedState copyWith({
+    List<GrammarResult>? rawItems,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? nextFetchOffset,
+  }) {
+    return PublicGrammarPagedState(
+      rawItems: rawItems ?? this.rawItems,
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      nextFetchOffset: nextFetchOffset ?? this.nextFetchOffset,
+    );
+  }
+}
+
+/// GET /grammar_results_public.php (no auth), infinite scroll via [PublicGrammarCommunityNotifier.loadMore].
+final publicGrammarCommunityProvider =
+    AsyncNotifierProvider.autoDispose<
+        PublicGrammarCommunityNotifier,
+        PublicGrammarPagedState>(PublicGrammarCommunityNotifier.new);
+
+class PublicGrammarCommunityNotifier
+    extends AutoDisposeAsyncNotifier<PublicGrammarPagedState> {
+  static const int pageSize = 30;
+
+  String _sortApi(GrammarResultsListSort s) =>
+      s == GrammarResultsListSort.mostPractice ? 'practice' : 'date';
+
+  @override
+  Future<PublicGrammarPagedState> build() async {
+    ref.watch(grammarResultsListSortProvider);
+    ref.watch(apiRemoteDataEpochProvider);
+    final sort = ref.read(grammarResultsListSortProvider);
+    final page = await ref.read(apiServiceProvider).fetchPublicGrammarResultsPage(
+          sort: _sortApi(sort),
+          order: 'desc',
+          limit: pageSize,
+          offset: 0,
+        );
+    return PublicGrammarPagedState(
+      rawItems: page.results,
+      hasMore: page.hasMore,
+      nextFetchOffset: page.results.length,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final cur = state.valueOrNull;
+    if (cur == null || !cur.hasMore || cur.isLoadingMore) return;
+    state = AsyncData(cur.copyWith(isLoadingMore: true));
+    try {
+      final sort = ref.read(grammarResultsListSortProvider);
+      final page = await ref.read(apiServiceProvider).fetchPublicGrammarResultsPage(
+            sort: _sortApi(sort),
+            order: 'desc',
+            limit: pageSize,
+            offset: cur.nextFetchOffset,
+          );
+      state = AsyncData(
+        PublicGrammarPagedState(
+          rawItems: [...cur.rawItems, ...page.results],
+          hasMore: page.hasMore,
+          nextFetchOffset: cur.nextFetchOffset + page.results.length,
+        ),
+      );
+    } catch (_) {
+      state = AsyncData(cur.copyWith(isLoadingMore: false));
+    }
+  }
+}
 
 /// GET /grammar_result_detail.php?id= (auth). For review screen.
 final grammarResultDetailProvider =
@@ -230,6 +324,65 @@ final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
   }
   return ref.read(apiServiceProvider).fetchMyClassSessions();
 });
+
+/// Teacher / admin: weekly schedule slots for one student.
+final teacherStudentScheduleProvider =
+    FutureProvider.family<List<ClassScheduleSlot>, int>((ref, studentId) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref
+          .read(apiServiceProvider)
+          .fetchTeacherStudentSchedule(studentId);
+    });
+
+/// Teacher dashboard: upcoming weekly-slot occurrences this ISO week (Mon–Sun local),
+/// excluding times already covered by a logged class session for that student.
+final teacherWeekUpcomingProvider =
+    FutureProvider<List<TeacherUpcomingSlotItem>>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null ||
+          (!session.user.isTeacher && !session.user.isAdmin)) {
+        return [];
+      }
+      final api = ref.read(apiServiceProvider);
+      final students = await api.fetchTeacherStudents();
+      if (students.isEmpty) return [];
+
+      final nowLocal = DateTime.now();
+      final batches = await Future.wait(
+        students.map((stu) async {
+          try {
+            final slots = await api.fetchTeacherStudentSchedule(stu.id);
+            final info = await api.fetchTeacherStudentSessions(stu.id);
+            return computeTeacherWeekUpcomingForStudent(
+              nowLocal: nowLocal,
+              student: stu,
+              slots: slots,
+              sessions: info.sessions,
+            );
+          } catch (_) {
+            return <TeacherUpcomingSlotItem>[];
+          }
+        }),
+      );
+
+      final aggregated = batches.expand((e) => e).toList()
+        ..sort((a, b) => a.startLocal.compareTo(b.startLocal));
+      return aggregated;
+    });
+
+/// Learner: read-only weekly class times ([my_class_schedule.php]).
+final myClassScheduleProvider =
+    FutureProvider<List<ClassScheduleSlot>>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null ||
+          session.user.isTeacher ||
+          session.user.isAdmin) {
+        return const [];
+      }
+      return ref.read(apiServiceProvider).fetchMyClassSchedule();
+    });
 
 /// Preview row for You hub (student + assigned teacher). Empty when not applicable.
 final teacherMessagesPreviewProvider =

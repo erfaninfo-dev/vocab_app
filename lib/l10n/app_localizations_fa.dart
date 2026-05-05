@@ -177,6 +177,21 @@ class AppLocalizationsFa extends AppLocalizations {
   String get loading => 'در حال بارگذاری…';
 
   @override
+  String get unitSamplesOpen => 'متن‌های نمونه';
+
+  @override
+  String unitSamplesTitle(int unit) {
+    return 'یونیت $unit — متن‌های نمونه';
+  }
+
+  @override
+  String get unitSamplesEmpty =>
+      'برای این یونیت هنوز متن نمونه‌ای ثبت نشده است.';
+
+  @override
+  String get unitSamplesLoadFailed => 'بارگذاری متن‌های نمونه انجام نشد.';
+
+  @override
   String get search => 'جستجو';
 
   @override
@@ -420,6 +435,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get reminderTime => 'زمان یادآور';
 
   @override
+  String get sectionSound => 'صدا';
+
+  @override
+  String get splashSoundTitle => 'صدای شروع برنامه';
+
+  @override
+  String get splashSoundSubtitle => 'هنگام باز شدن اپ یک صدای آرام پخش شود';
+
+  @override
   String get sectionAbout => 'درباره';
 
   @override
@@ -437,6 +461,58 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get byAuthor => 'اثر عرفان عبدی';
+
+  @override
+  String aboutAppVersion(String version, String buildNumber) {
+    return 'نسخه $version ($buildNumber)';
+  }
+
+  @override
+  String get aboutUpdateFromPlayStore => 'دریافت آخرین نسخه';
+
+  @override
+  String get aboutAppUpToDate => 'آخرین نسخه نصب است.';
+
+  @override
+  String aboutUpdateAvailableVersion(String version) {
+    return 'نسخهٔ جدید موجود است: $version';
+  }
+
+  @override
+  String get aboutDownloadApkUpdate => 'دانلود آپدیت';
+
+  @override
+  String get aboutDownloadingApk => 'در حال دانلود…';
+
+  @override
+  String get aboutDownloadApkFailed =>
+      'دانلود انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
+
+  @override
+  String get aboutInstallApkHint =>
+      'در صورت درخواست، در تنظیمات اجازهٔ نصب از این برنامه را بدهید.';
+
+  @override
+  String get aboutForcedUpdateNote =>
+      'این آپدیت اجباری است. لطفاً آخرین نسخه را دانلود و نصب کنید.';
+
+  @override
+  String get aboutUpdateCheckFailed => 'بررسی آپدیت ممکن نشد.';
+
+  @override
+  String get aboutRetryUpdateCheck => 'تلاش دوباره';
+
+  @override
+  String get aboutLater => 'بعداً';
+
+  @override
+  String get aboutCouldNotOpenLink => 'باز کردن لینک ممکن نشد.';
+
+  @override
+  String get aboutPhoneLabel => 'تماس';
+
+  @override
+  String get aboutPhoneCopied => 'شماره در کلیپ‌بورد کپی شد';
 
   @override
   String get errNoInternet => 'اتصال اینترنت برقرار نیست. شبکه را بررسی کنید.';
@@ -850,7 +926,24 @@ class AppLocalizationsFa extends AppLocalizations {
   String get teacherPanelTabStudents => 'شاگردان';
 
   @override
+  String get teacherPanelTabSchedule => 'برنامه کلاس';
+
+  @override
   String get teacherPanelTabMessages => 'پیام‌ها';
+
+  @override
+  String get teacherScheduleEmpty =>
+      'در ۷ روز آینده چیزی نیست. برای هر شاگرد در تب «برنامه هفتگی» زمان بگذارید، یا همهٔ زمان‌های پیشِ رو قبلاً در «جلسات کلاس» ثبت شده‌اند.';
+
+  @override
+  String get teacherScheduleTabSubtitle =>
+      '۷ روز آینده از «برنامهٔ هفتگی» هر شاگرد. بعد از ثبت همان جلسه در «جلسات کلاس»، اینجا حذف می‌شود.';
+
+  @override
+  String get sessionDayToday => 'امروز';
+
+  @override
+  String get sessionDayTomorrow => 'فردا';
 
   @override
   String get teacherStudentDetailTitle => 'شاگرد';
@@ -863,6 +956,68 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get teacherTabClassSessions => 'جلسات کلاس';
+
+  @override
+  String get teacherTabWeeklySchedule => 'برنامه هفتگی';
+
+  @override
+  String get teacherClassScheduleSubtitle =>
+      'روزهای هفته و ساعت کلاس این شاگرد را مشخص کنید؛ شاگرد فقط مشاهده می‌کند.';
+
+  @override
+  String get teacherClassScheduleAddButton => 'افزودن زمان کلاس';
+
+  @override
+  String get teacherClassScheduleEditTitle => 'ویرایش زمان کلاس';
+
+  @override
+  String get classScheduleWeekdayLabel => 'روز هفته';
+
+  @override
+  String get classScheduleStartLabel => 'ساعت شروع';
+
+  @override
+  String get classScheduleEndLabel => 'ساعت پایان';
+
+  @override
+  String get classScheduleIncludeEnd => 'نمایش ساعت پایان';
+
+  @override
+  String get classScheduleHasEndSubtitle =>
+      'اختیاری — اگر نباشد فقط ساعت شروع نمایش داده می‌شود.';
+
+  @override
+  String get classScheduleLabelHint => 'یادداشت (اختیاری)';
+
+  @override
+  String get classScheduleEmpty =>
+      'هنوز زمانی برای برنامهٔ هفتگی ثبت نشده است.';
+
+  @override
+  String get classScheduleSlotAdded => 'زمان اضافه شد';
+
+  @override
+  String get classScheduleSlotUpdated => 'زمان به‌روز شد';
+
+  @override
+  String get classScheduleSlotDeleted => 'زمان حذف شد';
+
+  @override
+  String get classScheduleRemove => 'حذف';
+
+  @override
+  String get classScheduleDeleteConfirmTitle => 'این زمان حذف شود؟';
+
+  @override
+  String get classScheduleDeleteConfirmBody => 'این کار برگشت‌پذیر نیست.';
+
+  @override
+  String get classScheduleInvalidRange =>
+      'ساعت پایان باید بعد از ساعت شروع باشد.';
+
+  @override
+  String get youClassScheduleSubtitle =>
+      'روز و ساعت تکراری کلاس از طرف معلم شما';
 
   @override
   String get teacherClassSessionsTabSubtitle =>
@@ -1632,6 +1787,17 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get grammarCommunityEmptyBody =>
       'اگر در پایان کوییز «نمایش در نتایج جامعه» را بزنید، اینجا دیده می‌شود.';
+
+  @override
+  String grammarCommunityQuizTotal(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count آزمون گرامر انجام‌شده',
+      one: '۱ آزمون گرامر انجام‌شده',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get guestUser => 'مهمان';

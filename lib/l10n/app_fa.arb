@@ -57,6 +57,15 @@
   "close": "بستن",
   "retry": "تلاش دوباره",
   "loading": "در حال بارگذاری…",
+  "unitSamplesOpen": "متن‌های نمونه",
+  "unitSamplesTitle": "یونیت {unit} — متن‌های نمونه",
+  "@unitSamplesTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "unitSamplesEmpty": "برای این یونیت هنوز متن نمونه‌ای ثبت نشده است.",
+  "unitSamplesLoadFailed": "بارگذاری متن‌های نمونه انجام نشد.",
   "search": "جستجو",
   "errorGeneric": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
   "errServerReturnedError": "سرور خطا برگرداند. بعداً دوباره تلاش کنید.",
@@ -133,12 +142,41 @@
   "reminderSetAt": "یادآور روی {time}",
   "tapToEnableReminder": "برای فعال‌سازی بزنید",
   "reminderTime": "زمان یادآور",
+  "sectionSound": "صدا",
+  "splashSoundTitle": "صدای شروع برنامه",
+  "splashSoundSubtitle": "هنگام باز شدن اپ یک صدای آرام پخش شود",
   "sectionAbout": "درباره",
   "sectionAppLanguage": "زبان برنامه",
   "appLanguageSubtitle": "زبان رابط (انگلیسی، فارسی یا کوردی سورانی)",
   "linkCopied": "لینک در کلیپ‌بورد کپی شد",
   "appNameShort": "Erfan Academy",
   "byAuthor": "اثر عرفان عبدی",
+  "aboutAppVersion": "نسخه {version} ({buildNumber})",
+  "@aboutAppVersion": {
+    "placeholders": {
+      "version": {"type": "String"},
+      "buildNumber": {"type": "String"}
+    }
+  },
+  "aboutUpdateFromPlayStore": "دریافت آخرین نسخه",
+  "aboutAppUpToDate": "آخرین نسخه نصب است.",
+  "aboutUpdateAvailableVersion": "نسخهٔ جدید موجود است: {version}",
+  "@aboutUpdateAvailableVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "aboutDownloadApkUpdate": "دانلود آپدیت",
+  "aboutDownloadingApk": "در حال دانلود…",
+  "aboutDownloadApkFailed": "دانلود انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید.",
+  "aboutInstallApkHint": "در صورت درخواست، در تنظیمات اجازهٔ نصب از این برنامه را بدهید.",
+  "aboutForcedUpdateNote": "این آپدیت اجباری است. لطفاً آخرین نسخه را دانلود و نصب کنید.",
+  "aboutUpdateCheckFailed": "بررسی آپدیت ممکن نشد.",
+  "aboutRetryUpdateCheck": "تلاش دوباره",
+  "aboutLater": "بعداً",
+  "aboutCouldNotOpenLink": "باز کردن لینک ممکن نشد.",
+  "aboutPhoneLabel": "تماس",
+  "aboutPhoneCopied": "شماره در کلیپ‌بورد کپی شد",
   "errNoInternet": "اتصال اینترنت برقرار نیست. شبکه را بررسی کنید.",
   "errBadData": "خواندن داده ممکن نشد. دوباره تلاش کنید.",
   "errServer": "ارتباط با سرور برقرار نشد. دوباره تلاش کنید.",
@@ -268,11 +306,35 @@
   "teacherOpenPanel": "پنل استاد",
   "teacherStudentsEmpty": "هنوز شاگردی متصل نیست. روی سرور، کدهای دانش‌آموزی را به حساب استاد خودتان وصل کنید؛ با همان کد ثبت‌نام کنند تا اینجا بیایند.",
   "teacherPanelTabStudents": "شاگردان",
+  "teacherPanelTabSchedule": "برنامه کلاس",
   "teacherPanelTabMessages": "پیام‌ها",
+  "teacherScheduleEmpty": "در ۷ روز آینده چیزی نیست. برای هر شاگرد در تب «برنامه هفتگی» زمان بگذارید، یا همهٔ زمان‌های پیشِ رو قبلاً در «جلسات کلاس» ثبت شده‌اند.",
+  "teacherScheduleTabSubtitle": "۷ روز آینده از «برنامهٔ هفتگی» هر شاگرد. بعد از ثبت همان جلسه در «جلسات کلاس»، اینجا حذف می‌شود.",
+  "sessionDayToday": "امروز",
+  "sessionDayTomorrow": "فردا",
   "teacherStudentDetailTitle": "شاگرد",
   "teacherTabVocabQuiz": "لغات",
   "teacherTabGrammar": "گرامر",
   "teacherTabClassSessions": "جلسات کلاس",
+  "teacherTabWeeklySchedule": "برنامه هفتگی",
+  "teacherClassScheduleSubtitle": "روزهای هفته و ساعت کلاس این شاگرد را مشخص کنید؛ شاگرد فقط مشاهده می‌کند.",
+  "teacherClassScheduleAddButton": "افزودن زمان کلاس",
+  "teacherClassScheduleEditTitle": "ویرایش زمان کلاس",
+  "classScheduleWeekdayLabel": "روز هفته",
+  "classScheduleStartLabel": "ساعت شروع",
+  "classScheduleEndLabel": "ساعت پایان",
+  "classScheduleIncludeEnd": "نمایش ساعت پایان",
+  "classScheduleHasEndSubtitle": "اختیاری — اگر نباشد فقط ساعت شروع نمایش داده می‌شود.",
+  "classScheduleLabelHint": "یادداشت (اختیاری)",
+  "classScheduleEmpty": "هنوز زمانی برای برنامهٔ هفتگی ثبت نشده است.",
+  "classScheduleSlotAdded": "زمان اضافه شد",
+  "classScheduleSlotUpdated": "زمان به‌روز شد",
+  "classScheduleSlotDeleted": "زمان حذف شد",
+  "classScheduleRemove": "حذف",
+  "classScheduleDeleteConfirmTitle": "این زمان حذف شود؟",
+  "classScheduleDeleteConfirmBody": "این کار برگشت‌پذیر نیست.",
+  "classScheduleInvalidRange": "ساعت پایان باید بعد از ساعت شروع باشد.",
+  "youClassScheduleSubtitle": "روز و ساعت تکراری کلاس از طرف معلم شما",
   "teacherClassSessionsTabSubtitle": "جلسه را با یک ضربه اضافه کنید، در صورت نیاز تاریخ و ساعت را اصلاح کنید یا یک مورد را حذف کنید. شاگرد این فهرست را فقط به‌صورت مشاهده می‌بیند.",
   "teacherClassSessionHeading": "جلسه {number}",
   "@teacherClassSessionHeading": {
@@ -509,6 +571,12 @@
   "grammarNoPersonalResultsBody": "بعد از اتمام جلسهٔ گرامر، نمره اینجا نمایش داده می‌شود.",
   "grammarCommunityEmptyTitle": "هنوز چیزی نیست",
   "grammarCommunityEmptyBody": "اگر در پایان کوییز «نمایش در نتایج جامعه» را بزنید، اینجا دیده می‌شود.",
+  "grammarCommunityQuizTotal": "{count, plural, =1{۱ آزمون گرامر انجام‌شده} other{{count} آزمون گرامر انجام‌شده}}",
+  "@grammarCommunityQuizTotal": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "guestUser": "مهمان",
   "resultVisibilityPublic": "عمومی",
   "resultVisibilityPrivate": "خصوصی",

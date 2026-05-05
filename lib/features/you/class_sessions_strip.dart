@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/datetime/class_session_recorded_at.dart';
 import '../../data/models/teacher_student.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -58,12 +59,9 @@ class ClassSessionsStrip extends StatelessWidget {
     }
 
     String formatSessionDate(String raw) {
-      final t = raw.trim();
-      if (t.isEmpty) return '—';
-      final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
-      final dt = DateTime.tryParse(normalized);
-      if (dt == null) return raw;
-      return DateFormat.yMMMd(loc).add_Hm().format(dt.toLocal());
+      final dt = parseClassSessionRecordedAtFromApi(raw);
+      if (dt == null) return raw.trim().isEmpty ? '—' : raw;
+      return DateFormat.yMMMd(loc).add_Hm().format(dt);
     }
 
     final chips = <Widget>[];
