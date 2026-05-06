@@ -46,6 +46,8 @@ final appUpdateCheckProvider = FutureProvider<AppUpdateCheck>((ref) async {
   }
 
   final remote = manifest.androidVersionCode;
+  // `force_update` in MySQL is ignored unless the server build is newer than
+  // the installed `versionCode` (pubspec +N / Android build number).
   final available =
       remote > local && manifest.apkUrl.isNotEmpty;
 

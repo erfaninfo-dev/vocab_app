@@ -5,6 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../network/resolve_update_url.dart';
+
+/// Some hosts block or mis-handle the default Dart [http] user agent; browsers work.
+const _kApkDownloadUserAgent =
+    'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+
 Future<void> downloadAndOpenAndroidApk(
   String url, {
   void Function(double progress, int received, int total)? onProgress,
@@ -13,7 +19,10 @@ Future<void> downloadAndOpenAndroidApk(
     return;
   }
 
-  final uri = Uri.parse(url);
+  final uri = resolveUpdateDownloadUrl(url);
+  if (uri == null) {
+    throw ArgumentError.value(url, 'url', 'invalid update URL');
+  }
   final dir = await getTemporaryDirectory();
   final path = '${dir.path}/erfan_academy_update.apk';
   final file = File(path);
@@ -21,6 +30,9 @@ Future<void> downloadAndOpenAndroidApk(
   final client = http.Client();
   try {
     final request = http.Request('GET', uri);
+    request.headers['User-Agent'] = _kApkDownloadUserAgent;
+    request.headers['Accept'] = '*/*';
+    request.headers['Accept-Encoding'] = 'identity';
     final response = await client.send(request);
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');

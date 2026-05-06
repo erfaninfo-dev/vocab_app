@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/tts/tts_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
+import '../unit_samples/unit_samples_screen.dart';
 import 'important_words_controller.dart';
 import 'word_preferences_controller.dart';
 import '../../data/models/vocab_entry.dart';
@@ -29,6 +31,12 @@ class WordsScreen extends ConsumerStatefulWidget {
 
 class _WordsScreenState extends ConsumerState<WordsScreen> {
   String _query = '';
+
+  @override
+  void dispose() {
+    ref.read(ttsProvider.notifier).stop();
+    super.dispose();
+  }
 
   Future<void> _refresh() async {
     final api = ref.read(apiServiceProvider);
@@ -60,8 +68,12 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
     final unitAsync = ref.watch(apiWordsProvider(unitKey));
     final allBookAsync = ref.watch(apiAllWordsForBookProvider(widget.bookId));
     final searching = _query.trim().isNotEmpty;
+    final samplesAsync = ref.watch(
+      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
+    );
 
     final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
     final appBarTitle = widget.section != null
         ? l10n.wordsUnitSection(widget.unit, widget.section!)
@@ -75,94 +87,129 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         ? '/books/${widget.bookId}/units/${widget.unit}/sections/${widget.section}/quiz'
         : '/books/${widget.bookId}/units/${widget.unit}/quiz';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(appBarTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.unitSamplesOpen,
-            onPressed: () => context.push(
-              '/books/${widget.bookId}/units/${widget.unit}/samples',
-            ),
-            icon: const Icon(Icons.article_rounded),
-          ),
-          IconButton(
-            tooltip: l10n.tooltipQuiz,
-            onPressed: () => context.push(quizRoute),
-            icon: const Icon(Icons.quiz_rounded),
-          ),
-          IconButton(
-            tooltip: l10n.tooltipFlashcards,
-            onPressed: () => context.push(flashcardsRoute),
-            icon: const Icon(Icons.style_rounded),
-          ),
-        ],
-      ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
-          ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          child: searching
-              ? allBookAsync.when(
-                  loading: () => ListView(
-                    children: const [
-                      SizedBox(height: 220),
-                      Center(child: CircularProgressIndicator()),
-                    ],
-                  ),
-                  error: (error, _) => ListView(
-                    children: [
-                      const SizedBox(height: 220),
-                      Center(
-                        child: Text(userFriendlyErrorMessage(error, l10n)),
-                      ),
-                    ],
-                  ),
-                  data: (allWords) {
-                    final filtered = allWords
-                        .where((e) => e.matchesWordQuery(_query))
-                        .toList();
-                    return _wordsScrollView(
-                      l10n: l10n,
-                      displayList: filtered,
-                      headerTotal: allWords.length,
-                      isGlobalSearch: true,
-                    );
-                  },
-                )
-              : unitAsync.when(
-                  loading: () => ListView(
-                    children: const [
-                      SizedBox(height: 220),
-                      Center(child: CircularProgressIndicator()),
-                    ],
-                  ),
-                  error: (error, _) => ListView(
-                    children: [
-                      const SizedBox(height: 220),
-                      Center(
-                        child: Text(userFriendlyErrorMessage(error, l10n)),
-                      ),
-                    ],
-                  ),
-                  data: (unitWords) {
-                    return _wordsScrollView(
-                      l10n: l10n,
-                      displayList: unitWords,
-                      headerTotal: unitWords.length,
-                      isGlobalSearch: false,
-                    );
-                  },
+    final hasSamples = samplesAsync.valueOrNull?.isNotEmpty ?? false;
+
+    Widget wordsBody() {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: searching
+            ? allBookAsync.when(
+                loading: () => ListView(
+                  children: const [
+                    SizedBox(height: 220),
+                    Center(child: CircularProgressIndicator()),
+                  ],
                 ),
+                error: (error, _) => ListView(
+                  children: [
+                    const SizedBox(height: 220),
+                    Center(child: Text(userFriendlyErrorMessage(error, l10n))),
+                  ],
+                ),
+                data: (allWords) {
+                  final filtered =
+                      allWords.where((e) => e.matchesWordQuery(_query)).toList();
+                  return _wordsScrollView(
+                    l10n: l10n,
+                    displayList: filtered,
+                    headerTotal: allWords.length,
+                    isGlobalSearch: true,
+                  );
+                },
+              )
+            : unitAsync.when(
+                loading: () => ListView(
+                  children: const [
+                    SizedBox(height: 220),
+                    Center(child: CircularProgressIndicator()),
+                  ],
+                ),
+                error: (error, _) => ListView(
+                  children: [
+                    const SizedBox(height: 220),
+                    Center(child: Text(userFriendlyErrorMessage(error, l10n))),
+                  ],
+                ),
+                data: (unitWords) {
+                  return _wordsScrollView(
+                    l10n: l10n,
+                    displayList: unitWords,
+                    headerTotal: unitWords.length,
+                    isGlobalSearch: false,
+                  );
+                },
+              ),
+      );
+    }
+
+    final appBar = AppBar(
+      title: Text(appBarTitle),
+      actions: [
+        IconButton(
+          tooltip: l10n.tooltipQuiz,
+          onPressed: () => context.push(quizRoute),
+          icon: const Icon(Icons.quiz_rounded),
+        ),
+        IconButton(
+          tooltip: l10n.tooltipFlashcards,
+          onPressed: () => context.push(flashcardsRoute),
+          icon: const Icon(Icons.style_rounded),
+        ),
+      ],
+      bottom: !hasSamples
+          ? null
+          : TabBar(
+              isScrollable: false,
+              labelColor: scheme.primary,
+              unselectedLabelColor: scheme.onSurfaceVariant,
+              indicatorColor: scheme.primary,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: tt.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+              tabs: const [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.menu_book_rounded),
+                      SizedBox(width: 8),
+                      Text('کلمات'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.article_rounded),
+                      SizedBox(width: 8),
+                      Text('متن'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+
+    final content = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
         ),
       ),
+      child: hasSamples
+          ? TabBarView(
+              children: [
+                wordsBody(),
+                UnitSamplesEmbedded(bookId: widget.bookId, unit: widget.unit),
+              ],
+            )
+          : wordsBody(),
     );
+
+    final scaffold = Scaffold(appBar: appBar, body: content);
+    return hasSamples ? DefaultTabController(length: 2, child: scaffold) : scaffold;
   }
 
   Widget _wordsScrollView({
@@ -176,18 +223,6 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: _InfoHeader(
-              unit: widget.unit,
-              section: widget.section,
-              total: headerTotal,
-              filtered: displayList.length,
-              isGlobalSearch: isGlobalSearch,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: SearchBar(
               autoFocus: false,
               hintText: l10n.searchWordWholeBook,
@@ -199,7 +234,19 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                     icon: const Icon(Icons.close_rounded),
                   ),
               ],
-              onChanged: (value) => setState(() => _query = value),
+              onChanged: (value) {
+                setState(() => _query = value);
+                if (value.trim().isEmpty) return;
+                TabController? tabs;
+                try {
+                  tabs = DefaultTabController.of(context);
+                } catch (_) {
+                  tabs = null;
+                }
+                if (tabs != null && tabs.index != 0) {
+                  tabs.animateTo(0);
+                }
+              },
             ),
           ),
         ),
@@ -216,78 +263,6 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _InfoHeader extends StatelessWidget {
-  const _InfoHeader({
-    required this.unit,
-    required this.section,
-    required this.total,
-    required this.filtered,
-    required this.isGlobalSearch,
-  });
-
-  final int unit;
-  final int? section;
-  final int total;
-  final int filtered;
-  final bool isGlobalSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final label = section != null
-        ? l10n.sectionInUnit(section!, unit)
-        : l10n.unitLabel(unit);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.menu_book_rounded, color: scheme.primary),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  isGlobalSearch
-                      ? l10n.matchesWholeBook(filtered, total)
-                      : l10n.wordsVisible(filtered, total),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF1B5E20),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

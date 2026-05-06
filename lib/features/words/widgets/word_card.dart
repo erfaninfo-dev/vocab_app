@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/language/language_provider.dart';
 import '../../../core/tts/tts_service.dart';
+import '../../../data/models/book_model.dart';
 import '../../../data/models/vocab_entry.dart';
 import '../../../domain/api_providers.dart';
 import '../important_words_controller.dart';
@@ -29,6 +30,22 @@ class WordCard extends ConsumerWidget {
     final localMeaning = entry.meaningFor(lang);
     final localExample = entry.exampleLocalFor(lang);
 
+    final booksAsync = ref.watch(apiBooksProvider);
+    final bookTitle = booksAsync.maybeWhen(
+      data: (List<Book> books) {
+        final id = int.tryParse(entry.bookId);
+        if (id == null) return null;
+        for (final b in books) {
+          if (b.id == id) {
+            final t = b.title.trim();
+            return t.isEmpty ? null : t;
+          }
+        }
+        return null;
+      },
+      orElse: () => null,
+    );
+
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Card(
@@ -42,6 +59,32 @@ class WordCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (bookTitle != null) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.menu_book_outlined,
+                      size: 18,
+                      color: scheme.primary.withValues(alpha: 0.85),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        bookTitle,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                              height: 1.25,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
               Row(
                 children: [
                   Container(
@@ -251,7 +294,7 @@ class _SpeakButton extends ConsumerWidget {
       children: [
         IconButton.filledTonal(
           tooltip: 'Pronounce word',
-          onPressed: () => notifier.speak(word),
+          onPressed: () => notifier.speak(word, showMiniPlayer: false),
           style: isSpeakingWord
               ? IconButton.styleFrom(
                   backgroundColor:
@@ -268,7 +311,7 @@ class _SpeakButton extends ConsumerWidget {
           const SizedBox(width: 4),
           IconButton.filledTonal(
             tooltip: 'Pronounce example',
-            onPressed: () => notifier.speak(example),
+            onPressed: () => notifier.speak(example, showMiniPlayer: false),
             style: isSpeakingExample
                 ? IconButton.styleFrom(
                     backgroundColor:

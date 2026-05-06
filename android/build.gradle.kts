@@ -1,9 +1,20 @@
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
         maven("https://jitpack.io")
         maven("https://storage.googleapis.com/download.flutter.io")
+    }
+}
+
+subprojects {
+    buildscript {
+        repositories {
+            maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
+            maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
+            maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
+        }
     }
 }
 

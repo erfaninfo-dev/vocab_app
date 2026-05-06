@@ -13,6 +13,8 @@ import 'core/locale/ui_locale_provider.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/tts/tts_player_overlay.dart';
+import 'features/update/forced_update_barrier.dart';
 import 'domain/api_providers.dart';
 import 'features/settings/theme_mode_controller.dart';
 import 'features/words/important_words_controller.dart';
@@ -88,7 +90,9 @@ class IeltsVocabApp extends ConsumerWidget {
           value: overlay,
           child: Directionality(
             textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
-            child: child ?? const SizedBox.shrink(),
+            child: ForcedUpdateBarrier(
+              child: TtsPlayerOverlay(child: child ?? const SizedBox.shrink()),
+            ),
           ),
         );
       },
