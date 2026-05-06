@@ -197,11 +197,11 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         ),
         bottom: TabBar(
           controller: _tabs,
-          isScrollable: true,
+          isScrollable: false,
           labelColor: scheme.primary,
           unselectedLabelColor: scheme.onSurfaceVariant,
           indicatorColor: scheme.primary,
-          indicatorSize: TabBarIndicatorSize.label,
+          indicatorSize: TabBarIndicatorSize.tab,
           tabs: [
             Tab(
               icon: const Icon(Icons.groups_2_rounded),

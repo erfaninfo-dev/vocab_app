@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../tts/tts_service.dart';
 import '../../features/favorites/favorites_screen.dart';
 import '../../features/grammar/grammar_quiz_screen.dart';
 import '../../features/grammar/grammar_result_review_screen.dart';
@@ -14,6 +15,7 @@ import '../../features/quiz/book_vocab_quiz_setup_screen.dart';
 import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
 import '../../features/sections/sections_screen.dart';
+import '../../features/settings/about_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/shell/shell_scaffold.dart';
@@ -69,8 +71,13 @@ int _grammarPracticeQuestionCount(GoRouterState state) {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
+  Future<void> stopTts() => ref.read(ttsProvider.notifier).stop();
+  final rootTtsSilencer = TtsNavigatorSilencer(stopTts);
+  final shellTtsSilencer = TtsNavigatorSilencer(stopTts);
+
   return GoRouter(
     navigatorKey: _routerRootNavigatorKey,
+    observers: [rootTtsSilencer],
     initialLocation: '/',
     routes: [
       // ── Splash (no shell) ──────────────────────────────────────────────────
@@ -161,6 +168,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Shell: all screens share the bottom NavigationBar ─────────────────
       ShellRoute(
         navigatorKey: _routerShellNavigatorKey,
+        observers: [shellTtsSilencer],
         builder: (context, state, child) =>
             ShellScaffold(location: state.uri.path, child: child),
         routes: [
@@ -248,6 +256,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (_, __) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/settings/about',
+            builder: (_, __) => const AboutScreen(),
           ),
 
           // Books → Units

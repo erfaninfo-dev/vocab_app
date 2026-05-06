@@ -96,6 +96,12 @@ final apiAllWordsForBookProvider = FutureProvider.family<List<VocabEntry>, int>(
   },
 );
 
+/// GET /words.php?global=1 — full vocabulary catalog (unit samples word tap).
+final apiAllWordsCatalogProvider = FutureProvider<List<VocabEntry>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchAllWordsGlobally();
+});
+
 // ─── Grammar (DB column `content` = topic name) ─────────────────────────────
 
 final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((

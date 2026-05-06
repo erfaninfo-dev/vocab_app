@@ -1,11 +1,18 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/language/language_provider.dart';
 import '../../core/tts/tts_service.dart';
 import '../../data/models/unit_sample.dart';
+import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../words/widgets/word_card.dart';
 
 typedef _BookUnitKey = ({int bookId, int unit});
 
@@ -15,7 +22,7 @@ final _expandedSampleIdProvider = StateProvider.family
 final _samplesTextScaleProvider = StateProvider.family
     .autoDispose<double, _BookUnitKey>((ref, _) => 1.0);
 
-class UnitSamplesScreen extends ConsumerWidget {
+class UnitSamplesScreen extends ConsumerStatefulWidget {
   const UnitSamplesScreen({
     super.key,
     required this.bookId,
@@ -26,89 +33,110 @@ class UnitSamplesScreen extends ConsumerWidget {
   final int unit;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UnitSamplesScreen> createState() => _UnitSamplesScreenState();
+}
+
+class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
+  @override
+  void dispose() {
+    ref.read(ttsProvider.notifier).stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(langProvider); // keep screen reactive to language changes
-    final screenKey = (bookId: bookId, unit: unit);
-    final scale = ref.watch(_samplesTextScaleProvider(screenKey));
+    final screenKey = (bookId: widget.bookId, unit: widget.unit);
     final expandedId = ref.watch(_expandedSampleIdProvider(screenKey));
     final async = ref.watch(
-      apiUnitSamplesProvider((bookId: bookId, unit: unit)),
+      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
     );
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.unitSamplesTitle(unit)),
-        backgroundColor: scheme.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
-      floatingActionButton: expandedId == null
-          ? null
-          : _TextSizeFab(
-              screenKey: screenKey,
-              label: _textSizeLabel(context),
-              value: scale,
-            ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await ref.read(ttsProvider.notifier).stop();
+        if (!context.mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.unitSamplesTitle(widget.unit)),
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
+          backgroundColor: scheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
         ),
-        child: SafeArea(
-          child: async.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return Center(child: Text(l10n.unitSamplesEmpty));
-              }
-              if (items.length == 1 &&
-                  expandedId == null &&
-                  items.first.id > 0) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final current = ref.read(
-                    _expandedSampleIdProvider(screenKey),
-                  );
-                  if (current == null) {
-                    ref
-                            .read(_expandedSampleIdProvider(screenKey).notifier)
-                            .state =
-                        items.first.id;
-                  }
-                });
-              }
-              return _SamplesList(
-                screenKey: screenKey,
-                bookId: bookId,
-                unit: unit,
-                items: items,
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.unitSamplesLoadFailed,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => ref.invalidate(
-                        apiUnitSamplesProvider((bookId: bookId, unit: unit)),
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
+            ),
+          ),
+          child: SafeArea(
+            child: async.when(
+              data: (items) {
+                if (items.isEmpty) {
+                  return Center(child: Text(l10n.unitSamplesEmpty));
+                }
+                if (items.length == 1 &&
+                    expandedId == null &&
+                    items.first.id > 0) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final current = ref.read(
+                      _expandedSampleIdProvider(screenKey),
+                    );
+                    if (current == null) {
+                      ref
+                          .read(_expandedSampleIdProvider(screenKey).notifier)
+                          .state = items
+                          .first
+                          .id;
+                    }
+                  });
+                }
+                return _SamplesList(
+                  screenKey: screenKey,
+                  bookId: widget.bookId,
+                  unit: widget.unit,
+                  items: items,
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.unitSamplesLoadFailed,
+                        textAlign: TextAlign.center,
                       ),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: Text(l10n.aboutRetryUpdateCheck),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => ref.invalidate(
+                          apiUnitSamplesProvider(
+                            (bookId: widget.bookId, unit: widget.unit),
+                          ),
+                        ),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(l10n.aboutRetryUpdateCheck),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -119,40 +147,133 @@ class UnitSamplesScreen extends ConsumerWidget {
   }
 }
 
-class _SamplesList extends ConsumerWidget {
+/// Embedded version of the unit sample texts UI.
+///
+/// Use this when you want to show sample texts inside another screen (e.g.
+/// as a tab in `WordsScreen`) without a separate route or AppBar.
+class UnitSamplesEmbedded extends ConsumerStatefulWidget {
+  const UnitSamplesEmbedded({
+    super.key,
+    required this.bookId,
+    required this.unit,
+    this.listPadding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
+  });
+
+  final int bookId;
+  final int unit;
+  final EdgeInsets listPadding;
+
+  @override
+  ConsumerState<UnitSamplesEmbedded> createState() => _UnitSamplesEmbeddedState();
+}
+
+class _UnitSamplesEmbeddedState extends ConsumerState<UnitSamplesEmbedded> {
+  @override
+  void dispose() {
+    ref.read(ttsProvider.notifier).stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    ref.watch(langProvider); // keep reactive to language changes
+    final screenKey = (bookId: widget.bookId, unit: widget.unit);
+    final expandedId = ref.watch(_expandedSampleIdProvider(screenKey));
+    final async = ref.watch(
+      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
+    );
+
+    return async.when(
+      data: (items) {
+        if (items.isEmpty) {
+          // This embedded widget is usually not shown when empty, but keep
+          // a safe fallback.
+          return Center(child: Text(l10n.unitSamplesEmpty));
+        }
+        if (items.length == 1 && expandedId == null && items.first.id > 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final current = ref.read(_expandedSampleIdProvider(screenKey));
+            if (current == null) {
+              ref.read(_expandedSampleIdProvider(screenKey).notifier).state =
+                  items.first.id;
+            }
+          });
+        }
+        return _SamplesList(
+          screenKey: screenKey,
+          bookId: widget.bookId,
+          unit: widget.unit,
+          items: items,
+          padding: widget.listPadding,
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(child: Text(l10n.unitSamplesLoadFailed)),
+    );
+  }
+}
+
+class _SamplesList extends ConsumerStatefulWidget {
   const _SamplesList({
     required this.screenKey,
     required this.bookId,
     required this.unit,
     required this.items,
+    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 18),
   });
 
   final _BookUnitKey screenKey;
   final int bookId;
   final int unit;
   final List<UnitSample> items;
+  final EdgeInsets padding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final expandedId = ref.watch(_expandedSampleIdProvider(screenKey));
-    final scale = ref.watch(_samplesTextScaleProvider(screenKey));
+  ConsumerState<_SamplesList> createState() => _SamplesListState();
+}
+
+class _SamplesListState extends ConsumerState<_SamplesList> {
+  late final ScrollController _listController;
+
+  @override
+  void initState() {
+    super.initState();
+    _listController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _listController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expandedId = ref.watch(_expandedSampleIdProvider(widget.screenKey));
+    final scale = ref.watch(_samplesTextScaleProvider(widget.screenKey));
     return ListView.separated(
       // These sample cards have very dynamic heights (long SelectableText).
       // Laying out a larger cache reduces scroll-metric "jumps" on desktop.
+      controller: _listController,
       cacheExtent: 2400,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-      itemCount: items.length,
+      padding: widget.padding,
+      itemCount: widget.items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final i = index;
         return _UnitSampleCard(
-          sample: items[i],
+          sample: widget.items[i],
+          screenKey: widget.screenKey,
           expandedId: expandedId,
           textScale: scale,
+          constrainExpandedBody: widget.items.length > 1,
+          parentScrollController: _listController,
           onExpandedChanged: (isExpanded) {
-            final id = items[i].id;
+            final id = widget.items[i].id;
             if (id <= 0) return;
-            final n = ref.read(_expandedSampleIdProvider(screenKey).notifier);
+            final n =
+                ref.read(_expandedSampleIdProvider(widget.screenKey).notifier);
             if (isExpanded) {
               n.state = id;
             } else if (expandedId == id) {
@@ -165,29 +286,148 @@ class _SamplesList extends ConsumerWidget {
   }
 }
 
-class _UnitSampleCard extends ConsumerWidget {
+class _UnitSampleCard extends ConsumerStatefulWidget {
   const _UnitSampleCard({
     required this.sample,
+    required this.screenKey,
     required this.expandedId,
     required this.textScale,
+    required this.constrainExpandedBody,
+    required this.parentScrollController,
     required this.onExpandedChanged,
   });
   final UnitSample sample;
+  final _BookUnitKey screenKey;
   final int? expandedId;
   final double textScale;
+
+  /// When true (several unit samples), cap expanded body height so the next
+  /// sample header stays visible; scroll inside the card for long text.
+  final bool constrainExpandedBody;
+  final ScrollController parentScrollController;
   final ValueChanged<bool> onExpandedChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_UnitSampleCard> createState() => _UnitSampleCardState();
+}
+
+class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
+  ScrollController? _innerScrollController;
+  final GlobalKey _cardLeadKey = GlobalKey();
+
+  void _alignExpandedSampleStart() {
+    final inner = _innerScrollController;
+    if (inner != null && inner.hasClients) {
+      inner.jumpTo(inner.position.minScrollExtent);
+    }
+    final ctx = _cardLeadKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _propagateOverscrollToParent(double overscroll) {
+    final parent = widget.parentScrollController;
+    if (!parent.hasClients) return;
+    final p = parent.position;
+    final next = (p.pixels + overscroll).clamp(0.0, p.maxScrollExtent);
+    if (next == p.pixels) return;
+    parent.jumpTo(next);
+  }
+
+  bool _maybePassEdgeScrollToParent(double delta) {
+    final c = _innerScrollController;
+    if (c == null || !c.hasClients) return false;
+    final pos = c.position;
+    final atTop = pos.pixels <= pos.minScrollExtent + 0.5;
+    final atBottom = pos.pixels >= pos.maxScrollExtent - 0.5;
+    final wantsUp = delta < 0;
+    final wantsDown = delta > 0;
+    if (!((atTop && wantsUp) || (atBottom && wantsDown))) return false;
+    c.jumpTo(atTop ? pos.minScrollExtent : pos.maxScrollExtent);
+    _propagateOverscrollToParent(delta);
+    return true;
+  }
+
+  double _verticalPointerScrollDelta(
+    PointerScrollEvent event,
+    BuildContext context,
+  ) {
+    final configuration = ScrollConfiguration.of(context);
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+    final flipAxes =
+        pressed.any(configuration.pointerAxisModifiers.contains) &&
+            event.kind == PointerDeviceKind.mouse;
+    final axis = flipAxes ? flipAxis(Axis.vertical) : Axis.vertical;
+    final raw = switch (axis) {
+      Axis.horizontal => event.scrollDelta.dx,
+      Axis.vertical => event.scrollDelta.dy,
+    };
+    return axisDirectionIsReversed(AxisDirection.down) ? -raw : raw;
+  }
+
+  void _chainPointerScrollToParentIfInnerFull(PointerSignalEvent signal) {
+    if (signal is! PointerScrollEvent) return;
+    final event = signal;
+    final c = _innerScrollController;
+    if (c == null || !c.hasClients) return;
+    final delta = _verticalPointerScrollDelta(event, context);
+    if (delta == 0.0) return;
+    final pos = c.position;
+    final target = (pos.pixels + delta).clamp(
+      pos.minScrollExtent,
+      pos.maxScrollExtent,
+    );
+    if (target != pos.pixels) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+      _propagateOverscrollToParent(delta);
+    });
+  }
+
+  void _handleExpansionChanged(bool expanded) {
+    widget.onExpandedChanged(expanded);
+    if (!expanded) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _alignExpandedSampleStart();
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.constrainExpandedBody) {
+      _innerScrollController = ScrollController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _innerScrollController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final isExpanded = expandedId != null && expandedId == sample.id;
+    final isExpanded =
+        widget.expandedId != null && widget.expandedId == widget.sample.id;
     final lang = ref.watch(langProvider);
     final segmentTextStyle = tt.labelLarge?.copyWith(
       fontWeight: FontWeight.w800,
     );
     final cardColor = isExpanded ? scheme.surfaceContainerLow : scheme.surface;
     return Card(
+      key: _cardLeadKey,
       elevation: isExpanded ? 0.6 : 2.2,
       shadowColor: scheme.primary.withValues(alpha: 0.12),
       color: cardColor,
@@ -204,11 +444,11 @@ class _UnitSampleCard extends ConsumerWidget {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          key: ValueKey('sample-${sample.id}-expanded-$isExpanded'),
+          key: ValueKey('sample-${widget.sample.id}-expanded-$isExpanded'),
           initiallyExpanded: isExpanded,
-          onExpansionChanged: onExpandedChanged,
+          onExpansionChanged: _handleExpansionChanged,
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           collapsedShape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.zero,
@@ -230,7 +470,7 @@ class _UnitSampleCard extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  sample.title.isEmpty ? 'Sample' : sample.title,
+                  widget.sample.title.isEmpty ? 'Sample' : widget.sample.title,
                   style: tt.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
@@ -268,12 +508,68 @@ class _UnitSampleCard extends ConsumerWidget {
             ],
           ),
           children: [
-            _AlignedBlock(
-              combinedText: lang == TranslationLang.fa
-                  ? sample.textEnFa
-                  : sample.textEnKur,
-              textScale: textScale,
-            ),
+            if (!widget.constrainExpandedBody)
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _AlignedBlock(
+                  screenKey: widget.screenKey,
+                  combinedText: lang == TranslationLang.fa
+                      ? widget.sample.textEnFa
+                      : widget.sample.textEnKur,
+                  textScale: widget.textScale,
+                ),
+              )
+            else if (isExpanded)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenH = MediaQuery.sizeOf(context).height;
+                  final maxH = (screenH * 0.50).clamp(240.0, 520.0);
+
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxH),
+                    child: Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerSignal: _chainPointerScrollToParentIfInnerFull,
+                      child: Scrollbar(
+                        controller: _innerScrollController!,
+                        thumbVisibility: true,
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (n) {
+                            if (n is ScrollUpdateNotification) {
+                              final d = n.scrollDelta ?? 0.0;
+                              if (d != 0 && _maybePassEdgeScrollToParent(d)) {
+                                return true;
+                              }
+                            }
+                            if (n is OverscrollNotification) {
+                              if (n.overscroll == 0.0) return false;
+                              _propagateOverscrollToParent(n.overscroll);
+                              return true;
+                            }
+                            return false;
+                          },
+                          child: SingleChildScrollView(
+                            controller: _innerScrollController!,
+                            physics: const ClampingScrollPhysics(),
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 14),
+                              child: _AlignedBlock(
+                                screenKey: widget.screenKey,
+                                combinedText: lang == TranslationLang.fa
+                                    ? widget.sample.textEnFa
+                                    : widget.sample.textEnKur,
+                                textScale: widget.textScale,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            else
+              const SizedBox.shrink(),
           ],
         ),
       ),
@@ -282,8 +578,13 @@ class _UnitSampleCard extends ConsumerWidget {
 }
 
 class _AlignedBlock extends ConsumerWidget {
-  const _AlignedBlock({required this.combinedText, required this.textScale});
+  const _AlignedBlock({
+    required this.screenKey,
+    required this.combinedText,
+    required this.textScale,
+  });
 
+  final _BookUnitKey screenKey;
   final String combinedText;
   final double textScale;
 
@@ -303,7 +604,11 @@ class _AlignedBlock extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < pairs.length; i++) ...[
-              _ParagraphPairBlock(pair: pairs[i], textScale: textScale),
+              _ParagraphPairBlock(
+                screenKey: screenKey,
+                pair: pairs[i],
+                textScale: textScale,
+              ),
               if (i != pairs.length - 1)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -320,9 +625,421 @@ class _AlignedBlock extends ConsumerWidget {
   }
 }
 
-class _ParagraphPairBlock extends ConsumerWidget {
-  const _ParagraphPairBlock({required this.pair, required this.textScale});
+class _EnWordToken {
+  const _EnWordToken({
+    required this.start,
+    required this.end,
+    required this.text,
+  });
 
+  final int start;
+  final int end;
+  final String text;
+}
+
+List<_EnWordToken> _tokenizeEnglishWords(String s) {
+  final out = <_EnWordToken>[];
+  for (final m in RegExp(r"[A-Za-z]+(?:'[A-Za-z]+)?").allMatches(s)) {
+    out.add(_EnWordToken(start: m.start, end: m.end, text: m.group(0)!));
+  }
+  return out;
+}
+
+List<VocabEntry> _lookupCatalogMatches({
+  required List<_EnWordToken> tokens,
+  required int startTokenIndex,
+  required List<VocabEntry> catalog,
+  required int preferredBookId,
+  required int preferredUnit,
+}) {
+  if (startTokenIndex < 0 || startTokenIndex >= tokens.length) {
+    return const [];
+  }
+  final maxLen = math.min(6, tokens.length - startTokenIndex);
+  for (var len = maxLen; len >= 1; len--) {
+    final phrase = tokens
+        .sublist(startTokenIndex, startTokenIndex + len)
+        .map((t) => t.text)
+        .join(' ');
+    final key = phrase.trim().toLowerCase();
+    final matches = catalog
+        .where((e) => e.word.trim().toLowerCase() == key)
+        .toList();
+    if (matches.isEmpty) continue;
+
+    int rank(VocabEntry e) {
+      final bid = int.tryParse(e.bookId) ?? -1;
+      if (bid != preferredBookId) return 2;
+      if (e.unit == preferredUnit) return 0;
+      return 1;
+    }
+
+    matches.sort((a, b) {
+      final ra = rank(a);
+      final rb = rank(b);
+      if (ra != rb) return ra.compareTo(rb);
+      final ab = int.tryParse(a.bookId) ?? -1;
+      final bb = int.tryParse(b.bookId) ?? -1;
+      if (ab != bb) return ab.compareTo(bb);
+      if (a.unit != b.unit) return a.unit.compareTo(b.unit);
+      return a.rowId.compareTo(b.rowId);
+    });
+    return matches;
+  }
+  return const [];
+}
+
+class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
+  const _SelectableEnglishWithTtsHighlight({
+    required this.plainEn,
+    required this.baseStyle,
+    required this.scheme,
+    required this.bookId,
+    required this.unit,
+  });
+
+  final String plainEn;
+  final TextStyle? baseStyle;
+  final ColorScheme scheme;
+  final int bookId;
+  final int unit;
+
+  @override
+  ConsumerState<_SelectableEnglishWithTtsHighlight> createState() =>
+      _SelectableEnglishWithTtsHighlightState();
+}
+
+class _SelectableEnglishWithTtsHighlightState
+    extends ConsumerState<_SelectableEnglishWithTtsHighlight> {
+  final List<TapGestureRecognizer> _tapRecognizers = [];
+
+  @override
+  void dispose() {
+    for (final r in _tapRecognizers) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  void _disposeTapRecognizers() {
+    for (final r in _tapRecognizers) {
+      r.dispose();
+    }
+    _tapRecognizers.clear();
+  }
+
+  void _openVocabMatchesSheet(List<VocabEntry> entries) {
+    if (entries.isEmpty) return;
+    final theme = Theme.of(context);
+    final lang = Localizations.localeOf(context).languageCode;
+    final count = entries.length;
+    final lemma = entries.first.word;
+    final title = (lang == 'fa' || lang == 'ckb')
+        ? '$count مورد یافت شد'
+        : (count == 1 ? '1 match' : '$count matches');
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final maxH = MediaQuery.sizeOf(ctx).height * 0.88;
+        final padBottom = MediaQuery.paddingOf(ctx).bottom;
+        final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
+
+        final header = Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.auto_stories_rounded,
+                color: theme.colorScheme.primary,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lemma,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final divider = Divider(
+          height: 1,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+        );
+
+        if (count == 1) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    divider,
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16, 14, 16, padBottom + 16),
+                      child: WordCard(entry: entries.first),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: SizedBox(
+              height: maxH,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  header,
+                  divider,
+                  Expanded(
+                    child: ListView.separated(
+                      padding: EdgeInsets.fromLTRB(16, 14, 16, padBottom + 16),
+                      itemCount: entries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (_, i) => WordCard(entry: entries[i]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _onWordTap(
+    int startTokenIndex,
+    List<_EnWordToken> tokens,
+    List<VocabEntry> catalog,
+  ) {
+    final catalogAsync = ref.read(apiAllWordsCatalogProvider);
+    if (catalogAsync.isLoading) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            Localizations.localeOf(context).languageCode == 'fa'
+                ? 'در حال بارگذاری فهرست لغات…'
+                : 'Loading vocabulary…',
+          ),
+        ),
+      );
+      return;
+    }
+    if (catalogAsync.hasError) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text('${catalogAsync.error}')),
+      );
+      return;
+    }
+
+    final matches = _lookupCatalogMatches(
+      tokens: tokens,
+      startTokenIndex: startTokenIndex,
+      catalog: catalogAsync.value ?? catalog,
+      preferredBookId: widget.bookId,
+      preferredUnit: widget.unit,
+    );
+    if (matches.isEmpty) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(l10n?.noMatchingWords ?? 'No matching words found.'),
+        ),
+      );
+      return;
+    }
+    _openVocabMatchesSheet(matches);
+  }
+
+  TextStyle? _styleForWordRange({
+    required int ws,
+    required int we,
+    required bool highlightOn,
+    required bool lingering,
+    required bool karaoke,
+    required int a,
+    required int b,
+    required TextStyle? readStyle,
+    required TextStyle? currentStyle,
+  }) {
+    if (!highlightOn) return widget.baseStyle;
+    if (lingering) return readStyle;
+    if (!karaoke) return widget.baseStyle;
+    if (we <= a) return readStyle;
+    if (a < b && ws < b && we > a) return currentStyle;
+    return widget.baseStyle;
+  }
+
+  TextSpan _buildTappableEnglishSpan({
+    required String en,
+    required List<_EnWordToken> tokens,
+    required List<VocabEntry> catalog,
+    required TextStyle? readStyle,
+    required TextStyle? currentStyle,
+    required bool highlightOn,
+    required bool lingering,
+    required bool karaoke,
+    required int a,
+    required int b,
+  }) {
+    if (tokens.isEmpty) {
+      return TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
+    }
+
+    final children = <InlineSpan>[];
+    var cursor = 0;
+    for (var i = 0; i < tokens.length; i++) {
+      final tok = tokens[i];
+      if (cursor < tok.start) {
+        children.add(
+          TextSpan(
+            text: _bidiWrapLtr(en.substring(cursor, tok.start)),
+            style: widget.baseStyle,
+          ),
+        );
+      }
+      final ws = tok.start;
+      final we = tok.end;
+      final wordStyle = _styleForWordRange(
+        ws: ws,
+        we: we,
+        highlightOn: highlightOn,
+        lingering: lingering,
+        karaoke: karaoke,
+        a: a,
+        b: b,
+        readStyle: readStyle,
+        currentStyle: currentStyle,
+      );
+      final r = TapGestureRecognizer()
+        ..onTap = () => _onWordTap(i, tokens, catalog);
+      _tapRecognizers.add(r);
+      children.add(
+        TextSpan(
+          text: _bidiWrapLtr(tok.text),
+          style: wordStyle,
+          recognizer: r,
+        ),
+      );
+      cursor = tok.end;
+    }
+    if (cursor < en.length) {
+      children.add(
+        TextSpan(
+          text: _bidiWrapLtr(en.substring(cursor)),
+          style: widget.baseStyle,
+        ),
+      );
+    }
+    return TextSpan(style: widget.baseStyle, children: children);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _disposeTapRecognizers();
+
+    final tts = ref.watch(ttsProvider);
+    final highlightOn = ref.watch(ttsTextHighlightEnabledProvider);
+    final catalogAsync = ref.watch(apiAllWordsCatalogProvider);
+    final catalog = catalogAsync.valueOrNull ?? const <VocabEntry>[];
+
+    final en = widget.plainEn;
+    if (en.isEmpty) return const SizedBox.shrink();
+
+    final tokens = _tokenizeEnglishWords(en);
+
+    final readStyle = widget.baseStyle?.copyWith(
+      backgroundColor: widget.scheme.primaryContainer.withValues(alpha: 0.30),
+      color: widget.scheme.onPrimaryContainer,
+    );
+    final currentStyle = widget.baseStyle?.copyWith(
+      backgroundColor: widget.scheme.primaryContainer.withValues(alpha: 0.62),
+      color: widget.scheme.onPrimaryContainer,
+      fontWeight: FontWeight.w800,
+    );
+
+    final lingering = tts.showsLingeringFullRead(en);
+    final karaoke = highlightOn && tts.isSpeakingText(en);
+
+    final len = en.length;
+    var a = 0;
+    var b = 0;
+    if (karaoke) {
+      if (tts.progressStart >= 0 && tts.progressEnd >= 0) {
+        a = tts.progressStart.clamp(0, len);
+        b = tts.progressEnd.clamp(0, len);
+        if (b < a) b = a;
+      } else {
+        a = tts.spokenTextOffset.clamp(0, len);
+        b = a;
+      }
+      if (b <= a && a < len) {
+        b = (a + 1).clamp(0, len);
+      }
+    }
+
+    final rootSpan = _buildTappableEnglishSpan(
+      en: en,
+      tokens: tokens,
+      catalog: catalog,
+      readStyle: readStyle,
+      currentStyle: currentStyle,
+      highlightOn: highlightOn,
+      lingering: lingering,
+      karaoke: karaoke,
+      a: a,
+      b: b,
+    );
+
+    return SelectableText.rich(
+      rootSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.justify,
+      textWidthBasis: TextWidthBasis.parent,
+    );
+  }
+}
+
+class _ParagraphPairBlock extends ConsumerWidget {
+  const _ParagraphPairBlock({
+    required this.screenKey,
+    required this.pair,
+    required this.textScale,
+  });
+
+  final _BookUnitKey screenKey;
   final _AlignedPair pair;
   final double textScale;
 
@@ -335,6 +1052,11 @@ class _ParagraphPairBlock extends ConsumerWidget {
 
     final en = pair.en.trim();
     final local = pair.local.trim();
+    final enStyle = tt.bodyMedium?.copyWith(
+      color: scheme.onSurface,
+      height: 1.55,
+      fontSize: (tt.bodyMedium?.fontSize ?? 14) * textScale,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -347,35 +1069,54 @@ class _ParagraphPairBlock extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SelectableText(
-                    _bidiWrapLtr(en),
-                    textDirection: TextDirection.ltr,
-                    textAlign: TextAlign.justify,
-                    textWidthBasis: TextWidthBasis.parent,
-                    style: tt.bodyMedium?.copyWith(
-                      color: scheme.onSurface,
-                      height: 1.55,
-                      fontSize: (tt.bodyMedium?.fontSize ?? 14) * textScale,
-                    ),
+                  _SelectableEnglishWithTtsHighlight(
+                    plainEn: en,
+                    baseStyle: enStyle,
+                    scheme: scheme,
+                    bookId: screenKey.bookId,
+                    unit: screenKey.unit,
                   ),
                   const SizedBox(height: 6),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
-                    child: IconButton.filledTonal(
-                      tooltip: tts.isSpeakingText(en) ? 'Stop' : 'Read',
-                      onPressed: () {
-                        if (en.isEmpty) return;
-                        if (tts.isSpeakingText(en)) {
-                          notifier.stop();
-                        } else {
-                          notifier.speak(en);
-                        }
-                      },
-                      icon: Icon(
-                        tts.isSpeakingText(en)
-                            ? Icons.stop_rounded
-                            : Icons.volume_up_rounded,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: 'Text size',
+                          onPressed: () => _openUnitSamplesTextSizePicker(
+                            context,
+                            ref,
+                            screenKey,
+                          ),
+                          icon: const Icon(Icons.text_fields_rounded),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton.filledTonal(
+                          tooltip: tts.isSpeakingText(en)
+                              ? (tts.isPaused ? 'Play' : 'Stop')
+                              : 'Read',
+                          onPressed: () {
+                            if (en.isEmpty) return;
+                            if (tts.isSpeakingText(en)) {
+                              if (tts.isPaused) {
+                                notifier.resume();
+                              } else {
+                                notifier.stop();
+                              }
+                            } else {
+                              notifier.speak(en);
+                            }
+                          },
+                          icon: Icon(
+                            tts.isSpeakingText(en)
+                                ? (tts.isPaused
+                                    ? Icons.play_arrow_rounded
+                                    : Icons.stop_rounded)
+                                : Icons.volume_up_rounded,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -416,68 +1157,45 @@ class _ParagraphPairBlock extends ConsumerWidget {
   }
 }
 
-class _TextSizeFab extends ConsumerWidget {
-  const _TextSizeFab({
-    required this.screenKey,
-    required this.label,
-    required this.value,
-  });
-
-  final _BookUnitKey screenKey;
-  final String label;
-  final double value;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final percent = (value * 100).round();
-
-    return FloatingActionButton.extended(
-      heroTag: 'text-size-${screenKey.bookId}-${screenKey.unit}',
-      onPressed: () async {
-        final current = ref.read(_samplesTextScaleProvider(screenKey));
-        await showGeneralDialog<void>(
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: 'dismiss',
-          barrierColor: Colors.black.withValues(alpha: 0.20),
-          transitionDuration: const Duration(milliseconds: 220),
-          pageBuilder: (context, _, __) {
-            return _TextSizeOverlay(
-              label: label,
-              initialValue: current,
-              onChanged: (v) =>
-                  ref
-                          .read(_samplesTextScaleProvider(screenKey).notifier)
-                          .state =
-                      v,
-            );
-          },
-          transitionBuilder: (context, anim, __, child) {
-            final curved = CurvedAnimation(
-              parent: anim,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
-                child: child,
-              ),
-            );
-          },
-        );
-      },
-      backgroundColor: scheme.primaryContainer,
-      foregroundColor: scheme.onPrimaryContainer,
-      icon: const Icon(Icons.text_fields_rounded),
-      label: Text('$percent%'),
-    );
-  }
+Future<void> _openUnitSamplesTextSizePicker(
+  BuildContext context,
+  WidgetRef ref,
+  _BookUnitKey screenKey,
+) async {
+  final label = _textSizeLabel(context);
+  final current = ref.read(_samplesTextScaleProvider(screenKey));
+  await showGeneralDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'dismiss',
+    barrierColor: Colors.black.withValues(alpha: 0.20),
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (context, _, __) {
+      return _TextSizeOverlay(
+        label: label,
+        initialValue: current,
+        onChanged: (v) =>
+            ref.read(_samplesTextScaleProvider(screenKey).notifier).state = v,
+      );
+    },
+    transitionBuilder: (context, anim, __, child) {
+      final curved = CurvedAnimation(
+        parent: anim,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
-class _TextSizeOverlay extends StatelessWidget {
+class _TextSizeOverlay extends ConsumerStatefulWidget {
   const _TextSizeOverlay({
     required this.label,
     required this.initialValue,
@@ -489,34 +1207,53 @@ class _TextSizeOverlay extends StatelessWidget {
   final ValueChanged<double> onChanged;
 
   @override
+  ConsumerState<_TextSizeOverlay> createState() => _TextSizeOverlayState();
+}
+
+class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
+  late final ValueNotifier<double> _valueN;
+
+  @override
+  void initState() {
+    super.initState();
+    _valueN = ValueNotifier<double>(widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _valueN.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final valueN = ValueNotifier<double>(initialValue);
+    final bottomExtra =
+        ref.watch(ttsProvider.select((s) => s.hasActivePlayback && s.showMiniPlayer))
+            ? kTtsMiniPlayerBottomReserve
+            : 0.0;
 
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Tap outside to close
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.of(context).pop(),
             ),
           ),
-
-          // Floating slider "pill"
           Positioned(
             left: 16,
             right: 16,
-            bottom: 16,
+            bottom: 16 + bottomExtra,
             child: SafeArea(
               top: false,
               left: false,
               child: Center(
                 child: ValueListenableBuilder<double>(
-                  valueListenable: valueN,
+                  valueListenable: _valueN,
                   builder: (context, v, _) {
                     final percent = (v * 100).round();
                     return Material(
@@ -558,8 +1295,8 @@ class _TextSizeOverlay extends StatelessWidget {
                                     divisions: 14,
                                     value: v.clamp(0.85, 1.55),
                                     onChanged: (next) {
-                                      valueN.value = next;
-                                      onChanged(next);
+                                      _valueN.value = next;
+                                      widget.onChanged(next);
                                     },
                                   ),
                                 ),

@@ -12,17 +12,18 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
+        maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
     }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        google()
-        mavenCentral()
+        maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
+        maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
         maven("https://jitpack.io")
         maven("https://storage.googleapis.com/download.flutter.io")
     }

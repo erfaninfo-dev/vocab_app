@@ -618,6 +618,21 @@ class ApiService {
         .toList();
   }
 
+  /// GET /words.php?global=1 — entire `words` table (all books).
+  Future<List<VocabEntry>> fetchAllWordsGlobally() async {
+    final uri = Uri.parse('$baseUrl/words.php').replace(
+      queryParameters: {'global': '1'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'words (global)');
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data.map((e) {
+      final m = e as Map<String, dynamic>;
+      final bid = (m['book_id'] as num?)?.toInt() ?? 0;
+      return VocabEntry.fromJson(m, bookId: bid.toString());
+    }).toList();
+  }
+
   // ── Auth (no bearer token on login/register) ─────────────────────────────
 
   /// POST /login.php

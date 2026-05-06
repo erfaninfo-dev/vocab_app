@@ -6,7 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_info/package_info_provider.dart';
 import '../../core/audio/splash_sound_controller.dart';
-import '../../core/update/android_apk_installer.dart';
+import '../../core/network/resolve_update_url.dart';
+import '../../core/update/apk_download_dialog.dart';
 import '../../domain/app_update_provider.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/language/language_provider.dart';
@@ -21,107 +22,23 @@ final _aboutUpdateDismissedProvider = StateProvider.autoDispose<bool>((ref) {
   return false;
 });
 
-class _ApkDownloadProgress {
-  const _ApkDownloadProgress({
-    required this.progress,
-    required this.receivedBytes,
-    required this.totalBytes,
-  });
-
-  final double progress; // -1 for indeterminate
-  final int receivedBytes;
-  final int totalBytes; // -1 when unknown
-}
-
-Future<void> _downloadApkUpdate(BuildContext context, String url) async {
-  final l10n = AppLocalizations.of(context)!;
-  if (!context.mounted) return;
-  final progressN = ValueNotifier<_ApkDownloadProgress>(
-    const _ApkDownloadProgress(
-      progress: -1,
-      receivedBytes: 0,
-      totalBytes: -1,
-    ),
-  );
-
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (ctx) => ValueListenableBuilder<_ApkDownloadProgress>(
-      valueListenable: progressN,
-      builder: (context, p, _) {
-        final percent =
-            p.progress >= 0 ? (p.progress * 100).clamp(0, 100) : null;
-        final receivedMb = p.receivedBytes / 1024 / 1024;
-        final totalMb = p.totalBytes > 0 ? p.totalBytes / 1024 / 1024 : null;
-        return AlertDialog(
-          title: Text(l10n.aboutDownloadingApk),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinearProgressIndicator(value: p.progress >= 0 ? p.progress : null),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (percent != null)
-                    Text(
-                      '${percent.toStringAsFixed(0)}%',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    )
-                  else
-                    const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      totalMb != null
-                          ? '${receivedMb.toStringAsFixed(1)} / ${totalMb.toStringAsFixed(1)} MB'
-                          : '${receivedMb.toStringAsFixed(1)} MB',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-  try {
-    await downloadAndOpenAndroidApk(
-      url,
-      onProgress: (p, r, t) {
-        progressN.value = _ApkDownloadProgress(
-          progress: p,
-          receivedBytes: r,
-          totalBytes: t,
-        );
-      },
-    );
-  } catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.aboutDownloadApkFailed)),
-      );
-    }
-  } finally {
-    progressN.dispose();
-    if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-  }
-}
-
 Future<void> _openLatestDownloadLink(BuildContext context, String url) async {
   final l10n = AppLocalizations.of(context)!;
-  final uri = Uri.parse(url);
+  final uri = resolveUpdateDownloadUrl(url);
+  if (uri == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
+      );
+    }
+    return;
+  }
   try {
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    var launched =
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+    }
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.aboutCouldNotOpenLink)),
@@ -457,38 +374,38 @@ class _AboutCard extends ConsumerWidget {
                     const SizedBox(height: 12),
                     updateAsync.when(
                       data: (check) {
+                        if (check.checkFailed) {
+                          return Column(
+                            children: [
+                              Text(
+                                l10n.aboutUpdateCheckFailed,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: scheme.onSecondaryContainer,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                onPressed: () =>
+                                    ref.invalidate(appUpdateCheckProvider),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: Text(l10n.aboutRetryUpdateCheck),
+                              ),
+                            ],
+                          );
+                        }
+
                         if (check.androidEligible) {
-                          if (check.checkFailed) {
-                            return Column(
-                              children: [
-                                Text(
-                                  l10n.aboutUpdateCheckFailed,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: scheme.onSecondaryContainer,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextButton.icon(
-                                  onPressed: () => ref.invalidate(
-                                    appUpdateCheckProvider,
-                                  ),
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: Text(l10n.aboutRetryUpdateCheck),
-                                ),
-                              ],
-                            );
-                          }
                           if (check.updateAvailable &&
                               check.apkUrl != null &&
                               check.apkUrl!.isNotEmpty) {
                             final verLabel =
                                 (check.remoteVersionName ?? '').trim().isNotEmpty
-                                ? check.remoteVersionName!.trim()
-                                : '${check.remoteVersionCode ?? ''}';
+                                    ? check.remoteVersionName!.trim()
+                                    : '${check.remoteVersionCode ?? ''}';
                             return Column(
                               children: [
                                 Text(
@@ -510,7 +427,8 @@ class _AboutCard extends ConsumerWidget {
                                     runSpacing: 8,
                                     children: [
                                       FilledButton.icon(
-                                        onPressed: () => _downloadApkUpdate(
+                                        onPressed: () =>
+                                            showApkDownloadProgressDialog(
                                           context,
                                           check.apkUrl!,
                                         ),
@@ -555,17 +473,54 @@ class _AboutCard extends ConsumerWidget {
                                 ),
                           );
                         }
+
                         if (check.apkUrl == null || check.apkUrl!.isEmpty) {
                           return const SizedBox.shrink();
                         }
-                        return FilledButton.tonalIcon(
-                          onPressed: () => _openLatestDownloadLink(
-                            context,
-                            check.apkUrl!,
-                          ),
-                          icon: const Icon(Icons.system_update_rounded),
-                          label: Text(l10n.aboutUpdateFromPlayStore),
-                        );
+                        if (check.updateAvailable) {
+                          final verLabel =
+                              (check.remoteVersionName ?? '').trim().isNotEmpty
+                                  ? check.remoteVersionName!.trim()
+                                  : '${check.remoteVersionCode ?? ''}';
+                          return Column(
+                            children: [
+                              Text(
+                                l10n.aboutUpdateAvailableVersion(verLabel),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: scheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              if (check.forceUpdate) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  l10n.aboutForcedUpdateNote,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: scheme.onSecondaryContainer,
+                                      ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              FilledButton.tonalIcon(
+                                onPressed: () => _openLatestDownloadLink(
+                                  context,
+                                  check.apkUrl!,
+                                ),
+                                icon: const Icon(Icons.system_update_rounded),
+                                label: Text(l10n.aboutUpdateFromPlayStore),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
                       },
                       loading: () => const SizedBox(
                         height: 36,

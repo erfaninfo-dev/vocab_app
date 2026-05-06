@@ -81,6 +81,15 @@ NavigationDestination _navDestination(_Tab tab, int dueCount) {
   );
 }
 
+bool _hideBottomBarForLocation(String location) {
+  final path = location.trim();
+  if (path.startsWith('/grammar/practice')) return true;
+  if (path.contains('/quiz') && !path.contains('vocab-quiz')) return true;
+  if (!path.contains('/units/')) return false;
+  if (path.endsWith('/words') || path.endsWith('/samples')) return true;
+  return false;
+}
+
 // ─── Shell Scaffold ───────────────────────────────────────────────────────────
 
 class ShellScaffold extends ConsumerWidget {
@@ -99,8 +108,7 @@ class ShellScaffold extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _tabs(l10n);
 
-    final hideBottomBar = location.startsWith('/grammar/practice') ||
-        (location.contains('/quiz') && !location.contains('vocab-quiz'));
+    final hideBottomBar = _hideBottomBarForLocation(location);
 
     int currentIndex = 0;
     for (int i = 0; i < tabs.length; i++) {
