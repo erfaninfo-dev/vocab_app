@@ -53,6 +53,29 @@ Future<void> _openLatestDownloadLink(BuildContext context, String url) async {
   }
 }
 
+Future<void> _showAboutSheet(BuildContext context) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) {
+      final maxHeight = MediaQuery.of(ctx).size.height * 0.9;
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: const _AboutCard(),
+        ),
+      );
+    },
+  );
+}
+
 Future<void> _openSupportPhone(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
   final uri = Uri.parse(_kSupportPhoneUri);
@@ -97,6 +120,13 @@ class SettingsScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(l10n.settingsTitle),
+        actions: [
+          IconButton(
+            tooltip: l10n.sectionAbout,
+            icon: const Icon(Icons.info_outline_rounded),
+            onPressed: () => _showAboutSheet(context),
+          ),
+        ],
       ),
       body: DecoratedBox(
         decoration: BoxDecoration(
