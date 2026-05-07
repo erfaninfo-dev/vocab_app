@@ -128,9 +128,10 @@ class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
                       const SizedBox(height: 12),
                       FilledButton.icon(
                         onPressed: () => ref.invalidate(
-                          apiUnitSamplesProvider(
-                            (bookId: widget.bookId, unit: widget.unit),
-                          ),
+                          apiUnitSamplesProvider((
+                            bookId: widget.bookId,
+                            unit: widget.unit,
+                          )),
                         ),
                         icon: const Icon(Icons.refresh_rounded),
                         label: Text(l10n.aboutRetryUpdateCheck),
@@ -164,7 +165,8 @@ class UnitSamplesEmbedded extends ConsumerStatefulWidget {
   final EdgeInsets listPadding;
 
   @override
-  ConsumerState<UnitSamplesEmbedded> createState() => _UnitSamplesEmbeddedState();
+  ConsumerState<UnitSamplesEmbedded> createState() =>
+      _UnitSamplesEmbeddedState();
 }
 
 class _UnitSamplesEmbeddedState extends ConsumerState<UnitSamplesEmbedded> {
@@ -272,8 +274,9 @@ class _SamplesListState extends ConsumerState<_SamplesList> {
           onExpandedChanged: (isExpanded) {
             final id = widget.items[i].id;
             if (id <= 0) return;
-            final n =
-                ref.read(_expandedSampleIdProvider(widget.screenKey).notifier);
+            final n = ref.read(
+              _expandedSampleIdProvider(widget.screenKey).notifier,
+            );
             if (isExpanded) {
               n.state = id;
             } else if (expandedId == id) {
@@ -362,7 +365,7 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
     final pressed = HardwareKeyboard.instance.logicalKeysPressed;
     final flipAxes =
         pressed.any(configuration.pointerAxisModifiers.contains) &&
-            event.kind == PointerDeviceKind.mouse;
+        event.kind == PointerDeviceKind.mouse;
     final axis = flipAxes ? flipAxis(Axis.vertical) : Axis.vertical;
     final raw = switch (axis) {
       Axis.horizontal => event.scrollDelta.dx,
@@ -858,9 +861,9 @@ class _SelectableEnglishWithTtsHighlightState
       return;
     }
     if (catalogAsync.hasError) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text('${catalogAsync.error}')),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text('${catalogAsync.error}')));
       return;
     }
 
@@ -947,11 +950,7 @@ class _SelectableEnglishWithTtsHighlightState
         ..onTap = () => _onWordTap(i, tokens, catalog);
       _tapRecognizers.add(r);
       children.add(
-        TextSpan(
-          text: _bidiWrapLtr(tok.text),
-          style: wordStyle,
-          recognizer: r,
-        ),
+        TextSpan(text: _bidiWrapLtr(tok.text), style: wordStyle, recognizer: r),
       );
       cursor = tok.end;
     }
@@ -1111,8 +1110,8 @@ class _ParagraphPairBlock extends ConsumerWidget {
                           icon: Icon(
                             tts.isSpeakingText(en)
                                 ? (tts.isPaused
-                                    ? Icons.play_arrow_rounded
-                                    : Icons.stop_rounded)
+                                      ? Icons.play_arrow_rounded
+                                      : Icons.stop_rounded)
                                 : Icons.volume_up_rounded,
                           ),
                         ),
@@ -1230,9 +1229,11 @@ class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final bottomExtra =
-        ref.watch(ttsProvider.select((s) => s.hasActivePlayback && s.showMiniPlayer))
-            ? kTtsMiniPlayerBottomReserve
-            : 0.0;
+        ref.watch(
+          ttsProvider.select((s) => s.hasActivePlayback && s.showMiniPlayer),
+        )
+        ? kTtsMiniPlayerBottomReserve
+        : 0.0;
 
     return Material(
       color: Colors.transparent,
