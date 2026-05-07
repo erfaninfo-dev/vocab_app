@@ -1,5 +1,3 @@
-import org.gradle.api.initialization.resolve.RepositoriesMode
-
 pluginManagement {
     val flutterSdkPath = run {
         val properties = java.util.Properties()
@@ -12,20 +10,9 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
-        maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
-        maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
-        maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
-    }
-}
-
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        maven { url = uri("https://mirror-maven.runflare.com/android/maven2/") }
-        maven { url = uri("https://mirror-maven.runflare.com/maven2/") }
-        maven { url = uri("https://mirror-maven.runflare.com/gradle-plugins/") }
-        maven("https://jitpack.io")
-        maven("https://storage.googleapis.com/download.flutter.io")
+        google()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 
