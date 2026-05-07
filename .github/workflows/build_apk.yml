@@ -34,6 +34,30 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # The project uses an Iranian Gradle/Maven mirror (mirror-maven.runflare.com)
+      # for local builds to bypass sanctions. That host is unreachable from
+      # GitHub-hosted runners, so swap mirror URLs with the official ones for CI only.
+      - name: Use official Gradle/Maven sources for CI
+        run: |
+          set -euo pipefail
+          cd android
+          # Gradle distribution
+          sed -i 's#https\\://mirror-maven.runflare.com/distributions/#https\\://services.gradle.org/distributions/#g' gradle/wrapper/gradle-wrapper.properties
+          # Maven repos in build.gradle.kts and settings.gradle.kts
+          for f in build.gradle.kts settings.gradle.kts; do
+            sed -i \
+              -e 's#https://mirror-maven.runflare.com/android/maven2/#https://dl.google.com/dl/android/maven2/#g' \
+              -e 's#https://mirror-maven.runflare.com/maven2/#https://repo.maven.apache.org/maven2/#g' \
+              -e 's#https://mirror-maven.runflare.com/gradle-plugins/#https://plugins.gradle.org/m2/#g' \
+              "$f"
+          done
+          echo "--- gradle-wrapper.properties ---"
+          cat gradle/wrapper/gradle-wrapper.properties
+          echo "--- settings.gradle.kts (repos) ---"
+          grep -n "maven" settings.gradle.kts || true
+          echo "--- build.gradle.kts (repos) ---"
+          grep -n "maven" build.gradle.kts || true
+
       - name: Build APK
         run: flutter build apk --release
 
