@@ -15,6 +15,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/tts/tts_player_overlay.dart';
 import 'features/update/forced_update_barrier.dart';
+import 'features/update/optional_update_prompt.dart';
 import 'domain/api_providers.dart';
 import 'features/settings/theme_mode_controller.dart';
 import 'features/words/important_words_controller.dart';
@@ -91,7 +92,9 @@ class IeltsVocabApp extends ConsumerWidget {
           child: Directionality(
             textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
             child: ForcedUpdateBarrier(
-              child: TtsPlayerOverlay(child: child ?? const SizedBox.shrink()),
+              child: OptionalUpdatePrompt(
+                child: TtsPlayerOverlay(child: child ?? const SizedBox.shrink()),
+              ),
             ),
           ),
         );
