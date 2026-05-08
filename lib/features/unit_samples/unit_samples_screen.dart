@@ -633,16 +633,14 @@ class _AlignedBlock extends ConsumerWidget {
 }
 
 class _PinchZoomTextScale extends ConsumerStatefulWidget {
-  const _PinchZoomTextScale({
-    required this.screenKey,
-    required this.child,
-  });
+  const _PinchZoomTextScale({required this.screenKey, required this.child});
 
   final _BookUnitKey screenKey;
   final Widget child;
 
   @override
-  ConsumerState<_PinchZoomTextScale> createState() => _PinchZoomTextScaleState();
+  ConsumerState<_PinchZoomTextScale> createState() =>
+      _PinchZoomTextScaleState();
 }
 
 class _PinchZoomTextScaleState extends ConsumerState<_PinchZoomTextScale> {
@@ -665,20 +663,20 @@ class _PinchZoomTextScaleState extends ConsumerState<_PinchZoomTextScale> {
     return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
       gestures: {
-        ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<
-            ScaleGestureRecognizer>(
-          () => ScaleGestureRecognizer(debugOwner: this),
-          (recognizer) {
-            recognizer
-              ..onStart = (_) {
-                _startScale = current;
-              }
-              ..onUpdate = (details) {
-                if (details.pointerCount < 2) return;
-                _setScale(_startScale * details.scale);
-              };
-          },
-        ),
+        ScaleGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+              () => ScaleGestureRecognizer(debugOwner: this),
+              (recognizer) {
+                recognizer
+                  ..onStart = (_) {
+                    _startScale = current;
+                  }
+                  ..onUpdate = (details) {
+                    if (details.pointerCount < 2) return;
+                    _setScale(_startScale * details.scale);
+                  };
+              },
+            ),
       },
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -779,7 +777,8 @@ Set<String> _englishLemmaCandidates(
   if (w.endsWith("'s") && w.length > 2) add(w.substring(0, w.length - 2));
 
   // Plurals.
-  if (w.endsWith('ies') && w.length > 3) add('${w.substring(0, w.length - 3)}y');
+  if (w.endsWith('ies') && w.length > 3)
+    add('${w.substring(0, w.length - 3)}y');
   if (w.endsWith('es') && w.length > 2) add(w.substring(0, w.length - 2));
   if (w.endsWith('s') && w.length > 1) add(w.substring(0, w.length - 1));
 
@@ -797,7 +796,8 @@ Set<String> _englishLemmaCandidates(
   if (w.endsWith('ed') && w.length > 3) {
     final base = w.substring(0, w.length - 2);
     add(base);
-    if (w.endsWith('ied') && w.length > 3) add('${w.substring(0, w.length - 3)}y');
+    if (w.endsWith('ied') && w.length > 3)
+      add('${w.substring(0, w.length - 3)}y');
     if (!base.endsWith('e')) add('${base}e');
     if (base.length >= 2 && base[base.length - 1] == base[base.length - 2]) {
       add(base.substring(0, base.length - 1));
@@ -930,7 +930,8 @@ List<VocabEntry> _lookupCatalogMatches({
   for (final e in catalog) {
     if (seen.contains(e.id)) continue;
     final entryTokens = _normalizeForLookup(e.word).split(' ');
-    final hit = entryTokens.any(tappedWordCandidates.contains) ||
+    final hit =
+        entryTokens.any(tappedWordCandidates.contains) ||
         entryTokens.any(tappedPhraseHeadCandidates.contains);
     if (hit) {
       addTo(tierRelated, e);
@@ -962,7 +963,6 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
     required this.scheme,
     required this.bookId,
     required this.unit,
-    this.enableTtsHighlight = true,
   });
 
   final String plainEn;
@@ -970,7 +970,6 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
   final ColorScheme scheme;
   final int bookId;
   final int unit;
-  final bool enableTtsHighlight;
 
   @override
   ConsumerState<_SelectableEnglishWithTtsHighlight> createState() =>
@@ -1166,7 +1165,10 @@ class _SelectableEnglishWithTtsHighlightState
     }
     _openVocabMatchesSheet(
       matches,
-      tappedText: _bestTappedPhrase(tokens: tokens, startTokenIndex: startTokenIndex),
+      tappedText: _bestTappedPhrase(
+        tokens: tokens,
+        startTokenIndex: startTokenIndex,
+      ),
     );
   }
 
@@ -1230,7 +1232,8 @@ class _SelectableEnglishWithTtsHighlightState
         readStyle: readStyle,
         currentStyle: currentStyle,
       );
-      final r = _tapRecognizers[i]..onTap = () => _onWordTap(i, tokens, catalog);
+      final r = _tapRecognizers[i]
+        ..onTap = () => _onWordTap(i, tokens, catalog);
       children.add(
         TextSpan(text: _bidiWrapLtr(tok.text), style: wordStyle, recognizer: r),
       );
@@ -1249,13 +1252,26 @@ class _SelectableEnglishWithTtsHighlightState
 
   @override
   Widget build(BuildContext context) {
-    final tts = ref.watch(ttsProvider);
-    final highlightOn =
-        widget.enableTtsHighlight && ref.watch(ttsTextHighlightEnabledProvider);
+    final en = widget.plainEn;
+    final ttsSlice = ref.watch(
+      ttsProvider.select((s) {
+        final active = s.isSpeakingText(en);
+        final lingering = s.showsLingeringFullRead(en);
+        return (
+          active: active,
+          paused: active ? s.isPaused : false,
+          lingering: lingering,
+          // Progress fields only matter when this exact text is active.
+          progressStart: active ? s.progressStart : -1,
+          progressEnd: active ? s.progressEnd : -1,
+          spokenOffset: active ? s.spokenTextOffset : 0,
+        );
+      }),
+    );
+    final highlightOn = ref.watch(ttsTextHighlightEnabledProvider);
     final catalogAsync = ref.watch(apiAllWordsCatalogProvider);
     final catalog = catalogAsync.valueOrNull ?? const <VocabEntry>[];
 
-    final en = widget.plainEn;
     if (en.isEmpty) return const SizedBox.shrink();
 
     final readStyle = widget.baseStyle?.copyWith(
@@ -1268,19 +1284,19 @@ class _SelectableEnglishWithTtsHighlightState
       fontWeight: FontWeight.w800,
     );
 
-    final lingering = tts.showsLingeringFullRead(en);
-    final karaoke = highlightOn && tts.isSpeakingText(en);
+    final lingering = ttsSlice.lingering;
+    final karaoke = highlightOn && ttsSlice.active;
 
     final len = en.length;
     var a = 0;
     var b = 0;
     if (karaoke) {
-      if (tts.progressStart >= 0 && tts.progressEnd >= 0) {
-        a = tts.progressStart.clamp(0, len);
-        b = tts.progressEnd.clamp(0, len);
+      if (ttsSlice.progressStart >= 0 && ttsSlice.progressEnd >= 0) {
+        a = ttsSlice.progressStart.clamp(0, len);
+        b = ttsSlice.progressEnd.clamp(0, len);
         if (b < a) b = a;
       } else {
-        a = tts.spokenTextOffset.clamp(0, len);
+        a = ttsSlice.spokenOffset.clamp(0, len);
         b = a;
       }
       if (b <= a && a < len) {
@@ -1361,11 +1377,15 @@ class _ParagraphPairBlock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final tts = ref.watch(ttsProvider);
     final notifier = ref.read(ttsProvider.notifier);
 
     final en = pair.en.trim();
     final local = pair.local.trim();
+    final playState = ref.watch(
+      ttsProvider.select(
+        (s) => (active: s.isSpeakingText(en), paused: s.isPaused),
+      ),
+    );
     final enStyle = tt.bodyMedium?.copyWith(
       color: scheme.onSurface,
       height: 1.55,
@@ -1389,7 +1409,6 @@ class _ParagraphPairBlock extends ConsumerWidget {
                     scheme: scheme,
                     bookId: screenKey.bookId,
                     unit: screenKey.unit,
-                    enableTtsHighlight: false,
                   ),
                   const SizedBox(height: 6),
                   Align(
@@ -1408,13 +1427,13 @@ class _ParagraphPairBlock extends ConsumerWidget {
                         ),
                         const SizedBox(width: 12),
                         IconButton.filledTonal(
-                          tooltip: tts.isSpeakingText(en)
-                              ? (tts.isPaused ? 'Play' : 'Stop')
+                          tooltip: playState.active
+                              ? (playState.paused ? 'Play' : 'Stop')
                               : 'Read',
                           onPressed: () {
                             if (en.isEmpty) return;
-                            if (tts.isSpeakingText(en)) {
-                              if (tts.isPaused) {
+                            if (playState.active) {
+                              if (playState.paused) {
                                 notifier.resume();
                               } else {
                                 notifier.stop();
@@ -1424,8 +1443,8 @@ class _ParagraphPairBlock extends ConsumerWidget {
                             }
                           },
                           icon: Icon(
-                            tts.isSpeakingText(en)
-                                ? (tts.isPaused
+                            playState.active
+                                ? (playState.paused
                                       ? Icons.play_arrow_rounded
                                       : Icons.stop_rounded)
                                 : Icons.volume_up_rounded,
