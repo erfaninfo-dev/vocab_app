@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -601,87 +600,29 @@ class _AlignedBlock extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: _PinchZoomTextScale(
-        screenKey: screenKey,
-        child: _TextPanel(
-          background: scheme.surface,
-          border: scheme.outlineVariant.withValues(alpha: 0.7),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < pairs.length; i++) ...[
-                _ParagraphPairBlock(
-                  screenKey: screenKey,
-                  pair: pairs[i],
-                  textScale: textScale,
-                ),
-                if (i != pairs.length - 1)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: scheme.outlineVariant.withValues(alpha: 0.55),
-                    ),
+      child: _TextPanel(
+        background: scheme.surface,
+        border: scheme.outlineVariant.withValues(alpha: 0.7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < pairs.length; i++) ...[
+              _ParagraphPairBlock(
+                screenKey: screenKey,
+                pair: pairs[i],
+                textScale: textScale,
+              ),
+              if (i != pairs.length - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    height: 1,
+                    color: scheme.outlineVariant.withValues(alpha: 0.55),
                   ),
-              ],
+                ),
             ],
-          ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _PinchZoomTextScale extends ConsumerStatefulWidget {
-  const _PinchZoomTextScale({required this.screenKey, required this.child});
-
-  final _BookUnitKey screenKey;
-  final Widget child;
-
-  @override
-  ConsumerState<_PinchZoomTextScale> createState() =>
-      _PinchZoomTextScaleState();
-}
-
-class _PinchZoomTextScaleState extends ConsumerState<_PinchZoomTextScale> {
-  double _startScale = 1.0;
-
-  static const double _minScale = 0.85;
-  static const double _maxScale = 1.55;
-
-  void _setScale(double next) {
-    ref.read(_samplesTextScaleProvider(widget.screenKey).notifier).state = next
-        .clamp(_minScale, _maxScale);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final current = ref.watch(_samplesTextScaleProvider(widget.screenKey));
-    // `SelectableText` uses its own gesture arena logic and can swallow scale
-    // gestures on some Android builds. Using a `RawGestureDetector` with an
-    // explicit `ScaleGestureRecognizer` makes pinch-to-zoom reliable.
-    return RawGestureDetector(
-      behavior: HitTestBehavior.translucent,
-      gestures: {
-        ScaleGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-              () => ScaleGestureRecognizer(debugOwner: this),
-              (recognizer) {
-                recognizer
-                  ..onStart = (_) {
-                    _startScale = current;
-                  }
-                  ..onUpdate = (details) {
-                    if (details.pointerCount < 2) return;
-                    _setScale(_startScale * details.scale);
-                  };
-              },
-            ),
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onDoubleTap: () => _setScale(1.0),
-        child: widget.child,
       ),
     );
   }
@@ -701,7 +642,10 @@ class _EnWordToken {
 
 List<_EnWordToken> _tokenizeEnglishWords(String s) {
   final out = <_EnWordToken>[];
-  for (final m in RegExp(r"[A-Za-z]+(?:'[A-Za-z]+)?").allMatches(s)) {
+  final re = RegExp(
+    r"[A-Za-z]+(?:['\u2019\u2018\u02BC][A-Za-z]+)?",
+  );
+  for (final m in re.allMatches(s)) {
     out.add(_EnWordToken(start: m.start, end: m.end, text: m.group(0)!));
   }
   return out;
@@ -713,11 +657,17 @@ List<_EnWordToken> _tokenizeEnglishWords(String s) {
 /// - Treats anything that is not a letter or apostrophe (e.g. hyphens, slashes,
 ///   punctuation) as a word boundary, so "part-time" and "part time" match.
 /// - Collapses runs of whitespace into single spaces.
-String _normalizeForLookup(String s) => s
-    .toLowerCase()
-    .replaceAll(RegExp(r"[^a-z']+"), ' ')
-    .trim()
-    .replaceAll(RegExp(r"\s+"), ' ');
+String _normalizeForLookup(String s) {
+  final unified = s
+      .replaceAll('\u2019', "'")
+      .replaceAll('\u2018', "'")
+      .replaceAll('\u02BC', "'");
+  return unified
+      .toLowerCase()
+      .replaceAll(RegExp(r"[^a-z']+"), ' ')
+      .trim()
+      .replaceAll(RegExp(r"\s+"), ' ');
+}
 
 bool _isCommonCollocationTail(String word) {
   switch (word) {
@@ -777,8 +727,9 @@ Set<String> _englishLemmaCandidates(
   if (w.endsWith("'s") && w.length > 2) add(w.substring(0, w.length - 2));
 
   // Plurals.
-  if (w.endsWith('ies') && w.length > 3)
+  if (w.endsWith('ies') && w.length > 3) {
     add('${w.substring(0, w.length - 3)}y');
+  }
   if (w.endsWith('es') && w.length > 2) add(w.substring(0, w.length - 2));
   if (w.endsWith('s') && w.length > 1) add(w.substring(0, w.length - 1));
 
@@ -796,8 +747,9 @@ Set<String> _englishLemmaCandidates(
   if (w.endsWith('ed') && w.length > 3) {
     final base = w.substring(0, w.length - 2);
     add(base);
-    if (w.endsWith('ied') && w.length > 3)
+    if (w.endsWith('ied') && w.length > 3) {
       add('${w.substring(0, w.length - 3)}y');
+    }
     if (!base.endsWith('e')) add('${base}e');
     if (base.length >= 2 && base[base.length - 1] == base[base.length - 2]) {
       add(base.substring(0, base.length - 1));
@@ -1304,54 +1256,20 @@ class _SelectableEnglishWithTtsHighlightState
       }
     }
 
-    // Mobile stability: per-word TapGestureRecognizers + frequent TTS progress
-    // rebuilds can break rendering on some Android devices. Keep a lightweight
-    // span tree on mobile while preserving karaoke highlighting.
-    final isMobile = switch (defaultTargetPlatform) {
-      TargetPlatform.android || TargetPlatform.iOS => true,
-      _ => false,
-    };
-
-    TextSpan rootSpan;
-    if (isMobile) {
-      if (!highlightOn) {
-        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
-      } else if (lingering) {
-        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: readStyle);
-      } else if (!karaoke) {
-        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
-      } else {
-        final before = en.substring(0, a.clamp(0, len));
-        final mid = en.substring(a.clamp(0, len), b.clamp(0, len));
-        final after = en.substring(b.clamp(0, len));
-        rootSpan = TextSpan(
-          style: widget.baseStyle,
-          children: [
-            if (before.isNotEmpty)
-              TextSpan(text: _bidiWrapLtr(before), style: readStyle),
-            if (mid.isNotEmpty)
-              TextSpan(text: _bidiWrapLtr(mid), style: currentStyle),
-            if (after.isNotEmpty)
-              TextSpan(text: _bidiWrapLtr(after), style: widget.baseStyle),
-          ],
-        );
-      }
-    } else {
-      final tokens = _tokenizeEnglishWords(en);
-      _ensureTapRecognizerCount(tokens.length);
-      rootSpan = _buildTappableEnglishSpan(
-        en: en,
-        tokens: tokens,
-        catalog: catalog,
-        readStyle: readStyle,
-        currentStyle: currentStyle,
-        highlightOn: highlightOn,
-        lingering: lingering,
-        karaoke: karaoke,
-        a: a,
-        b: b,
-      );
-    }
+    final tokens = _tokenizeEnglishWords(en);
+    _ensureTapRecognizerCount(tokens.length);
+    final rootSpan = _buildTappableEnglishSpan(
+      en: en,
+      tokens: tokens,
+      catalog: catalog,
+      readStyle: readStyle,
+      currentStyle: currentStyle,
+      highlightOn: highlightOn,
+      lingering: lingering,
+      karaoke: karaoke,
+      a: a,
+      b: b,
+    );
 
     return SelectableText.rich(
       rootSpan,
@@ -1377,15 +1295,9 @@ class _ParagraphPairBlock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final notifier = ref.read(ttsProvider.notifier);
 
     final en = pair.en.trim();
     final local = pair.local.trim();
-    final playState = ref.watch(
-      ttsProvider.select(
-        (s) => (active: s.isSpeakingText(en), paused: s.isPaused),
-      ),
-    );
     final enStyle = tt.bodyMedium?.copyWith(
       color: scheme.onSurface,
       height: 1.55,
@@ -1413,44 +1325,14 @@ class _ParagraphPairBlock extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton.filledTonal(
-                          tooltip: 'Text size',
-                          onPressed: () => _openUnitSamplesTextSizePicker(
-                            context,
-                            ref,
-                            screenKey,
-                          ),
-                          icon: const Icon(Icons.text_fields_rounded),
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton.filledTonal(
-                          tooltip: playState.active
-                              ? (playState.paused ? 'Play' : 'Stop')
-                              : 'Read',
-                          onPressed: () {
-                            if (en.isEmpty) return;
-                            if (playState.active) {
-                              if (playState.paused) {
-                                notifier.resume();
-                              } else {
-                                notifier.stop();
-                              }
-                            } else {
-                              notifier.speak(en);
-                            }
-                          },
-                          icon: Icon(
-                            playState.active
-                                ? (playState.paused
-                                      ? Icons.play_arrow_rounded
-                                      : Icons.stop_rounded)
-                                : Icons.volume_up_rounded,
-                          ),
-                        ),
-                      ],
+                    child: IconButton.filledTonal(
+                      tooltip: _textSizeLabel(context),
+                      onPressed: () => _openUnitSamplesTextSizePicker(
+                        context,
+                        ref,
+                        screenKey,
+                      ),
+                      icon: const Icon(Icons.text_fields_rounded),
                     ),
                   ),
                 ],
@@ -1603,39 +1485,53 @@ class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
                         ),
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 360),
-                          child: Row(
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '$percent%',
-                                style: tt.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w900,
+                                widget.label,
+                                style: tt.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              SizedBox(
-                                width: 240,
-                                child: SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    trackHeight: 4,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 10,
-                                    ),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 18,
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$percent%',
+                                    style: tt.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
-                                  child: Slider(
-                                    min: 0.85,
-                                    max: 1.55,
-                                    divisions: 14,
-                                    value: v.clamp(0.85, 1.55),
-                                    onChanged: (next) {
-                                      _valueN.value = next;
-                                      widget.onChanged(next);
-                                    },
+                                  const SizedBox(width: 10),
+                                  SizedBox(
+                                    width: 240,
+                                    child: SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 4,
+                                        thumbShape:
+                                            const RoundSliderThumbShape(
+                                          enabledThumbRadius: 10,
+                                        ),
+                                        overlayShape:
+                                            const RoundSliderOverlayShape(
+                                          overlayRadius: 18,
+                                        ),
+                                      ),
+                                      child: Slider(
+                                        min: 0.85,
+                                        max: 1.55,
+                                        divisions: 14,
+                                        value: v.clamp(0.85, 1.55),
+                                        onChanged: (next) {
+                                          _valueN.value = next;
+                                          widget.onChanged(next);
+                                        },
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
