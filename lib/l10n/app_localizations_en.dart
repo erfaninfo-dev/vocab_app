@@ -492,6 +492,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'If prompted, allow installing updates from this app in system settings.';
 
   @override
+  String get aboutDownloadComplete => 'Download complete';
+
+  @override
+  String get aboutInstallReadyMessage =>
+      'The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.';
+
+  @override
+  String get aboutInstallNow => 'Install now';
+
+  @override
+  String get aboutInstallPermissionRequired =>
+      'Android needs permission to install updates from this app. Allow it in Settings → Apps → Erfan Academy → Install unknown apps, then tap Install again.';
+
+  @override
+  String get aboutInstallLaunchFailed =>
+      'Could not open the installer. Please try again.';
+
+  @override
   String get aboutForcedUpdateNote =>
       'This update is required. Please download and install the latest version.';
 

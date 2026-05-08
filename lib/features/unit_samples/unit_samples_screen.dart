@@ -600,30 +600,77 @@ class _AlignedBlock extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: _TextPanel(
-        background: scheme.surface,
-        border: scheme.outlineVariant.withValues(alpha: 0.7),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < pairs.length; i++) ...[
-              _ParagraphPairBlock(
-                screenKey: screenKey,
-                pair: pairs[i],
-                textScale: textScale,
-              ),
-              if (i != pairs.length - 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(
-                    height: 1,
-                    color: scheme.outlineVariant.withValues(alpha: 0.55),
-                  ),
+      child: _PinchZoomTextScale(
+        screenKey: screenKey,
+        child: _TextPanel(
+          background: scheme.surface,
+          border: scheme.outlineVariant.withValues(alpha: 0.7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < pairs.length; i++) ...[
+                _ParagraphPairBlock(
+                  screenKey: screenKey,
+                  pair: pairs[i],
+                  textScale: textScale,
                 ),
+                if (i != pairs.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.55),
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _PinchZoomTextScale extends ConsumerStatefulWidget {
+  const _PinchZoomTextScale({
+    required this.screenKey,
+    required this.child,
+  });
+
+  final _BookUnitKey screenKey;
+  final Widget child;
+
+  @override
+  ConsumerState<_PinchZoomTextScale> createState() => _PinchZoomTextScaleState();
+}
+
+class _PinchZoomTextScaleState extends ConsumerState<_PinchZoomTextScale> {
+  double _startScale = 1.0;
+
+  static const double _minScale = 0.85;
+  static const double _maxScale = 1.55;
+
+  void _setScale(double next) {
+    ref.read(_samplesTextScaleProvider(widget.screenKey).notifier).state = next
+        .clamp(_minScale, _maxScale);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(_samplesTextScaleProvider(widget.screenKey));
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onDoubleTap: () => _setScale(1.0),
+      onScaleStart: (_) {
+        _startScale = current;
+      },
+      onScaleUpdate: (details) {
+        // Only meaningful for 2-finger pinch; 1-finger gestures should remain
+        // scroll/selection-friendly.
+        if (details.pointerCount < 2) return;
+        _setScale(_startScale * details.scale);
+      },
+      child: widget.child,
     );
   }
 }
@@ -648,6 +695,18 @@ List<_EnWordToken> _tokenizeEnglishWords(String s) {
   return out;
 }
 
+/// Normalize an English token/phrase for matching.
+///
+/// - Lower-cases the input.
+/// - Treats anything that is not a letter or apostrophe (e.g. hyphens, slashes,
+///   punctuation) as a word boundary, so "part-time" and "part time" match.
+/// - Collapses runs of whitespace into single spaces.
+String _normalizeForLookup(String s) => s
+    .toLowerCase()
+    .replaceAll(RegExp(r"[^a-z']+"), ' ')
+    .trim()
+    .replaceAll(RegExp(r"\s+"), ' ');
+
 List<VocabEntry> _lookupCatalogMatches({
   required List<_EnWordToken> tokens,
   required int startTokenIndex,
@@ -658,38 +717,68 @@ List<VocabEntry> _lookupCatalogMatches({
   if (startTokenIndex < 0 || startTokenIndex >= tokens.length) {
     return const [];
   }
+
+  final tappedWord = _normalizeForLookup(tokens[startTokenIndex].text);
+  if (tappedWord.isEmpty) return const [];
+
+  int rank(VocabEntry e) {
+    final bid = int.tryParse(e.bookId) ?? -1;
+    if (bid != preferredBookId) return 2;
+    if (e.unit == preferredUnit) return 0;
+    return 1;
+  }
+
+  int compareEntries(VocabEntry a, VocabEntry b) {
+    final ra = rank(a);
+    final rb = rank(b);
+    if (ra != rb) return ra.compareTo(rb);
+    final ab = int.tryParse(a.bookId) ?? -1;
+    final bb = int.tryParse(b.bookId) ?? -1;
+    if (ab != bb) return ab.compareTo(bb);
+    if (a.unit != b.unit) return a.unit.compareTo(b.unit);
+    return a.rowId.compareTo(b.rowId);
+  }
+
+  final results = <VocabEntry>[];
+  final seen = <String>{};
+
+  // Tier 1 — longest exact phrase that starts at the tapped token.
+  // Keeps multi-word entries (e.g. "look forward to") prominent when the user
+  // taps the entry's first word.
   final maxLen = math.min(6, tokens.length - startTokenIndex);
   for (var len = maxLen; len >= 1; len--) {
-    final phrase = tokens
-        .sublist(startTokenIndex, startTokenIndex + len)
-        .map((t) => t.text)
-        .join(' ');
-    final key = phrase.trim().toLowerCase();
-    final matches = catalog
-        .where((e) => e.word.trim().toLowerCase() == key)
+    final phraseKey = _normalizeForLookup(
+      tokens
+          .sublist(startTokenIndex, startTokenIndex + len)
+          .map((t) => t.text)
+          .join(' '),
+    );
+    if (phraseKey.isEmpty) continue;
+    final exact = catalog
+        .where((e) => _normalizeForLookup(e.word) == phraseKey)
         .toList();
-    if (matches.isEmpty) continue;
-
-    int rank(VocabEntry e) {
-      final bid = int.tryParse(e.bookId) ?? -1;
-      if (bid != preferredBookId) return 2;
-      if (e.unit == preferredUnit) return 0;
-      return 1;
+    if (exact.isEmpty) continue;
+    for (final e in exact) {
+      if (seen.add(e.id)) results.add(e);
     }
-
-    matches.sort((a, b) {
-      final ra = rank(a);
-      final rb = rank(b);
-      if (ra != rb) return ra.compareTo(rb);
-      final ab = int.tryParse(a.bookId) ?? -1;
-      final bb = int.tryParse(b.bookId) ?? -1;
-      if (ab != bb) return ab.compareTo(bb);
-      if (a.unit != b.unit) return a.unit.compareTo(b.unit);
-      return a.rowId.compareTo(b.rowId);
-    });
-    return matches;
+    break;
   }
-  return const [];
+
+  // Tier 2 — every other entry whose tokenised word contains the tapped lemma.
+  // This is what surfaces "part-time", "time zone", "free time", … when the
+  // user taps "time", regardless of where the tapped word sits in the entry.
+  for (final e in catalog) {
+    if (seen.contains(e.id)) continue;
+    final entryTokens = _normalizeForLookup(e.word).split(' ');
+    if (entryTokens.contains(tappedWord)) {
+      seen.add(e.id);
+      results.add(e);
+    }
+  }
+
+  if (results.isEmpty) return const [];
+  results.sort(compareEntries);
+  return results;
 }
 
 class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {

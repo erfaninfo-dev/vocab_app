@@ -934,6 +934,36 @@ abstract class AppLocalizations {
   /// **'If prompted, allow installing updates from this app in system settings.'**
   String get aboutInstallApkHint;
 
+  /// No description provided for @aboutDownloadComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get aboutDownloadComplete;
+
+  /// No description provided for @aboutInstallReadyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.'**
+  String get aboutInstallReadyMessage;
+
+  /// No description provided for @aboutInstallNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Install now'**
+  String get aboutInstallNow;
+
+  /// No description provided for @aboutInstallPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Android needs permission to install updates from this app. Allow it in Settings → Apps → Erfan Academy → Install unknown apps, then tap Install again.'**
+  String get aboutInstallPermissionRequired;
+
+  /// No description provided for @aboutInstallLaunchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the installer. Please try again.'**
+  String get aboutInstallLaunchFailed;
+
   /// No description provided for @aboutForcedUpdateNote.
   ///
   /// In en, this message translates to:
