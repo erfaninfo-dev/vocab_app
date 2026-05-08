@@ -658,19 +658,32 @@ class _PinchZoomTextScaleState extends ConsumerState<_PinchZoomTextScale> {
   @override
   Widget build(BuildContext context) {
     final current = ref.watch(_samplesTextScaleProvider(widget.screenKey));
-    return GestureDetector(
+    // `SelectableText` uses its own gesture arena logic and can swallow scale
+    // gestures on some Android builds. Using a `RawGestureDetector` with an
+    // explicit `ScaleGestureRecognizer` makes pinch-to-zoom reliable.
+    return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
-      onDoubleTap: () => _setScale(1.0),
-      onScaleStart: (_) {
-        _startScale = current;
+      gestures: {
+        ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+            ScaleGestureRecognizer>(
+          () => ScaleGestureRecognizer(debugOwner: this),
+          (recognizer) {
+            recognizer
+              ..onStart = (_) {
+                _startScale = current;
+              }
+              ..onUpdate = (details) {
+                if (details.pointerCount < 2) return;
+                _setScale(_startScale * details.scale);
+              };
+          },
+        ),
       },
-      onScaleUpdate: (details) {
-        // Only meaningful for 2-finger pinch; 1-finger gestures should remain
-        // scroll/selection-friendly.
-        if (details.pointerCount < 2) return;
-        _setScale(_startScale * details.scale);
-      },
-      child: widget.child,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onDoubleTap: () => _setScale(1.0),
+        child: widget.child,
+      ),
     );
   }
 }
@@ -813,11 +826,25 @@ class _SelectableEnglishWithTtsHighlightState
     super.dispose();
   }
 
-  void _disposeTapRecognizers() {
-    for (final r in _tapRecognizers) {
-      r.dispose();
+  @override
+  void didUpdateWidget(covariant _SelectableEnglishWithTtsHighlight oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.plainEn != widget.plainEn) {
+      for (final r in _tapRecognizers) {
+        r.dispose();
+      }
+      _tapRecognizers.clear();
     }
-    _tapRecognizers.clear();
+  }
+
+  void _ensureTapRecognizerCount(int count) {
+    if (count < 0) return;
+    while (_tapRecognizers.length < count) {
+      _tapRecognizers.add(TapGestureRecognizer());
+    }
+    while (_tapRecognizers.length > count) {
+      _tapRecognizers.removeLast().dispose();
+    }
   }
 
   void _openVocabMatchesSheet(List<VocabEntry> entries) {
@@ -1035,9 +1062,7 @@ class _SelectableEnglishWithTtsHighlightState
         readStyle: readStyle,
         currentStyle: currentStyle,
       );
-      final r = TapGestureRecognizer()
-        ..onTap = () => _onWordTap(i, tokens, catalog);
-      _tapRecognizers.add(r);
+      final r = _tapRecognizers[i]..onTap = () => _onWordTap(i, tokens, catalog);
       children.add(
         TextSpan(text: _bidiWrapLtr(tok.text), style: wordStyle, recognizer: r),
       );
@@ -1056,8 +1081,6 @@ class _SelectableEnglishWithTtsHighlightState
 
   @override
   Widget build(BuildContext context) {
-    _disposeTapRecognizers();
-
     final tts = ref.watch(ttsProvider);
     final highlightOn = ref.watch(ttsTextHighlightEnabledProvider);
     final catalogAsync = ref.watch(apiAllWordsCatalogProvider);
@@ -1067,6 +1090,7 @@ class _SelectableEnglishWithTtsHighlightState
     if (en.isEmpty) return const SizedBox.shrink();
 
     final tokens = _tokenizeEnglishWords(en);
+    _ensureTapRecognizerCount(tokens.length);
 
     final readStyle = widget.baseStyle?.copyWith(
       backgroundColor: widget.scheme.primaryContainer.withValues(alpha: 0.30),
