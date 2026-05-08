@@ -11,6 +11,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout code
@@ -25,7 +30,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;27.0.12077973'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;28.2.13676358 cmake;3.22.1'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -35,6 +40,27 @@ jobs:
 
       - name: Flutter version
         run: flutter --version
+
+      - name: Decode release keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+          ls -la android/upload-keystore.jks
+
+      - name: Write key.properties
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+
+      - name: Warn if release signing missing
+        if: env.ANDROID_KEYSTORE_BASE64 == ''
+        run: |
+          echo "::warning::ANDROID_KEYSTORE_BASE64 secret is not set. The APK will be signed with a fresh debug key, which means users will be logged out on update because the signing key won't match previous releases."
 
       - name: Install dependencies
         run: flutter pub get

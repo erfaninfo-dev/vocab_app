@@ -15,7 +15,6 @@ import '../../features/quiz/book_vocab_quiz_setup_screen.dart';
 import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
 import '../../features/sections/sections_screen.dart';
-import '../../features/settings/about_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/shell/shell_scaffold.dart';
@@ -256,10 +255,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (_, __) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: '/settings/about',
-            builder: (_, __) => const AboutScreen(),
           ),
 
           // Books → Units

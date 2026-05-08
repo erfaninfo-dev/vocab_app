@@ -493,6 +493,24 @@ class AppLocalizationsCkb extends AppLocalizations {
       'ئەگەر داواکرا، لە ڕێکخستنەکاندا ڕێگە بدە بە دامەزراندن لەم ئەپەوە.';
 
   @override
+  String get aboutDownloadComplete => 'داگرتن تەواو بوو';
+
+  @override
+  String get aboutInstallReadyMessage =>
+      'نوێکردنەوەکە داگیراوە. بۆ نوێکردنەوەی Erfan Academy کلیک لەسەر «دامەزراندن» بکە. هەژمار و داتاکەت پاراستراو دەبێت.';
+
+  @override
+  String get aboutInstallNow => 'دامەزراندن';
+
+  @override
+  String get aboutInstallPermissionRequired =>
+      'ئەندرۆید پێویستی بە مۆڵەتە بۆ دامەزراندنی نوێکردنەوە لەم ئەپەوە. لە «ڕێکخستنەکان ← ئەپەکان ← Erfan Academy ← دامەزراندنی ئەپی نەناسراو» مۆڵەت بدە و دیسان «دامەزراندن» داگرە.';
+
+  @override
+  String get aboutInstallLaunchFailed =>
+      'نەتوانرا دامەزرێنەرەکە بکرێتەوە. تکایە دیسان هەوڵ بدە.';
+
+  @override
   String get aboutForcedUpdateNote =>
       'ئەم نوێکردنەوەیە پێویستە. تکایە دوایین وەشان دابگرە و دامەزرێنە.';
 

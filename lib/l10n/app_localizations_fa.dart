@@ -493,6 +493,24 @@ class AppLocalizationsFa extends AppLocalizations {
       'در صورت درخواست، در تنظیمات اجازهٔ نصب از این برنامه را بدهید.';
 
   @override
+  String get aboutDownloadComplete => 'دانلود کامل شد';
+
+  @override
+  String get aboutInstallReadyMessage =>
+      'آپدیت دانلود شد. برای به‌روزرسانی Erfan Academy روی «نصب» بزنید. حساب و اطلاعات شما حفظ می‌شود.';
+
+  @override
+  String get aboutInstallNow => 'نصب';
+
+  @override
+  String get aboutInstallPermissionRequired =>
+      'اندروید برای نصب آپدیت از این برنامه نیاز به اجازه دارد. در «تنظیمات ← برنامه‌ها ← Erfan Academy ← نصب برنامه‌های ناشناس» اجازه را فعال کنید و دوباره روی «نصب» بزنید.';
+
+  @override
+  String get aboutInstallLaunchFailed =>
+      'باز کردن نصب‌کننده ممکن نشد. دوباره تلاش کنید.';
+
+  @override
   String get aboutForcedUpdateNote =>
       'این آپدیت اجباری است. لطفاً آخرین نسخه را دانلود و نصب کنید.';
 
