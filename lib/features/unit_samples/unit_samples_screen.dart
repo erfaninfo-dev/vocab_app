@@ -762,7 +762,11 @@ String? _bestTappedPhrase({
   return head;
 }
 
-Set<String> _englishLemmaCandidates(String word) {
+Set<String> _englishLemmaCandidates(
+  String word, {
+  required Set<String> catalogTokens,
+  required bool allowDerivations,
+}) {
   final w = _normalizeForLookup(word);
   if (w.isEmpty) return const {};
 
@@ -805,6 +809,14 @@ Set<String> _englishLemmaCandidates(String word) {
   if (!w.endsWith('ed')) add('${w}ed');
   if (!w.endsWith('s')) add('${w}s');
 
+  // Conservative derivations (only if present in catalog).
+  if (allowDerivations) {
+    for (final suf in const ['ly', 'ful', 'fully', 'ingly']) {
+      final d = _normalizeForLookup('$w$suf');
+      if (d.isNotEmpty && catalogTokens.contains(d)) out.add(d);
+    }
+  }
+
   return out;
 }
 
@@ -825,10 +837,25 @@ List<VocabEntry> _lookupCatalogMatches({
     tokens: tokens,
     startTokenIndex: startTokenIndex,
   );
-  final tappedWordCandidates = _englishLemmaCandidates(tappedWord);
+  final catalogTokens = <String>{};
+  for (final e in catalog) {
+    final t = _normalizeForLookup(e.word);
+    if (t.isEmpty) continue;
+    catalogTokens.addAll(t.split(' '));
+  }
+  final allowDerivations = tappedWord.length >= 5;
+  final tappedWordCandidates = _englishLemmaCandidates(
+    tappedWord,
+    catalogTokens: catalogTokens,
+    allowDerivations: allowDerivations,
+  );
   final tappedPhraseHeadCandidates = tappedPhrase == null
       ? const <String>{}
-      : _englishLemmaCandidates(tappedPhrase.split(' ').first);
+      : _englishLemmaCandidates(
+          tappedPhrase.split(' ').first,
+          catalogTokens: catalogTokens,
+          allowDerivations: allowDerivations,
+        );
 
   int rank(VocabEntry e) {
     final bid = int.tryParse(e.bookId) ?? -1;
@@ -848,6 +875,7 @@ List<VocabEntry> _lookupCatalogMatches({
     return a.rowId.compareTo(b.rowId);
   }
 
+  final tierCollocationSameUnit = <VocabEntry>[];
   final tierPhrase = <VocabEntry>[];
   final tierExactWord = <VocabEntry>[];
   final tierRelated = <VocabEntry>[];
@@ -855,6 +883,18 @@ List<VocabEntry> _lookupCatalogMatches({
 
   void addTo(List<VocabEntry> bucket, VocabEntry e) {
     if (seen.add(e.id)) bucket.add(e);
+  }
+
+  // Tier 0 — exact collocation (word + preposition) in the same unit, if present.
+  if (tappedPhrase != null && tappedPhrase.contains(' ')) {
+    for (final e in catalog) {
+      final bid = int.tryParse(e.bookId) ?? -1;
+      if (bid != preferredBookId) continue;
+      if (e.unit != preferredUnit) continue;
+      if (_normalizeForLookup(e.word) == tappedPhrase) {
+        addTo(tierCollocationSameUnit, e);
+      }
+    }
   }
 
   // Tier 1 — exact phrase match (prefer longest) starting at the tapped token.
@@ -884,29 +924,35 @@ List<VocabEntry> _lookupCatalogMatches({
     break;
   }
 
-  // Tier 2 — related matches by morphology/lemma candidates.
+  // Tier 2 — related matches by explicit morphology/derivation candidates.
   // This is what surfaces "part-time", "time zone", "free time", … when the
   // user taps "time", regardless of where the tapped word sits in the entry.
   for (final e in catalog) {
     if (seen.contains(e.id)) continue;
     final entryTokens = _normalizeForLookup(e.word).split(' ');
     final hit = entryTokens.any(tappedWordCandidates.contains) ||
-        entryTokens.any(tappedPhraseHeadCandidates.contains) ||
-        entryTokens.any(
-          (t) => tappedWordCandidates.any((c) => c.length >= 4 && t.startsWith(c)),
-        );
+        entryTokens.any(tappedPhraseHeadCandidates.contains);
     if (hit) {
       addTo(tierRelated, e);
     }
   }
 
-  if (tierPhrase.isEmpty && tierExactWord.isEmpty && tierRelated.isEmpty) {
+  if (tierCollocationSameUnit.isEmpty &&
+      tierPhrase.isEmpty &&
+      tierExactWord.isEmpty &&
+      tierRelated.isEmpty) {
     return const [];
   }
+  tierCollocationSameUnit.sort(compareEntries);
   tierPhrase.sort(compareEntries);
   tierExactWord.sort(compareEntries);
   tierRelated.sort(compareEntries);
-  return [...tierPhrase, ...tierExactWord, ...tierRelated];
+  return [
+    ...tierCollocationSameUnit,
+    ...tierPhrase,
+    ...tierExactWord,
+    ...tierRelated,
+  ];
 }
 
 class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
@@ -916,6 +962,7 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
     required this.scheme,
     required this.bookId,
     required this.unit,
+    this.enableTtsHighlight = true,
   });
 
   final String plainEn;
@@ -923,6 +970,7 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
   final ColorScheme scheme;
   final int bookId;
   final int unit;
+  final bool enableTtsHighlight;
 
   @override
   ConsumerState<_SelectableEnglishWithTtsHighlight> createState() =>
@@ -1202,7 +1250,8 @@ class _SelectableEnglishWithTtsHighlightState
   @override
   Widget build(BuildContext context) {
     final tts = ref.watch(ttsProvider);
-    final highlightOn = ref.watch(ttsTextHighlightEnabledProvider);
+    final highlightOn =
+        widget.enableTtsHighlight && ref.watch(ttsTextHighlightEnabledProvider);
     final catalogAsync = ref.watch(apiAllWordsCatalogProvider);
     final catalog = catalogAsync.valueOrNull ?? const <VocabEntry>[];
 
@@ -1340,6 +1389,7 @@ class _ParagraphPairBlock extends ConsumerWidget {
                     scheme: scheme,
                     bookId: screenKey.bookId,
                     unit: screenKey.unit,
+                    enableTtsHighlight: false,
                   ),
                   const SizedBox(height: 6),
                   Align(
