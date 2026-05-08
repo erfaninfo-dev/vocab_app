@@ -25,30 +25,39 @@ class OptionalUpdatePrompt extends ConsumerStatefulWidget {
 }
 
 class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
+  ProviderSubscription<AsyncValue<AppUpdateCheck>>? _updateSub;
+
   @override
   void initState() {
     super.initState();
 
     // Listen once the widget is mounted; show dialog only when an optional
     // update is available. Forced updates are handled by [ForcedUpdateBarrier].
-    ref.listen<AsyncValue<AppUpdateCheck>>(appUpdateCheckProvider, (
-      previous,
-      next,
-    ) {
-      final check = next.valueOrNull;
-      if (check == null) return;
+    _updateSub = ref.listenManual<AsyncValue<AppUpdateCheck>>(
+      appUpdateCheckProvider,
+      (previous, next) {
+        final check = next.valueOrNull;
+        if (check == null) return;
 
-      final isAndroid =
-          !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-      if (!isAndroid || !check.androidEligible) return;
-      if (!check.updateAvailable || check.forceUpdate) return;
-      if (check.apkUrl == null || check.apkUrl!.isEmpty) return;
+        final isAndroid =
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+        if (!isAndroid || !check.androidEligible) return;
+        if (!check.updateAvailable || check.forceUpdate) return;
+        if (check.apkUrl == null || check.apkUrl!.isEmpty) return;
 
-      final alreadyShown = ref.read(_optionalUpdateShownThisSessionProvider);
-      if (alreadyShown) return;
+        final alreadyShown = ref.read(_optionalUpdateShownThisSessionProvider);
+        if (alreadyShown) return;
 
-      unawaited(_maybeShowOptionalUpdateDialog(check));
-    });
+        unawaited(_maybeShowOptionalUpdateDialog(check));
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _updateSub?.close();
+    _updateSub = null;
+    super.dispose();
   }
 
   Future<void> _maybeShowOptionalUpdateDialog(AppUpdateCheck check) async {

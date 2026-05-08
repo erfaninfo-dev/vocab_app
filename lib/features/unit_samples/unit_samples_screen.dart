@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -720,6 +721,93 @@ String _normalizeForLookup(String s) => s
     .trim()
     .replaceAll(RegExp(r"\s+"), ' ');
 
+bool _isCommonCollocationTail(String word) {
+  switch (word) {
+    case 'in':
+    case 'on':
+    case 'at':
+    case 'to':
+    case 'for':
+    case 'of':
+    case 'with':
+    case 'about':
+    case 'from':
+    case 'into':
+    case 'over':
+    case 'under':
+    case 'after':
+    case 'before':
+    case 'between':
+    case 'through':
+      return true;
+    default:
+      return false;
+  }
+}
+
+String? _bestTappedPhrase({
+  required List<_EnWordToken> tokens,
+  required int startTokenIndex,
+}) {
+  if (startTokenIndex < 0 || startTokenIndex >= tokens.length) return null;
+  final head = _normalizeForLookup(tokens[startTokenIndex].text);
+  if (head.isEmpty) return null;
+
+  if (startTokenIndex + 1 < tokens.length) {
+    final next = _normalizeForLookup(tokens[startTokenIndex + 1].text);
+    if (_isCommonCollocationTail(next)) {
+      return '$head $next';
+    }
+  }
+  return head;
+}
+
+Set<String> _englishLemmaCandidates(String word) {
+  final w = _normalizeForLookup(word);
+  if (w.isEmpty) return const {};
+
+  final out = <String>{w};
+  void add(String s) {
+    final t = _normalizeForLookup(s);
+    if (t.isNotEmpty) out.add(t);
+  }
+
+  if (w.endsWith("'s") && w.length > 2) add(w.substring(0, w.length - 2));
+
+  // Plurals.
+  if (w.endsWith('ies') && w.length > 3) add('${w.substring(0, w.length - 3)}y');
+  if (w.endsWith('es') && w.length > 2) add(w.substring(0, w.length - 2));
+  if (w.endsWith('s') && w.length > 1) add(w.substring(0, w.length - 1));
+
+  // -ing.
+  if (w.endsWith('ing') && w.length > 4) {
+    final base = w.substring(0, w.length - 3);
+    add(base);
+    if (!base.endsWith('e')) add('${base}e');
+    if (base.length >= 2 && base[base.length - 1] == base[base.length - 2]) {
+      add(base.substring(0, base.length - 1));
+    }
+  }
+
+  // -ed.
+  if (w.endsWith('ed') && w.length > 3) {
+    final base = w.substring(0, w.length - 2);
+    add(base);
+    if (w.endsWith('ied') && w.length > 3) add('${w.substring(0, w.length - 3)}y');
+    if (!base.endsWith('e')) add('${base}e');
+    if (base.length >= 2 && base[base.length - 1] == base[base.length - 2]) {
+      add(base.substring(0, base.length - 1));
+    }
+  }
+
+  // Helpful "other form" candidates (for related suggestions).
+  if (!w.endsWith('ing')) add('${w}ing');
+  if (!w.endsWith('ed')) add('${w}ed');
+  if (!w.endsWith('s')) add('${w}s');
+
+  return out;
+}
+
 List<VocabEntry> _lookupCatalogMatches({
   required List<_EnWordToken> tokens,
   required int startTokenIndex,
@@ -733,6 +821,14 @@ List<VocabEntry> _lookupCatalogMatches({
 
   final tappedWord = _normalizeForLookup(tokens[startTokenIndex].text);
   if (tappedWord.isEmpty) return const [];
+  final tappedPhrase = _bestTappedPhrase(
+    tokens: tokens,
+    startTokenIndex: startTokenIndex,
+  );
+  final tappedWordCandidates = _englishLemmaCandidates(tappedWord);
+  final tappedPhraseHeadCandidates = tappedPhrase == null
+      ? const <String>{}
+      : _englishLemmaCandidates(tappedPhrase.split(' ').first);
 
   int rank(VocabEntry e) {
     final bid = int.tryParse(e.bookId) ?? -1;
@@ -752,10 +848,16 @@ List<VocabEntry> _lookupCatalogMatches({
     return a.rowId.compareTo(b.rowId);
   }
 
-  final results = <VocabEntry>[];
+  final tierPhrase = <VocabEntry>[];
+  final tierExactWord = <VocabEntry>[];
+  final tierRelated = <VocabEntry>[];
   final seen = <String>{};
 
-  // Tier 1 — longest exact phrase that starts at the tapped token.
+  void addTo(List<VocabEntry> bucket, VocabEntry e) {
+    if (seen.add(e.id)) bucket.add(e);
+  }
+
+  // Tier 1 — exact phrase match (prefer longest) starting at the tapped token.
   // Keeps multi-word entries (e.g. "look forward to") prominent when the user
   // taps the entry's first word.
   final maxLen = math.min(6, tokens.length - startTokenIndex);
@@ -772,26 +874,39 @@ List<VocabEntry> _lookupCatalogMatches({
         .toList();
     if (exact.isEmpty) continue;
     for (final e in exact) {
-      if (seen.add(e.id)) results.add(e);
+      // Keep single-word exact match in its own tier.
+      if (len == 1) {
+        addTo(tierExactWord, e);
+      } else {
+        addTo(tierPhrase, e);
+      }
     }
     break;
   }
 
-  // Tier 2 — every other entry whose tokenised word contains the tapped lemma.
+  // Tier 2 — related matches by morphology/lemma candidates.
   // This is what surfaces "part-time", "time zone", "free time", … when the
   // user taps "time", regardless of where the tapped word sits in the entry.
   for (final e in catalog) {
     if (seen.contains(e.id)) continue;
     final entryTokens = _normalizeForLookup(e.word).split(' ');
-    if (entryTokens.contains(tappedWord)) {
-      seen.add(e.id);
-      results.add(e);
+    final hit = entryTokens.any(tappedWordCandidates.contains) ||
+        entryTokens.any(tappedPhraseHeadCandidates.contains) ||
+        entryTokens.any(
+          (t) => tappedWordCandidates.any((c) => c.length >= 4 && t.startsWith(c)),
+        );
+    if (hit) {
+      addTo(tierRelated, e);
     }
   }
 
-  if (results.isEmpty) return const [];
-  results.sort(compareEntries);
-  return results;
+  if (tierPhrase.isEmpty && tierExactWord.isEmpty && tierRelated.isEmpty) {
+    return const [];
+  }
+  tierPhrase.sort(compareEntries);
+  tierExactWord.sort(compareEntries);
+  tierRelated.sort(compareEntries);
+  return [...tierPhrase, ...tierExactWord, ...tierRelated];
 }
 
 class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
@@ -847,7 +962,7 @@ class _SelectableEnglishWithTtsHighlightState
     }
   }
 
-  void _openVocabMatchesSheet(List<VocabEntry> entries) {
+  void _openVocabMatchesSheet(List<VocabEntry> entries, {String? tappedText}) {
     if (entries.isEmpty) return;
     final theme = Theme.of(context);
     final lang = Localizations.localeOf(context).languageCode;
@@ -889,7 +1004,9 @@ class _SelectableEnglishWithTtsHighlightState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      lemma,
+                      tappedText == null || tappedText.trim().isEmpty
+                          ? lemma
+                          : tappedText,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
@@ -999,7 +1116,10 @@ class _SelectableEnglishWithTtsHighlightState
       );
       return;
     }
-    _openVocabMatchesSheet(matches);
+    _openVocabMatchesSheet(
+      matches,
+      tappedText: _bestTappedPhrase(tokens: tokens, startTokenIndex: startTokenIndex),
+    );
   }
 
   TextStyle? _styleForWordRange({
@@ -1089,9 +1209,6 @@ class _SelectableEnglishWithTtsHighlightState
     final en = widget.plainEn;
     if (en.isEmpty) return const SizedBox.shrink();
 
-    final tokens = _tokenizeEnglishWords(en);
-    _ensureTapRecognizerCount(tokens.length);
-
     final readStyle = widget.baseStyle?.copyWith(
       backgroundColor: widget.scheme.primaryContainer.withValues(alpha: 0.30),
       color: widget.scheme.onPrimaryContainer,
@@ -1122,18 +1239,54 @@ class _SelectableEnglishWithTtsHighlightState
       }
     }
 
-    final rootSpan = _buildTappableEnglishSpan(
-      en: en,
-      tokens: tokens,
-      catalog: catalog,
-      readStyle: readStyle,
-      currentStyle: currentStyle,
-      highlightOn: highlightOn,
-      lingering: lingering,
-      karaoke: karaoke,
-      a: a,
-      b: b,
-    );
+    // Mobile stability: per-word TapGestureRecognizers + frequent TTS progress
+    // rebuilds can break rendering on some Android devices. Keep a lightweight
+    // span tree on mobile while preserving karaoke highlighting.
+    final isMobile = switch (defaultTargetPlatform) {
+      TargetPlatform.android || TargetPlatform.iOS => true,
+      _ => false,
+    };
+
+    TextSpan rootSpan;
+    if (isMobile) {
+      if (!highlightOn) {
+        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
+      } else if (lingering) {
+        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: readStyle);
+      } else if (!karaoke) {
+        rootSpan = TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
+      } else {
+        final before = en.substring(0, a.clamp(0, len));
+        final mid = en.substring(a.clamp(0, len), b.clamp(0, len));
+        final after = en.substring(b.clamp(0, len));
+        rootSpan = TextSpan(
+          style: widget.baseStyle,
+          children: [
+            if (before.isNotEmpty)
+              TextSpan(text: _bidiWrapLtr(before), style: readStyle),
+            if (mid.isNotEmpty)
+              TextSpan(text: _bidiWrapLtr(mid), style: currentStyle),
+            if (after.isNotEmpty)
+              TextSpan(text: _bidiWrapLtr(after), style: widget.baseStyle),
+          ],
+        );
+      }
+    } else {
+      final tokens = _tokenizeEnglishWords(en);
+      _ensureTapRecognizerCount(tokens.length);
+      rootSpan = _buildTappableEnglishSpan(
+        en: en,
+        tokens: tokens,
+        catalog: catalog,
+        readStyle: readStyle,
+        currentStyle: currentStyle,
+        highlightOn: highlightOn,
+        lingering: lingering,
+        karaoke: karaoke,
+        a: a,
+        b: b,
+      );
+    }
 
     return SelectableText.rich(
       rootSpan,
