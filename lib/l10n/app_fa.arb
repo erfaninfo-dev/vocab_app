@@ -64,6 +64,13 @@
       "unit": {"type": "int"}
     }
   },
+  "unitSamplesTitleSection": "یونیت {unit} — بخش {section} — متن‌های نمونه",
+  "@unitSamplesTitleSection": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
   "unitSamplesEmpty": "برای این یونیت هنوز متن نمونه‌ای ثبت نشده است.",
   "unitSamplesLoadFailed": "بارگذاری متن‌های نمونه انجام نشد.",
   "search": "جستجو",

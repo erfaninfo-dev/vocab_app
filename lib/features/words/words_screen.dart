@@ -69,7 +69,11 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
     final allBookAsync = ref.watch(apiAllWordsForBookProvider(widget.bookId));
     final searching = _query.trim().isNotEmpty;
     final samplesAsync = ref.watch(
-      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
+      apiUnitSamplesProvider((
+        bookId: widget.bookId,
+        unit: widget.unit,
+        section: widget.section,
+      )),
     );
 
     final scheme = Theme.of(context).colorScheme;
@@ -107,8 +111,9 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   ],
                 ),
                 data: (allWords) {
-                  final filtered =
-                      allWords.where((e) => e.matchesWordQuery(_query)).toList();
+                  final filtered = allWords
+                      .where((e) => e.matchesWordQuery(_query))
+                      .toList();
                   return _wordsScrollView(
                     l10n: l10n,
                     displayList: filtered,
@@ -202,14 +207,20 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           ? TabBarView(
               children: [
                 wordsBody(),
-                UnitSamplesEmbedded(bookId: widget.bookId, unit: widget.unit),
+                UnitSamplesEmbedded(
+                  bookId: widget.bookId,
+                  unit: widget.unit,
+                  section: widget.section,
+                ),
               ],
             )
           : wordsBody(),
     );
 
     final scaffold = Scaffold(appBar: appBar, body: content);
-    return hasSamples ? DefaultTabController(length: 2, child: scaffold) : scaffold;
+    return hasSamples
+        ? DefaultTabController(length: 2, child: scaffold)
+        : scaffold;
   }
 
   Widget _wordsScrollView({

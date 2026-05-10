@@ -185,6 +185,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String unitSamplesTitleSection(int unit, int section) {
+    return 'Unit $unit — Section $section — Sample texts';
+  }
+
+  @override
   String get unitSamplesEmpty => 'No sample texts for this unit yet.';
 
   @override

@@ -64,6 +64,13 @@
       "unit": {"type": "int"}
     }
   },
+  "unitSamplesTitleSection": "یونیت {unit} — بەش {section} — دەقی نموونە",
+  "@unitSamplesTitleSection": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
   "unitSamplesEmpty": "هێشتا بۆ ئەم یونیتە دەقی نموونە نییە.",
   "unitSamplesLoadFailed": "بارکردنی دەقی نموونە سەرکەوتوو نەبوو.",
   "search": "گەڕان",

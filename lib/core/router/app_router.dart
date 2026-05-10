@@ -155,8 +155,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/grammar/result/:resultId',
         builder: (context, state) {
-          final id =
-              int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['resultId'] ?? '') ?? 0;
           return GrammarResultReviewScreen(
             key: ValueKey<String>('grammar_result_$id'),
             resultId: id,
@@ -324,7 +323,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
 
-          // Unit → Sample texts
+          // Unit + Section → Sample texts
+          GoRoute(
+            path: '/books/:bookId/units/:unit/sections/:section/samples',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              final unit =
+                  int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
+              final section =
+                  int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
+              return UnitSamplesScreen(
+                bookId: bookId,
+                unit: unit,
+                section: section,
+              );
+            },
+          ),
+
+          // Unit → Sample texts (no section)
           GoRoute(
             path: '/books/:bookId/units/:unit/samples',
             builder: (context, state) {

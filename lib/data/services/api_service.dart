@@ -8,6 +8,7 @@ import '../models/admin_user_row.dart';
 import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
+import '../models/section_info.dart';
 import '../models/unit_sample.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
@@ -32,8 +33,9 @@ class UnauthorizedException implements Exception {
   const UnauthorizedException([this.message]);
   final String? message;
   @override
-  String toString() =>
-      message == null ? 'UnauthorizedException' : 'UnauthorizedException: $message';
+  String toString() => message == null
+      ? 'UnauthorizedException'
+      : 'UnauthorizedException: $message';
 }
 
 // ─── GET response disk cache (never used for words.php — see [_httpCacheKey]). ─
@@ -154,22 +156,29 @@ class ApiService {
   }
 
   // ── GET /sections.php?book_id={id}&unit={unit} ────────────────────────────
-  Future<List<int>> fetchSections(int bookId, int unit) async {
+  Future<List<SectionInfo>> fetchSections(int bookId, int unit) async {
     final uri = Uri.parse('$baseUrl/sections.php?book_id=$bookId&unit=$unit');
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'sections');
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
-        .map((e) => (e['section'] as num).toInt())
-        .where((s) => s > 0)
+        .map((e) => SectionInfo.fromJson(e as Map<String, dynamic>))
+        .where((s) => s.section > 0)
         .toList();
   }
 
-  // ── GET /unit_samples.php?book_id={id}&unit={unit} ────────────────────────
-  Future<List<UnitSample>> fetchUnitSamples(int bookId, int unit) async {
-    final uri =
-        Uri.parse('$baseUrl/unit_samples.php?book_id=$bookId&unit=$unit');
-    final response = await http.get(uri, headers: _mergeHeaders());
+  // ── GET /unit_samples.php?book_id={id}&unit={unit}[&section={n}] ───────────
+  Future<List<UnitSample>> fetchUnitSamples(
+    int bookId,
+    int unit, {
+    int? section,
+  }) async {
+    var uriStr =
+        '$baseUrl/unit_samples.php?book_id=$bookId&unit=$unit';
+    if (section != null && section > 0) {
+      uriStr += '&section=$section';
+    }
+    final response = await http.get(Uri.parse(uriStr), headers: _mergeHeaders());
     _assertOk(response, 'unit samples');
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
@@ -620,9 +629,9 @@ class ApiService {
 
   /// GET /words.php?global=1 — entire `words` table (all books).
   Future<List<VocabEntry>> fetchAllWordsGlobally() async {
-    final uri = Uri.parse('$baseUrl/words.php').replace(
-      queryParameters: {'global': '1'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/words.php',
+    ).replace(queryParameters: {'global': '1'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'words (global)');
     final data = jsonDecode(response.body) as List<dynamic>;
@@ -767,7 +776,9 @@ class ApiService {
     Duration timeout = const Duration(seconds: 10),
   }) async {
     final uri = Uri.parse('$baseUrl/me.php');
-    final response = await http.get(uri, headers: _mergeHeaders()).timeout(timeout);
+    final response = await http
+        .get(uri, headers: _mergeHeaders())
+        .timeout(timeout);
     if (response.statusCode == 401) {
       throw UnauthorizedException(_errorMessageFromBody(response));
     }
@@ -1425,7 +1436,8 @@ class ApiService {
   }
 
   void _throwFromJsonBody(http.Response response) {
-    final msg = _errorMessageFromBody(response) ?? 'HTTP ${response.statusCode}';
+    final msg =
+        _errorMessageFromBody(response) ?? 'HTTP ${response.statusCode}';
     throw Exception(msg);
   }
 

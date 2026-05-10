@@ -185,6 +185,11 @@ class AppLocalizationsCkb extends AppLocalizations {
   }
 
   @override
+  String unitSamplesTitleSection(int unit, int section) {
+    return 'یونیت $unit — بەش $section — دەقی نموونە';
+  }
+
+  @override
   String get unitSamplesEmpty => 'هێشتا بۆ ئەم یونیتە دەقی نموونە نییە.';
 
   @override

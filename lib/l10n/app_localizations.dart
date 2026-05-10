@@ -424,6 +424,12 @@ abstract class AppLocalizations {
   /// **'Unit {unit} — Sample texts'**
   String unitSamplesTitle(int unit);
 
+  /// No description provided for @unitSamplesTitleSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit {unit} — Section {section} — Sample texts'**
+  String unitSamplesTitleSection(int unit, int section);
+
   /// No description provided for @unitSamplesEmpty.
   ///
   /// In en, this message translates to:
