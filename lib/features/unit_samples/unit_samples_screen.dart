@@ -14,7 +14,32 @@ import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/widgets/word_card.dart';
 
-typedef _BookUnitKey = ({int bookId, int unit});
+typedef _BookUnitKey = ({int bookId, int unit, int? section});
+
+String _sampleSectionBadgeLabel(
+  WidgetRef ref,
+  _BookUnitKey key,
+  UnitSample sample,
+) {
+  final n = sample.section;
+  if (n == null || n <= 0) return '';
+  final async = ref.watch(
+    apiSectionsProvider((bookId: key.bookId, unit: key.unit)),
+  );
+  return async.maybeWhen(
+    data: (list) {
+      for (final info in list) {
+        if (info.section == n) {
+          final d = info.sectionDetails?.trim();
+          if (d != null && d.isNotEmpty) return d;
+          break;
+        }
+      }
+      return 'Section $n';
+    },
+    orElse: () => 'Section $n',
+  );
+}
 
 final _expandedSampleIdProvider = StateProvider.family
     .autoDispose<int?, _BookUnitKey>((ref, _) => null);
@@ -27,10 +52,14 @@ class UnitSamplesScreen extends ConsumerStatefulWidget {
     super.key,
     required this.bookId,
     required this.unit,
+    this.section,
   });
 
   final int bookId;
   final int unit;
+
+  /// When set (>0), loads unit-wide samples plus samples for this section (server-side filter).
+  final int? section;
 
   @override
   ConsumerState<UnitSamplesScreen> createState() => _UnitSamplesScreenState();
@@ -47,10 +76,18 @@ class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(langProvider); // keep screen reactive to language changes
-    final screenKey = (bookId: widget.bookId, unit: widget.unit);
+    final screenKey = (
+      bookId: widget.bookId,
+      unit: widget.unit,
+      section: widget.section,
+    );
     final expandedId = ref.watch(_expandedSampleIdProvider(screenKey));
     final async = ref.watch(
-      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
+      apiUnitSamplesProvider((
+        bookId: widget.bookId,
+        unit: widget.unit,
+        section: widget.section,
+      )),
     );
     final scheme = Theme.of(context).colorScheme;
 
@@ -66,7 +103,11 @@ class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(l10n.unitSamplesTitle(widget.unit)),
+          title: Text(
+            widget.section != null && widget.section! > 0
+                ? l10n.unitSamplesTitleSection(widget.unit, widget.section!)
+                : l10n.unitSamplesTitle(widget.unit),
+          ),
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const Icon(Icons.arrow_back_rounded),
@@ -131,6 +172,7 @@ class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
                           apiUnitSamplesProvider((
                             bookId: widget.bookId,
                             unit: widget.unit,
+                            section: widget.section,
                           )),
                         ),
                         icon: const Icon(Icons.refresh_rounded),
@@ -157,11 +199,13 @@ class UnitSamplesEmbedded extends ConsumerStatefulWidget {
     super.key,
     required this.bookId,
     required this.unit,
+    this.section,
     this.listPadding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
   });
 
   final int bookId;
   final int unit;
+  final int? section;
   final EdgeInsets listPadding;
 
   @override
@@ -180,10 +224,18 @@ class _UnitSamplesEmbeddedState extends ConsumerState<UnitSamplesEmbedded> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(langProvider); // keep reactive to language changes
-    final screenKey = (bookId: widget.bookId, unit: widget.unit);
+    final screenKey = (
+      bookId: widget.bookId,
+      unit: widget.unit,
+      section: widget.section,
+    );
     final expandedId = ref.watch(_expandedSampleIdProvider(screenKey));
     final async = ref.watch(
-      apiUnitSamplesProvider((bookId: widget.bookId, unit: widget.unit)),
+      apiUnitSamplesProvider((
+        bookId: widget.bookId,
+        unit: widget.unit,
+        section: widget.section,
+      )),
     );
 
     return async.when(
@@ -429,6 +481,11 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
       fontWeight: FontWeight.w800,
     );
     final cardColor = isExpanded ? scheme.surfaceContainerLow : scheme.surface;
+    final sectionBadge = _sampleSectionBadgeLabel(
+      ref,
+      widget.screenKey,
+      widget.sample,
+    );
     return Card(
       key: _cardLeadKey,
       elevation: isExpanded ? 0.6 : 2.2,
@@ -472,12 +529,31 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  widget.sample.title.isEmpty ? 'Sample' : widget.sample.title,
-                  style: tt.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.sample.title.isEmpty
+                          ? 'Sample'
+                          : widget.sample.title,
+                      style: tt.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    if (sectionBadge.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          sectionBadge,
+                          style: tt.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (isExpanded) ...[
@@ -642,9 +718,7 @@ class _EnWordToken {
 
 List<_EnWordToken> _tokenizeEnglishWords(String s) {
   final out = <_EnWordToken>[];
-  final re = RegExp(
-    r"[A-Za-z]+(?:['\u2019\u2018\u02BC][A-Za-z]+)?",
-  );
+  final re = RegExp(r"[A-Za-z]+(?:['\u2019\u2018\u02BC][A-Za-z]+)?");
   for (final m in re.allMatches(s)) {
     out.add(_EnWordToken(start: m.start, end: m.end, text: m.group(0)!));
   }
@@ -1510,14 +1584,13 @@ class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
                                     child: SliderTheme(
                                       data: SliderTheme.of(context).copyWith(
                                         trackHeight: 4,
-                                        thumbShape:
-                                            const RoundSliderThumbShape(
+                                        thumbShape: const RoundSliderThumbShape(
                                           enabledThumbRadius: 10,
                                         ),
                                         overlayShape:
                                             const RoundSliderOverlayShape(
-                                          overlayRadius: 18,
-                                        ),
+                                              overlayRadius: 18,
+                                            ),
                                       ),
                                       child: Slider(
                                         min: 0.85,

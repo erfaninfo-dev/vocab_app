@@ -64,6 +64,13 @@
       "unit": {"type": "int"}
     }
   },
+  "unitSamplesTitleSection": "Unit {unit} — Section {section} — Sample texts",
+  "@unitSamplesTitleSection": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
   "unitSamplesEmpty": "No sample texts for this unit yet.",
   "unitSamplesLoadFailed": "Could not load sample texts.",
   "search": "Search",

@@ -185,6 +185,11 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String unitSamplesTitleSection(int unit, int section) {
+    return 'یونیت $unit — بخش $section — متن‌های نمونه';
+  }
+
+  @override
   String get unitSamplesEmpty =>
       'برای این یونیت هنوز متن نمونه‌ای ثبت نشده است.';
 

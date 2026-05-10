@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/section_info.dart';
 import '../../domain/api_providers.dart';
 
 class SectionsScreen extends ConsumerWidget {
@@ -66,8 +67,6 @@ class SectionsScreen extends ConsumerWidget {
   }
 }
 
-// ─── Section list ─────────────────────────────────────────────────────────────
-
 class _SectionList extends StatelessWidget {
   const _SectionList({
     required this.sections,
@@ -75,7 +74,7 @@ class _SectionList extends StatelessWidget {
     required this.unit,
   });
 
-  final List<int> sections;
+  final List<SectionInfo> sections;
   final int bookId;
   final int unit;
 
@@ -88,12 +87,12 @@ class _SectionList extends StatelessWidget {
         itemCount: sections.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final section = sections[index];
+          final info = sections[index];
           return _SectionTile(
             unit: unit,
-            section: section,
+            info: info,
             onTap: () => context.push(
-              '/books/$bookId/units/$unit/sections/$section/words',
+              '/books/$bookId/units/$unit/sections/${info.section}/words',
             ),
           );
         },
@@ -102,23 +101,22 @@ class _SectionList extends StatelessWidget {
   }
 }
 
-// ─── Section Tile ─────────────────────────────────────────────────────────────
-
 class _SectionTile extends StatelessWidget {
   const _SectionTile({
     required this.unit,
-    required this.section,
+    required this.info,
     required this.onTap,
   });
 
   final int unit;
-  final int section;
+  final SectionInfo info;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final accents = _sectionAccents(section);
+    final accents = _sectionAccents(info.section);
+    final titleLabel = _sectionTitleLabel(info);
 
     return Card(
       child: InkWell(
@@ -148,7 +146,7 @@ class _SectionTile extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    '$section',
+                    '${info.section}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: accents.first,
@@ -162,14 +160,14 @@ class _SectionTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Section $section',
+                      titleLabel,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Unit $unit · Section $section',
+                      'Unit $unit · Section ${info.section}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -184,6 +182,12 @@ class _SectionTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _sectionTitleLabel(SectionInfo info) {
+  final d = info.sectionDetails?.trim();
+  if (d != null && d.isNotEmpty) return d;
+  return 'Section ${info.section}';
 }
 
 List<Color> _sectionAccents(int section) {

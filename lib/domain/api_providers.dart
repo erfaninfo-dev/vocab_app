@@ -12,6 +12,7 @@ import '../features/teacher/teacher_week_upcoming.dart';
 import '../data/models/grammar_result.dart';
 import '../data/models/grammar_result_detail.dart';
 import '../data/models/unit_model.dart';
+import '../data/models/section_info.dart';
 import '../data/models/unit_sample.dart';
 import '../data/models/vocab_entry.dart';
 import '../data/models/vocab_quiz_result.dart';
@@ -54,7 +55,7 @@ final apiUnitsProvider = FutureProvider.family<List<UnitInfo>, int>((
 
 typedef BookUnit = ({int bookId, int unit});
 
-final apiSectionsProvider = FutureProvider.family<List<int>, BookUnit>((
+final apiSectionsProvider = FutureProvider.family<List<SectionInfo>, BookUnit>((
   ref,
   arg,
 ) {
@@ -62,14 +63,20 @@ final apiSectionsProvider = FutureProvider.family<List<int>, BookUnit>((
   return ref.read(apiServiceProvider).fetchSections(arg.bookId, arg.unit);
 });
 
-// ─── Unit Samples (text samples per unit) ────────────────────────────────────
-// Corresponds to: GET /unit_samples.php?book_id={bookId}&unit={unit}
+// ─── Unit Samples (text samples per unit / optional section filter) ─────────
+// Corresponds to: GET /unit_samples.php?book_id={bookId}&unit={unit}[&section=]
+
+typedef BookUnitSamples = ({int bookId, int unit, int? section});
 
 final apiUnitSamplesProvider =
-    FutureProvider.family<List<UnitSample>, BookUnit>((ref, arg) {
-  ref.watch(apiRemoteDataEpochProvider);
-  return ref.read(apiServiceProvider).fetchUnitSamples(arg.bookId, arg.unit);
-});
+    FutureProvider.family<List<UnitSample>, BookUnitSamples>((ref, arg) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchUnitSamples(
+            arg.bookId,
+            arg.unit,
+            section: arg.section,
+          );
+    });
 
 // ─── Words ────────────────────────────────────────────────────────────────────
 // Corresponds to:
@@ -140,13 +147,16 @@ int grammarQuizMinQuestionsForTopics(int topicCount) {
 }
 
 /// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length + session seed.
-typedef GrammarQuizSessionParams = ({String topicsKey, int questionCount, int seed});
+typedef GrammarQuizSessionParams = ({
+  String topicsKey,
+  int questionCount,
+  int seed,
+});
 
 /// Sort mode for grammar result screens (UI only; lists are fetched date-desc then reordered).
 enum GrammarResultsListSort { newest, mostPractice }
 
-final grammarResultsListSortProvider =
-    StateProvider<GrammarResultsListSort>(
+final grammarResultsListSortProvider = StateProvider<GrammarResultsListSort>(
   (ref) => GrammarResultsListSort.newest,
 );
 
@@ -193,8 +203,9 @@ class PublicGrammarPagedState {
 /// GET /grammar_results_public.php (no auth), infinite scroll via [PublicGrammarCommunityNotifier.loadMore].
 final publicGrammarCommunityProvider =
     AsyncNotifierProvider.autoDispose<
-        PublicGrammarCommunityNotifier,
-        PublicGrammarPagedState>(PublicGrammarCommunityNotifier.new);
+      PublicGrammarCommunityNotifier,
+      PublicGrammarPagedState
+    >(PublicGrammarCommunityNotifier.new);
 
 class PublicGrammarCommunityNotifier
     extends AutoDisposeAsyncNotifier<PublicGrammarPagedState> {
@@ -208,7 +219,9 @@ class PublicGrammarCommunityNotifier
     ref.watch(grammarResultsListSortProvider);
     ref.watch(apiRemoteDataEpochProvider);
     final sort = ref.read(grammarResultsListSortProvider);
-    final page = await ref.read(apiServiceProvider).fetchPublicGrammarResultsPage(
+    final page = await ref
+        .read(apiServiceProvider)
+        .fetchPublicGrammarResultsPage(
           sort: _sortApi(sort),
           order: 'desc',
           limit: pageSize,
@@ -227,7 +240,9 @@ class PublicGrammarCommunityNotifier
     state = AsyncData(cur.copyWith(isLoadingMore: true));
     try {
       final sort = ref.read(grammarResultsListSortProvider);
-      final page = await ref.read(apiServiceProvider).fetchPublicGrammarResultsPage(
+      final page = await ref
+          .read(apiServiceProvider)
+          .fetchPublicGrammarResultsPage(
             sort: _sortApi(sort),
             order: 'desc',
             limit: pageSize,
@@ -254,13 +269,14 @@ final grammarResultDetailProvider =
     });
 
 /// GET /vocab_quiz_results_my.php (requires auth). Empty when logged out.
-final myVocabQuizResultsProvider =
-    FutureProvider<List<VocabQuizResultSummary>>((ref) async {
-  ref.watch(apiRemoteDataEpochProvider);
-  final session = ref.watch(authProvider).valueOrNull;
-  if (session == null) return [];
-  return ref.read(apiServiceProvider).fetchMyVocabQuizResults();
-});
+final myVocabQuizResultsProvider = FutureProvider<List<VocabQuizResultSummary>>(
+  (ref) async {
+    ref.watch(apiRemoteDataEpochProvider);
+    final session = ref.watch(authProvider).valueOrNull;
+    if (session == null) return [];
+    return ref.read(apiServiceProvider).fetchMyVocabQuizResults();
+  },
+);
 
 /// GET /vocab_quiz_result_detail.php?id= (auth).
 final vocabQuizResultDetailProvider =
@@ -270,16 +286,16 @@ final vocabQuizResultDetailProvider =
     });
 
 /// GET /teacher_students.php — requires teacher role on server.
-final teacherStudentsProvider =
-    FutureProvider<List<TeacherStudentSummary>>((ref) async {
-      ref.watch(apiRemoteDataEpochProvider);
-      final session = ref.watch(authProvider).valueOrNull;
-      if (session == null ||
-          (!session.user.isTeacher && !session.user.isAdmin)) {
-        return [];
-      }
-      return ref.read(apiServiceProvider).fetchTeacherStudents();
-    });
+final teacherStudentsProvider = FutureProvider<List<TeacherStudentSummary>>((
+  ref,
+) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null || (!session.user.isTeacher && !session.user.isAdmin)) {
+    return [];
+  }
+  return ref.read(apiServiceProvider).fetchTeacherStudents();
+});
 
 /// Same as [teacherStudentsProvider] but inbox sort (unread first, then newest activity).
 final teacherInboxStudentsProvider =
@@ -315,7 +331,9 @@ final teacherStudentGrammarResultsProvider =
 final teacherStudentSessionsProvider =
     FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
       ref.watch(apiRemoteDataEpochProvider);
-      return ref.read(apiServiceProvider).fetchTeacherStudentSessions(studentId);
+      return ref
+          .read(apiServiceProvider)
+          .fetchTeacherStudentSessions(studentId);
     });
 
 /// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
@@ -378,44 +396,41 @@ final teacherWeekUpcomingProvider =
     });
 
 /// Learner: read-only weekly class times ([my_class_schedule.php]).
-final myClassScheduleProvider =
-    FutureProvider<List<ClassScheduleSlot>>((ref) async {
-      ref.watch(apiRemoteDataEpochProvider);
-      final session = ref.watch(authProvider).valueOrNull;
-      if (session == null ||
-          session.user.isTeacher ||
-          session.user.isAdmin) {
-        return const [];
-      }
-      return ref.read(apiServiceProvider).fetchMyClassSchedule();
-    });
+final myClassScheduleProvider = FutureProvider<List<ClassScheduleSlot>>((
+  ref,
+) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null || session.user.isTeacher || session.user.isAdmin) {
+    return const [];
+  }
+  return ref.read(apiServiceProvider).fetchMyClassSchedule();
+});
 
 /// Preview row for You hub (student + assigned teacher). Empty when not applicable.
-final teacherMessagesPreviewProvider =
-    FutureProvider<TeacherMessagesPreview>((ref) async {
-      ref.watch(apiRemoteDataEpochProvider);
-      final session = ref.watch(authProvider).valueOrNull;
-      if (session == null ||
-          session.user.isTeacher ||
-          session.user.isAdmin) {
-        return TeacherMessagesPreview.empty();
-      }
-      return ref.read(apiServiceProvider).fetchTeacherMessagesPreview();
-    });
+final teacherMessagesPreviewProvider = FutureProvider<TeacherMessagesPreview>((
+  ref,
+) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null || session.user.isTeacher || session.user.isAdmin) {
+    return TeacherMessagesPreview.empty();
+  }
+  return ref.read(apiServiceProvider).fetchTeacherMessagesPreview();
+});
 
 /// Home FAB badge: teachers = distinct students with unread; students = unread msgs from teacher.
-final teacherMessagesUnreadFabProvider =
-    FutureProvider<int>((ref) async {
-      ref.watch(apiRemoteDataEpochProvider);
-      final session = ref.watch(authProvider).valueOrNull;
-      if (session == null) return 0;
-      final u = session.user;
-      if (!u.isTeacher && !u.isAdmin && u.teacherUserId == null) return 0;
-      final s = await ref.read(apiServiceProvider).fetchTeacherMessagesUnreadSummary();
-      return s.badgeForUser(
-        userIsTeacher: u.isTeacher || u.isAdmin,
-      );
-    });
+final teacherMessagesUnreadFabProvider = FutureProvider<int>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null) return 0;
+  final u = session.user;
+  if (!u.isTeacher && !u.isAdmin && u.teacherUserId == null) return 0;
+  final s = await ref
+      .read(apiServiceProvider)
+      .fetchTeacherMessagesUnreadSummary();
+  return s.badgeForUser(userIsTeacher: u.isTeacher || u.isAdmin);
+});
 
 /// Grammar results for charts (date desc, newest first). Empty when logged out.
 final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((
