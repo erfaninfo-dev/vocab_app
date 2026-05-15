@@ -124,6 +124,24 @@ abstract class AppLocalizations {
   /// **'Review'**
   String get tabReview;
 
+  /// No description provided for @tabPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get tabPlay;
+
+  /// No description provided for @youSectionReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get youSectionReview;
+
+  /// No description provided for @youSectionReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spaced repetition for words you\'ve practiced.'**
+  String get youSectionReviewSubtitle;
+
   /// No description provided for @tabProgress.
   ///
   /// In en, this message translates to:
@@ -1990,6 +2008,108 @@ abstract class AppLocalizations {
   /// **'Tap + to record each class session. The time is saved automatically.'**
   String get teacherClassSessionsHintEmpty;
 
+  /// No description provided for @teacherClassSessionsTabSubtitleTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.'**
+  String get teacherClassSessionsTabSubtitleTerms;
+
+  /// No description provided for @teacherClassTermsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms'**
+  String get teacherClassTermsSection;
+
+  /// No description provided for @teacherClassTermTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Term {number}'**
+  String teacherClassTermTitle(int number);
+
+  /// No description provided for @teacherClassTermSessionsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {max} sessions'**
+  String teacherClassTermSessionsProgress(int current, int max);
+
+  /// No description provided for @teacherClassTermsAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add term'**
+  String get teacherClassTermsAddButton;
+
+  /// No description provided for @teacherClassTermsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a term first, set its session limit, then log class sessions under that term.'**
+  String get teacherClassTermsEmptyHint;
+
+  /// No description provided for @teacherClassTermEditCapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session limit'**
+  String get teacherClassTermEditCapTitle;
+
+  /// No description provided for @teacherClassTermCapFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max sessions in this term'**
+  String get teacherClassTermCapFieldLabel;
+
+  /// No description provided for @teacherClassTermDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this term?'**
+  String get teacherClassTermDeleteConfirmTitle;
+
+  /// No description provided for @teacherClassTermDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every class session recorded in this term will be removed. This cannot be undone.'**
+  String get teacherClassTermDeleteConfirmBody;
+
+  /// No description provided for @teacherClassTermAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Term added'**
+  String get teacherClassTermAdded;
+
+  /// No description provided for @teacherClassTermUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Term updated'**
+  String get teacherClassTermUpdated;
+
+  /// No description provided for @teacherClassTermDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Term removed'**
+  String get teacherClassTermDeleted;
+
+  /// No description provided for @teacherClassTermAddSessionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Log session'**
+  String get teacherClassTermAddSessionButton;
+
+  /// No description provided for @classTermPaymentPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get classTermPaymentPaid;
+
+  /// No description provided for @classTermPaymentUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get classTermPaymentUnpaid;
+
+  /// No description provided for @classTermPaymentUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment status updated'**
+  String get classTermPaymentUpdated;
+
   /// No description provided for @teacherSessionCountLabel.
   ///
   /// In en, this message translates to:
@@ -3471,6 +3591,318 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search and tap a user to edit'**
   String get adminScreenSubtitle;
+
+  /// No description provided for @wordBuilderClearPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get wordBuilderClearPath;
+
+  /// No description provided for @wordBuilderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Word Builder'**
+  String get wordBuilderTitle;
+
+  /// No description provided for @wordBuilderShuffle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle letters'**
+  String get wordBuilderShuffle;
+
+  /// No description provided for @wordBuilderPickSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose vocabulary'**
+  String get wordBuilderPickSource;
+
+  /// No description provided for @wordBuilderStartPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get wordBuilderStartPlay;
+
+  /// No description provided for @wordBuilderCatalogAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All books'**
+  String get wordBuilderCatalogAll;
+
+  /// No description provided for @wordBuilderNoWordsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No suitable English words were found for this source. Pick another book or refresh.'**
+  String get wordBuilderNoWordsBody;
+
+  /// No description provided for @wordBuilderHomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build English words from shuffled letters.'**
+  String get wordBuilderHomeSubtitle;
+
+  /// No description provided for @wordBuilderLevelOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {current} of {total}'**
+  String wordBuilderLevelOf(int current, int total);
+
+  /// No description provided for @wordBuilderCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic: {name}'**
+  String wordBuilderCategory(String name);
+
+  /// No description provided for @wordBuilderDifficultyBeginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get wordBuilderDifficultyBeginner;
+
+  /// No description provided for @wordBuilderDifficultyIntermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get wordBuilderDifficultyIntermediate;
+
+  /// No description provided for @wordBuilderDifficultyAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get wordBuilderDifficultyAdvanced;
+
+  /// No description provided for @wordBuilderYourWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Your word'**
+  String get wordBuilderYourWord;
+
+  /// No description provided for @wordBuilderLetters.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter pool'**
+  String get wordBuilderLetters;
+
+  /// No description provided for @wordBuilderSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Check word'**
+  String get wordBuilderSubmit;
+
+  /// No description provided for @wordBuilderReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get wordBuilderReset;
+
+  /// No description provided for @wordBuilderNextLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next level'**
+  String get wordBuilderNextLevel;
+
+  /// No description provided for @wordBuilderHints.
+  ///
+  /// In en, this message translates to:
+  /// **'Hints'**
+  String get wordBuilderHints;
+
+  /// No description provided for @wordBuilderHintReveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reveal a letter'**
+  String get wordBuilderHintReveal;
+
+  /// No description provided for @wordBuilderHintRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove an extra letter'**
+  String get wordBuilderHintRemove;
+
+  /// No description provided for @wordBuilderHintMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a meaning'**
+  String get wordBuilderHintMeaning;
+
+  /// No description provided for @wordBuilderTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get wordBuilderTranslation;
+
+  /// No description provided for @wordBuilderTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick more letters first.'**
+  String get wordBuilderTooShort;
+
+  /// No description provided for @wordBuilderAlreadyFound.
+  ///
+  /// In en, this message translates to:
+  /// **'You already found that word.'**
+  String get wordBuilderAlreadyFound;
+
+  /// No description provided for @wordBuilderTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in this level — keep trying.'**
+  String get wordBuilderTryAgain;
+
+  /// No description provided for @wordBuilderCorrectNice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nice!'**
+  String get wordBuilderCorrectNice;
+
+  /// No description provided for @wordBuilderHintLetter.
+  ///
+  /// In en, this message translates to:
+  /// **'A letter was revealed in one of the words.'**
+  String get wordBuilderHintLetter;
+
+  /// No description provided for @wordBuilderHintRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed an extra letter from your word.'**
+  String get wordBuilderHintRemoved;
+
+  /// No description provided for @wordBuilderHintRemoveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No extra letters to remove right now.'**
+  String get wordBuilderHintRemoveNone;
+
+  /// No description provided for @wordBuilderHintMeaningLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: {meaning}'**
+  String wordBuilderHintMeaningLine(String meaning);
+
+  /// No description provided for @wordBuilderAllLevelsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished all levels in this session.'**
+  String get wordBuilderAllLevelsDone;
+
+  /// No description provided for @wordBuilderTotalXp.
+  ///
+  /// In en, this message translates to:
+  /// **'Total XP: {xp}'**
+  String wordBuilderTotalXp(int xp);
+
+  /// No description provided for @wordBuilderAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Accuracy: {pct}%'**
+  String wordBuilderAccuracy(int pct);
+
+  /// No description provided for @wordBuilderPronunciation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pronunciation'**
+  String get wordBuilderPronunciation;
+
+  /// No description provided for @wordBuilderMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Meaning'**
+  String get wordBuilderMeaning;
+
+  /// No description provided for @wordBuilderExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get wordBuilderExample;
+
+  /// No description provided for @wordBuilderSpeakWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak word'**
+  String get wordBuilderSpeakWord;
+
+  /// No description provided for @wordBuilderSpeakExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak example'**
+  String get wordBuilderSpeakExample;
+
+  /// No description provided for @wordBuilderTargetsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Words to find'**
+  String get wordBuilderTargetsHeading;
+
+  /// No description provided for @wordBuilderCampaignHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get wordBuilderCampaignHubSubtitle;
+
+  /// No description provided for @wordBuilderCampaignStagesHint.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get wordBuilderCampaignStagesHint;
+
+  /// No description provided for @wordBuilderCampaignStageLockedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the previous stage first.'**
+  String get wordBuilderCampaignStageLockedSnackbar;
+
+  /// No description provided for @wordBuilderCampaignTierLockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete all 50 stages in the previous difficulty to unlock this track.'**
+  String get wordBuilderCampaignTierLockedBody;
+
+  /// No description provided for @wordBuilderCampaignPlanError.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough vocabulary to build this stage. Try refreshing books later.'**
+  String get wordBuilderCampaignPlanError;
+
+  /// No description provided for @wordBuilderCampaignReset.
+  ///
+  /// In en, this message translates to:
+  /// **'reset'**
+  String get wordBuilderCampaignReset;
+
+  /// No description provided for @wordBuilderCampaignResetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all Word Builder stage progress? This cannot be undone.'**
+  String get wordBuilderCampaignResetConfirm;
+
+  /// No description provided for @wordBuilderCampaignResetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign progress cleared.'**
+  String get wordBuilderCampaignResetDone;
+
+  /// No description provided for @wordBuilderCampaignStageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage {stage} of {total}'**
+  String wordBuilderCampaignStageOf(int stage, int total);
+
+  /// No description provided for @wordBuilderCampaignStageN.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage {n}'**
+  String wordBuilderCampaignStageN(int n);
+
+  /// No description provided for @wordBuilderCampaignStageCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get wordBuilderCampaignStageCompleted;
+
+  /// No description provided for @wordBuilderCampaignStageReplayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to replay this stage'**
+  String get wordBuilderCampaignStageReplayHint;
 
   /// No description provided for @adminEditUserSheetTitle.
   ///

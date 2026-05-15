@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/srs/srs_provider.dart';
 import '../../l10n/app_localizations.dart';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
@@ -35,10 +33,10 @@ List<_Tab> _tabs(AppLocalizations l10n) => [
     label: l10n.tabGrammar,
   ),
   _Tab(
-    path: '/review',
-    icon: Icons.loop_outlined,
-    activeIcon: Icons.loop_rounded,
-    label: l10n.tabReview,
+    path: '/word-builder',
+    icon: Icons.sort_by_alpha_outlined,
+    activeIcon: Icons.sort_by_alpha_rounded,
+    label: l10n.tabPlay,
   ),
   _Tab(
     path: '/you',
@@ -54,26 +52,9 @@ List<_Tab> _tabs(AppLocalizations l10n) => [
   ),
 ];
 
-NavigationDestination _navDestination(_Tab tab, int dueCount) {
-  final isReview = tab.path == '/review';
-  final icon = isReview && dueCount > 0
-      ? Badge(
-          label: Text(
-            dueCount > 99 ? '99+' : '$dueCount',
-            style: const TextStyle(fontSize: 10),
-          ),
-          child: Icon(tab.icon),
-        )
-      : Icon(tab.icon);
-  final selectedIcon = isReview && dueCount > 0
-      ? Badge(
-          label: Text(
-            dueCount > 99 ? '99+' : '$dueCount',
-            style: const TextStyle(fontSize: 10),
-          ),
-          child: Icon(tab.activeIcon),
-        )
-      : Icon(tab.activeIcon);
+NavigationDestination _navDestination(_Tab tab) {
+  final icon = Icon(tab.icon);
+  final selectedIcon = Icon(tab.activeIcon);
   return NavigationDestination(
     icon: icon,
     selectedIcon: selectedIcon,
@@ -84,6 +65,7 @@ NavigationDestination _navDestination(_Tab tab, int dueCount) {
 bool _hideBottomBarForLocation(String location) {
   final path = location.trim();
   if (path.startsWith('/grammar/practice')) return true;
+  if (path.startsWith('/word-builder')) return true;
   if (path.contains('/quiz') && !path.contains('vocab-quiz')) return true;
   if (!path.contains('/units/')) return false;
   if (path.endsWith('/words') || path.endsWith('/samples')) return true;
@@ -92,19 +74,14 @@ bool _hideBottomBarForLocation(String location) {
 
 // ─── Shell Scaffold ───────────────────────────────────────────────────────────
 
-class ShellScaffold extends ConsumerWidget {
-  const ShellScaffold({
-    super.key,
-    required this.child,
-    required this.location,
-  });
+class ShellScaffold extends StatelessWidget {
+  const ShellScaffold({super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dueCount = ref.watch(srsProvider.select((s) => s.dueTodayCount));
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _tabs(l10n);
 
@@ -135,8 +112,7 @@ class ShellScaffold extends ConsumerWidget {
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               height: 80,
               destinations: [
-                for (int i = 0; i < tabs.length; i++)
-                  _navDestination(tabs[i], dueCount),
+                for (int i = 0; i < tabs.length; i++) _navDestination(tabs[i]),
               ],
             ),
     );

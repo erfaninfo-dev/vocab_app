@@ -268,51 +268,57 @@ class _HomeTrackBookPage extends ConsumerWidget {
                     final entries = _trackHomeEntriesForTrack(books);
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      child: Directionality(
-                        textDirection: TextDirection.ltr,
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
-                                childAspectRatio: crossAxisCount == 1
-                                    ? 2.15
-                                    : 1.42,
-                              ),
-                          itemCount: entries.length,
-                          itemBuilder: (context, i) {
-                            final e = entries[i];
-                            if (e.isSeries) {
-                              final seriesTitle =
-                                  (e.books!.first.seriesTitle ?? '').trim();
-                              return _IeltsSeriesCard(
-                                title: seriesTitle,
-                                bookCount: e.books!.length,
-                                index: i,
-                                onTap: () {
-                                  final sorted = List<Book>.of(e.books!);
-                                  sortBooksInSeriesDisplayOrder(sorted);
-                                  context.push(
-                                    '/series-books',
-                                    extra: SeriesBooksRouteArgs(
-                                      title: seriesTitle,
-                                      books: sorted,
-                                    ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: crossAxisCount == 1
+                                        ? 2.15
+                                        : 1.42,
+                                  ),
+                              itemCount: entries.length,
+                              itemBuilder: (context, i) {
+                                final e = entries[i];
+                                if (e.isSeries) {
+                                  final seriesTitle =
+                                      (e.books!.first.seriesTitle ?? '').trim();
+                                  return _IeltsSeriesCard(
+                                    title: seriesTitle,
+                                    bookCount: e.books!.length,
+                                    index: i,
+                                    onTap: () {
+                                      final sorted = List<Book>.of(e.books!);
+                                      sortBooksInSeriesDisplayOrder(sorted);
+                                      context.push(
+                                        '/series-books',
+                                        extra: SeriesBooksRouteArgs(
+                                          title: seriesTitle,
+                                          books: sorted,
+                                        ),
+                                      );
+                                    },
                                   );
-                                },
-                              );
-                            }
-                            return HomeBookCard(
-                              book: e.book!,
-                              index: i,
-                              onTap: () =>
-                                  context.push('/books/${e.book!.id}/units'),
-                            );
-                          },
-                        ),
+                                }
+                                return HomeBookCard(
+                                  book: e.book!,
+                                  index: i,
+                                  onTap: () => context.push(
+                                    '/books/${e.book!.id}/units',
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -878,9 +884,7 @@ class _GrammarPracticeBanner extends StatelessWidget {
   }
 }
 
-// ───────────────────── Review Banner ─────────────────────
-
-/// Teacher / admin: open student list (`/teacher`). Student with teacher: You hub + badge.
+// ───────────────────── Home teacher/student FABs ─────────────────────
 class _HomeTeacherOrStudentFab extends ConsumerWidget {
   const _HomeTeacherOrStudentFab();
 

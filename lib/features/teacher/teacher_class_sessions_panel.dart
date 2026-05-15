@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/datetime/class_session_chronological_index.dart';
 import '../../core/datetime/class_session_recorded_at.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/widgets/term_payment_status_chip.dart';
+import '../../core/widgets/term_title_card.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -50,8 +54,11 @@ class TeacherClassSessionsPanel extends ConsumerStatefulWidget {
 
 class _TeacherClassSessionsPanelState
     extends ConsumerState<TeacherClassSessionsPanel> {
-  var _adding = false;
+  var _addingLegacy = false;
+  int? _addingForTermId;
+  var _addingTerm = false;
   final Set<int> _busyIds = {};
+  final Set<int> _busyTermIds = {};
 
   Future<void> _invalidate() async {
     ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
@@ -59,12 +66,12 @@ class _TeacherClassSessionsPanelState
     ref.invalidate(teacherWeekUpcomingProvider);
   }
 
-  Future<void> _add(AppLocalizations l10n) async {
-    setState(() => _adding = true);
+  Future<void> _addLegacy(AppLocalizations l10n) async {
+    setState(() => _addingLegacy = true);
     try {
       await ref
           .read(apiServiceProvider)
-          .addTeacherClassSession(widget.studentId);
+          .addTeacherClassSession(studentId: widget.studentId);
       await _invalidate();
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -76,7 +83,218 @@ class _TeacherClassSessionsPanelState
         SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
       );
     } finally {
-      if (mounted) setState(() => _adding = false);
+      if (mounted) setState(() => _addingLegacy = false);
+    }
+  }
+
+  Future<void> _addSessionForTerm(int termId, AppLocalizations l10n) async {
+    setState(() => _addingForTermId = termId);
+    try {
+      await ref.read(apiServiceProvider).addTeacherClassSession(
+            studentId: widget.studentId,
+            termId: termId,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.teacherClassSessionAdded)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _addingForTermId = null);
+    }
+  }
+
+  Future<void> _showAddTermDialog(AppLocalizations l10n) async {
+    final controller = TextEditingController(text: '12');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l10n.teacherClassTermsAddButton),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: l10n.teacherClassTermCapFieldLabel,
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.teacherSessionSave),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    final cap = int.tryParse(controller.text.trim()) ?? 0;
+    if (cap < 1 || cap > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.teacherSessionInvalid)),
+      );
+      return;
+    }
+    setState(() => _addingTerm = true);
+    try {
+      await ref.read(apiServiceProvider).addTeacherStudentTerm(
+            studentId: widget.studentId,
+            sessionCap: cap,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.teacherClassTermAdded)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _addingTerm = false);
+    }
+  }
+
+  Future<void> _editTermCap(ClassSessionTerm term, AppLocalizations l10n) async {
+    final controller = TextEditingController(text: '${term.sessionCap}');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l10n.teacherClassTermEditCapTitle),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: l10n.teacherClassTermCapFieldLabel,
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.teacherSessionSave),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    final cap = int.tryParse(controller.text.trim()) ?? 0;
+    if (cap < 1 || cap > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.teacherSessionInvalid)),
+      );
+      return;
+    }
+    setState(() => _busyTermIds.add(term.id));
+    try {
+      await ref.read(apiServiceProvider).updateTeacherStudentTerm(
+            studentId: widget.studentId,
+            termId: term.id,
+            sessionCap: cap,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.teacherClassTermUpdated)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _busyTermIds.remove(term.id));
+    }
+  }
+
+  Future<void> _toggleTermPayment(
+    ClassSessionTerm term,
+    AppLocalizations l10n,
+  ) async {
+    if (_busyTermIds.contains(term.id)) return;
+    setState(() => _busyTermIds.add(term.id));
+    try {
+      await ref.read(apiServiceProvider).setTeacherTermPayment(
+            studentId: widget.studentId,
+            termId: term.id,
+            isPaid: !term.isPaid,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.classTermPaymentUpdated)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _busyTermIds.remove(term.id));
+    }
+  }
+
+  Future<void> _deleteTerm(ClassSessionTerm term, AppLocalizations l10n) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final s = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: Text(l10n.teacherClassTermDeleteConfirmTitle),
+          content: Text(l10n.teacherClassTermDeleteConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: s.error,
+                foregroundColor: s.onError,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.teacherClassSessionDelete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busyTermIds.add(term.id));
+    try {
+      await ref.read(apiServiceProvider).deleteTeacherStudentTerm(
+            studentId: widget.studentId,
+            termId: term.id,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.teacherClassTermDeleted)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _busyTermIds.remove(term.id));
     }
   }
 
@@ -155,6 +373,146 @@ class _TeacherClassSessionsPanelState
     );
   }
 
+  List<Widget> _legacySessionList({
+    required List<ClassSessionEntry> sessions,
+    required ColorScheme scheme,
+    required TextTheme tt,
+    required AppLocalizations l10n,
+    required String loc,
+  }) {
+    final sortedForIndex = List<ClassSessionEntry>.from(sessions);
+    sortedForIndex.sort((a, b) {
+      final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
+      final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return db.compareTo(da);
+    });
+    final displayIndexFor = <int, int>{};
+    for (var i = 0; i < sortedForIndex.length; i++) {
+      final e = sortedForIndex[i];
+      displayIndexFor[e.id] = e.index > 0 ? e.index : i + 1;
+    }
+    final grouped = _groupByDay(sessions);
+    final dayFmt = DateFormat.yMMMMEEEEd(loc);
+    final timeFmt = DateFormat.jm(loc);
+    final out = <Widget>[const SizedBox(height: 20)];
+    for (final g in grouped) {
+      if (g.key.year != 1970) {
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10, top: 4),
+            child: Text(
+              dayFmt.format(g.key),
+              style: tt.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurfaceVariant,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        );
+      } else {
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10, top: 4),
+            child: Text(
+              '—',
+              style: tt.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        );
+      }
+      for (final e in g.value) {
+        final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
+        final idx = displayIndexFor[e.id] ?? 1;
+        final busy = _busyIds.contains(e.id);
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _SessionTile(
+              displayIndex: idx,
+              timeLabel: dt != null
+                  ? (g.key.year == 1970
+                        ? DateFormat.yMMMd(loc).add_Hm().format(dt)
+                        : timeFmt.format(dt))
+                  : e.recordedAtRaw,
+              scheme: scheme,
+              tt: tt,
+              l10n: l10n,
+              busy: busy,
+              onEdit: busy ? null : () => _edit(e, l10n, idx),
+              onDelete: busy ? null : () => _delete(e, l10n),
+            ),
+          ),
+        );
+      }
+      out.add(const SizedBox(height: 8));
+    }
+    return out;
+  }
+
+  List<Widget> _termsSessionList({
+    required List<ClassSessionEntry> termSessions,
+    required ColorScheme scheme,
+    required TextTheme tt,
+    required AppLocalizations l10n,
+    required String loc,
+  }) {
+    if (termSessions.isEmpty) {
+      return [];
+    }
+    final grouped = _groupByDay(termSessions);
+    final dayFmt = DateFormat.yMMMMEEEEd(loc);
+    final timeFmt = DateFormat.jm(loc);
+    final out = <Widget>[];
+    for (final g in grouped) {
+      if (g.key.year != 1970) {
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, top: 2),
+            child: Text(
+              dayFmt.format(g.key),
+              style: tt.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        );
+      }
+      for (final e in g.value) {
+        final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
+        final idx = classSessionChronologicalIndexInTerm(e, termSessions);
+        final busy = _busyIds.contains(e.id);
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _SessionTile(
+              displayIndex: idx,
+              timeLabel: dt != null
+                  ? (g.key.year == 1970
+                        ? DateFormat.yMMMd(loc).add_Hm().format(dt)
+                        : timeFmt.format(dt))
+                  : e.recordedAtRaw,
+              scheme: scheme,
+              tt: tt,
+              l10n: l10n,
+              busy: busy,
+              onEdit: busy ? null : () => _edit(e, l10n, idx),
+              onDelete: busy ? null : () => _delete(e, l10n),
+            ),
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -176,187 +534,298 @@ class _TeacherClassSessionsPanelState
       ),
       data: (info) {
         final sessions = info.sessions;
-        final sortedForIndex = List<ClassSessionEntry>.from(sessions);
-        sortedForIndex.sort((a, b) {
-          final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
-          final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
-          if (da == null && db == null) return 0;
-          if (da == null) return 1;
-          if (db == null) return -1;
-          return db.compareTo(da);
-        });
-        final displayIndexFor = <int, int>{};
-        for (var i = 0; i < sortedForIndex.length; i++) {
-          final e = sortedForIndex[i];
-          displayIndexFor[e.id] = e.index > 0 ? e.index : i + 1;
-        }
-        final grouped = _groupByDay(sessions);
-        final dayFmt = DateFormat.yMMMMEEEEd(loc);
-        final timeFmt = DateFormat.jm(loc);
+        final useTermsUi = info.usesTermsTable;
+        final terms = info.terms;
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          children: [
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.5),
-                ),
+        final headerSubtitle = useTermsUi
+            ? l10n.teacherClassSessionsTabSubtitleTerms
+            : l10n.teacherClassSessionsTabSubtitle;
+
+        final children = <Widget>[
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.5),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: scheme.primaryContainer,
-                          child: Icon(
-                            Icons.school_outlined,
-                            color: scheme.onPrimaryContainer,
-                            size: 22,
-                          ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: scheme.primaryContainer,
+                        child: Icon(
+                          Icons.school_outlined,
+                          color: scheme.onPrimaryContainer,
+                          size: 22,
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          l10n.teacherClassSessions,
+                          style: tt.titleMedium,
+                        ),
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           child: Text(
-                            l10n.teacherClassSessions,
-                            style: tt.titleMedium,
-                          ),
-                        ),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            child: Text(
-                              '${sessions.length}',
-                              style: tt.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.primary,
-                              ),
+                            '${sessions.length}',
+                            style: tt.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   Text(
-                    l10n.teacherClassSessionsTabSubtitle,
+                    headerSubtitle,
                     style: tt.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                       height: 1.45,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonalIcon(
-                    onPressed: _adding ? null : () => _add(l10n),
-                    icon: _adding
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: scheme.primary,
-                            ),
-                          )
-                        : const Icon(Icons.add_rounded),
-                    label: Text(l10n.teacherClassSessionsAddButton),
-                  ),
+                  if (!useTermsUi) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: _addingLegacy
+                          ? null
+                          : () => _addLegacy(l10n),
+                      icon: _addingLegacy
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: scheme.primary,
+                              ),
+                            )
+                          : const Icon(Icons.add_rounded),
+                      label: Text(l10n.teacherClassSessionsAddButton),
+                    ),
+                  ],
                 ],
               ),
             ),
+          ),
+        ];
+
+        if (useTermsUi) {
+          children.add(const SizedBox(height: 18));
+          children.add(
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.teacherClassTermsSection,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _addingTerm ? null : () => _showAddTermDialog(l10n),
+                  icon: _addingTerm
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: scheme.primary,
+                          ),
+                        )
+                      : const Icon(Icons.add_rounded, size: 20),
+                  label: Text(l10n.teacherClassTermsAddButton),
+                ),
+              ],
             ),
-            if (sessions.isEmpty) ...[
-              const SizedBox(height: 32),
-              Icon(
-                Icons.event_busy_rounded,
-                size: 56,
-                color: scheme.outlineVariant,
-              ),
+          );
+
+          if (terms.isEmpty) {
+            children.addAll([
               const SizedBox(height: 16),
               Text(
-                l10n.youClassSessionsEmpty,
-                textAlign: TextAlign.center,
-                style: tt.titleSmall?.copyWith(
+                l10n.teacherClassTermsEmptyHint,
+                style: tt.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  l10n.teacherClassSessionsHintEmpty,
-                  textAlign: TextAlign.center,
-                  style: tt.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.4,
+            ]);
+          }
+
+          for (final term in terms) {
+            final termSessions =
+                sessions.where((s) => s.termId == term.id).toList();
+            final termBusy = _busyTermIds.contains(term.id);
+            final addingHere = _addingForTermId == term.id;
+            children.add(const SizedBox(height: 14));
+            children.add(
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.45),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    TermTitleCard(
+                                      title: l10n.teacherClassTermTitle(
+                                        term.sortOrder,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TermPaymentStatusChip(
+                                      isPaid: term.isPaid,
+                                      l10n: l10n,
+                                      onTap: termBusy
+                                          ? null
+                                          : () => _toggleTermPayment(
+                                                term,
+                                                l10n,
+                                              ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n.teacherClassTermSessionsProgress(
+                                    term.sessionCount,
+                                    term.sessionCap,
+                                  ),
+                                  style: tt.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: l10n.teacherClassSessionEdit,
+                            onPressed: termBusy
+                                ? null
+                                : () => _editTermCap(term, l10n),
+                            icon: Icon(Icons.edit_outlined, color: scheme.primary),
+                          ),
+                          IconButton(
+                            tooltip: l10n.teacherClassSessionDelete,
+                            onPressed: termBusy
+                                ? null
+                                : () => _deleteTerm(term, l10n),
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: scheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                      ..._termsSessionList(
+                        termSessions: termSessions,
+                        scheme: scheme,
+                        tt: tt,
+                        l10n: l10n,
+                        loc: loc,
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: (term.isFull || addingHere)
+                            ? null
+                            : () => _addSessionForTerm(term.id, l10n),
+                        icon: addingHere
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.primary,
+                                ),
+                              )
+                            : const Icon(Icons.add_rounded, size: 20),
+                        label: Text(l10n.teacherClassTermAddSessionButton),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ] else ...[
-              const SizedBox(height: 20),
-              for (final g in grouped) ...[
-                if (g.key.year != 1970) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10, top: 4),
-                    child: Text(
-                      dayFmt.format(g.key),
-                      style: tt.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurfaceVariant,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10, top: 4),
-                    child: Text(
-                      '—',
-                      style: tt.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-                ...g.value.map((e) {
-                  final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
-                  final idx = displayIndexFor[e.id] ?? 1;
-                  final busy = _busyIds.contains(e.id);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _SessionTile(
-                      displayIndex: idx,
-                      timeLabel: dt != null
-                          ? (g.key.year == 1970
-                                ? DateFormat.yMMMd(loc).add_Hm().format(dt)
-                                : timeFmt.format(dt))
-                          : e.recordedAtRaw,
-                      scheme: scheme,
-                      tt: tt,
-                      l10n: l10n,
-                      busy: busy,
-                      onEdit: busy ? null : () => _edit(e, l10n, idx),
-                      onDelete: busy ? null : () => _delete(e, l10n),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 8),
-              ],
-            ],
-          ],
+            );
+          }
+        } else if (sessions.isEmpty) {
+          children.addAll([
+            const SizedBox(height: 32),
+            Icon(
+              Icons.event_busy_rounded,
+              size: 56,
+              color: scheme.outlineVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.youClassSessionsEmpty,
+              textAlign: TextAlign.center,
+              style: tt.titleSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                l10n.teacherClassSessionsHintEmpty,
+                textAlign: TextAlign.center,
+                style: tt.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ]);
+        } else {
+          children.addAll(
+            _legacySessionList(
+              sessions: sessions,
+              scheme: scheme,
+              tt: tt,
+              l10n: l10n,
+              loc: loc,
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          children: children,
         );
       },
     );

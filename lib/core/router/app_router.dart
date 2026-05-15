@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../tts/tts_service.dart';
 import '../../features/favorites/favorites_screen.dart';
+import '../../features/word_builder/word_builder_constants.dart';
+import '../../features/word_builder/presentation/word_builder_lobby_screen.dart';
+import '../../features/word_builder/presentation/word_builder_session_screen.dart';
+import '../../features/word_builder/presentation/word_builder_campaign_stages_screen.dart';
+import '../../features/word_builder/domain/word_builder_models.dart';
 import '../../features/grammar/grammar_quiz_screen.dart';
 import '../../features/grammar/grammar_result_review_screen.dart';
 import '../../features/grammar/grammar_results_screen.dart';
@@ -183,6 +188,33 @@ final routerProvider = Provider<GoRouter>((ref) {
                 );
               }
               return const _SeriesBooksInvalidRoute();
+            },
+          ),
+
+          GoRoute(
+            path: '/word-builder',
+            builder: (_, __) => const WordBuilderLobbyScreen(),
+          ),
+          GoRoute(
+            path: '/word-builder/campaign',
+            builder: (context, state) {
+              final raw = state.uri.queryParameters['difficulty'] ?? 'beginner';
+              final d = switch (raw) {
+                'intermediate' => WordBuilderDifficulty.intermediate,
+                'advanced' => WordBuilderDifficulty.advanced,
+                _ => WordBuilderDifficulty.beginner,
+              };
+              return WordBuilderCampaignStagesScreen(difficulty: d);
+            },
+          ),
+          GoRoute(
+            path: '/word-builder/session',
+            builder: (context, state) {
+              final q = state.uri.queryParameters['bookId'] ?? 'all';
+              final key = q == 'all'
+                  ? kWordBuilderAllBooksKey
+                  : (int.tryParse(q) ?? kWordBuilderAllBooksKey);
+              return WordBuilderSessionScreen(bookKey: key);
             },
           ),
 

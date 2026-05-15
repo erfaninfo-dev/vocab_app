@@ -50,6 +50,7 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
 
         unawaited(_maybeShowOptionalUpdateDialog(check));
       },
+      fireImmediately: true,
     );
   }
 
