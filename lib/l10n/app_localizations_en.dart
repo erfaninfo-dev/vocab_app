@@ -21,6 +21,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabReview => 'Review';
 
   @override
+  String get tabPlay => 'Play';
+
+  @override
+  String get youSectionReview => 'Review';
+
+  @override
+  String get youSectionReviewSubtitle =>
+      'Spaced repetition for words you\'ve practiced.';
+
+  @override
   String get tabProgress => 'Progress';
 
   @override
@@ -1112,6 +1122,64 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap + to record each class session. The time is saved automatically.';
 
   @override
+  String get teacherClassSessionsTabSubtitleTerms =>
+      'Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.';
+
+  @override
+  String get teacherClassTermsSection => 'Terms';
+
+  @override
+  String teacherClassTermTitle(int number) {
+    return 'Term $number';
+  }
+
+  @override
+  String teacherClassTermSessionsProgress(int current, int max) {
+    return '$current / $max sessions';
+  }
+
+  @override
+  String get teacherClassTermsAddButton => 'Add term';
+
+  @override
+  String get teacherClassTermsEmptyHint =>
+      'Add a term first, set its session limit, then log class sessions under that term.';
+
+  @override
+  String get teacherClassTermEditCapTitle => 'Session limit';
+
+  @override
+  String get teacherClassTermCapFieldLabel => 'Max sessions in this term';
+
+  @override
+  String get teacherClassTermDeleteConfirmTitle => 'Delete this term?';
+
+  @override
+  String get teacherClassTermDeleteConfirmBody =>
+      'Every class session recorded in this term will be removed. This cannot be undone.';
+
+  @override
+  String get teacherClassTermAdded => 'Term added';
+
+  @override
+  String get teacherClassTermUpdated => 'Term updated';
+
+  @override
+  String get teacherClassTermDeleted => 'Term removed';
+
+  @override
+  String get teacherClassTermAddSessionButton => 'Log session';
+
+  @override
+  String get classTermPaymentPaid => 'Paid';
+
+  @override
+  String get classTermPaymentUnpaid => 'Unpaid';
+
+  @override
+  String get classTermPaymentUpdated => 'Payment status updated';
+
+  @override
   String get teacherSessionCountLabel => 'Recorded class sessions';
 
   @override
@@ -1967,6 +2035,186 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminScreenSubtitle => 'Search and tap a user to edit';
+
+  @override
+  String get wordBuilderClearPath => 'Clear';
+
+  @override
+  String get wordBuilderTitle => 'Word Builder';
+
+  @override
+  String get wordBuilderShuffle => 'Shuffle letters';
+
+  @override
+  String get wordBuilderPickSource => 'Choose vocabulary';
+
+  @override
+  String get wordBuilderStartPlay => 'Start';
+
+  @override
+  String get wordBuilderCatalogAll => 'All books';
+
+  @override
+  String get wordBuilderNoWordsBody =>
+      'No suitable English words were found for this source. Pick another book or refresh.';
+
+  @override
+  String get wordBuilderHomeSubtitle =>
+      'Build English words from shuffled letters.';
+
+  @override
+  String wordBuilderLevelOf(int current, int total) {
+    return 'Level $current of $total';
+  }
+
+  @override
+  String wordBuilderCategory(String name) {
+    return 'Topic: $name';
+  }
+
+  @override
+  String get wordBuilderDifficultyBeginner => 'Beginner';
+
+  @override
+  String get wordBuilderDifficultyIntermediate => 'Intermediate';
+
+  @override
+  String get wordBuilderDifficultyAdvanced => 'Advanced';
+
+  @override
+  String get wordBuilderYourWord => 'Your word';
+
+  @override
+  String get wordBuilderLetters => 'Letter pool';
+
+  @override
+  String get wordBuilderSubmit => 'Check word';
+
+  @override
+  String get wordBuilderReset => 'Clear';
+
+  @override
+  String get wordBuilderNextLevel => 'Next level';
+
+  @override
+  String get wordBuilderHints => 'Hints';
+
+  @override
+  String get wordBuilderHintReveal => 'Reveal a letter';
+
+  @override
+  String get wordBuilderHintRemove => 'Remove an extra letter';
+
+  @override
+  String get wordBuilderHintMeaning => 'Show a meaning';
+
+  @override
+  String get wordBuilderTranslation => 'Translation';
+
+  @override
+  String get wordBuilderTooShort => 'Pick more letters first.';
+
+  @override
+  String get wordBuilderAlreadyFound => 'You already found that word.';
+
+  @override
+  String get wordBuilderTryAgain => 'Not in this level — keep trying.';
+
+  @override
+  String get wordBuilderCorrectNice => 'Nice!';
+
+  @override
+  String get wordBuilderHintLetter =>
+      'A letter was revealed in one of the words.';
+
+  @override
+  String get wordBuilderHintRemoved =>
+      'Removed an extra letter from your word.';
+
+  @override
+  String get wordBuilderHintRemoveNone =>
+      'No extra letters to remove right now.';
+
+  @override
+  String wordBuilderHintMeaningLine(String meaning) {
+    return 'Hint: $meaning';
+  }
+
+  @override
+  String get wordBuilderAllLevelsDone =>
+      'You finished all levels in this session.';
+
+  @override
+  String wordBuilderTotalXp(int xp) {
+    return 'Total XP: $xp';
+  }
+
+  @override
+  String wordBuilderAccuracy(int pct) {
+    return 'Accuracy: $pct%';
+  }
+
+  @override
+  String get wordBuilderPronunciation => 'Pronunciation';
+
+  @override
+  String get wordBuilderMeaning => 'Meaning';
+
+  @override
+  String get wordBuilderExample => 'Example';
+
+  @override
+  String get wordBuilderSpeakWord => 'Speak word';
+
+  @override
+  String get wordBuilderSpeakExample => 'Speak example';
+
+  @override
+  String get wordBuilderTargetsHeading => 'Words to find';
+
+  @override
+  String get wordBuilderCampaignHubSubtitle => '';
+
+  @override
+  String get wordBuilderCampaignStagesHint => '';
+
+  @override
+  String get wordBuilderCampaignStageLockedSnackbar =>
+      'Finish the previous stage first.';
+
+  @override
+  String get wordBuilderCampaignTierLockedBody =>
+      'Complete all 50 stages in the previous difficulty to unlock this track.';
+
+  @override
+  String get wordBuilderCampaignPlanError =>
+      'Not enough vocabulary to build this stage. Try refreshing books later.';
+
+  @override
+  String get wordBuilderCampaignReset => 'reset';
+
+  @override
+  String get wordBuilderCampaignResetConfirm =>
+      'Clear all Word Builder stage progress? This cannot be undone.';
+
+  @override
+  String get wordBuilderCampaignResetDone => 'Campaign progress cleared.';
+
+  @override
+  String wordBuilderCampaignStageOf(int stage, int total) {
+    return 'Stage $stage of $total';
+  }
+
+  @override
+  String wordBuilderCampaignStageN(int n) {
+    return 'Stage $n';
+  }
+
+  @override
+  String get wordBuilderCampaignStageCompleted => 'Completed';
+
+  @override
+  String get wordBuilderCampaignStageReplayHint => 'Tap to replay this stage';
 
   @override
   String get adminEditUserSheetTitle => 'Edit access';

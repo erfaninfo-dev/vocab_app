@@ -896,6 +896,11 @@ class ApiService {
     final sessions = rawList
         .map((e) => ClassSessionEntry.fromJson(e as Map<String, dynamic>))
         .toList();
+    final rawTerms = map['terms'] as List<dynamic>? ?? const [];
+    final terms = rawTerms
+        .map((e) => ClassSessionTerm.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final usesTermsTable = map.containsKey('terms');
     final fallbackCount = (map['session_count'] as num?)?.toInt() ?? 0;
     final count = sessions.isNotEmpty ? sessions.length : fallbackCount;
     final u = map['updated_at']?.toString();
@@ -905,12 +910,42 @@ class ApiService {
       updatedAt: (u != null && u.isNotEmpty) ? u : null,
       note: (rawNote != null && rawNote.trim().isNotEmpty) ? rawNote : null,
       sessions: sessions,
+      terms: terms,
+      usesTermsTable: usesTermsTable,
     );
   }
 
   /// POST — append one class session (`add_session` on server).
-  /// Sends the current instant in UTC ISO8601 so it matches the device clock worldwide.
-  Future<TeacherSessionInfo> addTeacherClassSession(int studentId) async {
+  /// When the server has terms migrated, pass [termId]; otherwise omit for legacy installs.
+  Future<TeacherSessionInfo> addTeacherClassSession({
+    required int studentId,
+    int? termId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final body = <String, dynamic>{
+      'student_id': studentId,
+      'add_session': true,
+      'recorded_at': DateTime.now().toUtc().toIso8601String(),
+    };
+    if (termId != null) {
+      body['term_id'] = termId;
+    }
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  Future<TeacherSessionInfo> addTeacherStudentTerm({
+    required int studentId,
+    required int sessionCap,
+  }) async {
     final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
     final response = await http.post(
       uri,
@@ -919,8 +954,74 @@ class ApiService {
       }),
       body: jsonEncode({
         'student_id': studentId,
-        'add_session': true,
-        'recorded_at': DateTime.now().toUtc().toIso8601String(),
+        'add_term': true,
+        'session_cap': sessionCap,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  Future<TeacherSessionInfo> updateTeacherStudentTerm({
+    required int studentId,
+    required int termId,
+    required int sessionCap,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'update_term': true,
+        'term_id': termId,
+        'session_cap': sessionCap,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  Future<TeacherSessionInfo> deleteTeacherStudentTerm({
+    required int studentId,
+    required int termId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'delete_term_id': termId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  Future<TeacherSessionInfo> setTeacherTermPayment({
+    required int studentId,
+    required int termId,
+    required bool isPaid,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'set_term_payment': true,
+        'term_id': termId,
+        'is_paid': isPaid,
       }),
     );
     _assertAuthResponse(response);

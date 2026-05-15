@@ -21,6 +21,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tabReview => 'مرور';
 
   @override
+  String get tabPlay => 'بازی';
+
+  @override
+  String get youSectionReview => 'مرور';
+
+  @override
+  String get youSectionReviewSubtitle =>
+      'تکرار با فاصله برای لغاتی که تمرین کرده‌اید.';
+
+  @override
   String get tabProgress => 'پیشرفت';
 
   @override
@@ -1114,6 +1124,64 @@ class AppLocalizationsFa extends AppLocalizations {
       'با زدن + هر جلسهٔ کلاس را ثبت کنید؛ زمان به‌صورت خودکار ذخیره می‌شود.';
 
   @override
+  String get teacherClassSessionsTabSubtitleTerms =>
+      'ترم بسازید و برای هر ترم حداکثر تعداد جلسه را مشخص کنید؛ جلسات را زیر همان ترم ثبت کنید؛ شاگرد همان گروه‌بندی را می‌بیند.';
+
+  @override
+  String get teacherClassTermsSection => 'ترم‌ها';
+
+  @override
+  String teacherClassTermTitle(int number) {
+    return 'ترم $number';
+  }
+
+  @override
+  String teacherClassTermSessionsProgress(int current, int max) {
+    return '$current از $max جلسه';
+  }
+
+  @override
+  String get teacherClassTermsAddButton => 'افزودن ترم';
+
+  @override
+  String get teacherClassTermsEmptyHint =>
+      'ابتدا یک ترم بسازید و سقف جلسه را تعیین کنید؛ سپس جلسات را زیر همان ترم ثبت کنید.';
+
+  @override
+  String get teacherClassTermEditCapTitle => 'سقف جلسه';
+
+  @override
+  String get teacherClassTermCapFieldLabel => 'حداکثر تعداد جلسه در این ترم';
+
+  @override
+  String get teacherClassTermDeleteConfirmTitle => 'این ترم حذف شود؟';
+
+  @override
+  String get teacherClassTermDeleteConfirmBody =>
+      'تمام جلسه‌های ثبت‌شده در این ترم پاک می‌شوند و برگشت ندارد.';
+
+  @override
+  String get teacherClassTermAdded => 'ترم اضافه شد';
+
+  @override
+  String get teacherClassTermUpdated => 'ترم به‌روز شد';
+
+  @override
+  String get teacherClassTermDeleted => 'ترم حذف شد';
+
+  @override
+  String get teacherClassTermAddSessionButton => 'ثبت جلسه';
+
+  @override
+  String get classTermPaymentPaid => 'پرداخت شده';
+
+  @override
+  String get classTermPaymentUnpaid => 'پرداخت نشده';
+
+  @override
+  String get classTermPaymentUpdated => 'وضعیت پرداخت به‌روز شد';
+
+  @override
   String get teacherSessionCountLabel => 'تعداد جلسات ثبت‌شده';
 
   @override
@@ -1966,6 +2034,182 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get adminScreenSubtitle => 'جستجو کنید و برای ویرایش روی کاربر بزنید';
+
+  @override
+  String get wordBuilderClearPath => 'پاک کردن مسیر';
+
+  @override
+  String get wordBuilderTitle => 'واژه‌ساز';
+
+  @override
+  String get wordBuilderShuffle => 'به‌هم‌ریختن حروف';
+
+  @override
+  String get wordBuilderPickSource => 'انتخاب منبع لغات';
+
+  @override
+  String get wordBuilderStartPlay => 'شروع بازی';
+
+  @override
+  String get wordBuilderCatalogAll => 'همهٔ کتاب‌ها';
+
+  @override
+  String get wordBuilderNoWordsBody =>
+      'برای این منبع کلمهٔ انگلیسی مناسب پیدا نشد. کتاب دیگری انتخاب کنید یا دوباره تلاش کنید.';
+
+  @override
+  String get wordBuilderHomeSubtitle =>
+      'با حروف به‌هم‌ریخته کلمات انگلیسی بسازید.';
+
+  @override
+  String wordBuilderLevelOf(int current, int total) {
+    return 'مرحله $current از $total';
+  }
+
+  @override
+  String wordBuilderCategory(String name) {
+    return 'موضوع: $name';
+  }
+
+  @override
+  String get wordBuilderDifficultyBeginner => 'مبتدی';
+
+  @override
+  String get wordBuilderDifficultyIntermediate => 'متوسط';
+
+  @override
+  String get wordBuilderDifficultyAdvanced => 'پیشرفته';
+
+  @override
+  String get wordBuilderYourWord => 'کلمهٔ شما';
+
+  @override
+  String get wordBuilderLetters => 'حرف‌ها';
+
+  @override
+  String get wordBuilderSubmit => 'بررسی کلمه';
+
+  @override
+  String get wordBuilderReset => 'پاک کردن';
+
+  @override
+  String get wordBuilderNextLevel => 'مرحله بعد';
+
+  @override
+  String get wordBuilderHints => 'راهنما';
+
+  @override
+  String get wordBuilderHintReveal => 'نمایش یک حرف';
+
+  @override
+  String get wordBuilderHintRemove => 'حذف حرف اضافه';
+
+  @override
+  String get wordBuilderHintMeaning => 'نمایش معنی';
+
+  @override
+  String get wordBuilderTranslation => 'ترجمه';
+
+  @override
+  String get wordBuilderTooShort => 'اول حروف بیشتری انتخاب کنید.';
+
+  @override
+  String get wordBuilderAlreadyFound => 'این کلمه را قبلاً پیدا کرده‌اید.';
+
+  @override
+  String get wordBuilderTryAgain => 'در این مرحله نیست — ادامه دهید.';
+
+  @override
+  String get wordBuilderCorrectNice => 'آفرین!';
+
+  @override
+  String get wordBuilderHintLetter => 'یک حرف در یکی از کلمات نمایش داده شد.';
+
+  @override
+  String get wordBuilderHintRemoved => 'یک حرف اضافه از کلمهٔ شما حذف شد.';
+
+  @override
+  String get wordBuilderHintRemoveNone => 'الان حرف اضافه‌ای برای حذف نیست.';
+
+  @override
+  String wordBuilderHintMeaningLine(String meaning) {
+    return 'راهنما: $meaning';
+  }
+
+  @override
+  String get wordBuilderAllLevelsDone => 'همهٔ مراحل این جلسه تمام شد.';
+
+  @override
+  String wordBuilderTotalXp(int xp) {
+    return 'XP کل: $xp';
+  }
+
+  @override
+  String wordBuilderAccuracy(int pct) {
+    return 'دقت: $pct٪';
+  }
+
+  @override
+  String get wordBuilderPronunciation => 'تلفظ';
+
+  @override
+  String get wordBuilderMeaning => 'معنی';
+
+  @override
+  String get wordBuilderExample => 'مثال';
+
+  @override
+  String get wordBuilderSpeakWord => 'پخش کلمه';
+
+  @override
+  String get wordBuilderSpeakExample => 'پخش جمله';
+
+  @override
+  String get wordBuilderTargetsHeading => 'کلمات هدف';
+
+  @override
+  String get wordBuilderCampaignHubSubtitle => '';
+
+  @override
+  String get wordBuilderCampaignStagesHint => '';
+
+  @override
+  String get wordBuilderCampaignStageLockedSnackbar =>
+      'ابتدا مرحلهٔ قبل را تمام کنید.';
+
+  @override
+  String get wordBuilderCampaignTierLockedBody =>
+      'برای باز شدن این سطح، هر ۵۰ مرحلهٔ سطح قبلی را تمام کنید.';
+
+  @override
+  String get wordBuilderCampaignPlanError =>
+      'واژهٔ کافی برای این مرحله روی سرور نیست. بعداً دوباره امتحان کنید یا کتاب‌ها را تازه کنید.';
+
+  @override
+  String get wordBuilderCampaignReset => 'reset';
+
+  @override
+  String get wordBuilderCampaignResetConfirm =>
+      'همهٔ پیشرفت مراحل واژه‌ساز پاک شود؟ این کار برگشت‌ناپذیر است.';
+
+  @override
+  String get wordBuilderCampaignResetDone => 'پیشرفت مراحل پاک شد.';
+
+  @override
+  String wordBuilderCampaignStageOf(int stage, int total) {
+    return 'مرحله $stage از $total';
+  }
+
+  @override
+  String wordBuilderCampaignStageN(int n) {
+    return 'مرحله $n';
+  }
+
+  @override
+  String get wordBuilderCampaignStageCompleted => 'تمام‌شده';
+
+  @override
+  String get wordBuilderCampaignStageReplayHint => 'برای تکرار این مرحله بزنید';
 
   @override
   String get adminEditUserSheetTitle => 'ویرایش دسترسی';

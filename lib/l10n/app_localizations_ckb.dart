@@ -21,6 +21,16 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get tabReview => 'پێداچوونەوە';
 
   @override
+  String get tabPlay => 'یاری';
+
+  @override
+  String get youSectionReview => 'پێداچوونەوە';
+
+  @override
+  String get youSectionReviewSubtitle =>
+      'دووبارەکردنەوەی وشەکان بە مەودا بۆ ئەو ووشانەی تەمرین کردووتە.';
+
+  @override
   String get tabProgress => 'پێشکەوتن';
 
   @override
@@ -1120,6 +1130,65 @@ class AppLocalizationsCkb extends AppLocalizations {
       'بە + هەر دانیشتنێک تۆمار بکە؛ کاتەکە خۆکار پاشەکەوت دەکرێت.';
 
   @override
+  String get teacherClassSessionsTabSubtitleTerms =>
+      'خولەکان دروست بکە و بۆ هەر خولێک زۆرترین ژمارەی دانیشتن دیاری بکە؛ دانیشتنەکان لەژێر هەمان خول تۆمار بکە؛ قوتابی هەمان گروپکردن دەبینێت.';
+
+  @override
+  String get teacherClassTermsSection => 'خولەکان';
+
+  @override
+  String teacherClassTermTitle(int number) {
+    return 'خول $number';
+  }
+
+  @override
+  String teacherClassTermSessionsProgress(int current, int max) {
+    return '$current لە $max دانیشتن';
+  }
+
+  @override
+  String get teacherClassTermsAddButton => 'زیادکردنی خول';
+
+  @override
+  String get teacherClassTermsEmptyHint =>
+      'سەرەتا خولێک دروست بکە و سنووری دانیشتن دیاری بکە؛ پاشان دانیشتنەکان لەژێر هەمان خول تۆمار بکە.';
+
+  @override
+  String get teacherClassTermEditCapTitle => 'سنووری دانیشتن';
+
+  @override
+  String get teacherClassTermCapFieldLabel =>
+      'زۆرترین ژمارەی دانیشتن لەم خولەدا';
+
+  @override
+  String get teacherClassTermDeleteConfirmTitle => 'ئەم خولە بسڕدرێتەوە؟';
+
+  @override
+  String get teacherClassTermDeleteConfirmBody =>
+      'هەموو دانیشتنە تۆمارکراوەکان لەم خولەدا دەسڕدرێنەوە و ناتوانرێت بگەڕێندرێتەوە.';
+
+  @override
+  String get teacherClassTermAdded => 'خول زیادکرا';
+
+  @override
+  String get teacherClassTermUpdated => 'خول نوێکرایەوە';
+
+  @override
+  String get teacherClassTermDeleted => 'خول سڕایەوە';
+
+  @override
+  String get teacherClassTermAddSessionButton => 'تۆمارکردنی دانیشتن';
+
+  @override
+  String get classTermPaymentPaid => 'پارەدراوە';
+
+  @override
+  String get classTermPaymentUnpaid => 'پارە نەدراوە';
+
+  @override
+  String get classTermPaymentUpdated => 'دۆخی پارەدان نوێکرایەوە';
+
+  @override
   String get teacherSessionCountLabel => 'ژمارەی وانە تۆمارکراوەکان';
 
   @override
@@ -1978,6 +2047,182 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get adminScreenSubtitle =>
       'بگەڕێ و بۆ دەستکاری کرتە لەسەر بەکارهێنەر بکە';
+
+  @override
+  String get wordBuilderClearPath => 'سڕینەوەی هێڵ';
+
+  @override
+  String get wordBuilderTitle => 'دروستکەری وشە';
+
+  @override
+  String get wordBuilderShuffle => 'تێکەڵکردنی پیتەکان';
+
+  @override
+  String get wordBuilderPickSource => 'سەرچاوەی وشە هەڵبژێرە';
+
+  @override
+  String get wordBuilderStartPlay => 'دەستپێکردن';
+
+  @override
+  String get wordBuilderCatalogAll => 'هەموو کتێبەکان';
+
+  @override
+  String get wordBuilderNoWordsBody =>
+      'بۆ ئەم سەرچاوەیە وشەی ئینگلیزی گونجاو نەدۆزرایەوە. کتێبێکی تر هەڵبژێرە یان دووبارە هەوڵ بدە.';
+
+  @override
+  String get wordBuilderHomeSubtitle =>
+      'وشەی ئینگلیزی لە پیتە تێکەڵاوەکان دروست بکە.';
+
+  @override
+  String wordBuilderLevelOf(int current, int total) {
+    return 'ئاست $current لە $total';
+  }
+
+  @override
+  String wordBuilderCategory(String name) {
+    return 'بابەت: $name';
+  }
+
+  @override
+  String get wordBuilderDifficultyBeginner => 'سەرەتایی';
+
+  @override
+  String get wordBuilderDifficultyIntermediate => 'مامناوەند';
+
+  @override
+  String get wordBuilderDifficultyAdvanced => 'پێشکەوتوو';
+
+  @override
+  String get wordBuilderYourWord => 'وشەکەت';
+
+  @override
+  String get wordBuilderLetters => 'پیتەکان';
+
+  @override
+  String get wordBuilderSubmit => 'پشکنین';
+
+  @override
+  String get wordBuilderReset => 'سڕینەوە';
+
+  @override
+  String get wordBuilderNextLevel => 'ئاستی دواتر';
+
+  @override
+  String get wordBuilderHints => 'یارمەتی';
+
+  @override
+  String get wordBuilderHintReveal => 'پیتێک دەربکە';
+
+  @override
+  String get wordBuilderHintRemove => 'پیتێکی زیادە لاببە';
+
+  @override
+  String get wordBuilderHintMeaning => 'واتایەک پیشان بدە';
+
+  @override
+  String get wordBuilderTranslation => 'وەرگێڕان';
+
+  @override
+  String get wordBuilderTooShort => 'سەرەتا پیت زیاتر هەڵبژێرە.';
+
+  @override
+  String get wordBuilderAlreadyFound => 'ئەم وشەتەت دۆزییەوە.';
+
+  @override
+  String get wordBuilderTryAgain => 'لەم ئاستەدا نییە — بەردەوام بە.';
+
+  @override
+  String get wordBuilderCorrectNice => 'باشە!';
+
+  @override
+  String get wordBuilderHintLetter => 'پیتێک لە یەکێک لە وشەکان دەردەکەوێت.';
+
+  @override
+  String get wordBuilderHintRemoved => 'پیتێکی زیادە لە وشەکەت لابرا.';
+
+  @override
+  String get wordBuilderHintRemoveNone => 'ئێستا پیتێکی زیادە نییە.';
+
+  @override
+  String wordBuilderHintMeaningLine(String meaning) {
+    return 'یارمەتی: $meaning';
+  }
+
+  @override
+  String get wordBuilderAllLevelsDone => 'هەموو ئاستەکانی ئەم دانیشتنە تەواون.';
+
+  @override
+  String wordBuilderTotalXp(int xp) {
+    return 'کۆی XP: $xp';
+  }
+
+  @override
+  String wordBuilderAccuracy(int pct) {
+    return 'وردی: $pct٪';
+  }
+
+  @override
+  String get wordBuilderPronunciation => 'دەنگکردن';
+
+  @override
+  String get wordBuilderMeaning => 'واتا';
+
+  @override
+  String get wordBuilderExample => 'نموونە';
+
+  @override
+  String get wordBuilderSpeakWord => 'وتنی وشە';
+
+  @override
+  String get wordBuilderSpeakExample => 'وتنی ڕستە';
+
+  @override
+  String get wordBuilderTargetsHeading => 'وشە مەبەستەکان';
+
+  @override
+  String get wordBuilderCampaignHubSubtitle => '';
+
+  @override
+  String get wordBuilderCampaignStagesHint => '';
+
+  @override
+  String get wordBuilderCampaignStageLockedSnackbar =>
+      'سەرەتا قۆناغی پێشوو تەواو بکە.';
+
+  @override
+  String get wordBuilderCampaignTierLockedBody =>
+      'بۆ کردنەوەی ئەم ئاستە، هەموو ٥٠ قۆناغی ئاستی پێشوو تەواو بکە.';
+
+  @override
+  String get wordBuilderCampaignPlanError =>
+      'وشەی پێویست بۆ ئەم قۆناغە نییە. دواتر هەوڵ بدەوە.';
+
+  @override
+  String get wordBuilderCampaignReset => 'reset';
+
+  @override
+  String get wordBuilderCampaignResetConfirm =>
+      'هەموو پێشڕەوی واژەساز بسڕدرێتەوە؟ گەڕانەوە نییە.';
+
+  @override
+  String get wordBuilderCampaignResetDone => 'پێشڕەوی قۆناغەکان سڕایەوە.';
+
+  @override
+  String wordBuilderCampaignStageOf(int stage, int total) {
+    return 'قۆناغ $stage لە $total';
+  }
+
+  @override
+  String wordBuilderCampaignStageN(int n) {
+    return 'قۆناغ $n';
+  }
+
+  @override
+  String get wordBuilderCampaignStageCompleted => 'تەواو';
+
+  @override
+  String get wordBuilderCampaignStageReplayHint => 'کرتە بکە بۆ دووبارەکردنەوە';
 
   @override
   String get adminEditUserSheetTitle => 'دەستکاری دەستپێگەیشتن';

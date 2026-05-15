@@ -4,6 +4,9 @@
   "tabHome": "سەرەکی",
   "tabGrammar": "ڕێزمان",
   "tabReview": "پێداچوونەوە",
+  "tabPlay": "یاری",
+  "youSectionReview": "پێداچوونەوە",
+  "youSectionReviewSubtitle": "دووبارەکردنەوەی وشەکان بە مەودا بۆ ئەو ووشانەی تەمرین کردووتە.",
   "tabProgress": "پێشکەوتن",
   "tabYou": "تۆ",
   "tabSettings": "ڕێکخستنەکان",
@@ -374,6 +377,34 @@
   "studentPanelHeadline": "مامۆستا، دانیشتن و پەیامەکان لە یەک شوێن.",
   "studentPanelStatUnread": "نەخوێندراوە",
   "teacherClassSessionsHintEmpty": "بە + هەر دانیشتنێک تۆمار بکە؛ کاتەکە خۆکار پاشەکەوت دەکرێت.",
+  "teacherClassSessionsTabSubtitleTerms": "خولەکان دروست بکە و بۆ هەر خولێک زۆرترین ژمارەی دانیشتن دیاری بکە؛ دانیشتنەکان لەژێر هەمان خول تۆمار بکە؛ قوتابی هەمان گروپکردن دەبینێت.",
+  "teacherClassTermsSection": "خولەکان",
+  "teacherClassTermTitle": "خول {number}",
+  "@teacherClassTermTitle": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "teacherClassTermSessionsProgress": "{current} لە {max} دانیشتن",
+  "@teacherClassTermSessionsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "teacherClassTermsAddButton": "زیادکردنی خول",
+  "teacherClassTermsEmptyHint": "سەرەتا خولێک دروست بکە و سنووری دانیشتن دیاری بکە؛ پاشان دانیشتنەکان لەژێر هەمان خول تۆمار بکە.",
+  "teacherClassTermEditCapTitle": "سنووری دانیشتن",
+  "teacherClassTermCapFieldLabel": "زۆرترین ژمارەی دانیشتن لەم خولەدا",
+  "teacherClassTermDeleteConfirmTitle": "ئەم خولە بسڕدرێتەوە؟",
+  "teacherClassTermDeleteConfirmBody": "هەموو دانیشتنە تۆمارکراوەکان لەم خولەدا دەسڕدرێنەوە و ناتوانرێت بگەڕێندرێتەوە.",
+  "teacherClassTermAdded": "خول زیادکرا",
+  "teacherClassTermUpdated": "خول نوێکرایەوە",
+  "teacherClassTermDeleted": "خول سڕایەوە",
+  "teacherClassTermAddSessionButton": "تۆمارکردنی دانیشتن",
+  "classTermPaymentPaid": "پارەدراوە",
+  "classTermPaymentUnpaid": "پارە نەدراوە",
+  "classTermPaymentUpdated": "دۆخی پارەدان نوێکرایەوە",
   "teacherSessionCountLabel": "ژمارەی وانە تۆمارکراوەکان",
   "teacherSessionSave": "پاشەکەوت",
   "teacherSessionSaveNote": "پاشەکەوتکردنی تێبینی",
@@ -626,5 +657,94 @@
   "youSectionAdmin": "بەڕێوەبردن",
   "youAdminPanelSubtitle": "دەستپێگەیشتنی قوتابی، مامۆستا و هەژمارەکان",
   "adminScreenSubtitle": "بگەڕێ و بۆ دەستکاری کرتە لەسەر بەکارهێنەر بکە",
-  "adminEditUserSheetTitle": "دەستکاری دەستپێگەیشتن"
+  "adminEditUserSheetTitle": "دەستکاری دەستپێگەیشتن",
+  "wordBuilderClearPath": "سڕینەوەی هێڵ",
+  "wordBuilderShuffle": "تێکەڵکردنی پیتەکان",
+  "wordBuilderPickSource": "سەرچاوەی وشە هەڵبژێرە",
+  "wordBuilderStartPlay": "دەستپێکردن",
+  "wordBuilderCatalogAll": "هەموو کتێبەکان",
+  "wordBuilderNoWordsBody": "بۆ ئەم سەرچاوەیە وشەی ئینگلیزی گونجاو نەدۆزرایەوە. کتێبێکی تر هەڵبژێرە یان دووبارە هەوڵ بدە.",
+  "wordBuilderTitle": "دروستکەری وشە",
+  "wordBuilderHomeSubtitle": "وشەی ئینگلیزی لە پیتە تێکەڵاوەکان دروست بکە.",
+  "wordBuilderLevelOf": "ئاست {current} لە {total}",
+  "@wordBuilderLevelOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCategory": "بابەت: {name}",
+  "@wordBuilderCategory": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "wordBuilderDifficultyBeginner": "سەرەتایی",
+  "wordBuilderDifficultyIntermediate": "مامناوەند",
+  "wordBuilderDifficultyAdvanced": "پێشکەوتوو",
+  "wordBuilderYourWord": "وشەکەت",
+  "wordBuilderLetters": "پیتەکان",
+  "wordBuilderSubmit": "پشکنین",
+  "wordBuilderReset": "سڕینەوە",
+  "wordBuilderNextLevel": "ئاستی دواتر",
+  "wordBuilderHints": "یارمەتی",
+  "wordBuilderHintReveal": "پیتێک دەربکە",
+  "wordBuilderHintRemove": "پیتێکی زیادە لاببە",
+  "wordBuilderHintMeaning": "واتایەک پیشان بدە",
+  "wordBuilderTranslation": "وەرگێڕان",
+  "wordBuilderTooShort": "سەرەتا پیت زیاتر هەڵبژێرە.",
+  "wordBuilderAlreadyFound": "ئەم وشەتەت دۆزییەوە.",
+  "wordBuilderTryAgain": "لەم ئاستەدا نییە — بەردەوام بە.",
+  "wordBuilderCorrectNice": "باشە!",
+  "wordBuilderHintLetter": "پیتێک لە یەکێک لە وشەکان دەردەکەوێت.",
+  "wordBuilderHintRemoved": "پیتێکی زیادە لە وشەکەت لابرا.",
+  "wordBuilderHintRemoveNone": "ئێستا پیتێکی زیادە نییە.",
+  "wordBuilderHintMeaningLine": "یارمەتی: {meaning}",
+  "@wordBuilderHintMeaningLine": {
+    "placeholders": {
+      "meaning": {"type": "String"}
+    }
+  },
+  "wordBuilderAllLevelsDone": "هەموو ئاستەکانی ئەم دانیشتنە تەواون.",
+  "wordBuilderTotalXp": "کۆی XP: {xp}",
+  "@wordBuilderTotalXp": {
+    "placeholders": {
+      "xp": {"type": "int"}
+    }
+  },
+  "wordBuilderAccuracy": "وردی: {pct}٪",
+  "@wordBuilderAccuracy": {
+    "placeholders": {
+      "pct": {"type": "int"}
+    }
+  },
+  "wordBuilderPronunciation": "دەنگکردن",
+  "wordBuilderMeaning": "واتا",
+  "wordBuilderExample": "نموونە",
+  "wordBuilderSpeakWord": "وتنی وشە",
+  "wordBuilderSpeakExample": "وتنی ڕستە",
+  "wordBuilderTargetsHeading": "وشە مەبەستەکان",
+  "wordBuilderCampaignHubSubtitle": "",
+  "wordBuilderCampaignStagesHint": "",
+  "wordBuilderCampaignStageLockedSnackbar": "سەرەتا قۆناغی پێشوو تەواو بکە.",
+  "wordBuilderCampaignTierLockedBody": "بۆ کردنەوەی ئەم ئاستە، هەموو ٥٠ قۆناغی ئاستی پێشوو تەواو بکە.",
+  "wordBuilderCampaignPlanError": "وشەی پێویست بۆ ئەم قۆناغە نییە. دواتر هەوڵ بدەوە.",
+  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignResetConfirm": "هەموو پێشڕەوی واژەساز بسڕدرێتەوە؟ گەڕانەوە نییە.",
+  "wordBuilderCampaignResetDone": "پێشڕەوی قۆناغەکان سڕایەوە.",
+  "wordBuilderCampaignStageOf": "قۆناغ {stage} لە {total}",
+  "@wordBuilderCampaignStageOf": {
+    "placeholders": {
+      "stage": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageN": "قۆناغ {n}",
+  "@wordBuilderCampaignStageN": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageCompleted": "تەواو",
+  "wordBuilderCampaignStageReplayHint": "کرتە بکە بۆ دووبارەکردنەوە"
 }

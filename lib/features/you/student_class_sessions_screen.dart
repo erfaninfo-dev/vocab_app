@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/datetime/class_session_chronological_index.dart';
 import '../../core/datetime/class_session_recorded_at.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/widgets/term_payment_status_chip.dart';
+import '../../core/widgets/term_title_card.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -230,80 +233,190 @@ class StudentClassSessionsPanel extends ConsumerWidget {
         child: Padding(padding: const EdgeInsets.all(16), child: headerInner),
       );
 
-      final sortedForIndex = List<ClassSessionEntry>.from(sessions);
-      sortedForIndex.sort((a, b) {
-        final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
-        final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
-        if (da == null && db == null) return 0;
-        if (da == null) return 1;
-        if (db == null) return -1;
-        return db.compareTo(da);
-      });
-      final displayIndexFor = <int, int>{};
-      for (var i = 0; i < sortedForIndex.length; i++) {
-        final e = sortedForIndex[i];
-        displayIndexFor[e.id] = e.index > 0 ? e.index : i + 1;
-      }
-      final grouped = _groupByDay(sessions);
       final dayFmt = DateFormat.yMMMMEEEEd(loc);
       final timeFmt = DateFormat.jm(loc);
 
-      final list = sessions.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    l10n.youClassSessionsEmpty,
-                    textAlign: TextAlign.center,
-                    style: tt.bodyMedium?.copyWith(
+      final Widget list;
+      if (sessions.isEmpty) {
+        list = Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                l10n.youClassSessionsEmpty,
+                textAlign: TextAlign.center,
+                style: tt.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        );
+      } else if (info.usesTermsTable && info.terms.isNotEmpty) {
+        final termBlocks = <Widget>[const SizedBox(height: 18)];
+        for (final term in info.terms) {
+          final termSessions =
+              sessions.where((s) => s.termId == term.id).toList();
+          termBlocks.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, top: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      TermTitleCard(
+                        title: l10n.teacherClassTermTitle(term.sortOrder),
+                      ),
+                      const SizedBox(width: 8),
+                      TermPaymentStatusChip(
+                        isPaid: term.isPaid,
+                        l10n: l10n,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.teacherClassTermSessionsProgress(
+                      term.sessionCount,
+                      term.sessionCap,
+                    ),
+                    style: tt.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
-                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final groupedT = _groupByDay(termSessions);
+          for (final g in groupedT) {
+            if (g.key.year != 1970) {
+              termBlocks.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, top: 4),
+                  child: Text(
+                    dayFmt.format(g.key),
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurfaceVariant,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 18),
-                for (final g in grouped) ...[
-                  if (g.key.year != 1970) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10, top: 4),
-                      child: Text(
-                        dayFmt.format(g.key),
-                        style: tt.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurfaceVariant,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
+              );
+            } else {
+              termBlocks.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, top: 4),
+                  child: Text(
+                    '—',
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurfaceVariant,
                     ),
-                  ],
-                  ...g.value.map((e) {
-                    final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
-                    final idx = displayIndexFor[e.id] ?? 1;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _StudentSessionTile(
-                        displayIndex: idx,
-                        timeLabel: dt != null
-                            ? (g.key.year == 1970
-                                  ? DateFormat.yMMMd(loc).add_Hm().format(dt)
-                                  : timeFmt.format(dt))
-                            : e.recordedAtRaw,
-                        scheme: scheme,
-                        tt: tt,
-                        l10n: l10n,
-                      ),
-                    );
-                  }),
-                ],
+                  ),
+                ),
+              );
+            }
+            for (final e in g.value) {
+              final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
+              final idx = classSessionChronologicalIndexInTerm(e, termSessions);
+              termBlocks.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _StudentSessionTile(
+                    displayIndex: idx,
+                    timeLabel: dt != null
+                        ? (g.key.year == 1970
+                              ? DateFormat.yMMMd(loc).add_Hm().format(dt)
+                              : timeFmt.format(dt))
+                        : e.recordedAtRaw,
+                    scheme: scheme,
+                    tt: tt,
+                    l10n: l10n,
+                  ),
+                ),
+              );
+            }
+            termBlocks.add(const SizedBox(height: 8));
+          }
+        }
+        list = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: termBlocks,
+        );
+      } else {
+        final sortedForIndex = List<ClassSessionEntry>.from(sessions);
+        sortedForIndex.sort((a, b) {
+          final da = parseClassSessionRecordedAtFromApi(a.recordedAtRaw);
+          final db = parseClassSessionRecordedAtFromApi(b.recordedAtRaw);
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return db.compareTo(da);
+        });
+        final displayIndexFor = <int, int>{};
+        for (var i = 0; i < sortedForIndex.length; i++) {
+          final e = sortedForIndex[i];
+          displayIndexFor[e.id] = e.index > 0 ? e.index : i + 1;
+        }
+        final grouped = _groupByDay(sessions);
+        list = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 18),
+            for (final g in grouped) ...[
+              if (g.key.year != 1970) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, top: 4),
+                  child: Text(
+                    dayFmt.format(g.key),
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurfaceVariant,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, top: 4),
+                  child: Text(
+                    '—',
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               ],
-            );
+              ...g.value.map((e) {
+                final dt = parseClassSessionRecordedAtFromApi(e.recordedAtRaw);
+                final idx = displayIndexFor[e.id] ?? 1;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _StudentSessionTile(
+                    displayIndex: idx,
+                    timeLabel: dt != null
+                        ? (g.key.year == 1970
+                              ? DateFormat.yMMMd(loc).add_Hm().format(dt)
+                              : timeFmt.format(dt))
+                        : e.recordedAtRaw,
+                    scheme: scheme,
+                    tt: tt,
+                    l10n: l10n,
+                  ),
+                );
+              }),
+            ],
+          ],
+        );
+      }
 
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),

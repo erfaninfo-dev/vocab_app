@@ -4,6 +4,9 @@
   "tabHome": "Home",
   "tabGrammar": "Grammar",
   "tabReview": "Review",
+  "tabPlay": "Play",
+  "youSectionReview": "Review",
+  "youSectionReviewSubtitle": "Spaced repetition for words you've practiced.",
   "tabProgress": "Progress",
   "tabYou": "You",
   "tabSettings": "Settings",
@@ -498,6 +501,34 @@
   "studentPanelHeadline": "Teacher, sessions, and messages in one place.",
   "studentPanelStatUnread": "Unread",
   "teacherClassSessionsHintEmpty": "Tap + to record each class session. The time is saved automatically.",
+  "teacherClassSessionsTabSubtitleTerms": "Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.",
+  "teacherClassTermsSection": "Terms",
+  "teacherClassTermTitle": "Term {number}",
+  "@teacherClassTermTitle": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "teacherClassTermSessionsProgress": "{current} / {max} sessions",
+  "@teacherClassTermSessionsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "teacherClassTermsAddButton": "Add term",
+  "teacherClassTermsEmptyHint": "Add a term first, set its session limit, then log class sessions under that term.",
+  "teacherClassTermEditCapTitle": "Session limit",
+  "teacherClassTermCapFieldLabel": "Max sessions in this term",
+  "teacherClassTermDeleteConfirmTitle": "Delete this term?",
+  "teacherClassTermDeleteConfirmBody": "Every class session recorded in this term will be removed. This cannot be undone.",
+  "teacherClassTermAdded": "Term added",
+  "teacherClassTermUpdated": "Term updated",
+  "teacherClassTermDeleted": "Term removed",
+  "teacherClassTermAddSessionButton": "Log session",
+  "classTermPaymentPaid": "Paid",
+  "classTermPaymentUnpaid": "Unpaid",
+  "classTermPaymentUpdated": "Payment status updated",
   "teacherSessionCountLabel": "Recorded class sessions",
   "teacherSessionSave": "Save",
   "teacherSessionSaveNote": "Save note",
@@ -828,5 +859,94 @@
   "youSectionAdmin": "Administration",
   "youAdminPanelSubtitle": "Student access, teachers, and accounts",
   "adminScreenSubtitle": "Search and tap a user to edit",
+  "wordBuilderClearPath": "Clear",
+  "wordBuilderTitle": "Word Builder",
+  "wordBuilderShuffle": "Shuffle letters",
+  "wordBuilderPickSource": "Choose vocabulary",
+  "wordBuilderStartPlay": "Start",
+  "wordBuilderCatalogAll": "All books",
+  "wordBuilderNoWordsBody": "No suitable English words were found for this source. Pick another book or refresh.",
+  "wordBuilderHomeSubtitle": "Build English words from shuffled letters.",
+  "wordBuilderLevelOf": "Level {current} of {total}",
+  "@wordBuilderLevelOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCategory": "Topic: {name}",
+  "@wordBuilderCategory": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "wordBuilderDifficultyBeginner": "Beginner",
+  "wordBuilderDifficultyIntermediate": "Intermediate",
+  "wordBuilderDifficultyAdvanced": "Advanced",
+  "wordBuilderYourWord": "Your word",
+  "wordBuilderLetters": "Letter pool",
+  "wordBuilderSubmit": "Check word",
+  "wordBuilderReset": "Clear",
+  "wordBuilderNextLevel": "Next level",
+  "wordBuilderHints": "Hints",
+  "wordBuilderHintReveal": "Reveal a letter",
+  "wordBuilderHintRemove": "Remove an extra letter",
+  "wordBuilderHintMeaning": "Show a meaning",
+  "wordBuilderTranslation": "Translation",
+  "wordBuilderTooShort": "Pick more letters first.",
+  "wordBuilderAlreadyFound": "You already found that word.",
+  "wordBuilderTryAgain": "Not in this level — keep trying.",
+  "wordBuilderCorrectNice": "Nice!",
+  "wordBuilderHintLetter": "A letter was revealed in one of the words.",
+  "wordBuilderHintRemoved": "Removed an extra letter from your word.",
+  "wordBuilderHintRemoveNone": "No extra letters to remove right now.",
+  "wordBuilderHintMeaningLine": "Hint: {meaning}",
+  "@wordBuilderHintMeaningLine": {
+    "placeholders": {
+      "meaning": {"type": "String"}
+    }
+  },
+  "wordBuilderAllLevelsDone": "You finished all levels in this session.",
+  "wordBuilderTotalXp": "Total XP: {xp}",
+  "@wordBuilderTotalXp": {
+    "placeholders": {
+      "xp": {"type": "int"}
+    }
+  },
+  "wordBuilderAccuracy": "Accuracy: {pct}%",
+  "@wordBuilderAccuracy": {
+    "placeholders": {
+      "pct": {"type": "int"}
+    }
+  },
+  "wordBuilderPronunciation": "Pronunciation",
+  "wordBuilderMeaning": "Meaning",
+  "wordBuilderExample": "Example",
+  "wordBuilderSpeakWord": "Speak word",
+  "wordBuilderSpeakExample": "Speak example",
+  "wordBuilderTargetsHeading": "Words to find",
+  "wordBuilderCampaignHubSubtitle": "",
+  "wordBuilderCampaignStagesHint": "",
+  "wordBuilderCampaignStageLockedSnackbar": "Finish the previous stage first.",
+  "wordBuilderCampaignTierLockedBody": "Complete all 50 stages in the previous difficulty to unlock this track.",
+  "wordBuilderCampaignPlanError": "Not enough vocabulary to build this stage. Try refreshing books later.",
+  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignResetConfirm": "Clear all Word Builder stage progress? This cannot be undone.",
+  "wordBuilderCampaignResetDone": "Campaign progress cleared.",
+  "wordBuilderCampaignStageOf": "Stage {stage} of {total}",
+  "@wordBuilderCampaignStageOf": {
+    "placeholders": {
+      "stage": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageN": "Stage {n}",
+  "@wordBuilderCampaignStageN": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageCompleted": "Completed",
+  "wordBuilderCampaignStageReplayHint": "Tap to replay this stage",
   "adminEditUserSheetTitle": "Edit access"
 }

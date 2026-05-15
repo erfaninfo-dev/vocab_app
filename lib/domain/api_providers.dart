@@ -344,7 +344,12 @@ final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
       session.user.isTeacher ||
       session.user.isAdmin ||
       session.user.teacherUserId == null) {
-    return const TeacherSessionInfo(sessionCount: 0, sessions: []);
+    return const TeacherSessionInfo(
+      sessionCount: 0,
+      sessions: [],
+      terms: [],
+      usesTermsTable: false,
+    );
   }
   return ref.read(apiServiceProvider).fetchMyClassSessions();
 });

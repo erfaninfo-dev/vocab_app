@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/srs/srs_provider.dart';
 import '../../data/models/teacher_message.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -60,6 +61,15 @@ class YouScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             const YouAccountSection(),
+            const SizedBox(height: 20),
+            _SectionLabel(label: l10n.youSectionReview),
+            const SizedBox(height: 8),
+            _YouReviewInkCard(
+              scheme: scheme,
+              l10n: l10n,
+              dueCount: ref.watch(srsProvider.select((s) => s.dueTodayCount)),
+              onTap: () => context.push('/review'),
+            ),
             if (session?.user.isAdmin == true) ...[
               const SizedBox(height: 20),
               _SectionLabel(label: l10n.youSectionAdmin),
@@ -256,6 +266,90 @@ class _YouAdminUsersInkCard extends StatelessWidget {
                   ],
                 ),
               ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _YouReviewInkCard extends StatelessWidget {
+  const _YouReviewInkCard({
+    required this.scheme,
+    required this.l10n,
+    required this.dueCount,
+    required this.onTap,
+  });
+
+  final ColorScheme scheme;
+  final AppLocalizations l10n;
+  final int dueCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: _youPanelCardDecoration(scheme),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.primaryContainer,
+                child: Icon(
+                  Icons.loop_rounded,
+                  color: scheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.tabReview, style: tt.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.youSectionReviewSubtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (dueCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.error,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      dueCount > 99 ? '99+' : '$dueCount',
+                      style: TextStyle(
+                        color: scheme.onError,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
               Icon(
                 Icons.chevron_right_rounded,
                 color: scheme.onSurfaceVariant,

@@ -78,18 +78,53 @@ class TeacherStudentSummary {
   }
 }
 
+/// One term (ترم) for a teacher–student pair: ordered and capped session count.
+class ClassSessionTerm {
+  const ClassSessionTerm({
+    required this.id,
+    required this.sortOrder,
+    required this.sessionCap,
+    required this.sessionCount,
+    this.isPaid = false,
+  });
+
+  final int id;
+  final int sortOrder;
+  final int sessionCap;
+  final int sessionCount;
+
+  /// Tuition / fee paid for this term (server `is_paid`).
+  final bool isPaid;
+
+  bool get isFull => sessionCount >= sessionCap;
+
+  factory ClassSessionTerm.fromJson(Map<String, dynamic> json) {
+    return ClassSessionTerm(
+      id: (json['id'] as num).toInt(),
+      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 1,
+      sessionCap: (json['session_cap'] as num?)?.toInt() ?? 0,
+      sessionCount: (json['session_count'] as num?)?.toInt() ?? 0,
+      isPaid: json['is_paid'] == true || json['is_paid'] == 1,
+    );
+  }
+}
+
 /// One recorded in-person / class session (teacher tapped +).
 class ClassSessionEntry {
   const ClassSessionEntry({
     required this.id,
     required this.index,
     required this.recordedAtRaw,
+    this.termId,
   });
 
   final int id;
 
-  /// 1-based display index for this student.
+  /// 1-based display index within the term when [termId] is set; otherwise global.
   final int index;
+
+  /// Server row for `teacher_student_terms` when the API is migrated.
+  final int? termId;
 
   /// Server datetime string for when the session was recorded.
   final String recordedAtRaw;
@@ -101,6 +136,7 @@ class ClassSessionEntry {
           (json['session_index'] as num?)?.toInt() ??
           0,
       recordedAtRaw: (json['recorded_at'] ?? '').toString(),
+      termId: (json['term_id'] as num?)?.toInt(),
     );
   }
 }
@@ -111,6 +147,8 @@ class TeacherSessionInfo {
     this.updatedAt,
     this.note,
     this.sessions = const [],
+    this.terms = const [],
+    this.usesTermsTable = false,
   });
 
   final int sessionCount;
@@ -119,4 +157,10 @@ class TeacherSessionInfo {
 
   /// Per-session rows when the server has `teacher_class_session_entries` migrated.
   final List<ClassSessionEntry> sessions;
+
+  /// Present when the server has run `teacher_student_terms_migration.sql`.
+  final List<ClassSessionTerm> terms;
+
+  /// True when the API included a `terms` field (even if empty).
+  final bool usesTermsTable;
 }

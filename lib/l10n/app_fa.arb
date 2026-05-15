@@ -4,6 +4,9 @@
   "tabHome": "خانه",
   "tabGrammar": "گرامر",
   "tabReview": "مرور",
+  "tabPlay": "بازی",
+  "youSectionReview": "مرور",
+  "youSectionReviewSubtitle": "تکرار با فاصله برای لغاتی که تمرین کرده‌اید.",
   "tabProgress": "پیشرفت",
   "tabYou": "شما",
   "tabSettings": "تنظیمات",
@@ -374,6 +377,34 @@
   "studentPanelHeadline": "استاد، جلسات و پیام‌ها در یک نگاه.",
   "studentPanelStatUnread": "خوانده‌نشده",
   "teacherClassSessionsHintEmpty": "با زدن + هر جلسهٔ کلاس را ثبت کنید؛ زمان به‌صورت خودکار ذخیره می‌شود.",
+  "teacherClassSessionsTabSubtitleTerms": "ترم بسازید و برای هر ترم حداکثر تعداد جلسه را مشخص کنید؛ جلسات را زیر همان ترم ثبت کنید؛ شاگرد همان گروه‌بندی را می‌بیند.",
+  "teacherClassTermsSection": "ترم‌ها",
+  "teacherClassTermTitle": "ترم {number}",
+  "@teacherClassTermTitle": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "teacherClassTermSessionsProgress": "{current} از {max} جلسه",
+  "@teacherClassTermSessionsProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "teacherClassTermsAddButton": "افزودن ترم",
+  "teacherClassTermsEmptyHint": "ابتدا یک ترم بسازید و سقف جلسه را تعیین کنید؛ سپس جلسات را زیر همان ترم ثبت کنید.",
+  "teacherClassTermEditCapTitle": "سقف جلسه",
+  "teacherClassTermCapFieldLabel": "حداکثر تعداد جلسه در این ترم",
+  "teacherClassTermDeleteConfirmTitle": "این ترم حذف شود؟",
+  "teacherClassTermDeleteConfirmBody": "تمام جلسه‌های ثبت‌شده در این ترم پاک می‌شوند و برگشت ندارد.",
+  "teacherClassTermAdded": "ترم اضافه شد",
+  "teacherClassTermUpdated": "ترم به‌روز شد",
+  "teacherClassTermDeleted": "ترم حذف شد",
+  "teacherClassTermAddSessionButton": "ثبت جلسه",
+  "classTermPaymentPaid": "پرداخت شده",
+  "classTermPaymentUnpaid": "پرداخت نشده",
+  "classTermPaymentUpdated": "وضعیت پرداخت به‌روز شد",
   "teacherSessionCountLabel": "تعداد جلسات ثبت‌شده",
   "teacherSessionSave": "ذخیره",
   "teacherSessionSaveNote": "ذخیرهٔ یادداشت",
@@ -626,5 +657,94 @@
   "youSectionAdmin": "مدیریت",
   "youAdminPanelSubtitle": "دسترسی دانش‌آموز، معلم و حساب‌ها",
   "adminScreenSubtitle": "جستجو کنید و برای ویرایش روی کاربر بزنید",
-  "adminEditUserSheetTitle": "ویرایش دسترسی"
+  "adminEditUserSheetTitle": "ویرایش دسترسی",
+  "wordBuilderClearPath": "پاک کردن مسیر",
+  "wordBuilderShuffle": "به‌هم‌ریختن حروف",
+  "wordBuilderPickSource": "انتخاب منبع لغات",
+  "wordBuilderStartPlay": "شروع بازی",
+  "wordBuilderCatalogAll": "همهٔ کتاب‌ها",
+  "wordBuilderNoWordsBody": "برای این منبع کلمهٔ انگلیسی مناسب پیدا نشد. کتاب دیگری انتخاب کنید یا دوباره تلاش کنید.",
+  "wordBuilderTitle": "واژه‌ساز",
+  "wordBuilderHomeSubtitle": "با حروف به‌هم‌ریخته کلمات انگلیسی بسازید.",
+  "wordBuilderLevelOf": "مرحله {current} از {total}",
+  "@wordBuilderLevelOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCategory": "موضوع: {name}",
+  "@wordBuilderCategory": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "wordBuilderDifficultyBeginner": "مبتدی",
+  "wordBuilderDifficultyIntermediate": "متوسط",
+  "wordBuilderDifficultyAdvanced": "پیشرفته",
+  "wordBuilderYourWord": "کلمهٔ شما",
+  "wordBuilderLetters": "حرف‌ها",
+  "wordBuilderSubmit": "بررسی کلمه",
+  "wordBuilderReset": "پاک کردن",
+  "wordBuilderNextLevel": "مرحله بعد",
+  "wordBuilderHints": "راهنما",
+  "wordBuilderHintReveal": "نمایش یک حرف",
+  "wordBuilderHintRemove": "حذف حرف اضافه",
+  "wordBuilderHintMeaning": "نمایش معنی",
+  "wordBuilderTranslation": "ترجمه",
+  "wordBuilderTooShort": "اول حروف بیشتری انتخاب کنید.",
+  "wordBuilderAlreadyFound": "این کلمه را قبلاً پیدا کرده‌اید.",
+  "wordBuilderTryAgain": "در این مرحله نیست — ادامه دهید.",
+  "wordBuilderCorrectNice": "آفرین!",
+  "wordBuilderHintLetter": "یک حرف در یکی از کلمات نمایش داده شد.",
+  "wordBuilderHintRemoved": "یک حرف اضافه از کلمهٔ شما حذف شد.",
+  "wordBuilderHintRemoveNone": "الان حرف اضافه‌ای برای حذف نیست.",
+  "wordBuilderHintMeaningLine": "راهنما: {meaning}",
+  "@wordBuilderHintMeaningLine": {
+    "placeholders": {
+      "meaning": {"type": "String"}
+    }
+  },
+  "wordBuilderAllLevelsDone": "همهٔ مراحل این جلسه تمام شد.",
+  "wordBuilderTotalXp": "XP کل: {xp}",
+  "@wordBuilderTotalXp": {
+    "placeholders": {
+      "xp": {"type": "int"}
+    }
+  },
+  "wordBuilderAccuracy": "دقت: {pct}٪",
+  "@wordBuilderAccuracy": {
+    "placeholders": {
+      "pct": {"type": "int"}
+    }
+  },
+  "wordBuilderPronunciation": "تلفظ",
+  "wordBuilderMeaning": "معنی",
+  "wordBuilderExample": "مثال",
+  "wordBuilderSpeakWord": "پخش کلمه",
+  "wordBuilderSpeakExample": "پخش جمله",
+  "wordBuilderTargetsHeading": "کلمات هدف",
+  "wordBuilderCampaignHubSubtitle": "",
+  "wordBuilderCampaignStagesHint": "",
+  "wordBuilderCampaignStageLockedSnackbar": "ابتدا مرحلهٔ قبل را تمام کنید.",
+  "wordBuilderCampaignTierLockedBody": "برای باز شدن این سطح، هر ۵۰ مرحلهٔ سطح قبلی را تمام کنید.",
+  "wordBuilderCampaignPlanError": "واژهٔ کافی برای این مرحله روی سرور نیست. بعداً دوباره امتحان کنید یا کتاب‌ها را تازه کنید.",
+  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignResetConfirm": "همهٔ پیشرفت مراحل واژه‌ساز پاک شود؟ این کار برگشت‌ناپذیر است.",
+  "wordBuilderCampaignResetDone": "پیشرفت مراحل پاک شد.",
+  "wordBuilderCampaignStageOf": "مرحله {stage} از {total}",
+  "@wordBuilderCampaignStageOf": {
+    "placeholders": {
+      "stage": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageN": "مرحله {n}",
+  "@wordBuilderCampaignStageN": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "wordBuilderCampaignStageCompleted": "تمام‌شده",
+  "wordBuilderCampaignStageReplayHint": "برای تکرار این مرحله بزنید"
 }

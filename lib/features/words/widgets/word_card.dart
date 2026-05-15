@@ -10,9 +10,14 @@ import '../important_words_controller.dart';
 import '../word_preferences_controller.dart';
 
 class WordCard extends ConsumerWidget {
-  const WordCard({super.key, required this.entry});
+  const WordCard({
+    super.key,
+    required this.entry,
+    this.showUnitBadge = true,
+  });
 
   final VocabEntry entry;
+  final bool showUnitBadge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -211,8 +216,12 @@ class WordCard extends ConsumerWidget {
                 children: [
                   IconButton.filledTonal(
                     tooltip: 'Favorite',
-                    onPressed: () =>
-                        prefsNotifier.toggleFavorite(entry, api.authToken != null ? api : null),
+                    onPressed: entry.rowId <= 0
+                        ? null
+                        : () => prefsNotifier.toggleFavorite(
+                              entry,
+                              api.authToken != null ? api : null,
+                            ),
                     icon: Icon(
                       isFav
                           ? Icons.bookmark_rounded
@@ -244,16 +253,18 @@ class WordCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 4),
                   _SpeakButton(word: entry.word, example: entry.exampleEn),
-                  const Spacer(),
-                  Text(
-                    entry.section == null || entry.section == 0
-                        ? 'U${entry.unit}'
-                        : 'U${entry.unit}  S${entry.section}',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
+                  if (showUnitBadge) ...[
+                    const Spacer(),
+                    Text(
+                      entry.section == null || entry.section == 0
+                          ? 'U${entry.unit}'
+                          : 'U${entry.unit}  S${entry.section}',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
