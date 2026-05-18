@@ -2,7 +2,9 @@ name: Build APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - feature/word-builder-game
   workflow_dispatch:
 
 env:
