@@ -1,29 +1,59 @@
 import 'package:flutter/material.dart';
 
-const Color kWordBuilderParchment = Color(0xFFFFF8E7);
+const Color kWordBuilderParchment = Color(0xFFFFF6E8);
 const Color kWordBuilderParchmentBorder = Color(0xFFC4956A);
-const Color kWordBuilderSkyTop = Color(0xFF87CEEB);
+const Color kWordBuilderBorderWarm = Color(0xFFD4A574);
+const Color kWordBuilderSkyTop = Color(0xFFFFC107);
+const Color kWordBuilderSkyBottom = Color(0xFFF48FB1);
+const Color kWordBuilderAccentPlay = Color(0xFFE65100);
+const Color kWordBuilderAccentPlayLight = Color(0xFFFF8F00);
+const Color kWordBuilderWarmShadow = Color(0xFF8D6E63);
+const Color kWordBuilderSuccessTop = Color(0xFF66BB6A);
+const Color kWordBuilderSuccessBottom = Color(0xFF2E7D32);
+const Color kWordBuilderErrorSoft = Color(0xFFFF7043);
+const Color kWordBuilderErrorSoftLight = Color(0xFFFFAB91);
 
 class WordBuilderSessionAmbience {
   WordBuilderSessionAmbience._();
 
   static LinearGradient skyBackground(ColorScheme scheme, {required bool isDark}) {
-    return LinearGradient(
+    if (isDark) {
+      return LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color.lerp(kWordBuilderSkyTop, scheme.surface, 0.45) ?? scheme.surface,
+          Color.lerp(kWordBuilderSkyBottom, scheme.surface, 0.25) ?? scheme.surface,
+        ],
+      );
+    }
+    return const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [
-        Color.lerp(kWordBuilderSkyTop, scheme.surface, isDark ? 0.35 : 0.12) ??
-            scheme.primaryContainer,
-        scheme.surface,
-      ],
+      colors: [kWordBuilderSkyTop, kWordBuilderSkyBottom],
     );
   }
 
-  static List<BoxShadow> parchmentShadows(ColorScheme scheme) => [
+  static Color appBarBackground(ColorScheme scheme, {required bool isDark}) {
+    return Color.lerp(
+          kWordBuilderParchment,
+          scheme.surface,
+          isDark ? 0.55 : 0.12,
+        ) ??
+        kWordBuilderParchment.withValues(alpha: 0.88);
+  }
+
+  static List<BoxShadow> parchmentShadows({required bool isDark}) => [
         BoxShadow(
-          color: scheme.shadow.withValues(alpha: 0.14),
+          color: kWordBuilderWarmShadow.withValues(alpha: isDark ? 0.22 : 0.18),
           blurRadius: 18,
           offset: const Offset(0, 8),
+        ),
+        BoxShadow(
+          color: kWordBuilderAccentPlayLight.withValues(alpha: isDark ? 0.08 : 0.12),
+          blurRadius: 24,
+          spreadRadius: 0,
+          offset: const Offset(0, 4),
         ),
       ];
 
@@ -42,17 +72,17 @@ class WordBuilderSessionAmbience {
               kWordBuilderParchment,
           Color.lerp(
                 kWordBuilderParchment,
-                scheme.primaryContainer,
-                isDark ? 0.12 : 0.08,
+                kWordBuilderSkyBottom,
+                isDark ? 0.18 : 0.35,
               ) ??
               kWordBuilderParchment,
         ],
       ),
       border: Border.all(
-        color: kWordBuilderParchmentBorder.withValues(alpha: isDark ? 0.42 : 0.68),
+        color: kWordBuilderBorderWarm.withValues(alpha: isDark ? 0.42 : 0.68),
         width: 2,
       ),
-      boxShadow: parchmentShadows(scheme),
+      boxShadow: parchmentShadows(isDark: isDark),
     );
   }
 
@@ -77,12 +107,12 @@ class WordBuilderSessionAmbience {
       ),
       boxShadow: [
         BoxShadow(
-          color: scheme.shadow.withValues(alpha: 0.12),
+          color: kWordBuilderWarmShadow.withValues(alpha: isDark ? 0.16 : 0.14),
           blurRadius: 14,
           offset: const Offset(0, -2),
         ),
         BoxShadow(
-          color: scheme.primary.withValues(alpha: 0.06),
+          color: kWordBuilderAccentPlayLight.withValues(alpha: isDark ? 0.1 : 0.14),
           blurRadius: 20,
           offset: const Offset(0, 6),
         ),
@@ -98,12 +128,15 @@ class WordBuilderSessionAmbience {
     if (wrong) {
       return BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: scheme.errorContainer.withValues(alpha: 0.92),
-        border: Border.all(color: scheme.error.withValues(alpha: 0.55), width: 1.5),
+        color: kWordBuilderErrorSoftLight.withValues(alpha: isDark ? 0.35 : 0.55),
+        border: Border.all(
+          color: kWordBuilderErrorSoft.withValues(alpha: 0.65),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: scheme.error.withValues(alpha: 0.12),
-            blurRadius: 12,
+            color: kWordBuilderErrorSoft.withValues(alpha: 0.22),
+            blurRadius: 14,
             offset: const Offset(0, 4),
           ),
         ],
@@ -115,24 +148,54 @@ class WordBuilderSessionAmbience {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color.lerp(kWordBuilderParchment, Colors.white, isDark ? 0.06 : 0.28) ??
+          Color.lerp(kWordBuilderParchment, Colors.white, isDark ? 0.06 : 0.32) ??
               kWordBuilderParchment,
-          Color.lerp(kWordBuilderParchment, scheme.primaryContainer, 0.12) ??
+          Color.lerp(kWordBuilderParchment, kWordBuilderSkyTop, 0.35) ??
               kWordBuilderParchment,
         ],
       ),
       border: Border.all(
-        color: scheme.primary.withValues(alpha: isDark ? 0.35 : 0.22),
+        color: kWordBuilderAccentPlayLight.withValues(alpha: isDark ? 0.45 : 0.55),
+        width: 1.5,
       ),
       boxShadow: [
         BoxShadow(
-          color: scheme.shadow.withValues(alpha: 0.1),
+          color: kWordBuilderWarmShadow.withValues(alpha: 0.12),
           blurRadius: 12,
           offset: const Offset(0, 4),
+        ),
+        BoxShadow(
+          color: kWordBuilderAccentPlayLight.withValues(alpha: 0.2),
+          blurRadius: 18,
+          spreadRadius: 0,
         ),
       ],
     );
   }
+
+  static LinearGradient selectedLetterGradient({required bool isDark}) {
+    return LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Color.lerp(const Color(0xFFFFF8E1), Colors.white, isDark ? 0.08 : 0.25)!,
+        Color.lerp(kWordBuilderAccentPlayLight, kWordBuilderAccentPlay, 0.35)!,
+      ],
+    );
+  }
+
+  static List<BoxShadow> selectedLetterShadows({required bool isDark}) => [
+        BoxShadow(
+          color: kWordBuilderAccentPlay.withValues(alpha: isDark ? 0.42 : 0.38),
+          blurRadius: isDark ? 10 : 12,
+          offset: const Offset(0, 3),
+        ),
+        BoxShadow(
+          color: kWordBuilderAccentPlayLight.withValues(alpha: 0.22),
+          blurRadius: 18,
+          spreadRadius: 0,
+        ),
+      ];
 
   static double layoutScale(Size size) {
     final d = size.shortestSide;

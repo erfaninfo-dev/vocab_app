@@ -170,25 +170,39 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
               indicatorColor: scheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
               labelStyle: tt.labelLarge?.copyWith(fontWeight: FontWeight.w800),
-              tabs: const [
+              tabs: [
                 Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.menu_book_rounded),
-                      SizedBox(width: 8),
-                      Text('کلمات'),
-                    ],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.menu_book_rounded),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.wordsTabLabel,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.article_rounded),
-                      SizedBox(width: 8),
-                      Text('متن'),
-                    ],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.article_rounded),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.samplesTabLabel,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

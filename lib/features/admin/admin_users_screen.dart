@@ -446,8 +446,10 @@ class _AdminEditUserSheet extends ConsumerStatefulWidget {
 
 class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
   late final bool _initialStudent;
+  late final bool _initialTeacherRole;
   late final int? _initialTeacherId;
   late bool _student;
+  late bool _teacherRole;
   late int? _teacherId;
   var _saving = false;
 
@@ -457,8 +459,10 @@ class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
     final adminId = ref.read(authProvider).valueOrNull?.user.id;
     final pool = _teacherPickerRows(widget.allUsers, adminId);
     _initialStudent = widget.row.studentAccess;
+    _initialTeacherRole = widget.row.isTeacher;
     _initialTeacherId = widget.row.teacherUserId;
     _student = widget.row.studentAccess;
+    _teacherRole = widget.row.isTeacher;
     _teacherId = widget.row.teacherUserId;
     if (!_teacherIdInPool(_teacherId, pool)) {
       _teacherId = null;
@@ -466,7 +470,9 @@ class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
   }
 
   bool get _dirty =>
-      _student != _initialStudent || _teacherId != _initialTeacherId;
+      _student != _initialStudent ||
+      _teacherRole != _initialTeacherRole ||
+      _teacherId != _initialTeacherId;
 
   Future<void> _confirmDiscardAndClose() async {
     final l10n = AppLocalizations.of(context)!;
@@ -513,6 +519,7 @@ class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
         userId: widget.row.id,
         studentAccess: _student,
         teacherUserId: _student ? _teacherId : null,
+        isTeacher: _teacherRole,
       );
       if (!mounted) return;
       ref.invalidate(adminUsersListProvider);
@@ -629,29 +636,43 @@ class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      tileColor:
-                          scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      title: Text(
-                        l10n.adminStudentAccess,
-                        style: Theme.of(context).textTheme.titleSmall,
+                    _AdminRoleSwitchCard(
+                      scheme: scheme,
+                      label: l10n.adminStudentAccess,
+                      icon: Icons.school_outlined,
+                      activeColors: (
+                        scheme.secondaryContainer,
+                        scheme.onSecondaryContainer,
+                        scheme.secondary,
                       ),
                       value: _student,
-                      onChanged: _saving
-                          ? null
-                          : (v) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _student = v;
-                                if (!v) {
-                                  _teacherId = null;
-                                }
-                              });
-                            },
+                      enabled: !_saving,
+                      onChanged: (v) {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _student = v;
+                          if (!v) {
+                            _teacherId = null;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _AdminRoleSwitchCard(
+                      scheme: scheme,
+                      label: l10n.adminTeacherAccess,
+                      icon: Icons.co_present_outlined,
+                      activeColors: (
+                        scheme.tertiaryContainer,
+                        scheme.onTertiaryContainer,
+                        scheme.tertiary,
+                      ),
+                      value: _teacherRole,
+                      enabled: !_saving,
+                      onChanged: (v) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _teacherRole = v);
+                      },
                     ),
                     if (_student) ...[
                       const SizedBox(height: 12),
@@ -882,6 +903,115 @@ class _AdminUserTile extends StatelessWidget {
                     size: 20,
                     color: scheme.primary,
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+typedef _AdminRoleColors = (Color container, Color onContainer, Color accent);
+
+class _AdminRoleSwitchCard extends StatelessWidget {
+  const _AdminRoleSwitchCard({
+    required this.scheme,
+    required this.label,
+    required this.icon,
+    required this.activeColors,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final ColorScheme scheme;
+  final String label;
+  final IconData icon;
+  final _AdminRoleColors activeColors;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final (container, onContainer, accent) = activeColors;
+    final on = value;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: on ? container.withValues(alpha: 0.55) : scheme.surface,
+        border: Border.all(
+          color: on
+              ? accent.withValues(alpha: 0.45)
+              : scheme.outlineVariant.withValues(alpha: 0.65),
+          width: on ? 1.5 : 1,
+        ),
+        boxShadow: [
+          if (on)
+            BoxShadow(
+              color: accent.withValues(alpha: 0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            )
+          else
+            BoxShadow(
+              color: scheme.shadow.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? () => onChanged(!value) : null,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: on
+                        ? container
+                        : scheme.surfaceContainerHighest.withValues(alpha: 0.7),
+                    border: Border.all(
+                      color: on
+                          ? accent.withValues(alpha: 0.35)
+                          : scheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: on ? onContainer : scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: tt.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: on ? onContainer : scheme.onSurface,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+                Switch.adaptive(
+                  value: value,
+                  onChanged: enabled ? onChanged : null,
                 ),
               ],
             ),

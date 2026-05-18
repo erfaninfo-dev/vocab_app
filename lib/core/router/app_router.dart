@@ -6,6 +6,7 @@ import '../tts/tts_service.dart';
 import '../../features/favorites/favorites_screen.dart';
 import '../../features/word_builder/word_builder_constants.dart';
 import '../../features/word_builder/presentation/word_builder_lobby_screen.dart';
+import '../../features/word_builder/presentation/word_builder_ltr_scope.dart';
 import '../../features/word_builder/presentation/word_builder_session_screen.dart';
 import '../../features/word_builder/presentation/word_builder_campaign_stages_screen.dart';
 import '../../features/word_builder/domain/word_builder_models.dart';
@@ -34,6 +35,7 @@ import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/you/you_screen.dart';
 import '../../features/you/student_class_sessions_screen.dart';
+import '../../features/you/student_panel_screen.dart';
 import '../../features/you/student_message_peers_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
@@ -128,6 +130,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         redirect: (_, __) => '/teacher?tab=messages',
       ),
       GoRoute(
+        path: '/student-panel',
+        builder: (context, state) {
+          final tab = state.uri.queryParameters['tab'];
+          return StudentPanelScreen(
+            initialTab: switch (tab) {
+              'sessions' => StudentPanelTab.classSessions,
+              'review' => StudentPanelTab.review,
+              _ => StudentPanelTab.progress,
+            },
+          );
+        },
+      ),
+      GoRoute(
         path: '/teacher/student/:studentId',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
@@ -193,7 +208,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           GoRoute(
             path: '/word-builder',
-            builder: (_, __) => const WordBuilderLobbyScreen(),
+            builder: (_, __) => const WordBuilderLtrScope(
+              child: WordBuilderLobbyScreen(),
+            ),
           ),
           GoRoute(
             path: '/word-builder/campaign',
@@ -204,7 +221,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 'advanced' => WordBuilderDifficulty.advanced,
                 _ => WordBuilderDifficulty.beginner,
               };
-              return WordBuilderCampaignStagesScreen(difficulty: d);
+              return WordBuilderLtrScope(
+                child: WordBuilderCampaignStagesScreen(difficulty: d),
+              );
             },
           ),
           GoRoute(
@@ -214,7 +233,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               final key = q == 'all'
                   ? kWordBuilderAllBooksKey
                   : (int.tryParse(q) ?? kWordBuilderAllBooksKey);
-              return WordBuilderSessionScreen(bookKey: key);
+              return WordBuilderLtrScope(
+                child: WordBuilderSessionScreen(bookKey: key),
+              );
             },
           ),
 

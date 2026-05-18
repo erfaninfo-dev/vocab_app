@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
+import '../application/word_builder_coins_provider.dart';
 import '../application/word_builder_game_notifier.dart';
 import '../domain/word_builder_models.dart';
 import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
+import 'widgets/magic_background.dart';
+import 'widgets/word_builder_coins_chip.dart';
 
 class WordBuilderLobbyScreen extends ConsumerWidget {
   const WordBuilderLobbyScreen({super.key});
@@ -16,132 +20,205 @@ class WordBuilderLobbyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final progAsync = ref.watch(wordBuilderCampaignProgressProvider);
+    final coinsAsync = ref.watch(wordBuilderCoinsProvider);
+    final canPop = context.canPop();
 
-    final gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Color.lerp(const Color(0xFF87CEEB), scheme.surface, isDark ? 0.35 : 0.12) ??
-            scheme.primaryContainer,
-        scheme.surface,
-      ],
+    final funTheme = Theme.of(context).copyWith(
+      textTheme: GoogleFonts.fredokaTextTheme(Theme.of(context).textTheme),
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(gradient: gradient),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: scheme.surface.withValues(alpha: 0.72),
-          title: Text(l10n.wordBuilderTitle),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(l10n.wordBuilderCampaignReset),
-                    content: Text(l10n.wordBuilderCampaignResetConfirm),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text(l10n.cancel),
+    return Theme(
+      data: funTheme,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          MagicBackground(isDark: isDark),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              toolbarHeight: kToolbarHeight,
+              title: const SizedBox.shrink(),
+              centerTitle: false,
+              automaticallyImplyLeading: false,
+              leading: canPop
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: isDark
+                            ? scheme.onSurface
+                            : const Color(0xFF5D4037),
                       ),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: Text(l10n.wordBuilderCampaignReset),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: () => context.pop(),
+                    )
+                  : null,
+              actions: [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 6),
+                  child: Center(
+                    child: coinsAsync.when(
+                      data: (c) => WordBuilderCoinsChip(
+                        balanceLabel: l10n.wordBuilderCoinsBalance(c),
+                        isDark: isDark,
+                        scheme: scheme,
+                      ),
+                      loading: () =>
+                          WordBuilderCoinsChipLoading(scheme: scheme),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: Center(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        minimumSize: const Size(0, 44),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => _confirmReset(context, ref, l10n),
+                      child: Text(
+                        l10n.wordBuilderCampaignReset,
+                        style: GoogleFonts.fredoka(
+                          color: const Color(0xFFB71C1C),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            body: progAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(0xFFFFB300)),
+              ),
+              error: (_, __) => Center(
+                child: Text(
+                  l10n.errorGeneric,
+                  style: GoogleFonts.fredoka(
+                    color: const Color(0xFF5D4037),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              data: (progress) => SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (l10n.wordBuilderCampaignHubSubtitle
+                          .trim()
+                          .isNotEmpty) ...[
+                        Text(
+                          l10n.wordBuilderCampaignHubSubtitle,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 15,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF5D4037),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+                      _TierLaunchCard(
+                        title: l10n.wordBuilderDifficultyBeginner,
+                        subtitle:
+                            '${progress.beginnerStagesCleared}/$kWordBuilderStagesPerTier',
+                        onTap: () => context.push(
+                          '/word-builder/campaign?difficulty=beginner',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _TierLaunchCard(
+                        title: l10n.wordBuilderDifficultyIntermediate,
+                        subtitle:
+                            '${progress.intermediateStagesCleared}/$kWordBuilderStagesPerTier',
+                        onTap: () => context.push(
+                          '/word-builder/campaign?difficulty=intermediate',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _TierLaunchCard(
+                        title: l10n.wordBuilderDifficultyAdvanced,
+                        subtitle:
+                            '${progress.advancedStagesCleared}/$kWordBuilderStagesPerTier',
+                        onTap: () => context.push(
+                          '/word-builder/campaign?difficulty=advanced',
+                        ),
                       ),
                     ],
                   ),
-                );
-                if (ok == true && context.mounted) {
-                  await ref
-                      .read(wordBuilderProgressRepoProvider)
-                      .stripCampaignLevelEntries();
-                  await ref
-                      .read(wordBuilderCampaignProgressRepositoryProvider)
-                      .reset();
-                  ref.invalidate(wordBuilderCampaignProgressProvider);
-                  for (final d in WordBuilderDifficulty.values) {
-                    for (var s = 1; s <= kWordBuilderStagesPerTier; s++) {
-                      ref.invalidate(
-                        wordBuilderGameProvider(
-                          encodeWordBuilderCampaignSessionKey(d, s),
-                        ),
-                      );
-                    }
-                  }
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.wordBuilderCampaignResetDone)),
-                    );
-                  }
-                }
-              },
-              child: Text(
-                l10n.wordBuilderCampaignReset,
-                style: TextStyle(color: scheme.error),
-              ),
-            ),
-          ],
-        ),
-        body: progAsync.when(
-          loading: () => Center(child: CircularProgressIndicator(color: scheme.primary)),
-          error: (_, __) => Center(child: Text(l10n.errorGeneric)),
-          data: (progress) => SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (l10n.wordBuilderCampaignHubSubtitle.trim().isNotEmpty) ...[
-                    Text(
-                      l10n.wordBuilderCampaignHubSubtitle,
-                      textAlign: TextAlign.center,
-                      style: tt.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.35,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyBeginner,
-                    subtitle:
-                        '${progress.beginnerStagesCleared}/$kWordBuilderStagesPerTier',
-                    scheme: scheme,
-                    onTap: () =>
-                        context.push('/word-builder/campaign?difficulty=beginner'),
-                  ),
-                  const SizedBox(height: 14),
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyIntermediate,
-                    subtitle:
-                        '${progress.intermediateStagesCleared}/$kWordBuilderStagesPerTier',
-                    scheme: scheme,
-                    onTap: () => context
-                        .push('/word-builder/campaign?difficulty=intermediate'),
-                  ),
-                  const SizedBox(height: 14),
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyAdvanced,
-                    subtitle:
-                        '${progress.advancedStagesCleared}/$kWordBuilderStagesPerTier',
-                    scheme: scheme,
-                    onTap: () =>
-                        context.push('/word-builder/campaign?difficulty=advanced'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  Future<void> _confirmReset(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          l10n.wordBuilderCampaignReset,
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          l10n.wordBuilderCampaignResetConfirm,
+          style: GoogleFonts.fredoka(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.wordBuilderCampaignReset),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    await ref.read(wordBuilderProgressRepoProvider).stripCampaignLevelEntries();
+    await ref.read(wordBuilderCampaignProgressRepositoryProvider).reset();
+    ref.invalidate(wordBuilderCampaignProgressProvider);
+    for (final d in WordBuilderDifficulty.values) {
+      for (var s = 1; s <= kWordBuilderStagesPerTier; s++) {
+        ref.invalidate(
+          wordBuilderGameProvider(encodeWordBuilderCampaignSessionKey(d, s)),
+        );
+      }
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.wordBuilderCampaignResetDone)),
+      );
+    }
   }
 }
 
@@ -149,18 +226,15 @@ class _TierLaunchCard extends StatelessWidget {
   const _TierLaunchCard({
     required this.title,
     required this.subtitle,
-    required this.scheme,
     required this.onTap,
   });
 
   final String title;
   final String subtitle;
-  final ColorScheme scheme;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -170,16 +244,19 @@ class _TierLaunchCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             gradient: const LinearGradient(
-              colors: [Color(0xFFFFF8E7), Color(0xFFFFECB3)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
             ),
             border: Border.all(
-              color: const Color(0xFFC4956A).withValues(alpha: 0.75),
+              color: Colors.white.withValues(alpha: 0.55),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.14),
+                color: Colors.orange.withValues(alpha: 0.35),
                 blurRadius: 16,
+                spreadRadius: 1,
                 offset: const Offset(0, 6),
               ),
             ],
@@ -194,26 +271,47 @@ class _TierLaunchCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurface,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF5D4037),
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         subtitle,
-                        style: tt.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF8D6E63),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.play_circle_fill_rounded,
-                  size: 44,
-                  color: scheme.primary,
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.45),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      size: 32,
+                      color: Color(0xFF5D4037),
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -1,8 +1,9 @@
-import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'app_audio_session.dart';
 
 class SplashSoundController extends Notifier<bool> {
   static const _storageKey = 'splash_sound_enabled';
@@ -41,24 +42,7 @@ class SplashSoundController extends Notifier<bool> {
   Future<void> playIfEnabled() async {
     if (!state) return;
     try {
-      if (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS) {
-        final session = await AudioSession.instance;
-        await session.configure(
-          const AudioSessionConfiguration(
-            avAudioSessionCategory: AVAudioSessionCategory.ambient,
-            avAudioSessionCategoryOptions:
-                AVAudioSessionCategoryOptions.mixWithOthers,
-            androidAudioAttributes: AndroidAudioAttributes(
-              contentType: AndroidAudioContentType.music,
-              usage: AndroidAudioUsage.media,
-            ),
-            androidAudioFocusGainType:
-                AndroidAudioFocusGainType.gainTransientMayDuck,
-            androidWillPauseWhenDucked: false,
-          ),
-        );
-      }
+      await configureAppAudioSession();
       final player = _player ??= AudioPlayer();
       await player.setLoopMode(LoopMode.off);
       await player.setVolume(_volume);

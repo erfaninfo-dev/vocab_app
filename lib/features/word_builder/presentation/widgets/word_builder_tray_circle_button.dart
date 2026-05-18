@@ -29,7 +29,10 @@ class _HintLampStyle {
   static const Color bulbSilhouette = Color(0xFF5D4037);
 }
 
-_TrayActionPalette _palette(WordBuilderTrayActionKind kind, ColorScheme scheme) {
+_TrayActionPalette _palette(
+  WordBuilderTrayActionKind kind,
+  ColorScheme scheme,
+) {
   switch (kind) {
     case WordBuilderTrayActionKind.hint:
       return _TrayActionPalette(
@@ -115,12 +118,16 @@ class WordBuilderTrayCircleButton extends ConsumerWidget {
     required this.kind,
     required this.diameter,
     required this.l10n,
+    this.enabled = true,
+    this.tooltipOverride,
   });
 
   final int bookKey;
   final WordBuilderTrayActionKind kind;
   final double diameter;
   final AppLocalizations l10n;
+  final bool enabled;
+  final String? tooltipOverride;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -136,17 +143,17 @@ class WordBuilderTrayCircleButton extends ConsumerWidget {
     switch (kind) {
       case WordBuilderTrayActionKind.hint:
         icon = Icons.lightbulb_rounded;
-        tooltip = l10n.wordBuilderHintReveal;
+        tooltip = tooltipOverride ?? l10n.wordBuilderHintReveal;
         onTap = () => notifier.hintRevealLetter();
         break;
       case WordBuilderTrayActionKind.shuffle:
         icon = Icons.shuffle_rounded;
-        tooltip = l10n.wordBuilderShuffle;
+        tooltip = tooltipOverride ?? l10n.wordBuilderShuffle;
         onTap = () => notifier.shuffleCircle();
         break;
       case WordBuilderTrayActionKind.translate:
         icon = Icons.translate_rounded;
-        tooltip = l10n.wordBuilderTranslation;
+        tooltip = tooltipOverride ?? l10n.wordBuilderTranslation;
         final lang = ref.watch(langProvider);
         final preferKur = lang == TranslationLang.kur;
         onTap = () => notifier.hintMeaning(preferKur: preferKur);
@@ -158,26 +165,23 @@ class WordBuilderTrayCircleButton extends ConsumerWidget {
     final blurNear = (14 * d / 52).clamp(10.0, 18.0);
     final blurFar = (30 * d / 52).clamp(24.0, 38.0);
 
+    const vibrantFill = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+    );
+
     final Gradient cardFill = kind == WordBuilderTrayActionKind.hint
         ? _lampFaceGradient(isDark)
-        : RadialGradient(
-            center: const Alignment(-0.4, -0.45),
-            radius: 1.05,
-            colors: [
-              Color.alphaBlend(
-                Colors.white.withValues(alpha: isDark ? 0.1 : 0.34),
-                palette.container,
-              ),
-              Color.alphaBlend(
-                palette.accent.withValues(alpha: isDark ? 0.42 : 0.2),
-                palette.container,
-              ),
-            ],
-          );
+        : vibrantFill;
 
     final borderColor = kind == WordBuilderTrayActionKind.hint
         ? _HintLampStyle.rim.withValues(alpha: isDark ? 0.78 : 0.72)
-        : palette.accent.withValues(alpha: isDark ? 0.62 : 0.52);
+        : const Color(0xFFE65100).withValues(alpha: isDark ? 0.7 : 0.55);
+
+    final iconColor = kind == WordBuilderTrayActionKind.hint
+        ? palette.onAccent
+        : const Color(0xFF5D4037);
 
     final iconShadows = kind == WordBuilderTrayActionKind.hint
         ? <Shadow>[
@@ -196,12 +200,9 @@ class WordBuilderTrayCircleButton extends ConsumerWidget {
             ),
           ]
         : <Shadow>[
+            Shadow(color: Colors.orange.withValues(alpha: 0.5), blurRadius: 10),
             Shadow(
-              color: palette.accent.withValues(alpha: 0.55),
-              blurRadius: 9,
-            ),
-            Shadow(
-              color: scheme.shadow.withValues(alpha: isDark ? 0.65 : 0.2),
+              color: scheme.shadow.withValues(alpha: isDark ? 0.5 : 0.18),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -209,39 +210,55 @@ class WordBuilderTrayCircleButton extends ConsumerWidget {
 
     return Tooltip(
       message: tooltip,
-      child: SizedBox(
-        width: d,
-        height: d,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: _outerGlows(kind, palette, isDark, blurNear, blurFar),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onTap,
-              child: Ink(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: borderColor,
-                    width: kind == WordBuilderTrayActionKind.hint ? 2 : 1.75,
-                  ),
-                  gradient: cardFill,
-                ),
-                child: SizedBox(
-                  width: d,
-                  height: d,
-                  child: Center(
-                    child: Icon(
-                      icon,
-                      size: iconSize,
-                      color: palette.onAccent,
-                      shadows: iconShadows,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.42,
+        child: IgnorePointer(
+          ignoring: !enabled,
+          child: SizedBox(
+            width: d,
+            height: d,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  ..._outerGlows(kind, palette, isDark, blurNear, blurFar),
+                  if (kind != WordBuilderTrayActionKind.hint)
+                    BoxShadow(
+                      color: Colors.orange.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onTap,
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: borderColor,
+                        width: kind == WordBuilderTrayActionKind.hint
+                            ? 2
+                            : 1.75,
+                      ),
+                      gradient: cardFill,
+                    ),
+                    child: SizedBox(
+                      width: d,
+                      height: d,
+                      child: Center(
+                        child: Icon(
+                          icon,
+                          size: iconSize,
+                          color: iconColor,
+                          shadows: iconShadows,
+                        ),
+                      ),
                     ),
                   ),
                 ),

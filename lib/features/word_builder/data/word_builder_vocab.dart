@@ -131,6 +131,155 @@ String _lemmaKey(VocabEntry e) => wordBuilderGameLemma(e) ?? '';
   return null;
 }
 
+List<List<int>> campaignIdealLengthPatterns(WordBuilderDifficulty d) {
+  switch (d) {
+    case WordBuilderDifficulty.beginner:
+      return const [
+        [2, 3, 3],
+        [3, 3, 3],
+        [2, 2, 3],
+        [3, 3, 4],
+      ];
+    case WordBuilderDifficulty.intermediate:
+      return const [
+        [3, 4, 4],
+        [3, 4, 5],
+        [3, 5, 5],
+        [4, 4, 4],
+        [4, 4, 5],
+        [4, 5, 5],
+        [5, 5, 5],
+        [3, 3, 4],
+        [4, 5, 6],
+        [5, 6, 7],
+      ];
+    case WordBuilderDifficulty.advanced:
+      return const [
+        [4, 5, 5],
+        [4, 4, 5],
+        [5, 5, 5],
+        [4, 5, 6],
+        [5, 5, 6],
+        [5, 6, 6],
+        [5, 6, 7],
+        [6, 6, 7],
+        [4, 4, 4],
+        [6, 7, 7],
+      ];
+  }
+}
+
+bool campaignTriplePlayable(
+  List<VocabEntry> three,
+  WordBuilderDifficulty difficulty, {
+  bool ignoreTileCap = true,
+}) {
+  if (three.length != 3) return false;
+  final heads = <String>[];
+  for (final e in three) {
+    final h = wordBuilderGameLemma(e);
+    if (h == null || h.isEmpty) return false;
+    heads.add(h);
+  }
+  if (heads.toSet().length != 3) return false;
+  final pool = poolMaxPerLetterAcrossWords(heads);
+  final n = pool.values.fold<int>(0, (a, b) => a + b);
+  if (n < _minTileCount(difficulty)) return false;
+  if (!ignoreTileCap) {
+    final lens = heads.map((h) => h.length).toList()..sort();
+    final cap = _maxTileCapFor(difficulty, lens);
+    if (cap != null && n > cap) return false;
+  }
+  return true;
+}
+
+/// Picks three unused lemmas for a campaign stage: ideal length patterns first,
+/// then any three playable words (including longer fallbacks).
+List<VocabEntry>? pickCampaignStageEntries({
+  required List<VocabEntry> candidates,
+  required WordBuilderDifficulty difficulty,
+  required Set<String> usedHeads,
+  required Random random,
+}) {
+  final available = <VocabEntry>[];
+  final seen = <String>{};
+  for (final e in candidates) {
+    final k = _lemmaKey(e);
+    if (k.isEmpty || usedHeads.contains(k) || seen.contains(k)) continue;
+    seen.add(k);
+    available.add(e);
+  }
+  if (available.length < 3) return null;
+
+  final byLen = <int, List<VocabEntry>>{};
+  for (final e in available) {
+    final len = wordBuilderGameLemma(e)!.length;
+    byLen.putIfAbsent(len, () => []).add(e);
+  }
+  for (final list in byLen.values) {
+    list.shuffle(random);
+  }
+
+  for (final lens in campaignIdealLengthPatterns(difficulty)) {
+    final triple = _tryPickTriple(
+      byLen: byLen,
+      lens: lens,
+      difficulty: difficulty,
+      random: random,
+      usedHeads: usedHeads,
+      attempts: 280,
+      ignoreTileCap: true,
+    );
+    if (triple != null) {
+      final out = [triple.$1, triple.$2, triple.$3]
+        ..sort((a, b) => wordBuilderGameLemma(a)!.length
+            .compareTo(wordBuilderGameLemma(b)!.length));
+      return out;
+    }
+  }
+
+  available.sort((a, b) => wordBuilderGameLemma(a)!.length
+      .compareTo(wordBuilderGameLemma(b)!.length));
+
+  final scan = available.length > 28 ? available.sublist(0, 28) : available;
+  for (var a = 0; a < scan.length - 2; a++) {
+    for (var b = a + 1; b < scan.length - 1; b++) {
+      for (var c = b + 1; c < scan.length; c++) {
+        final triple = [scan[a], scan[b], scan[c]];
+        if (campaignTriplePlayable(triple, difficulty)) {
+          triple.sort((x, y) => wordBuilderGameLemma(x)!.length
+              .compareTo(wordBuilderGameLemma(y)!.length));
+          return triple;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+WordBuilderLevel _levelFromCampaignEntries(
+  List<VocabEntry> ordered,
+  WordBuilderDifficulty difficulty,
+  String categoryLabel,
+  int stage1Based,
+) {
+  final targets = <WordBuilderTargetWord>[];
+  for (final e in ordered) {
+    targets.add(targetFromVocab(e, normalizeWord(e.word.trim())));
+  }
+  final wordsLower =
+      targets.map((t) => normalizeWord(t.word)).toList(growable: false);
+  final letters = expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
+  return WordBuilderLevel(
+    levelId: 900000000 + difficulty.index * 20 + stage1Based,
+    difficulty: difficulty,
+    category: categoryLabel,
+    letters: letters,
+    targetWords: targets,
+  );
+}
+
 List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
   List<VocabEntry> raw,
   Random random, {
@@ -232,23 +381,6 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
   return levels;
 }
 
-bool _campaignSortedLemmaLengthsValid(
-  WordBuilderDifficulty d,
-  int la,
-  int lb,
-  int lc,
-) {
-  if (la > lb || lb > lc) return false;
-  switch (d) {
-    case WordBuilderDifficulty.beginner:
-      return (la == 2 && lb == 3 && lc == 3) || (la == 3 && lb == 3 && lc == 3);
-    case WordBuilderDifficulty.intermediate:
-      return la == 3 && lb == 4 && lc == 4;
-    case WordBuilderDifficulty.advanced:
-      return la == 4 && lb == 5 && lc == 5;
-  }
-}
-
 WordBuilderLevel buildCampaignStageLevel({
   required List<VocabEntry> entries,
   required WordBuilderDifficulty difficulty,
@@ -267,39 +399,26 @@ WordBuilderLevel buildCampaignStageLevel({
     usable.add(e);
   }
 
-  if (usable.length == 3) {
-    usable.sort((a, b) => wordBuilderGameLemma(a)!.length
-        .compareTo(wordBuilderGameLemma(b)!.length));
-    final la = wordBuilderGameLemma(usable[0])!.length;
-    final lb = wordBuilderGameLemma(usable[1])!.length;
-    final lc = wordBuilderGameLemma(usable[2])!.length;
-    if (_campaignSortedLemmaLengthsValid(difficulty, la, lb, lc)) {
-      final ha = wordBuilderGameLemma(usable[0])!;
-      final hb = wordBuilderGameLemma(usable[1])!;
-      final hc = wordBuilderGameLemma(usable[2])!;
-      if (ha != hb && ha != hc && hb != hc) {
-        final pool = poolMaxPerLetterAcrossWords([ha, hb, hc]);
-        final n = pool.values.fold<int>(0, (a, b) => a + b);
-        final minTiles = _minTileCount(difficulty);
-        if (n >= minTiles) {
-          final targets = <WordBuilderTargetWord>[];
-          for (final e in usable) {
-            final display = normalizeWord(e.word.trim());
-            targets.add(targetFromVocab(e, display));
-          }
-          final wordsLower =
-              targets.map((t) => normalizeWord(t.word)).toList(growable: false);
-          final letters =
-              expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
-          return WordBuilderLevel(
-            levelId: 900000000 + difficulty.index * 20 + stage1Based,
+  if (usable.length >= 3) {
+    final picked = usable.length == 3
+        ? (List<VocabEntry>.of(usable)
+          ..sort((a, b) => wordBuilderGameLemma(a)!.length
+              .compareTo(wordBuilderGameLemma(b)!.length)))
+        : pickCampaignStageEntries(
+            candidates: usable,
             difficulty: difficulty,
-            category: categoryLabel,
-            letters: letters,
-            targetWords: targets,
+            usedHeads: const {},
+            random: rnd,
           );
-        }
-      }
+    if (picked != null &&
+        picked.length == 3 &&
+        campaignTriplePlayable(picked, difficulty)) {
+      return _levelFromCampaignEntries(
+        picked,
+        difficulty,
+        categoryLabel,
+        stage1Based,
+      );
     }
   }
 
@@ -317,50 +436,49 @@ WordBuilderLevel buildCampaignStageLevel({
     list.shuffle(rnd);
   }
 
-  final lens = difficulty == WordBuilderDifficulty.beginner
-      ? _beginnerLens(byLen)
-      : _wordLengthsForDifficulty(difficulty);
-  final triple = _tryPickTriple(
-    byLen: byLen,
-    lens: lens,
-    difficulty: difficulty,
-    random: rnd,
-    usedHeads: {},
-    attempts: 900,
-    ignoreTileCap: entries.length == 3,
-  );
-
-  if (triple == null) {
-    return WordBuilderLevel(
-      levelId: 900000000 + difficulty.index * 20 + stage1Based,
+  for (final lens in campaignIdealLengthPatterns(difficulty)) {
+    final triple = _tryPickTriple(
+      byLen: byLen,
+      lens: lens,
       difficulty: difficulty,
-      category: categoryLabel,
-      letters: const [],
-      targetWords: const [],
+      random: rnd,
+      usedHeads: const {},
+      attempts: 400,
+      ignoreTileCap: true,
+    );
+    if (triple != null) {
+      final ordered = [triple.$1, triple.$2, triple.$3]
+        ..sort((a, b) => wordBuilderGameLemma(a)!.length
+            .compareTo(wordBuilderGameLemma(b)!.length));
+      return _levelFromCampaignEntries(
+        ordered,
+        difficulty,
+        categoryLabel,
+        stage1Based,
+      );
+    }
+  }
+
+  final fallback = pickCampaignStageEntries(
+    candidates: entries,
+    difficulty: difficulty,
+    usedHeads: const {},
+    random: rnd,
+  );
+  if (fallback != null && fallback.length == 3) {
+    return _levelFromCampaignEntries(
+      fallback,
+      difficulty,
+      categoryLabel,
+      stage1Based,
     );
   }
-
-  final (ea, eb, ec) = triple;
-  final ordered = [ea, eb, ec]..sort((a, b) {
-    final la = wordBuilderGameLemma(a)!.length;
-    final lb = wordBuilderGameLemma(b)!.length;
-    return la.compareTo(lb);
-  });
-
-  final targets = <WordBuilderTargetWord>[];
-  for (final e in ordered) {
-    final display = normalizeWord(e.word.trim());
-    targets.add(targetFromVocab(e, display));
-  }
-  final wordsLower =
-      targets.map((t) => normalizeWord(t.word)).toList(growable: false);
-  final letters = expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
 
   return WordBuilderLevel(
     levelId: 900000000 + difficulty.index * 20 + stage1Based,
     difficulty: difficulty,
     category: categoryLabel,
-    letters: letters,
-    targetWords: targets,
+    letters: const [],
+    targetWords: const [],
   );
 }

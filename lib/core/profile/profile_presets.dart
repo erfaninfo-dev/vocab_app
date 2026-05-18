@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Preset avatar ids stored on the server (see `api/update_profile.php`).
 /// m1–m4: boy-style palettes, f1–f4: girl-style palettes (icons + colors, no image assets).
 class ProfilePreset {
@@ -87,4 +89,27 @@ ProfilePreset profilePresetForId(String? id) {
     }
   }
   return kProfilePresets.first;
+}
+
+String profilePresetLocalizedLabel(AppLocalizations l10n, String id) {
+  switch (id) {
+    case 'm1':
+      return l10n.profilePresetBoy1;
+    case 'm2':
+      return l10n.profilePresetBoy2;
+    case 'm3':
+      return l10n.profilePresetBoy3;
+    case 'm4':
+      return l10n.profilePresetBoy4;
+    case 'f1':
+      return l10n.profilePresetGirl1;
+    case 'f2':
+      return l10n.profilePresetGirl2;
+    case 'f3':
+      return l10n.profilePresetGirl3;
+    case 'f4':
+      return l10n.profilePresetGirl4;
+    default:
+      return profilePresetForId(id).label;
+  }
 }

@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../l10n/app_localizations.dart';
-import '../home/home_displayed_books_provider.dart';
-import '../../domain/api_providers.dart';
+import 'student_code_dialogs.dart';
 
 /// Account card moved from Settings — sign-in, profile, student code, sign-out.
 class YouAccountSection extends ConsumerWidget {
@@ -72,29 +71,82 @@ class YouAccountSection extends ConsumerWidget {
               decoration: _cardDecoration(scheme),
               child: Column(
                 children: [
-                  ListTile(
-                    leading: ProfileAvatar(
-                      avatarId: session.user.avatar,
-                      userId: session.user.id,
-                      size: 48,
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => context.push('/profile'),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            ProfileAvatar(
+                              avatarId: session.user.avatar,
+                              userId: session.user.id,
+                              size: 48,
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.profile,
+                                    style: theme.textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    session.user.displayName != null &&
+                                            session.user
+                                                .displayName!
+                                                .trim()
+                                                .isNotEmpty
+                                        ? '${session.user.displayName!.trim()}\n${session.user.email}'
+                                        : session.user.email,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      height: session.user.displayName !=
+                                                  null &&
+                                              session.user.displayName!
+                                                  .trim()
+                                                  .isNotEmpty
+                                          ? 1.35
+                                          : 1.2,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.edit_outlined,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    title: Text(l10n.profile),
-                    subtitle: Text(
-                      session.user.displayName != null &&
-                              session.user.displayName!.trim().isNotEmpty
-                          ? '${session.user.displayName!}\n${session.user.email}'
-                          : session.user.email,
-                    ),
-                    isThreeLine:
-                        session.user.displayName != null &&
-                        session.user.displayName!.trim().isNotEmpty,
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    onTap: () => context.push('/profile'),
                   ),
-                  if (!session.user.studentAccess) ...[
+                  if (session.user.isTeacher || session.user.isAdmin) ...[
+                    const Divider(height: 0),
+                    ListTile(
+                      leading: Icon(
+                        Icons.vpn_key_outlined,
+                        color: scheme.tertiary,
+                      ),
+                      title: Text(l10n.createStudentCode),
+                      subtitle: Text(
+                        l10n.createStudentCodeSubtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () =>
+                          showCreateTeacherStudentCodeDialog(context, ref),
+                    ),
+                  ] else if (!session.user.studentAccess) ...[
                     const Divider(height: 0),
                     ListTile(
                       leading: Icon(
@@ -107,65 +159,7 @@ class YouAccountSection extends ConsumerWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      onTap: () async {
-                        final ctrl = TextEditingController();
-                        final submitted = await showDialog<String>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text(l10n.redeemStudentCode),
-                            content: TextField(
-                              controller: ctrl,
-                              decoration: InputDecoration(
-                                labelText: l10n.studentCodeLabel,
-                              ),
-                              autofocus: true,
-                              textCapitalization: TextCapitalization.characters,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  ctrl.dispose();
-                                  Navigator.of(ctx).pop();
-                                },
-                                child: Text(l10n.cancel),
-                              ),
-                              FilledButton(
-                                onPressed: () {
-                                  final t = ctrl.text.trim();
-                                  ctrl.dispose();
-                                  Navigator.of(ctx).pop(t);
-                                },
-                                child: Text(l10n.continueLabel),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (submitted == null || submitted.isEmpty) {
-                          return;
-                        }
-                        try {
-                          await ref
-                              .read(authProvider.notifier)
-                              .redeemStudentCode(submitted);
-                          ref.invalidate(apiPublicBooksForHomeProvider);
-                          ref.invalidate(apiStudentBooksForHomeProvider);
-                          ref.invalidate(teacherMessagesPreviewProvider);
-                          ref.invalidate(teacherMessagesUnreadFabProvider);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.studentAccessGranted),
-                              ),
-                            );
-                          }
-                        } catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.invalidStudentCode)),
-                            );
-                          }
-                        }
-                      },
+                      onTap: () => showRedeemStudentCodeDialog(context, ref),
                     ),
                   ],
                   const Divider(height: 0),

@@ -73,9 +73,9 @@ class FavoritesScreen extends ConsumerWidget {
                 allEntries.where((e) => prefs.isFavorite(e)).toList();
             if (favEntries.isEmpty) {
               return ListView(
-                children: const [
-                  SizedBox(height: 220),
-                  Center(child: Text('No favorite words yet.')),
+                children: [
+                  const SizedBox(height: 220),
+                  Center(child: Text(l10n.noFavoriteWordsYet)),
                 ],
               );
             }

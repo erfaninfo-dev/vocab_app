@@ -115,7 +115,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Center(
                       child: Text(
-                        'Could not load units.\n$error',
+                        l10n.couldNotLoadUnitsWithError('$error'),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -128,7 +128,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       const SizedBox(height: 120),
-                      const Center(child: Text('No units found in this dataset.')),
+                      Center(child: Text(l10n.noUnitsFound)),
                       const SizedBox(height: 12),
                       Center(
                         child: OutlinedButton.icon(
@@ -158,7 +158,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
                         child: Text(
-                          '${units.length} units · tap a card to open',
+                          l10n.unitsGridHint(units.length),
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
@@ -176,9 +176,10 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final unitInfo = units[index];
-                            return Directionality(
+                              return Directionality(
                               textDirection: TextDirection.ltr,
                               child: _UnitTile(
+                                l10n: l10n,
                                 unitInfo: unitInfo,
                                 delay: index * 20,
                                 isLoading: _loadingUnit == unitInfo.unit,
@@ -205,12 +206,14 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
 
 class _UnitTile extends StatefulWidget {
   const _UnitTile({
+    required this.l10n,
     required this.unitInfo,
     required this.onTap,
     required this.delay,
     required this.isLoading,
   });
 
+  final AppLocalizations l10n;
   final UnitInfo unitInfo;
   final VoidCallback onTap;
   final int delay;
@@ -257,7 +260,7 @@ class _UnitTileState extends State<_UnitTile> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Unit ${unitInfo.unit}',
+                          widget.l10n.unitLabel(unitInfo.unit),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
@@ -309,7 +312,9 @@ class _UnitTileState extends State<_UnitTile> {
                                   ),
                             )
                           : Text(
-                              widget.isLoading ? 'Checking…' : 'Tap to open',
+                              widget.isLoading
+                                  ? widget.l10n.checkingEllipsis
+                                  : widget.l10n.tapToOpen,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: scheme.onSurfaceVariant),
                             ),

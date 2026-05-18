@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'quiz_insights_data.dart';
 
 /// Grouped bars: vocabulary (local) vs grammar (server) per day, 0–100%.
@@ -18,6 +19,7 @@ class CombinedQuizGroupChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (days.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -28,7 +30,7 @@ class CombinedQuizGroupChart extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'No quiz data in this range yet.',
+          l10n.noQuizDataRange,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -52,9 +54,9 @@ class CombinedQuizGroupChart extends StatelessWidget {
       children: [
         Row(
           children: [
-            _LegendDot(color: scheme.tertiary, label: 'Vocabulary'),
+            _LegendDot(color: scheme.tertiary, label: l10n.legendVocabulary),
             const SizedBox(width: 16),
-            _LegendDot(color: scheme.primary, label: 'Grammar'),
+            _LegendDot(color: scheme.primary, label: l10n.legendGrammar),
           ],
         ),
         const SizedBox(height: 12),
@@ -72,7 +74,9 @@ class CombinedQuizGroupChart extends StatelessWidget {
                     final i = group.x.toInt();
                     final label =
                         (i >= 0 && i < n) ? days[i].labelMmDd : '';
-                    final which = rodIndex == 0 ? 'Vocabulary' : 'Grammar';
+                    final which = rodIndex == 0
+                        ? l10n.legendVocabulary
+                        : l10n.legendGrammar;
                     final v = rod.toY;
                     final pretty =
                         v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1);

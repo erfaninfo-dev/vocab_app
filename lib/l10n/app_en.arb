@@ -48,7 +48,19 @@
   "studentCodeLabel": "Student code",
   "studentCodeRequired": "Enter the code your teacher gave you",
   "redeemStudentCode": "Enter student code",
-  "redeemStudentCodeSubtitle": "Unlock the Students tab with your personal code.",
+  "redeemStudentCodeSubtitle": "Enter the 5-digit code from your teacher.",
+  "createStudentCode": "Create student code",
+  "createStudentCodeSubtitle": "Register a one-time 5-digit code for one student.",
+  "studentCodeFiveDigitsHint": "12345",
+  "studentCodeFiveDigitsInvalid": "Enter exactly 5 digits",
+  "teacherStudentCodeRegistered": "Code {code} is ready for one student.",
+  "@teacherStudentCodeRegistered": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "teacherStudentCodeRegisterFailed": "Could not register this code.",
+  "teacherUnusedCodesTitle": "Unused codes",
   "invalidStudentCode": "Invalid or expired code.",
   "studentAccessGranted": "Student access enabled.",
   "studentTabSignIn": "Sign in to access your teacher's books.",
@@ -208,6 +220,8 @@
   "aboutForcedUpdateNote": "This update is required. Please download and install the latest version.",
   "aboutUpdateCheckFailed": "Could not check for updates.",
   "aboutRetryUpdateCheck": "Retry",
+  "homeNewUpdatesTitle": "New updates",
+  "homeNewUpdatesLetsGo": "Let's go!",
   "aboutLater": "Later",
   "aboutCouldNotOpenLink": "Could not open the link.",
   "aboutPhoneLabel": "Phone",
@@ -498,6 +512,7 @@
   "youClassSessionsEmpty": "No sessions recorded yet.",
   "studentPanelTitle": "Your class",
   "studentPanelFabTooltip": "Open class panel",
+  "myPanelFab": "My pannel",
   "studentPanelHeadline": "Teacher, sessions, and messages in one place.",
   "studentPanelStatUnread": "Unread",
   "teacherClassSessionsHintEmpty": "Tap + to record each class session. The time is saved automatically.",
@@ -756,10 +771,19 @@
   "profilePresetAvatars": "Or pick a preset avatar",
   "profileBoyAvatars": "Boy avatars",
   "profileGirlAvatars": "Girl avatars",
+  "profilePasswordSectionTitle": "Password",
+  "profilePasswordSecurityNote": "For security, your password is stored as a hash on the server and cannot be shown. Use the fields below to type your current password and set a new one. You can tap the eye icon to show or hide what you type.",
+  "profileCurrentPasswordLabel": "Current password",
+  "profilePasswordTooLong": "Password must be at most 72 characters",
+  "profilePasswordSameAsCurrent": "Choose a password that is different from your current one.",
+  "profileWrongCurrentPassword": "Current password is incorrect",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
   "save": "Save",
   "grammarResultsScreenTitle": "Grammar results",
   "grammarExplanationTabFa": "Persian",
-  "grammarExplanationTabCkb": "Kurdish",
+  "grammarExplanationTabCkb": "Kurdi",
+  "translationLangKurdiTab": "Kurdi",
   "grammarExplanationTabEn": "English",
   "grammarReportProblemTitle": "Report a problem",
   "grammarReportWhatWrong": "What is wrong?",
@@ -846,6 +870,7 @@
   "adminUserManagement": "User management",
   "adminSearchUsersHint": "Search by email, name, or teacher…",
   "adminStudentAccess": "Student account",
+  "adminTeacherAccess": "Teacher account",
   "adminAssignedTeacher": "Class teacher",
   "adminNoTeacher": "No teacher",
   "adminSave": "Save",
@@ -900,6 +925,24 @@
   "wordBuilderHintLetter": "A letter was revealed in one of the words.",
   "wordBuilderHintRemoved": "Removed an extra letter from your word.",
   "wordBuilderHintRemoveNone": "No extra letters to remove right now.",
+  "wordBuilderNotEnoughCoins": "Not enough coins. Solve words to earn more.",
+  "wordBuilderCoinsCost": "Costs {coins} coins",
+  "@wordBuilderCoinsCost": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderCoinsBalance": "{coins}",
+  "@wordBuilderCoinsBalance": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderSessionSoundTitle": "Sound",
+  "wordBuilderSessionBgmSwitch": "Background music",
+  "wordBuilderSessionBgmSubtitle": "Plays while you solve words in this game.",
+  "wordBuilderSessionSfxSwitch": "Game sounds",
+  "wordBuilderSessionSfxSubtitle": "Correct answers, mistakes, and level complete.",
   "wordBuilderHintMeaningLine": "Hint: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -930,7 +973,7 @@
   "wordBuilderCampaignStageLockedSnackbar": "Finish the previous stage first.",
   "wordBuilderCampaignTierLockedBody": "Complete all 50 stages in the previous difficulty to unlock this track.",
   "wordBuilderCampaignPlanError": "Not enough vocabulary to build this stage. Try refreshing books later.",
-  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignReset": "Reset progress",
   "wordBuilderCampaignResetConfirm": "Clear all Word Builder stage progress? This cannot be undone.",
   "wordBuilderCampaignResetDone": "Campaign progress cleared.",
   "wordBuilderCampaignStageOf": "Stage {stage} of {total}",
@@ -948,5 +991,93 @@
   },
   "wordBuilderCampaignStageCompleted": "Completed",
   "wordBuilderCampaignStageReplayHint": "Tap to replay this stage",
-  "adminEditUserSheetTitle": "Edit access"
+  "adminEditUserSheetTitle": "Edit access",
+  "previous": "Previous",
+  "finish": "Finish",
+  "noWordsForSection": "No words for this section.",
+  "noFavoriteWordsYet": "No favorite words yet.",
+  "tapCardToRevealAndRate": "Tap card to reveal answer & rate",
+  "tapToFlip": "Tap to flip",
+  "flashcardCardProgress": "Card {current} of {total}",
+  "@flashcardCardProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardMeaningLabel": "Meaning",
+  "flashcardWordLabel": "Word",
+  "allCardsReviewed": "All cards reviewed!",
+  "couldNotLoadSectionsWithError": "Could not load sections.\n{error}",
+  "@couldNotLoadSectionsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "couldNotLoadUnitsWithError": "Could not load units.\n{error}",
+  "@couldNotLoadUnitsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "noUnitsFound": "No units found in this dataset.",
+  "unitsGridHint": "{count, plural, =1{1 unit · tap a card to open} other{{count} units · tap a card to open}}",
+  "@unitsGridHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "checkingEllipsis": "Checking…",
+  "backToUnits": "Back to units",
+  "englishMeaning": "English meaning",
+  "wordsTabLabel": "Words",
+  "samplesTabLabel": "Sample texts",
+  "unitSectionLine": "Unit {unit} · Section {section}",
+  "@unitSectionLine": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "sectionNumberLabel": "Section {section}",
+  "@sectionNumberLabel": {
+    "placeholders": {
+      "section": {"type": "int"}
+    }
+  },
+  "grammarReviewQuestionsHeading": "Questions",
+  "grammarNoPerQuestionData": "No per-question data was stored for this attempt (older results or server not migrated).",
+  "grammarReviewQuestionTitle": "Q{index} · {topic}",
+  "@grammarReviewQuestionTitle": {
+    "placeholders": {
+      "index": {"type": "int"},
+      "topic": {"type": "String"}
+    }
+  },
+  "answerCorrect": "Correct",
+  "answerIncorrect": "Incorrect",
+  "statsQuizCorrectFraction": "{correct} / {answered} correct",
+  "@statsQuizCorrectFraction": {
+    "placeholders": {
+      "correct": {"type": "int"},
+      "answered": {"type": "int"}
+    }
+  },
+  "statsAccuracyPercent": "{pct}% accuracy",
+  "@statsAccuracyPercent": {
+    "placeholders": {
+      "pct": {"type": "String"}
+    }
+  },
+  "unitSamplesLoadingCatalog": "Loading vocabulary…",
+  "unitSamplesTextSize": "Text size",
+  "profilePresetBoy1": "Boy 1",
+  "profilePresetBoy2": "Boy 2",
+  "profilePresetBoy3": "Boy 3",
+  "profilePresetBoy4": "Boy 4",
+  "profilePresetGirl1": "Girl 1",
+  "profilePresetGirl2": "Girl 2",
+  "profilePresetGirl3": "Girl 3",
+  "profilePresetGirl4": "Girl 4",
+  "unitSampleUntitled": "Sample"
 }

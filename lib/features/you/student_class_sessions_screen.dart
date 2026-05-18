@@ -43,10 +43,17 @@ List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
 }
 
 class StudentClassSessionsScreen extends StatefulWidget {
-  const StudentClassSessionsScreen({super.key, this.initialTabIndex = 0});
+  const StudentClassSessionsScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.embedded = false,
+  });
 
   /// 0 = class sessions, 1 = weekly schedule.
   final int initialTabIndex;
+
+  /// When true, renders only the inner tab bar and body (for [StudentPanelScreen]).
+  final bool embedded;
 
   @override
   State<StudentClassSessionsScreen> createState() =>
@@ -84,31 +91,47 @@ class _StudentClassSessionsScreenState extends State<StudentClassSessionsScreen>
         colors: [scheme.primary.withValues(alpha: 0.08), scheme.surface],
       ),
     );
+    final tabBar = TabBar(
+      controller: _tabController,
+      isScrollable: true,
+      labelColor: scheme.primary,
+      unselectedLabelColor: scheme.onSurfaceVariant,
+      indicatorColor: scheme.primary,
+      tabs: [
+        Tab(text: l10n.teacherTabClassSessions),
+        Tab(text: l10n.teacherTabWeeklySchedule),
+      ],
+    );
+
+    final tabView = TabBarView(
+      controller: _tabController,
+      children: [
+        DecoratedBox(
+          decoration: gradient,
+          child: const StudentClassSessionsPanel(fullPage: true),
+        ),
+        DecoratedBox(
+          decoration: gradient,
+          child: const StudentClassSchedulePanel(),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Material(color: scheme.surface, child: tabBar),
+          Expanded(child: tabView),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.studentPanelTitle),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            Tab(text: l10n.teacherTabClassSessions),
-            Tab(text: l10n.teacherTabWeeklySchedule),
-          ],
-        ),
+        bottom: tabBar,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          DecoratedBox(
-            decoration: gradient,
-            child: const StudentClassSessionsPanel(fullPage: true),
-          ),
-          DecoratedBox(
-            decoration: gradient,
-            child: const StudentClassSchedulePanel(),
-          ),
-        ],
-      ),
+      body: tabView,
     );
   }
 }

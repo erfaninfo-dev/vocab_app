@@ -150,8 +150,31 @@ class AppLocalizationsFa extends AppLocalizations {
   String get redeemStudentCode => 'وارد کردن کد دانش‌آموزی';
 
   @override
-  String get redeemStudentCodeSubtitle =>
-      'با کد شخصی‌تان تب دانش‌آموز را باز کنید.';
+  String get redeemStudentCodeSubtitle => 'کد ۵ رقمی معلم خود را وارد کنید.';
+
+  @override
+  String get createStudentCode => 'ساخت کد دانش‌آموزی';
+
+  @override
+  String get createStudentCodeSubtitle =>
+      'یک کد ۵ رقمی یک‌بارمصرف برای یک شاگرد ثبت کنید.';
+
+  @override
+  String get studentCodeFiveDigitsHint => '۱۲۳۴۵';
+
+  @override
+  String get studentCodeFiveDigitsInvalid => 'دقیقاً ۵ رقم وارد کنید';
+
+  @override
+  String teacherStudentCodeRegistered(String code) {
+    return 'کد $code برای یک شاگرد آماده است.';
+  }
+
+  @override
+  String get teacherStudentCodeRegisterFailed => 'ثبت این کد ممکن نشد.';
+
+  @override
+  String get teacherUnusedCodesTitle => 'کدهای استفاده‌نشده';
 
   @override
   String get invalidStudentCode => 'کد نامعتبر یا منقضی است.';
@@ -534,6 +557,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aboutRetryUpdateCheck => 'تلاش دوباره';
+
+  @override
+  String get homeNewUpdatesTitle => 'آپدیت‌های جدید';
+
+  @override
+  String get homeNewUpdatesLetsGo => 'بزن بریم!';
 
   @override
   String get aboutLater => 'بعداً';
@@ -1112,6 +1141,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get studentPanelFabTooltip => 'باز کردن پنل کلاس';
+
+  @override
+  String get myPanelFab => 'پنل من';
 
   @override
   String get studentPanelHeadline => 'استاد، جلسات و پیام‌ها در یک نگاه.';
@@ -1785,6 +1817,32 @@ class AppLocalizationsFa extends AppLocalizations {
   String get profileGirlAvatars => 'آواتار دختر';
 
   @override
+  String get profilePasswordSectionTitle => 'رمز عبور';
+
+  @override
+  String get profilePasswordSecurityNote =>
+      'به‌خاطر امنیت، رمز شما روی سرور به‌صورت هش ذخیره می‌شود و قابل نمایش نیست. برای تغییر، رمز فعلی و رمز جدید را در کادرها بنویسید؛ با آیکن چشم می‌توانید موقع تایپ، نمایش یا مخفی بودن متن را عوض کنید.';
+
+  @override
+  String get profileCurrentPasswordLabel => 'رمز فعلی';
+
+  @override
+  String get profilePasswordTooLong => 'رمز باید حداکثر ۷۲ کاراکتر باشد';
+
+  @override
+  String get profilePasswordSameAsCurrent =>
+      'رمز جدید باید با رمز فعلی فرق داشته باشد.';
+
+  @override
+  String get profileWrongCurrentPassword => 'رمز فعلی درست نیست';
+
+  @override
+  String get showPassword => 'نمایش رمز';
+
+  @override
+  String get hidePassword => 'مخفی کردن رمز';
+
+  @override
   String get save => 'ذخیره';
 
   @override
@@ -1795,6 +1853,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get grammarExplanationTabCkb => 'کردی';
+
+  @override
+  String get translationLangKurdiTab => 'کوردی';
 
   @override
   String get grammarExplanationTabEn => 'انگلیسی';
@@ -1997,6 +2058,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get adminStudentAccess => 'حساب دانش‌آموز';
 
   @override
+  String get adminTeacherAccess => 'حساب معلم';
+
+  @override
   String get adminAssignedTeacher => 'معلم کلاس';
 
   @override
@@ -2132,6 +2196,37 @@ class AppLocalizationsFa extends AppLocalizations {
   String get wordBuilderHintRemoveNone => 'الان حرف اضافه‌ای برای حذف نیست.';
 
   @override
+  String get wordBuilderNotEnoughCoins =>
+      'سکه کافی نیست. با پیدا کردن کلمات سکه بگیرید.';
+
+  @override
+  String wordBuilderCoinsCost(int coins) {
+    return '$coins سکه';
+  }
+
+  @override
+  String wordBuilderCoinsBalance(int coins) {
+    return '$coins';
+  }
+
+  @override
+  String get wordBuilderSessionSoundTitle => 'صدا';
+
+  @override
+  String get wordBuilderSessionBgmSwitch => 'موزیک پس‌زمینه';
+
+  @override
+  String get wordBuilderSessionBgmSubtitle =>
+      'در همین بازی هنگام حل کلمات پخش می‌شود.';
+
+  @override
+  String get wordBuilderSessionSfxSwitch => 'صداهای بازی';
+
+  @override
+  String get wordBuilderSessionSfxSubtitle =>
+      'پاسخ درست، اشتباه و پایان مرحله.';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'راهنما: $meaning';
   }
@@ -2186,7 +2281,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'واژهٔ کافی برای این مرحله روی سرور نیست. بعداً دوباره امتحان کنید یا کتاب‌ها را تازه کنید.';
 
   @override
-  String get wordBuilderCampaignReset => 'reset';
+  String get wordBuilderCampaignReset => 'بازنشانی پیشرفت';
 
   @override
   String get wordBuilderCampaignResetConfirm =>
@@ -2213,4 +2308,147 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get adminEditUserSheetTitle => 'ویرایش دسترسی';
+
+  @override
+  String get previous => 'قبلی';
+
+  @override
+  String get finish => 'پایان';
+
+  @override
+  String get noWordsForSection => 'برای این بخش واژه‌ای نیست.';
+
+  @override
+  String get noFavoriteWordsYet => 'هنوز واژهٔ موردعلاقه‌ای ندارید.';
+
+  @override
+  String get tapCardToRevealAndRate =>
+      'برای دیدن پاسخ و امتیاز، روی کارت بزنید';
+
+  @override
+  String get tapToFlip => 'برای برگرداندن بزنید';
+
+  @override
+  String flashcardCardProgress(int current, int total) {
+    return 'کارت $current از $total';
+  }
+
+  @override
+  String get flashcardMeaningLabel => 'معنی';
+
+  @override
+  String get flashcardWordLabel => 'واژه';
+
+  @override
+  String get allCardsReviewed => 'همهٔ کارت‌ها مرور شد!';
+
+  @override
+  String couldNotLoadSectionsWithError(String error) {
+    return 'بارگذاری بخش‌ها ناموفق بود.\n$error';
+  }
+
+  @override
+  String couldNotLoadUnitsWithError(String error) {
+    return 'بارگذاری یونیت‌ها ناموفق بود.\n$error';
+  }
+
+  @override
+  String get noUnitsFound => 'در این مجموعه یونتی یافت نشد.';
+
+  @override
+  String unitsGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یونیت · برای باز کردن بزنید',
+      one: '۱ یونیت · برای باز کردن بزنید',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get checkingEllipsis => 'در حال بررسی…';
+
+  @override
+  String get backToUnits => 'بازگشت به یونیت‌ها';
+
+  @override
+  String get englishMeaning => 'معنی انگلیسی';
+
+  @override
+  String get wordsTabLabel => 'واژه‌ها';
+
+  @override
+  String get samplesTabLabel => 'متن نمونه';
+
+  @override
+  String unitSectionLine(int unit, int section) {
+    return 'یونیت $unit · بخش $section';
+  }
+
+  @override
+  String sectionNumberLabel(int section) {
+    return 'بخش $section';
+  }
+
+  @override
+  String get grammarReviewQuestionsHeading => 'سؤالات';
+
+  @override
+  String get grammarNoPerQuestionData =>
+      'دادهٔ تفکیک‌شده برای هر سؤال ذخیره نشده (نتیجهٔ قدیمی یا مهاجرت سرور).';
+
+  @override
+  String grammarReviewQuestionTitle(int index, String topic) {
+    return 'س$index · $topic';
+  }
+
+  @override
+  String get answerCorrect => 'درست';
+
+  @override
+  String get answerIncorrect => 'نادرست';
+
+  @override
+  String statsQuizCorrectFraction(int correct, int answered) {
+    return '$correct / $answered درست';
+  }
+
+  @override
+  String statsAccuracyPercent(String pct) {
+    return 'دقت $pct٪';
+  }
+
+  @override
+  String get unitSamplesLoadingCatalog => 'در حال بارگذاری فهرست لغات…';
+
+  @override
+  String get unitSamplesTextSize => 'اندازه متن';
+
+  @override
+  String get profilePresetBoy1 => 'پسر ۱';
+
+  @override
+  String get profilePresetBoy2 => 'پسر ۲';
+
+  @override
+  String get profilePresetBoy3 => 'پسر ۳';
+
+  @override
+  String get profilePresetBoy4 => 'پسر ۴';
+
+  @override
+  String get profilePresetGirl1 => 'دختر ۱';
+
+  @override
+  String get profilePresetGirl2 => 'دختر ۲';
+
+  @override
+  String get profilePresetGirl3 => 'دختر ۳';
+
+  @override
+  String get profilePresetGirl4 => 'دختر ۴';
+
+  @override
+  String get unitSampleUntitled => 'نمونه';
 }

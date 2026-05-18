@@ -40,10 +40,11 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
       _goTo(_index + 1);
     } else {
       if (mounted) {
+        final msg = AppLocalizations.of(context)!.allCardsReviewed;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 All cards reviewed!'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(msg),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -69,7 +70,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
             Center(child: Text(userFriendlyErrorMessage(error, l10n))),
         data: (words) {
           if (words.isEmpty) {
-            return const Center(child: Text('No words for this section.'));
+            return Center(child: Text(l10n.noWordsForSection));
           }
           final current = words[_index];
           final lang = ref.watch(langProvider);
@@ -79,7 +80,11 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
             child: Column(
               children: [
                 // ── Progress ─────────────────────────────────────────────────
-                _ProgressRow(current: _index + 1, total: words.length),
+                _ProgressRow(
+                  l10n: l10n,
+                  current: _index + 1,
+                  total: words.length,
+                ),
                 const SizedBox(height: 12),
 
                 // ── Card ─────────────────────────────────────────────────────
@@ -91,6 +96,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                       child: _showBack
                           ? _CardFace(
                               key: const ValueKey('back'),
+                              l10n: l10n,
                               title: current.meaningEn.isEmpty
                                   ? '-'
                                   : current.meaningEn,
@@ -101,6 +107,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                             )
                           : _CardFace(
                               key: const ValueKey('front'),
+                              l10n: l10n,
                               title: current.word,
                               subtitle: current.type,
                               example: current.exampleEn,
@@ -113,6 +120,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
 
                 // ── TTS ───────────────────────────────────────────────────────
                 _FlashcardSpeakRow(
+                  l10n: l10n,
                   word: current.word,
                   example: current.exampleEn,
                 ),
@@ -125,18 +133,19 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                   child: _showBack
                       ? _SrsRatingRow(
                           key: ValueKey('srs_${current.id}'),
+                          l10n: l10n,
                           wordId: current.id,
                           total: words.length,
                           onRate: (rating) =>
                               _rate(current.id, rating, words.length),
                         )
-                      : const SizedBox(
-                          key: ValueKey('srs_hidden'),
+                      : SizedBox(
+                          key: const ValueKey('srs_hidden'),
                           height: 48,
                           child: Center(
                             child: Text(
-                              'Tap card to reveal answer & rate',
-                              style: TextStyle(color: Colors.grey),
+                              l10n.tapCardToRevealAndRate,
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ),
                         ),
@@ -151,7 +160,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _index == 0 ? null : () => _goTo(_index - 1),
                         icon: const Icon(Icons.arrow_back_rounded),
-                        label: const Text('Previous'),
+                        label: Text(l10n.previous),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -161,7 +170,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
                             ? null
                             : () => _goTo(_index + 1),
                         icon: const Icon(Icons.arrow_forward_rounded),
-                        label: const Text('Next'),
+                        label: Text(l10n.next),
                       ),
                     ),
                   ],
@@ -178,8 +187,13 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
 // ─── Progress Row ─────────────────────────────────────────────────────────────
 
 class _ProgressRow extends StatelessWidget {
-  const _ProgressRow({required this.current, required this.total});
+  const _ProgressRow({
+    required this.l10n,
+    required this.current,
+    required this.total,
+  });
 
+  final AppLocalizations l10n;
   final int current;
   final int total;
 
@@ -192,7 +206,7 @@ class _ProgressRow extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Card $current of $total',
+              l10n.flashcardCardProgress(current, total),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const Spacer(),
@@ -220,6 +234,7 @@ class _ProgressRow extends StatelessWidget {
 class _CardFace extends StatelessWidget {
   const _CardFace({
     super.key,
+    required this.l10n,
     required this.title,
     required this.subtitle,
     this.example,
@@ -227,6 +242,7 @@ class _CardFace extends StatelessWidget {
     this.isBack = false,
   });
 
+  final AppLocalizations l10n;
   final String title;
   final String subtitle;
   final String? example;
@@ -254,7 +270,7 @@ class _CardFace extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              isBack ? 'Meaning' : 'Word',
+              isBack ? l10n.flashcardMeaningLabel : l10n.flashcardWordLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: scheme.onSurfaceVariant,
                 letterSpacing: 1.2,
@@ -307,7 +323,7 @@ class _CardFace extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Tap to flip',
+                  l10n.tapToFlip,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -326,11 +342,13 @@ class _CardFace extends StatelessWidget {
 class _SrsRatingRow extends ConsumerWidget {
   const _SrsRatingRow({
     super.key,
+    required this.l10n,
     required this.wordId,
     required this.total,
     required this.onRate,
   });
 
+  final AppLocalizations l10n;
   final String wordId;
   final int total;
   final void Function(SrsRating) onRate;
@@ -343,7 +361,7 @@ class _SrsRatingRow extends ConsumerWidget {
     return Column(
       children: [
         Text(
-          'How well did you know this?',
+          l10n.howWellKnew,
           style: Theme.of(
             context,
           ).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
@@ -451,8 +469,13 @@ class _RatingButton extends StatelessWidget {
 // ─── Flashcard TTS Row ────────────────────────────────────────────────────────
 
 class _FlashcardSpeakRow extends ConsumerWidget {
-  const _FlashcardSpeakRow({required this.word, required this.example});
+  const _FlashcardSpeakRow({
+    required this.l10n,
+    required this.word,
+    required this.example,
+  });
 
+  final AppLocalizations l10n;
   final String word;
   final String example;
 
@@ -482,7 +505,9 @@ class _FlashcardSpeakRow extends ConsumerWidget {
             isSpeakingWord ? Icons.volume_up_rounded : Icons.volume_up_outlined,
             size: 18,
           ),
-          label: Text(isSpeakingWord ? 'Speaking...' : 'Word'),
+          label: Text(
+            isSpeakingWord ? l10n.speaking : l10n.flashcardWordLabel,
+          ),
         ),
         if (example.isNotEmpty) ...[
           const SizedBox(width: 10),
@@ -502,7 +527,9 @@ class _FlashcardSpeakRow extends ConsumerWidget {
                   : Icons.record_voice_over_outlined,
               size: 18,
             ),
-            label: Text(isSpeakingExample ? 'Speaking...' : 'Example'),
+            label: Text(
+              isSpeakingExample ? l10n.speaking : l10n.wordExample,
+            ),
           ),
         ],
       ],

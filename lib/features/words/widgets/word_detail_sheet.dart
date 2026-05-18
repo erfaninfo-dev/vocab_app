@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/language/language_provider.dart';
 import '../../../data/models/vocab_entry.dart';
+import '../../../l10n/app_localizations.dart';
 
-class WordDetailSheet extends StatelessWidget {
+class WordDetailSheet extends ConsumerWidget {
   const WordDetailSheet({super.key, required this.entry});
 
   final VocabEntry entry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final lang = ref.watch(langProvider);
+    final localMeaningTitle = lang == TranslationLang.fa
+        ? l10n.translationLangPersian
+        : l10n.translationLangKurdishSorani;
+    final localMeaning = entry.meaningFor(lang);
+
     return Directionality(
       textDirection: TextDirection.ltr,
       child: SafeArea(
@@ -29,13 +39,16 @@ class WordDetailSheet extends StatelessWidget {
                   Chip(label: Text(entry.type)),
                 ],
                 const SizedBox(height: 16),
-                _SectionTitle(title: 'English Meaning'),
+                _SectionTitle(title: l10n.englishMeaning),
                 Text(entry.meaningEn.isEmpty ? '-' : entry.meaningEn),
                 const SizedBox(height: 16),
-                _SectionTitle(title: 'معنی فارسی'),
-                Text(entry.meaningFa.isEmpty ? '-' : entry.meaningFa),
+                _SectionTitle(title: localMeaningTitle),
+                Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(localMeaning.isEmpty ? '-' : localMeaning),
+                ),
                 const SizedBox(height: 16),
-                _SectionTitle(title: 'Example'),
+                _SectionTitle(title: l10n.wordExample),
                 Text(entry.example.isEmpty ? '-' : entry.example),
               ],
             ),

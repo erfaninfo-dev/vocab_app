@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/stats/stats_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'quiz_insights_data.dart';
 
 /// Vocabulary quiz only: daily accuracy % (device), last 14 days — bar chart.
@@ -19,13 +20,14 @@ class VocabQuizDailyChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final pairs = buildDailyQuizPairs(stats: stats, grammarResults: const []);
     final hasVocab = pairs.any((p) => p.vocabPct != null);
     if (!hasVocab) {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Answer vocabulary quiz questions to see daily accuracy here.',
+          l10n.vocabDailyChartHint,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),

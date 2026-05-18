@@ -43,6 +43,15 @@ String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
     return l10n.errServerReturnedError;
   }
 
+  if (text.startsWith('Exception: ')) {
+    final detail = text.substring('Exception: '.length).trim();
+    if (detail.isNotEmpty &&
+        !detail.contains('HTTP ') &&
+        detail != 'Create code failed') {
+      return detail;
+    }
+  }
+
   if (text.contains('Failed to fetch')) {
     return l10n.errServer;
   }

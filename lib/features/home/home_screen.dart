@@ -14,6 +14,7 @@ import 'home_book_card.dart';
 import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
 import 'series_books_screen.dart';
+import 'widgets/home_release_notes_banner.dart';
 
 const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
 
@@ -132,13 +133,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final session = ref.watch(authProvider).valueOrNull;
     final user = session?.user;
-    final showMessageFab = user != null &&
+    final showMessageFab =
+        user != null &&
         (user.isTeacher || user.isAdmin || user.teacherUserId != null);
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton:
-          showMessageFab ? const _HomeTeacherOrStudentFab() : null,
+      floatingActionButton: showMessageFab
+          ? const _HomeTeacherOrStudentFab()
+          : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -159,6 +162,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                 child: const _HomeHeader(),
               ),
+              const HomeReleaseNotesBanner(),
               _HomeTrackSegment(pageController: _pageController),
               Expanded(
                 child: PageView(
@@ -894,9 +898,7 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     if (session == null) return const SizedBox.shrink();
     final u = session.user;
     if (u.isTeacher || u.isAdmin) {
-      return _HomeTeacherStudentsFab(
-        onPressed: () => context.push('/teacher'),
-      );
+      return _HomeTeacherStudentsFab(onPressed: () => context.push('/teacher'));
     }
     final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
     final fabCount = fabUnread.when(
@@ -906,7 +908,7 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     );
     return _HomeStudentPanelFab(
       count: fabCount,
-      onPressed: () => context.go('/you'),
+      onPressed: () => context.push('/student-panel'),
     );
   }
 }
@@ -952,12 +954,17 @@ class _HomeStudentPanelFab extends StatelessWidget {
         count > 99 ? '99+' : '$count',
         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
       ),
-      child: FloatingActionButton(
+      child: FloatingActionButton.extended(
+        heroTag: 'home_student_panel_fab',
         onPressed: onPressed,
         backgroundColor: _kHomeFabHappyBlue,
         foregroundColor: Colors.white,
         tooltip: l10n.studentPanelFabTooltip,
-        child: const Icon(Icons.space_dashboard_rounded),
+        icon: const Icon(Icons.space_dashboard_rounded),
+        label: Text(
+          l10n.myPanelFab,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }

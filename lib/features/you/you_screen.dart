@@ -28,6 +28,90 @@ BoxDecoration _youPanelCardDecoration(ColorScheme scheme) {
   );
 }
 
+List<Widget> _youTeacherMessagesSection({
+  required BuildContext context,
+  required WidgetRef ref,
+  required ColorScheme scheme,
+  required AppLocalizations l10n,
+  required AsyncValue<TeacherMessagesPreview> previewAsync,
+  required bool hasTeacher,
+}) {
+  return previewAsync.when(
+    data: (TeacherMessagesPreview p) {
+      final noThreadYet =
+          p.peerCount == 0 && p.lastMessage == null && !hasTeacher;
+      if (noThreadYet) {
+        return [
+          _SectionLabel(label: l10n.youSectionMessages),
+          const SizedBox(height: 8),
+          _YouNoTeacherMessagesCard(scheme: scheme, l10n: l10n),
+        ];
+      }
+      final hub = p.peerCount > 1;
+      return [
+        _SectionLabel(
+          label: hub ? l10n.youSectionMessagesHub : l10n.youSectionMessages,
+        ),
+        const SizedBox(height: 8),
+        _TeacherMessagesPreviewCard(
+          preview: p,
+          useHubCopy: hub,
+          onOpen: () {
+            if (p.peerCount > 1) {
+              context.push('/you/messages/pick');
+            } else {
+              final id = p.teacher?.id;
+              if (id != null && id > 0) {
+                context.push('/you/messages?peer_teacher_id=$id');
+              } else {
+                context.push('/you/messages');
+              }
+            }
+          },
+        ),
+      ];
+    },
+    loading: () => [
+      _SectionLabel(label: l10n.youSectionMessages),
+      const SizedBox(height: 8),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: _youPanelCardDecoration(scheme),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+    ],
+    error: (_, __) => [
+      _SectionLabel(label: l10n.youSectionMessages),
+      const SizedBox(height: 8),
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => ref.invalidate(teacherMessagesPreviewProvider),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: _youPanelCardDecoration(scheme),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline_rounded, color: scheme.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.errorGeneric,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 class YouScreen extends ConsumerWidget {
   const YouScreen({super.key});
 
@@ -61,15 +145,17 @@ class YouScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             const YouAccountSection(),
-            const SizedBox(height: 20),
-            _SectionLabel(label: l10n.youSectionReview),
-            const SizedBox(height: 8),
-            _YouReviewInkCard(
-              scheme: scheme,
-              l10n: l10n,
-              dueCount: ref.watch(srsProvider.select((s) => s.dueTodayCount)),
-              onTap: () => context.push('/review'),
-            ),
+            if (showLearnerMessages) ...[
+              const SizedBox(height: 20),
+              ..._youTeacherMessagesSection(
+                context: context,
+                ref: ref,
+                scheme: scheme,
+                l10n: l10n,
+                previewAsync: previewAsync,
+                hasTeacher: hasTeacher,
+              ),
+            ],
             if (session?.user.isAdmin == true) ...[
               const SizedBox(height: 20),
               _SectionLabel(label: l10n.youSectionAdmin),
@@ -106,111 +192,15 @@ class YouScreen extends ConsumerWidget {
                 onTap: () => context.push('/teacher'),
               ),
             ],
-            if (showLearnerMessages) ...[
-              const SizedBox(height: 20),
-              previewAsync.when(
-                data: (TeacherMessagesPreview p) {
-                  final noThreadYet = p.peerCount == 0 &&
-                      p.lastMessage == null &&
-                      !hasTeacher;
-                  if (noThreadYet) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _SectionLabel(label: l10n.youSectionMessages),
-                        const SizedBox(height: 8),
-                        _YouNoTeacherMessagesCard(
-                          scheme: scheme,
-                          l10n: l10n,
-                        ),
-                      ],
-                    );
-                  }
-                  final hub = p.peerCount > 1;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SectionLabel(
-                        label: hub
-                            ? l10n.youSectionMessagesHub
-                            : l10n.youSectionMessages,
-                      ),
-                      const SizedBox(height: 8),
-                      _TeacherMessagesPreviewCard(
-                        preview: p,
-                        useHubCopy: hub,
-                        onOpen: () {
-                          if (p.peerCount > 1) {
-                            context.push('/you/messages/pick');
-                          } else {
-                            final id = p.teacher?.id;
-                            if (id != null && id > 0) {
-                              context.push(
-                                '/you/messages?peer_teacher_id=$id',
-                              );
-                            } else {
-                              context.push('/you/messages');
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  );
-                },
-                loading: () => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SectionLabel(label: l10n.youSectionMessages),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(22),
-                      decoration: _youPanelCardDecoration(scheme),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                  ],
-                ),
-                error: (_, __) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SectionLabel(label: l10n.youSectionMessages),
-                    const SizedBox(height: 8),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () =>
-                            ref.invalidate(teacherMessagesPreviewProvider),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: _youPanelCardDecoration(scheme),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                color: scheme.error,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  l10n.errorGeneric,
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            const SizedBox(height: 20),
+            _SectionLabel(label: l10n.youSectionReview),
+            const SizedBox(height: 8),
+            _YouReviewInkCard(
+              scheme: scheme,
+              l10n: l10n,
+              dueCount: ref.watch(srsProvider.select((s) => s.dueTodayCount)),
+              onTap: () => context.push('/review'),
+            ),
           ],
         ),
       ),

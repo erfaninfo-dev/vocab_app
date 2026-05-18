@@ -6,36 +6,34 @@ import '../domain/word_builder_models.dart';
 import '../word_builder_campaign_constants.dart';
 import 'word_builder_vocab.dart';
 
-typedef _WbTrackIds = ({Set<int> generalIds, Set<int> ieltsIds});
-
-_WbTrackIds _collectTrackIds(List<Book> books) {
-  final generalIds = <int>{};
-  final ieltsIds = <int>{};
+/// `ielts` | `general` per public catalog book id.
+Map<int, String> _bookTrackById(List<Book> books) {
+  final out = <int, String>{};
   for (final b in books) {
     if (!b.isPublic || b.isStudent) continue;
-    if (b.isGeneralTrack) {
-      generalIds.add(b.id);
-    } else if (b.isIeltsTrack) {
-      ieltsIds.add(b.id);
-    }
+    out[b.id] = b.isGeneralTrack ? 'general' : 'ielts';
   }
-  return (generalIds: generalIds, ieltsIds: ieltsIds);
+  return out;
 }
 
 void _splitCatalog(
   List<VocabEntry> catalog,
-  _WbTrackIds tracks,
+  Map<int, String> trackByBookId,
   List<VocabEntry> outGeneral,
   List<VocabEntry> outIelts,
 ) {
-  bool inSet(VocabEntry e, Set<int> ids) {
-    final id = int.tryParse(e.bookId.trim());
-    return id != null && ids.contains(id);
-  }
-
   for (final e in catalog) {
-    if (inSet(e, tracks.generalIds)) outGeneral.add(e);
-    if (inSet(e, tracks.ieltsIds)) outIelts.add(e);
+    final id = int.tryParse(e.bookId.trim());
+    if (id == null) continue;
+    switch (trackByBookId[id]) {
+      case 'general':
+        outGeneral.add(e);
+      case 'ielts':
+        outIelts.add(e);
+      default:
+        // Unknown / legacy book id — treat as IELTS tab (same default as [Book.track]).
+        outIelts.add(e);
+    }
   }
 }
 
@@ -54,6 +52,102 @@ List<VocabEntry> _dedupePool(Iterable<VocabEntry> raw) {
     out.add(e);
   }
   return out;
+}
+
+List<VocabEntry> _unusedLemmaPool(
+  Iterable<VocabEntry> raw,
+  Set<String> usedHeads, {
+  int minLen = 2,
+  int maxLen = 7,
+}) {
+  return _dedupePool(raw.where((e) {
+    final h = wordBuilderGameLemma(e);
+    if (h == null || h.length < minLen || h.length > maxLen) return false;
+    final k = _normalizedHead(e);
+    return k != null && !usedHeads.contains(k);
+  }));
+}
+
+List<List<VocabEntry>> _buildTierStages({
+  required int stageCount,
+  required WordBuilderDifficulty difficulty,
+  required List<VocabEntry> primaryCandidates,
+  required List<VocabEntry> fallbackCandidates,
+  required Set<String> usedHeads,
+  required Random random,
+  /// When true (Advanced), never mix primary + fallback in one stage — General only
+  /// if the IELTS pool cannot supply that stage.
+  bool strictTrackFallback = false,
+}) {
+  final stages = <List<VocabEntry>>[];
+  var primary = List<VocabEntry>.of(primaryCandidates);
+  var fallback = List<VocabEntry>.of(fallbackCandidates);
+
+  for (var s = 0; s < stageCount; s++) {
+    List<VocabEntry>? take = pickCampaignStageEntries(
+      candidates: primary,
+      difficulty: difficulty,
+      usedHeads: usedHeads,
+      random: random,
+    );
+    if (take == null && fallback.isNotEmpty) {
+      take = pickCampaignStageEntries(
+        candidates: fallback,
+        difficulty: difficulty,
+        usedHeads: usedHeads,
+        random: random,
+      );
+    }
+    if (!strictTrackFallback) {
+      take ??= pickCampaignStageEntries(
+        candidates: [...primary, ...fallback],
+        difficulty: difficulty,
+        usedHeads: usedHeads,
+        random: random,
+      );
+    }
+    if (take == null) {
+      take = pickCampaignStageEntries(
+        candidates: primary,
+        difficulty: difficulty,
+        usedHeads: const {},
+        random: random,
+      );
+    }
+    if (take == null && fallback.isNotEmpty) {
+      take = pickCampaignStageEntries(
+        candidates: fallback,
+        difficulty: difficulty,
+        usedHeads: const {},
+        random: random,
+      );
+    }
+    if (!strictTrackFallback) {
+      take ??= pickCampaignStageEntries(
+        candidates: [...primary, ...fallback],
+        difficulty: difficulty,
+        usedHeads: const {},
+        random: random,
+      );
+    }
+
+    if (take == null || take.length < kWordBuilderCampaignWordsPerStage) {
+      stages.add(const []);
+      continue;
+    }
+
+    final heads = take.map((e) => _normalizedHead(e)!).toSet();
+    usedHeads.addAll(heads);
+    primary = primary
+        .where((e) => !heads.contains(_normalizedHead(e)))
+        .toList(growable: false);
+    fallback = fallback
+        .where((e) => !heads.contains(_normalizedHead(e)))
+        .toList(growable: false);
+    stages.add(take);
+  }
+
+  return stages;
 }
 
 class WordBuilderCampaignPlan {
@@ -92,113 +186,50 @@ class WordBuilderCampaignPlan {
     List<Book> books,
     Random random,
   ) {
-    final tracks = _collectTrackIds(books);
+    final trackByBookId = _bookTrackById(books);
     final general = <VocabEntry>[];
     final ielts = <VocabEntry>[];
-    _splitCatalog(catalog, tracks, general, ielts);
+    _splitCatalog(catalog, trackByBookId, general, ielts);
 
     final usedHeads = <String>{};
 
-    final pool3Candidates = _dedupePool(general.where((e) {
-      final h = wordBuilderGameLemma(e);
-      return h != null && h.length >= 2 && h.length <= 3;
-    }))..shuffle(random);
+    final beginnerPrimary = _unusedLemmaPool(general, usedHeads, maxLen: 3);
+    final beginnerFallback = _unusedLemmaPool(general, usedHeads, maxLen: 4);
+    final beginnerStages = _buildTierStages(
+      stageCount: kWordBuilderStagesPerTier,
+      difficulty: WordBuilderDifficulty.beginner,
+      primaryCandidates: beginnerPrimary,
+      fallbackCandidates: beginnerFallback,
+      usedHeads: usedHeads,
+      random: random,
+    );
 
-    final len2 = <VocabEntry>[];
-    final len3b = <VocabEntry>[];
-    for (final e in pool3Candidates) {
-      final h = wordBuilderGameLemma(e)!;
-      if (h.length == 2) {
-        len2.add(e);
-      } else if (h.length == 3) {
-        len3b.add(e);
-      }
-    }
+    final interPrimary = _unusedLemmaPool(general, usedHeads, minLen: 3, maxLen: 4);
+    final interFallback = [
+      ..._unusedLemmaPool(general, usedHeads),
+      ..._unusedLemmaPool(ielts, usedHeads),
+    ];
+    final intermediateStages = _buildTierStages(
+      stageCount: kWordBuilderStagesPerTier,
+      difficulty: WordBuilderDifficulty.intermediate,
+      primaryCandidates: interPrimary,
+      fallbackCandidates: _dedupePool(interFallback),
+      usedHeads: usedHeads,
+      random: random,
+    );
 
-    final beginnerStages = <List<VocabEntry>>[];
-    for (var s = 0; s < kWordBuilderStagesPerTier; s++) {
-      final take = <VocabEntry>[];
-      if (len2.isNotEmpty && len3b.length >= 2) {
-        take.add(len2.removeAt(0));
-        take.add(len3b.removeAt(0));
-        take.add(len3b.removeAt(0));
-      } else if (len3b.length >= 3) {
-        take.add(len3b.removeAt(0));
-        take.add(len3b.removeAt(0));
-        take.add(len3b.removeAt(0));
-      }
-      for (final e in take) {
-        final k = _normalizedHead(e);
-        if (k != null) usedHeads.add(k);
-      }
-      beginnerStages.add(take);
-    }
-
-    final poolInter = _dedupePool(general.where((e) {
-      final h = wordBuilderGameLemma(e);
-      if (h == null || h.length < 3 || h.length > 4) return false;
-      final k = _normalizedHead(e);
-      return k != null && !usedHeads.contains(k);
-    }))..shuffle(random);
-
-    final i3 = <VocabEntry>[];
-    final i4 = <VocabEntry>[];
-    for (final e in poolInter) {
-      final h = wordBuilderGameLemma(e)!;
-      if (h.length == 3) {
-        i3.add(e);
-      } else if (h.length == 4) {
-        i4.add(e);
-      }
-    }
-
-    final intermediateStages = <List<VocabEntry>>[];
-    for (var s = 0; s < kWordBuilderStagesPerTier; s++) {
-      final take = <VocabEntry>[];
-      if (i3.isNotEmpty && i4.length >= 2) {
-        take.add(i3.removeAt(0));
-        take.add(i4.removeAt(0));
-        take.add(i4.removeAt(0));
-      }
-      for (final e in take) {
-        final k = _normalizedHead(e);
-        if (k != null) usedHeads.add(k);
-      }
-      intermediateStages.add(take);
-    }
-
-    final poolAdv = _dedupePool(ielts.where((e) {
-      final h = wordBuilderGameLemma(e);
-      if (h == null || h.length < 4 || h.length > 5) return false;
-      final k = _normalizedHead(e);
-      return k != null && !usedHeads.contains(k);
-    }))..shuffle(random);
-
-    final a4 = <VocabEntry>[];
-    final a5 = <VocabEntry>[];
-    for (final e in poolAdv) {
-      final h = wordBuilderGameLemma(e)!;
-      if (h.length == 4) {
-        a4.add(e);
-      } else if (h.length == 5) {
-        a5.add(e);
-      }
-    }
-
-    final advancedStages = <List<VocabEntry>>[];
-    for (var s = 0; s < kWordBuilderStagesPerTier; s++) {
-      final take = <VocabEntry>[];
-      if (a4.isNotEmpty && a5.length >= 2) {
-        take.add(a4.removeAt(0));
-        take.add(a5.removeAt(0));
-        take.add(a5.removeAt(0));
-      }
-      for (final e in take) {
-        final k = _normalizedHead(e);
-        if (k != null) usedHeads.add(k);
-      }
-      advancedStages.add(take);
-    }
+    // Advanced: IELTS-tab books first; General-tab only when IELTS cannot fill a stage.
+    final advPrimary = _unusedLemmaPool(ielts, usedHeads, minLen: 4);
+    final advFallback = _unusedLemmaPool(general, usedHeads, minLen: 4);
+    final advancedStages = _buildTierStages(
+      stageCount: kWordBuilderStagesPerTier,
+      difficulty: WordBuilderDifficulty.advanced,
+      primaryCandidates: advPrimary,
+      fallbackCandidates: advFallback,
+      usedHeads: usedHeads,
+      random: random,
+      strictTrackFallback: true,
+    );
 
     return WordBuilderCampaignPlan(
       beginnerStages: beginnerStages,

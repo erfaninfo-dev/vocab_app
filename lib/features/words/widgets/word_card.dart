@@ -6,6 +6,7 @@ import '../../../core/tts/tts_service.dart';
 import '../../../data/models/book_model.dart';
 import '../../../data/models/vocab_entry.dart';
 import '../../../domain/api_providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../important_words_controller.dart';
 import '../word_preferences_controller.dart';
 
@@ -304,7 +305,7 @@ class _SpeakButton extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton.filledTonal(
-          tooltip: 'Pronounce word',
+          tooltip: AppLocalizations.of(context)!.pronounceWord,
           onPressed: () => notifier.speak(word, showMiniPlayer: false),
           style: isSpeakingWord
               ? IconButton.styleFrom(
@@ -321,7 +322,7 @@ class _SpeakButton extends ConsumerWidget {
         if (example.isNotEmpty) ...[
           const SizedBox(width: 4),
           IconButton.filledTonal(
-            tooltip: 'Pronounce example',
+            tooltip: AppLocalizations.of(context)!.pronounceExample,
             onPressed: () => notifier.speak(example, showMiniPlayer: false),
             style: isSpeakingExample
                 ? IconButton.styleFrom(

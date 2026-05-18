@@ -151,7 +151,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get redeemStudentCodeSubtitle =>
-      'Unlock the Students tab with your personal code.';
+      'Enter the 5-digit code from your teacher.';
+
+  @override
+  String get createStudentCode => 'Create student code';
+
+  @override
+  String get createStudentCodeSubtitle =>
+      'Register a one-time 5-digit code for one student.';
+
+  @override
+  String get studentCodeFiveDigitsHint => '12345';
+
+  @override
+  String get studentCodeFiveDigitsInvalid => 'Enter exactly 5 digits';
+
+  @override
+  String teacherStudentCodeRegistered(String code) {
+    return 'Code $code is ready for one student.';
+  }
+
+  @override
+  String get teacherStudentCodeRegisterFailed =>
+      'Could not register this code.';
+
+  @override
+  String get teacherUnusedCodesTitle => 'Unused codes';
 
   @override
   String get invalidStudentCode => 'Invalid or expired code.';
@@ -533,6 +558,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutRetryUpdateCheck => 'Retry';
+
+  @override
+  String get homeNewUpdatesTitle => 'New updates';
+
+  @override
+  String get homeNewUpdatesLetsGo => 'Let\'s go!';
 
   @override
   String get aboutLater => 'Later';
@@ -1109,6 +1140,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get studentPanelFabTooltip => 'Open class panel';
+
+  @override
+  String get myPanelFab => 'My pannel';
 
   @override
   String get studentPanelHeadline =>
@@ -1786,6 +1820,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileGirlAvatars => 'Girl avatars';
 
   @override
+  String get profilePasswordSectionTitle => 'Password';
+
+  @override
+  String get profilePasswordSecurityNote =>
+      'For security, your password is stored as a hash on the server and cannot be shown. Use the fields below to type your current password and set a new one. You can tap the eye icon to show or hide what you type.';
+
+  @override
+  String get profileCurrentPasswordLabel => 'Current password';
+
+  @override
+  String get profilePasswordTooLong => 'Password must be at most 72 characters';
+
+  @override
+  String get profilePasswordSameAsCurrent =>
+      'Choose a password that is different from your current one.';
+
+  @override
+  String get profileWrongCurrentPassword => 'Current password is incorrect';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
   String get save => 'Save';
 
   @override
@@ -1795,7 +1855,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grammarExplanationTabFa => 'Persian';
 
   @override
-  String get grammarExplanationTabCkb => 'Kurdish';
+  String get grammarExplanationTabCkb => 'Kurdi';
+
+  @override
+  String get translationLangKurdiTab => 'Kurdi';
 
   @override
   String get grammarExplanationTabEn => 'English';
@@ -1998,6 +2061,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminStudentAccess => 'Student account';
 
   @override
+  String get adminTeacherAccess => 'Teacher account';
+
+  @override
   String get adminAssignedTeacher => 'Class teacher';
 
   @override
@@ -2136,6 +2202,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'No extra letters to remove right now.';
 
   @override
+  String get wordBuilderNotEnoughCoins =>
+      'Not enough coins. Solve words to earn more.';
+
+  @override
+  String wordBuilderCoinsCost(int coins) {
+    return 'Costs $coins coins';
+  }
+
+  @override
+  String wordBuilderCoinsBalance(int coins) {
+    return '$coins';
+  }
+
+  @override
+  String get wordBuilderSessionSoundTitle => 'Sound';
+
+  @override
+  String get wordBuilderSessionBgmSwitch => 'Background music';
+
+  @override
+  String get wordBuilderSessionBgmSubtitle =>
+      'Plays while you solve words in this game.';
+
+  @override
+  String get wordBuilderSessionSfxSwitch => 'Game sounds';
+
+  @override
+  String get wordBuilderSessionSfxSubtitle =>
+      'Correct answers, mistakes, and level complete.';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'Hint: $meaning';
   }
@@ -2191,7 +2288,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not enough vocabulary to build this stage. Try refreshing books later.';
 
   @override
-  String get wordBuilderCampaignReset => 'reset';
+  String get wordBuilderCampaignReset => 'Reset progress';
 
   @override
   String get wordBuilderCampaignResetConfirm =>
@@ -2218,4 +2315,146 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminEditUserSheetTitle => 'Edit access';
+
+  @override
+  String get previous => 'Previous';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get noWordsForSection => 'No words for this section.';
+
+  @override
+  String get noFavoriteWordsYet => 'No favorite words yet.';
+
+  @override
+  String get tapCardToRevealAndRate => 'Tap card to reveal answer & rate';
+
+  @override
+  String get tapToFlip => 'Tap to flip';
+
+  @override
+  String flashcardCardProgress(int current, int total) {
+    return 'Card $current of $total';
+  }
+
+  @override
+  String get flashcardMeaningLabel => 'Meaning';
+
+  @override
+  String get flashcardWordLabel => 'Word';
+
+  @override
+  String get allCardsReviewed => 'All cards reviewed!';
+
+  @override
+  String couldNotLoadSectionsWithError(String error) {
+    return 'Could not load sections.\n$error';
+  }
+
+  @override
+  String couldNotLoadUnitsWithError(String error) {
+    return 'Could not load units.\n$error';
+  }
+
+  @override
+  String get noUnitsFound => 'No units found in this dataset.';
+
+  @override
+  String unitsGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count units · tap a card to open',
+      one: '1 unit · tap a card to open',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get checkingEllipsis => 'Checking…';
+
+  @override
+  String get backToUnits => 'Back to units';
+
+  @override
+  String get englishMeaning => 'English meaning';
+
+  @override
+  String get wordsTabLabel => 'Words';
+
+  @override
+  String get samplesTabLabel => 'Sample texts';
+
+  @override
+  String unitSectionLine(int unit, int section) {
+    return 'Unit $unit · Section $section';
+  }
+
+  @override
+  String sectionNumberLabel(int section) {
+    return 'Section $section';
+  }
+
+  @override
+  String get grammarReviewQuestionsHeading => 'Questions';
+
+  @override
+  String get grammarNoPerQuestionData =>
+      'No per-question data was stored for this attempt (older results or server not migrated).';
+
+  @override
+  String grammarReviewQuestionTitle(int index, String topic) {
+    return 'Q$index · $topic';
+  }
+
+  @override
+  String get answerCorrect => 'Correct';
+
+  @override
+  String get answerIncorrect => 'Incorrect';
+
+  @override
+  String statsQuizCorrectFraction(int correct, int answered) {
+    return '$correct / $answered correct';
+  }
+
+  @override
+  String statsAccuracyPercent(String pct) {
+    return '$pct% accuracy';
+  }
+
+  @override
+  String get unitSamplesLoadingCatalog => 'Loading vocabulary…';
+
+  @override
+  String get unitSamplesTextSize => 'Text size';
+
+  @override
+  String get profilePresetBoy1 => 'Boy 1';
+
+  @override
+  String get profilePresetBoy2 => 'Boy 2';
+
+  @override
+  String get profilePresetBoy3 => 'Boy 3';
+
+  @override
+  String get profilePresetBoy4 => 'Boy 4';
+
+  @override
+  String get profilePresetGirl1 => 'Girl 1';
+
+  @override
+  String get profilePresetGirl2 => 'Girl 2';
+
+  @override
+  String get profilePresetGirl3 => 'Girl 3';
+
+  @override
+  String get profilePresetGirl4 => 'Girl 4';
+
+  @override
+  String get unitSampleUntitled => 'Sample';
 }

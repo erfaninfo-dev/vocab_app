@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/word_builder_game_notifier.dart';
 import '../../domain/word_builder_models.dart';
+import 'fancy_letter.dart';
+import 'tray_water_scene.dart';
 
 class _TrayLayout {
   const _TrayLayout({
@@ -25,11 +27,7 @@ class _TrayLayout {
   final double trayRadius;
 }
 
-_TrayLayout _computeTrayLayout(
-  Size bounds,
-  int n, {
-  double? layoutMinExtent,
-}) {
+_TrayLayout _computeTrayLayout(Size bounds, int n, {double? layoutMinExtent}) {
   if (n <= 0) {
     return _TrayLayout(
       centers: const [],
@@ -122,13 +120,24 @@ class CircularLetterTray extends ConsumerStatefulWidget {
   ConsumerState<CircularLetterTray> createState() => _CircularLetterTrayState();
 }
 
-class _CircularLetterTrayState extends ConsumerState<CircularLetterTray> {
+class _CircularLetterTrayState extends ConsumerState<CircularLetterTray>
+    with TickerProviderStateMixin {
   int? _dragLastId;
   Timer? _wrongFadeTimer;
   bool _fadingWrongLetters = false;
   bool _trackedPathWrong = false;
+  late final AnimationController _orbit;
 
   static const double _kTapClearMoveSlop = 18;
+
+  @override
+  void initState() {
+    super.initState();
+    _orbit = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 36),
+    )..repeat();
+  }
 
   Offset? _tapClearOrigin;
   bool _tapClearStartedOutsideTrayCircle = false;
@@ -137,6 +146,7 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray> {
   @override
   void dispose() {
     _wrongFadeTimer?.cancel();
+    _orbit.dispose();
     super.dispose();
   }
 
@@ -192,20 +202,31 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray> {
     );
   }
 
-  void _maybeClearPathOnPointerUp(
+  void _onTrayPointerUp(
     List<LetterInstance> path,
     bool pathWrong,
     WordBuilderGameNotifier notifier,
   ) {
-    final origin = _tapClearOrigin;
-    if (origin == null) return;
     final startedOutside = _tapClearStartedOutsideTrayCircle;
     final maxMove = _tapClearMaxMove;
     _resetTapClearTracking();
-    if (!startedOutside) return;
-    if (pathWrong || path.isEmpty) return;
-    if (maxMove >= _kTapClearMoveSlop) return;
-    notifier.clearPathOnly();
+    _dragLastId = null;
+
+    if (pathWrong) return;
+
+    if (startedOutside && path.isNotEmpty && maxMove < _kTapClearMoveSlop) {
+      unawaited(notifier.clearPathOnly());
+      return;
+    }
+
+    if (path.length <= 1) {
+      if (path.isNotEmpty) {
+        unawaited(notifier.clearPathOnly());
+      }
+      return;
+    }
+
+    unawaited(notifier.evaluatePathOnDragRelease());
   }
 
   @override
@@ -214,6 +235,7 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray> {
     final async = ref.watch(wordBuilderGameProvider(widget.bookKey));
     final path = async.valueOrNull?.path ?? const <LetterInstance>[];
     final pathWrong = async.valueOrNull?.pathWrongHighlight ?? false;
+    final trayBlocked = async.valueOrNull?.trayInputBlocked ?? false;
     final notifier = ref.read(wordBuilderGameProvider(widget.bookKey).notifier);
 
     _syncWrongFadeAnimation(pathWrong);
@@ -244,133 +266,195 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray> {
             ? scheme.error.withValues(alpha: 0.82)
             : scheme.primary.withValues(alpha: 0.55);
 
-        return IgnorePointer(
-          ignoring: pathWrong,
-          child: Listener(
-            behavior: HitTestBehavior.translucent,
-            onPointerDown: (e) {
-              _dragLastId = null;
-              if (_hitChrome(e.localPosition, size)) {
-                _resetTapClearTracking();
-                return;
-              }
-              _tapClearOrigin = e.localPosition;
-              _tapClearStartedOutsideTrayCircle =
-                  _outsideTrayCircle(e.localPosition, layout);
-              _tapClearMaxMove = 0;
-            },
-            onPointerMove: (e) {
-              if (_hitChrome(e.localPosition, size)) {
-                _resetTapClearTracking();
-              }
-              final o = _tapClearOrigin;
-              if (o != null) {
-                _tapClearMaxMove = math.max(
-                  _tapClearMaxMove,
-                  (e.localPosition - o).distance,
-                );
-              }
-              final hit = _hit(e.localPosition, layout, n);
-              if (hit == null) return;
-              final letter = widget.letters[hit];
-              if (_dragLastId == letter.id) return;
-              _dragLastId = letter.id;
-              notifier.appendLetterFromDrag(letter);
-            },
-            onPointerUp: (_) => _maybeClearPathOnPointerUp(
-              path,
-              pathWrong,
-              notifier,
-            ),
-            onPointerCancel: (_) => _resetTapClearTracking(),
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: size,
-                  painter: _TraySaucerPainter(
-                    center: layout.center,
-                    radius: layout.trayRadius,
-                    scheme: scheme,
-                  ),
-                ),
-                AnimatedOpacity(
-                  key: ValueKey(pathWrong),
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeInOut,
-                  opacity: pathWrong && _fadingWrongLetters ? 0 : 1,
-                  onEnd: () {
-                    if (!mounted) return;
-                    final cur = ref
-                        .read(wordBuilderGameProvider(widget.bookKey))
-                        .valueOrNull;
-                    if (cur?.pathWrongHighlight == true &&
-                        _fadingWrongLetters) {
-                      notifier.clearWrongSelectionAfterFade();
-                    }
-                  },
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IgnorePointer(
+              ignoring: trayBlocked,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (e) {
+                  _dragLastId = null;
+                  if (_hitChrome(e.localPosition, size)) {
+                    _resetTapClearTracking();
+                    return;
+                  }
+                  _tapClearOrigin = e.localPosition;
+                  _tapClearStartedOutsideTrayCircle = _outsideTrayCircle(
+                    e.localPosition,
+                    layout,
+                  );
+                  _tapClearMaxMove = 0;
+                  final hit = _hit(e.localPosition, layout, n);
+                  if (hit != null) {
+                    final letter = widget.letters[hit];
+                    _dragLastId = letter.id;
+                    unawaited(notifier.appendLetterFromDrag(letter));
+                  }
+                },
+                onPointerMove: (e) {
+                  if (_hitChrome(e.localPosition, size)) {
+                    _resetTapClearTracking();
+                  }
+                  final o = _tapClearOrigin;
+                  if (o != null) {
+                    _tapClearMaxMove = math.max(
+                      _tapClearMaxMove,
+                      (e.localPosition - o).distance,
+                    );
+                  }
+                  final hit = _hit(e.localPosition, layout, n);
+                  if (hit == null) return;
+                  final letter = widget.letters[hit];
+                  if (_dragLastId == letter.id) return;
+                  _dragLastId = letter.id;
+                  notifier.appendLetterFromDrag(letter);
+                },
+                onPointerUp: (_) => _onTrayPointerUp(path, pathWrong, notifier),
+                onPointerCancel: (_) {
+                  _resetTapClearTracking();
+                  _dragLastId = null;
+                  if (!pathWrong && path.isNotEmpty) {
+                    unawaited(notifier.clearPathOnly());
+                  }
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    RotationTransition(
+                      turns: _orbit,
+                      child: CustomPaint(
                         size: size,
-                        painter: _PathPainter(
-                          centers: centers,
-                          pathIndices: pathIdx,
-                          color: pathColor,
+                        painter: _OrbitGlowPainter(
+                          center: layout.center,
+                          radius: layout.trayRadius + 8,
                         ),
                       ),
-                      Center(
-                        child: SizedBox(
-                          width: trayD,
-                          height: trayD,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.center,
-                            children: [
-                              for (var i = 0; i < n; i++)
-                                Positioned(
-                                  left:
-                                      centers[i].dx -
-                                      half -
-                                      (layout.center.dx - trayD / 2),
-                                  top:
-                                      centers[i].dy -
-                                      half -
-                                      (layout.center.dy - trayD / 2),
-                                  width: layout.tile,
-                                  height: layout.tile,
-                                  child: _CircleLetter(
-                                    letter: widget.letters[i],
-                                    diameter: layout.tile,
-                                    selected: path.any(
-                                      (e) => e.id == widget.letters[i].id,
-                                    ),
-                                    errorHighlight:
-                                        pathWrong &&
-                                        path.any(
+                    ),
+                    CustomPaint(
+                      size: size,
+                      painter: _TraySaucerPainter(
+                        center: layout.center,
+                        radius: layout.trayRadius,
+                        scheme: scheme,
+                      ),
+                    ),
+                    TrayWaterScene(
+                      bookKey: widget.bookKey,
+                      size: size,
+                      center: layout.center,
+                      tubRadius: layout.trayRadius * 0.72,
+                      saucerRadius: layout.trayRadius,
+                      faceRadius: layout.trayRadius * 0.5,
+                    ),
+                    AnimatedOpacity(
+                      key: ValueKey(pathWrong),
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeInOut,
+                      opacity: pathWrong && _fadingWrongLetters ? 0 : 1,
+                      onEnd: () {
+                        if (!mounted) return;
+                        final cur = ref
+                            .read(wordBuilderGameProvider(widget.bookKey))
+                            .valueOrNull;
+                        if (cur?.pathWrongHighlight == true &&
+                            _fadingWrongLetters) {
+                          notifier.clearWrongSelectionAfterFade();
+                        }
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          CustomPaint(
+                            size: size,
+                            painter: _PathPainter(
+                              centers: centers,
+                              pathIndices: pathIdx,
+                              color: pathColor,
+                            ),
+                          ),
+                          Center(
+                            child: SizedBox(
+                              width: trayD,
+                              height: trayD,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: [
+                                  for (var i = 0; i < n; i++)
+                                    Positioned(
+                                      left:
+                                          centers[i].dx -
+                                          half -
+                                          (layout.center.dx - trayD / 2),
+                                      top:
+                                          centers[i].dy -
+                                          half -
+                                          (layout.center.dy - trayD / 2),
+                                      width: layout.tile,
+                                      height: layout.tile,
+                                      child: FancyLetter(
+                                        char: widget.letters[i].char,
+                                        diameter: layout.tile,
+                                        selected: path.any(
                                           (e) => e.id == widget.letters[i].id,
                                         ),
-                                    onTap: () => notifier.tapCircleLetter(
-                                      widget.letters[i],
+                                        errorHighlight:
+                                            pathWrong &&
+                                            path.any(
+                                              (e) =>
+                                                  e.id == widget.letters[i].id,
+                                            ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                            ],
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       },
     );
+  }
+}
+
+class _OrbitGlowPainter extends CustomPainter {
+  _OrbitGlowPainter({required this.center, required this.radius});
+
+  final Offset center;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (radius <= 0) return;
+    final paint = Paint()
+      ..color = const Color(0xFFFFB300).withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawCircle(center, radius, paint);
+    final dots = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < 8; i++) {
+      final ang = 2 * math.pi * i / 8;
+      final p = center + Offset(math.cos(ang), math.sin(ang)) * radius;
+      canvas.drawCircle(p, 4, dots);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OrbitGlowPainter oldDelegate) {
+    return oldDelegate.center != center || oldDelegate.radius != radius;
   }
 }
 
@@ -390,14 +474,11 @@ class _TraySaucerPainter extends CustomPainter {
     if (radius <= 0) return;
     final r = Rect.fromCircle(center: center, radius: radius);
     final fill = Paint()
-      ..shader = RadialGradient(
+      ..shader = const RadialGradient(
         center: Alignment.topLeft,
         radius: 1.05,
-        colors: [
-          scheme.surfaceContainerLow.withValues(alpha: 0.95),
-          scheme.surfaceContainerHighest.withValues(alpha: 0.88),
-        ],
-        stops: const [0.0, 1.0],
+        colors: [Color(0xFFFFFDE7), Color(0xFFFFE0B2), Color(0xFFFFCC80)],
+        stops: [0.0, 0.55, 1.0],
       ).createShader(r);
     canvas.drawCircle(center, radius, fill);
 
@@ -406,12 +487,6 @@ class _TraySaucerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawCircle(center, radius, rim);
-
-    final inner = Paint()
-      ..color = scheme.primary.withValues(alpha: 0.06)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(center, radius * 0.72, inner);
   }
 
   @override
@@ -455,74 +530,5 @@ class _PathPainter extends CustomPainter {
     return oldDelegate.pathIndices != pathIndices ||
         oldDelegate.centers != centers ||
         oldDelegate.color != color;
-  }
-}
-
-class _CircleLetter extends StatelessWidget {
-  const _CircleLetter({
-    required this.letter,
-    required this.diameter,
-    required this.selected,
-    this.errorHighlight = false,
-    required this.onTap,
-  });
-
-  final LetterInstance letter;
-  final double diameter;
-  final bool selected;
-  final bool errorHighlight;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final fill = !selected
-        ? scheme.surfaceContainerHighest
-        : errorHighlight
-        ? scheme.error
-        : scheme.primary;
-    final onFill = !selected
-        ? scheme.onSurface
-        : errorHighlight
-        ? scheme.onError
-        : scheme.onPrimary;
-    final border = !selected
-        ? scheme.outline.withValues(alpha: 0.4)
-        : errorHighlight
-        ? scheme.error
-        : scheme.primary;
-    final fontSize = (diameter * 0.38).clamp(18.0, 30.0);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: fill,
-            border: Border.all(color: border, width: selected ? 2.2 : 1.1),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.12),
-                blurRadius: selected ? 12 : 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              letter.char.toUpperCase(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: fontSize,
-                color: onFill,
-                height: 1,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

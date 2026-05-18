@@ -859,7 +859,8 @@ class _QuizBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nextLabel = isLast ? 'Finish' : 'Next';
+    final l10n = AppLocalizations.of(context)!;
+    final nextLabel = isLast ? l10n.finish : l10n.next;
     final nextIcon = isLast ? Icons.flag_rounded : Icons.arrow_forward_rounded;
     final tt = Theme.of(context).textTheme;
 
@@ -911,7 +912,10 @@ class _QuizBottomBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Question ${questionIndex + 1} of $questionTotal',
+                        l10n.questionProgress(
+                          questionIndex + 1,
+                          questionTotal,
+                        ),
                         style: tt.labelLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: scheme.onSurface,
@@ -937,7 +941,7 @@ class _QuizBottomBar extends StatelessWidget {
                             : scheme.onSurface.withValues(alpha: 0.26),
                       ),
                       label: Text(
-                        'Back',
+                        l10n.back,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: canGoBack

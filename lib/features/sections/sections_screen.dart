@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/section_info.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 class SectionsScreen extends ConsumerWidget {
   const SectionsScreen({super.key, required this.bookId, required this.unit});
@@ -13,6 +14,7 @@ class SectionsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final sectionsValue = ref.watch(
       apiSectionsProvider((bookId: bookId, unit: unit)),
@@ -20,10 +22,10 @@ class SectionsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Unit $unit'),
+        title: Text(l10n.unitLabel(unit)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to units',
+          tooltip: l10n.backToUnits,
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/home'),
         ),
@@ -42,7 +44,7 @@ class SectionsScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                'Could not load sections.\n$error',
+                l10n.couldNotLoadSectionsWithError('$error'),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -56,6 +58,7 @@ class SectionsScreen extends ConsumerWidget {
               return const Center(child: CircularProgressIndicator());
             }
             return _SectionList(
+              l10n: l10n,
               sections: sections,
               bookId: bookId,
               unit: unit,
@@ -69,11 +72,13 @@ class SectionsScreen extends ConsumerWidget {
 
 class _SectionList extends StatelessWidget {
   const _SectionList({
+    required this.l10n,
     required this.sections,
     required this.bookId,
     required this.unit,
   });
 
+  final AppLocalizations l10n;
   final List<SectionInfo> sections;
   final int bookId;
   final int unit;
@@ -89,6 +94,7 @@ class _SectionList extends StatelessWidget {
         itemBuilder: (context, index) {
           final info = sections[index];
           return _SectionTile(
+            l10n: l10n,
             unit: unit,
             info: info,
             onTap: () => context.push(
@@ -103,11 +109,13 @@ class _SectionList extends StatelessWidget {
 
 class _SectionTile extends StatelessWidget {
   const _SectionTile({
+    required this.l10n,
     required this.unit,
     required this.info,
     required this.onTap,
   });
 
+  final AppLocalizations l10n;
   final int unit;
   final SectionInfo info;
   final VoidCallback onTap;
@@ -116,7 +124,7 @@ class _SectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final accents = _sectionAccents(info.section);
-    final titleLabel = _sectionTitleLabel(info);
+    final titleLabel = _sectionTitleLabel(l10n, info);
 
     return Card(
       child: InkWell(
@@ -167,7 +175,7 @@ class _SectionTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Unit $unit · Section ${info.section}',
+                      l10n.unitSectionLine(unit, info.section),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -184,10 +192,10 @@ class _SectionTile extends StatelessWidget {
   }
 }
 
-String _sectionTitleLabel(SectionInfo info) {
+String _sectionTitleLabel(AppLocalizations l10n, SectionInfo info) {
   final d = info.sectionDetails?.trim();
   if (d != null && d.isNotEmpty) return d;
-  return 'Section ${info.section}';
+  return l10n.sectionNumberLabel(info.section);
 }
 
 List<Color> _sectionAccents(int section) {
