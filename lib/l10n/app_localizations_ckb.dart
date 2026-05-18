@@ -564,7 +564,7 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get homeNewUpdatesTitle => 'نوێکارییەکان';
 
   @override
-  String get homeNewUpdatesLetsGo => 'با بڕۆین!';
+  String get homeNewUpdatesLetsGo => 'تێگەیشتم';
 
   @override
   String get aboutLater => 'دواتر';

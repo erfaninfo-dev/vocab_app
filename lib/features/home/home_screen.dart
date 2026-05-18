@@ -133,15 +133,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final session = ref.watch(authProvider).valueOrNull;
     final user = session?.user;
-    final showMessageFab =
-        user != null &&
+    final showMessageFab = user != null &&
         (user.isTeacher || user.isAdmin || user.teacherUserId != null);
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: showMessageFab
-          ? const _HomeTeacherOrStudentFab()
-          : null,
+      floatingActionButton:
+          showMessageFab ? const _HomeTeacherOrStudentFab() : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -898,7 +896,9 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     if (session == null) return const SizedBox.shrink();
     final u = session.user;
     if (u.isTeacher || u.isAdmin) {
-      return _HomeTeacherStudentsFab(onPressed: () => context.push('/teacher'));
+      return _HomeTeacherStudentsFab(
+        onPressed: () => context.push('/teacher'),
+      );
     }
     final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
     final fabCount = fabUnread.when(
