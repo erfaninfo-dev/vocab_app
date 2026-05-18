@@ -9,7 +9,9 @@ import '../grammar/grammar_results_screen.dart';
 import '../vocab_quiz/vocab_quiz_history_screen.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
-  const StatsScreen({super.key});
+  const StatsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<StatsScreen> createState() => _StatsScreenState();
@@ -37,6 +39,44 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final l10n = AppLocalizations.of(context)!;
     final tt = Theme.of(context).textTheme;
 
+    final tabBar = TabBar(
+      controller: _tabController,
+      indicatorWeight: 3,
+      labelStyle: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+      unselectedLabelStyle:
+          tt.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+      labelColor: scheme.primary,
+      unselectedLabelColor: scheme.onSurfaceVariant,
+      dividerColor: scheme.outlineVariant.withValues(alpha: 0.35),
+      tabs: [
+        Tab(text: l10n.statsTabVocab),
+        Tab(text: l10n.statsTabGrammar),
+        Tab(text: l10n.statsTabProgress),
+      ],
+    );
+
+    final tabView = TabBarView(
+      controller: _tabController,
+      children: [
+        _StatsTabScaffold(
+          child: const VocabQuizHistoryBody(),
+        ),
+        _StatsTabScaffold(
+          child: const GrammarStatsTabPanel(),
+        ),
+        const _StatsProgressTab(),
+      ],
+    );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Material(color: scheme.surface, child: tabBar),
+          Expanded(child: tabView),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -44,34 +84,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
           onPressed: () => context.pop(),
         ),
         title: Text(l10n.statsMyProgress),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorWeight: 3,
-          labelStyle: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-          unselectedLabelStyle:
-              tt.titleSmall?.copyWith(fontWeight: FontWeight.w500),
-          labelColor: scheme.primary,
-          unselectedLabelColor: scheme.onSurfaceVariant,
-          dividerColor: scheme.outlineVariant.withValues(alpha: 0.35),
-          tabs: [
-            Tab(text: l10n.statsTabVocab),
-            Tab(text: l10n.statsTabGrammar),
-            Tab(text: l10n.statsTabProgress),
-          ],
-        ),
+        bottom: tabBar,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _StatsTabScaffold(
-            child: const VocabQuizHistoryBody(),
-          ),
-          _StatsTabScaffold(
-            child: const GrammarStatsTabPanel(),
-          ),
-          const _StatsProgressTab(),
-        ],
-      ),
+      body: tabView,
     );
   }
 }

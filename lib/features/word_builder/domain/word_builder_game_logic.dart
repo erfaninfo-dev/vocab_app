@@ -113,13 +113,6 @@ List<LetterInstance> shuffleInstances(
 Map<String, int> rackMultiset(Iterable<LetterInstance> rack) =>
     letterCounts(rack.map((e) => e.char));
 
-bool multisetMapEqual(Map<String, int> a, Map<String, int> b) {
-  for (final k in {...a.keys, ...b.keys}) {
-    if ((a[k] ?? 0) != (b[k] ?? 0)) return false;
-  }
-  return true;
-}
-
 bool validateSubmit({
   required String built,
   required List<LetterInstance> rack,
@@ -185,6 +178,70 @@ WordBuilderTargetWord? firstUnsolvedTarget(
 ) {
   for (final t in level.targetWords) {
     if (!solvedLower.contains(normalizeWord(t.word))) return t;
+  }
+  return null;
+}
+
+List<WordBuilderTargetWord> unsolvedTargets(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+) {
+  return [
+    for (final t in level.targetWords)
+      if (!solvedLower.contains(normalizeWord(t.word))) t,
+  ];
+}
+
+int maxUnsolvedTargetLength(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+) {
+  var max = 0;
+  for (final t in unsolvedTargets(level, solvedLower)) {
+    final len = normalizeWord(t.word).length;
+    if (len > max) max = len;
+  }
+  return max;
+}
+
+bool anyUnsolvedTargetHasLength(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  int length,
+) {
+  for (final t in unsolvedTargets(level, solvedLower)) {
+    if (normalizeWord(t.word).length == length) return true;
+  }
+  return false;
+}
+
+bool pathCanExtendToLongerUnsolvedTarget(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  String builtLower,
+) {
+  final prefix = normalizeWord(builtLower);
+  if (prefix.isEmpty) return false;
+  for (final t in unsolvedTargets(level, solvedLower)) {
+    final w = normalizeWord(t.word);
+    if (w.length > prefix.length && w.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+WordBuilderTargetWord? findUnsolvedTargetMatchingBuilt(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  String builtLower,
+) {
+  final built = normalizeWord(builtLower);
+  if (built.isEmpty) return null;
+  for (final t in level.targetWords) {
+    final w = normalizeWord(t.word);
+    if (solvedLower.contains(w)) continue;
+    if (w == built) return t;
   }
   return null;
 }

@@ -34,8 +34,10 @@ final appUpdateCheckProvider = FutureProvider<AppUpdateCheck>((ref) async {
 
   final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  final manifest = await api.fetchAppUpdateManifest();
-  if (manifest == null || manifest.apkUrl.isEmpty) {
+  final manifest = await api.fetchAppUpdateManifest(
+    installedVersion: local > 0 ? local : null,
+  );
+  if (manifest == null) {
     return AppUpdateCheck(
       androidEligible: isAndroid,
       localBuildNumber: local,

@@ -239,7 +239,7 @@ class GrammarResultReviewScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Questions',
+                l10n.grammarReviewQuestionsHeading,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       letterSpacing: 0.8,
                       fontWeight: FontWeight.w800,
@@ -251,8 +251,7 @@ class GrammarResultReviewScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'No per-question data was stored for this attempt '
-                    '(older results or server not migrated).',
+                    l10n.grammarNoPerQuestionData,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -365,13 +364,13 @@ class _QuestionReviewCardState extends State<_QuestionReviewCard> {
           ),
         ),
         title: Text(
-          'Q${widget.index} · ${widget.item.topic}',
+          l10n.grammarReviewQuestionTitle(widget.index, widget.item.topic),
           style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          widget.item.isCorrect ? 'Correct' : 'Incorrect',
+          widget.item.isCorrect ? l10n.answerCorrect : l10n.answerIncorrect,
           style: tt.labelMedium?.copyWith(
             color: widget.item.isCorrect
                 ? Colors.green.shade700

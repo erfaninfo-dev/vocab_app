@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/student/student_code_input.dart';
 import '../../l10n/app_localizations.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -203,16 +204,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _studentCodeCtrl,
-                textCapitalization: TextCapitalization.characters,
+                keyboardType: TextInputType.number,
+                inputFormatters: studentCodeInputFormatters,
                 decoration: InputDecoration(
                   labelText: l10n.studentCodeLabel,
+                  hintText: l10n.studentCodeFiveDigitsHint,
                   border: const OutlineInputBorder(),
+                  counterText: '',
                 ),
                 validator: (v) {
                   if (!_registerAsStudent) return null;
                   final s = v?.trim() ?? '';
                   if (s.isEmpty) {
                     return l10n.studentCodeRequired;
+                  }
+                  if (!isValidStudentCode(s)) {
+                    return l10n.studentCodeFiveDigitsInvalid;
                   }
                   return null;
                 },

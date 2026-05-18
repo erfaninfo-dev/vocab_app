@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/stats/stats_service.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 import 'combined_quiz_group_chart.dart';
 import 'grammar_stats_charts.dart';
 import 'quiz_insights_data.dart';
@@ -37,6 +38,7 @@ class _LearningInsightsScreenState extends ConsumerState<LearningInsightsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -46,13 +48,13 @@ class _LearningInsightsScreenState extends ConsumerState<LearningInsightsScreen>
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Quiz insights'),
+        title: Text(l10n.insightsTitle),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Vocabulary'),
-            Tab(text: 'Grammar'),
+          tabs: [
+            Tab(text: l10n.tabOverview),
+            Tab(text: l10n.tabVocabulary),
+            Tab(text: l10n.tabGrammarStats),
           ],
           labelStyle: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
@@ -79,6 +81,7 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final stats = ref.watch(statsProvider);
     final loggedIn = ref.watch(authProvider).valueOrNull != null;
     final grammarAsync = ref.watch(grammarStatsChartResultsProvider);
@@ -87,7 +90,7 @@ class _OverviewTab extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
         Text(
-          'Last 14 days: vocabulary (this device) vs grammar (saved to your account).',
+          l10n.insightsLast14,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -103,7 +106,7 @@ class _OverviewTab extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Sign in to load grammar scores. Vocabulary bars still use local quiz data.',
+                      l10n.insightsSignInGrammar,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -121,7 +124,7 @@ class _OverviewTab extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (_, __) => Text(
-                'Could not load grammar data for the chart.',
+                l10n.insightsGrammarLoadError,
                 style: TextStyle(color: scheme.error),
               ),
               data: (grammar) {
@@ -150,13 +153,14 @@ class _VocabularyTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final stats = ref.watch(statsProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
         Text(
-          'Daily accuracy from vocabulary quizzes (stored on this device).',
+          l10n.vocabDailyAccuracy,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -176,21 +180,26 @@ class _VocabularyTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'All-time (device)',
+                  l10n.allTimeDevice,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${stats.totalQuizCorrect} / ${stats.totalQuizAnswered} correct',
+                  l10n.statsQuizCorrectFraction(
+                    stats.totalQuizCorrect,
+                    stats.totalQuizAnswered,
+                  ),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: scheme.primary,
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 Text(
-                  '${(stats.quizAccuracy * 100).toStringAsFixed(1)}% accuracy',
+                  l10n.statsAccuracyPercent(
+                    (stats.quizAccuracy * 100).toStringAsFixed(1),
+                  ),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],

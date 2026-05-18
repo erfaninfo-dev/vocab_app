@@ -150,6 +150,15 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     }
   }
 
+  /// POST /teacher_student_codes.php — registers a one-time code (teacher/admin).
+  Future<String> createTeacherStudentCode(String code) async {
+    final s = state.valueOrNull;
+    if (s == null) {
+      throw StateError('Not signed in');
+    }
+    return ApiService(authToken: s.token).createTeacherStudentCode(code);
+  }
+
   /// POST /student_redeem_code.php — updates session user.
   Future<void> redeemStudentCode(String code) async {
     final s = state.valueOrNull;
@@ -191,6 +200,21 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     );
     await _storage.saveCachedUser(user);
     state = AsyncData(AuthSession(token: s.token, user: user));
+  }
+
+  /// POST /change_password.php — other sessions revoked; this token kept.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final s = state.valueOrNull;
+    if (s == null) {
+      throw StateError('Not signed in');
+    }
+    await ApiService(authToken: s.token).changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 
   /// Uploads a JPEG; server stores it and sets avatar to `custom`.

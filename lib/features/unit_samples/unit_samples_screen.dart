@@ -44,6 +44,12 @@ String _sampleSectionBadgeLabel(
 final _expandedSampleIdProvider = StateProvider.family
     .autoDispose<int?, _BookUnitKey>((ref, _) => null);
 
+const double kSamplesTextScaleMin = 0.85;
+const double kSamplesTextScaleMax = 1.55;
+
+double clampSamplesTextScale(double value) =>
+    value.clamp(kSamplesTextScaleMin, kSamplesTextScaleMax);
+
 final _samplesTextScaleProvider = StateProvider.family
     .autoDispose<double, _BookUnitKey>((ref, _) => 1.0);
 
@@ -107,6 +113,9 @@ class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
             widget.section != null && widget.section! > 0
                 ? l10n.unitSamplesTitleSection(widget.unit, widget.section!)
                 : l10n.unitSamplesTitle(widget.unit),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
           ),
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -477,8 +486,9 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
     final isExpanded =
         widget.expandedId != null && widget.expandedId == widget.sample.id;
     final lang = ref.watch(langProvider);
-    final segmentTextStyle = tt.labelLarge?.copyWith(
-      fontWeight: FontWeight.w800,
+    final l10n = AppLocalizations.of(context)!;
+    final segmentTextStyle = tt.labelMedium?.copyWith(
+      fontWeight: FontWeight.w500,
     );
     final cardColor = isExpanded ? scheme.surfaceContainerLow : scheme.surface;
     final sectionBadge = _sampleSectionBadgeLabel(
@@ -513,75 +523,97 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
           collapsedShape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.zero,
           ),
-          title: Row(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  Icons.article_rounded,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.sample.title.isEmpty
-                          ? 'Sample'
-                          : widget.sample.title,
-                      style: tt.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.2,
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    if (sectionBadge.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          sectionBadge,
-                          style: tt.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
+                    child: Icon(
+                      Icons.article_rounded,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.sample.title.isEmpty
+                              ? l10n.unitSampleUntitled
+                              : widget.sample.title,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: tt.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                        if (sectionBadge.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              sectionBadge,
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.ellipsis,
+                              style: tt.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               if (isExpanded) ...[
-                const SizedBox(width: 10),
-                SegmentedButton<TranslationLang>(
-                  segments: [
-                    ButtonSegment(
-                      value: TranslationLang.fa,
-                      label: Text('فارسی', style: segmentTextStyle),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: SegmentedButton<TranslationLang>(
+                    segments: [
+                      ButtonSegment(
+                        value: TranslationLang.fa,
+                        label: Text(
+                          l10n.translationLangPersian,
+                          style: segmentTextStyle,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: TranslationLang.kur,
+                        label: Text(
+                          l10n.translationLangKurdiTab,
+                          style: segmentTextStyle,
+                        ),
+                      ),
+                    ],
+                    selected: {lang},
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      minimumSize: WidgetStateProperty.all(const Size(0, 36)),
                     ),
-                    ButtonSegment(
-                      value: TranslationLang.kur,
-                      label: Text('کوردی', style: segmentTextStyle),
-                    ),
-                  ],
-                  selected: {lang},
-                  showSelectedIcon: false,
-                  style: ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                    padding: WidgetStateProperty.all(
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    ),
-                    minimumSize: WidgetStateProperty.all(const Size(0, 40)),
+                    onSelectionChanged: (set) {
+                      if (set.isEmpty) return;
+                      ref.read(langProvider.notifier).setLang(set.first);
+                    },
                   ),
-                  onSelectionChanged: (set) {
-                    if (set.isEmpty) return;
-                    ref.read(langProvider.notifier).setLang(set.first);
-                  },
                 ),
               ],
             ],
@@ -676,30 +708,72 @@ class _AlignedBlock extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: _TextPanel(
-        background: scheme.surface,
-        border: scheme.outlineVariant.withValues(alpha: 0.7),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < pairs.length; i++) ...[
-              _ParagraphPairBlock(
-                screenKey: screenKey,
-                pair: pairs[i],
-                textScale: textScale,
-              ),
-              if (i != pairs.length - 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(
-                    height: 1,
-                    color: scheme.outlineVariant.withValues(alpha: 0.55),
-                  ),
+      child: _SamplesPinchTextScale(
+        screenKey: screenKey,
+        child: _TextPanel(
+          background: scheme.surface,
+          border: scheme.outlineVariant.withValues(alpha: 0.7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < pairs.length; i++) ...[
+                _ParagraphPairBlock(
+                  screenKey: screenKey,
+                  pair: pairs[i],
+                  textScale: textScale,
                 ),
+                if (i != pairs.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.55),
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SamplesPinchTextScale extends ConsumerStatefulWidget {
+  const _SamplesPinchTextScale({
+    required this.screenKey,
+    required this.child,
+  });
+
+  final _BookUnitKey screenKey;
+  final Widget child;
+
+  @override
+  ConsumerState<_SamplesPinchTextScale> createState() =>
+      _SamplesPinchTextScaleState();
+}
+
+class _SamplesPinchTextScaleState extends ConsumerState<_SamplesPinchTextScale> {
+  double? _pinchBaseScale;
+
+  void _clearPinchBase() => _pinchBaseScale = null;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onScaleStart: (_) {
+        _pinchBaseScale = ref.read(_samplesTextScaleProvider(widget.screenKey));
+      },
+      onScaleUpdate: (details) {
+        final base = _pinchBaseScale;
+        if (base == null) return;
+        final next = clampSamplesTextScale(base * details.scale);
+        ref.read(_samplesTextScaleProvider(widget.screenKey).notifier).state =
+            next;
+      },
+      onScaleEnd: (_) => _clearPinchBase(),
+      child: widget.child,
     );
   }
 }
@@ -1158,9 +1232,7 @@ class _SelectableEnglishWithTtsHighlightState
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
           content: Text(
-            Localizations.localeOf(context).languageCode == 'fa'
-                ? 'در حال بارگذاری فهرست لغات…'
-                : 'Loading vocabulary…',
+            AppLocalizations.of(context)!.unitSamplesLoadingCatalog,
           ),
         ),
       );
@@ -1184,7 +1256,7 @@ class _SelectableEnglishWithTtsHighlightState
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
-          content: Text(l10n?.noMatchingWords ?? 'No matching words found.'),
+          content: Text(l10n!.noMatchingWords),
         ),
       );
       return;
@@ -1593,13 +1665,15 @@ class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
                                             ),
                                       ),
                                       child: Slider(
-                                        min: 0.85,
-                                        max: 1.55,
+                                        min: kSamplesTextScaleMin,
+                                        max: kSamplesTextScaleMax,
                                         divisions: 14,
-                                        value: v.clamp(0.85, 1.55),
+                                        value: clampSamplesTextScale(v),
                                         onChanged: (next) {
-                                          _valueN.value = next;
-                                          widget.onChanged(next);
+                                          final clamped =
+                                              clampSamplesTextScale(next);
+                                          _valueN.value = clamped;
+                                          widget.onChanged(clamped);
                                         },
                                       ),
                                     ),
@@ -1623,15 +1697,7 @@ class _TextSizeOverlayState extends ConsumerState<_TextSizeOverlay> {
 }
 
 String _textSizeLabel(BuildContext context) {
-  final code = Localizations.localeOf(context).languageCode;
-  switch (code) {
-    case 'fa':
-      return 'اندازه متن';
-    case 'ckb':
-      return 'قەبارەی دەق';
-    default:
-      return 'Text size';
-  }
+  return AppLocalizations.of(context)!.unitSamplesTextSize;
 }
 
 class _AlignedPair {

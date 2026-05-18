@@ -124,8 +124,19 @@ class ApiService {
   }
 
   /// GET /app_update.php — sideload APK manifest (no auth, not disk-cached).
-  Future<AppUpdateManifest?> fetchAppUpdateManifest() async {
-    final uri = Uri.parse('$baseUrl/app_update.php');
+  ///
+  /// Pass [installedVersion] (buildNumber / versionCode) to receive
+  /// `release_notes` for the Home banner for that installed build.
+  Future<AppUpdateManifest?> fetchAppUpdateManifest({
+    int? installedVersion,
+  }) async {
+    final query = <String, String>{};
+    if (installedVersion != null && installedVersion > 0) {
+      query['installed_version'] = '$installedVersion';
+    }
+    final uri = Uri.parse('$baseUrl/app_update.php').replace(
+      queryParameters: query.isEmpty ? null : query,
+    );
     try {
       final response = await http.get(uri, headers: _mergeHeaders());
       if (response.statusCode != 200) return null;
@@ -173,12 +184,14 @@ class ApiService {
     int unit, {
     int? section,
   }) async {
-    var uriStr =
-        '$baseUrl/unit_samples.php?book_id=$bookId&unit=$unit';
+    var uriStr = '$baseUrl/unit_samples.php?book_id=$bookId&unit=$unit';
     if (section != null && section > 0) {
       uriStr += '&section=$section';
     }
-    final response = await http.get(Uri.parse(uriStr), headers: _mergeHeaders());
+    final response = await http.get(
+      Uri.parse(uriStr),
+      headers: _mergeHeaders(),
+    );
     _assertOk(response, 'unit samples');
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
@@ -729,6 +742,37 @@ class ApiService {
     }
   }
 
+  /// POST /teacher_student_codes.php — teacher/admin only.
+  Future<String> createTeacherStudentCode(String code) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_codes.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'code': code.trim()}),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Create failed');
+    }
+    return map['code']?.toString() ?? code.trim();
+  }
+
+  /// GET /teacher_student_codes.php — unused codes for this teacher.
+  Future<List<String>> fetchTeacherUnusedStudentCodes() async {
+    final uri = Uri.parse('$baseUrl/teacher_student_codes.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['codes'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => (e as Map<String, dynamic>)['code']?.toString() ?? '')
+        .where((c) => c.isNotEmpty)
+        .toList();
+  }
+
   /// POST /student_redeem_code.php — requires auth.
   Future<AuthUser> redeemStudentCode(String code) async {
     final uri = Uri.parse('$baseUrl/student_redeem_code.php');
@@ -805,11 +849,12 @@ class ApiService {
         .toList();
   }
 
-  /// POST /admin_user_student.php — requires admin. Sets student flags in one request.
+  /// POST /admin_user_student.php — requires admin. Student and/or teacher flags.
   Future<AdminUserRow> adminSetUserStudentFlags({
     required int userId,
     required bool studentAccess,
     int? teacherUserId,
+    bool? isTeacher,
   }) async {
     final uri = Uri.parse('$baseUrl/admin_user_student.php');
     final body = <String, dynamic>{
@@ -817,6 +862,9 @@ class ApiService {
       'student_access': studentAccess,
       'teacher_user_id': studentAccess ? teacherUserId : null,
     };
+    if (isTeacher != null) {
+      body['is_teacher'] = isTeacher;
+    }
     final response = await http.post(
       uri,
       headers: _mergeHeaders({
@@ -996,10 +1044,7 @@ class ApiService {
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'student_id': studentId,
-        'delete_term_id': termId,
-      }),
+      body: jsonEncode({'student_id': studentId, 'delete_term_id': termId}),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -1411,6 +1456,54 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
+  }
+
+  /// POST /change_password.php — requires [authToken].
+  ///
+  /// On success other devices are signed out; this session stays valid.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final uri = Uri.parse('$baseUrl/change_password.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+    final code = response.statusCode;
+    Map<String, dynamic>? map;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        map = decoded;
+      }
+    } catch (_) {}
+
+    if (code >= 200 && code < 300 && map?['ok'] == true) {
+      return;
+    }
+
+    if (code == 401) {
+      throw UnauthorizedException(
+        map?['error']?.toString() ?? 'Unauthorized',
+      );
+    }
+
+    final errorCode = map?['error_code']?.toString().trim();
+    if (errorCode != null && errorCode.isNotEmpty) {
+      throw Exception(errorCode);
+    }
+    final msg = map?['error']?.toString().trim();
+    if (msg != null && msg.isNotEmpty) {
+      throw Exception(msg);
+    }
+    _throwFromJsonBody(response);
   }
 
   /// Clears disk cache for GET [uri] so the next request uses the network.

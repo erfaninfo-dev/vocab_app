@@ -39,8 +39,7 @@ class TtsState {
   bool get hasActivePlayback =>
       status == TtsStatus.speaking || status == TtsStatus.paused;
 
-  bool isSpeakingText(String text) =>
-      hasActivePlayback && activeText == text;
+  bool isSpeakingText(String text) => hasActivePlayback && activeText == text;
 
   bool showsLingeringFullRead(String text) =>
       !hasActivePlayback &&
@@ -97,8 +96,7 @@ class TtsNotifier extends StateNotifier<TtsState> {
 
   /// When [speak.onProgress] is missing or sparse (Web, older Android, some engines),
   /// drive the seek bar from elapsed time; when the platform reports ranges, we resync.
-  double get _estimatedCharsPerSecond =>
-      14.0 * (0.25 + 0.75 * _speechRate);
+  double get _estimatedCharsPerSecond => 14.0 * (0.25 + 0.75 * _speechRate);
 
   void _cancelProgressTicker() {
     _progressTimer?.cancel();
@@ -182,9 +180,10 @@ class TtsNotifier extends StateNotifier<TtsState> {
 
     final elapsedSec =
         DateTime.now().difference(anchorTime).inMilliseconds / 1000.0;
-    final estimated = (_progressSimAnchorChar + elapsedSec * _estimatedCharsPerSecond)
-        .round()
-        .clamp(0, n);
+    final estimated =
+        (_progressSimAnchorChar + elapsedSec * _estimatedCharsPerSecond)
+            .round()
+            .clamp(0, n);
     final plat = state.progressEnd.clamp(0, n);
     final next = math.max(estimated, plat);
 

@@ -48,7 +48,19 @@
   "studentCodeLabel": "کۆدی قوتابی",
   "studentCodeRequired": "کۆدەکە بنووسە کە مامۆستا پێتداویە",
   "redeemStudentCode": "تۆمارکردنی کۆدی قوتابی",
-  "redeemStudentCodeSubtitle": "بە کۆدی تایبەت تابی قوتابی بکەرەوە.",
+  "redeemStudentCodeSubtitle": "کۆدی ٥ ژمارەیی مامۆستاکەت بنووسە.",
+  "createStudentCode": "دروستکردنی کۆدی قوتابی",
+  "createStudentCodeSubtitle": "کۆدێکی ٥ ژمارەیی یەک‌جار بۆ قوتابیەک تۆمار بکە.",
+  "studentCodeFiveDigitsHint": "١٢٣٤٥",
+  "studentCodeFiveDigitsInvalid": "تەواو ٥ ژمارە بنووسە",
+  "teacherStudentCodeRegistered": "کۆدی {code} بۆ قوتابیەک ئامادەیە.",
+  "@teacherStudentCodeRegistered": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "teacherStudentCodeRegisterFailed": "نەتوانرا ئەم کۆدە تۆمار بکرێت.",
+  "teacherUnusedCodesTitle": "کۆدە بەکارنەهاتووەکان",
   "invalidStudentCode": "کۆدەکە نادروستە یان بەسەرچووە.",
   "studentAccessGranted": "دەستپێگەیشتنی قوتابی چالاککرا.",
   "studentTabSignIn": "بچۆرە ژوورەوە بۆ بینینی کتێبەکانی مامۆستاکەت.",
@@ -188,6 +200,8 @@
   "aboutForcedUpdateNote": "ئەم نوێکردنەوەیە پێویستە. تکایە دوایین وەشان دابگرە و دامەزرێنە.",
   "aboutUpdateCheckFailed": "پشکنینی نوێکردنەوە سەرکەوتوو نەبوو.",
   "aboutRetryUpdateCheck": "دووبارە هەوڵ بدە",
+  "homeNewUpdatesTitle": "نوێکارییەکان",
+  "homeNewUpdatesLetsGo": "با بڕۆین!",
   "aboutLater": "دواتر",
   "aboutCouldNotOpenLink": "بۆکردنەوەی بەستەر سەرکەوتوو نەبوو.",
   "aboutPhoneLabel": "تەلەفۆن",
@@ -374,6 +388,7 @@
   "youClassSessionsEmpty": "هێشتا دانیشتن تۆمار نەکراوە.",
   "studentPanelTitle": "پانێلی پۆل",
   "studentPanelFabTooltip": "کردنەوەی پانێلی پۆل",
+  "myPanelFab": "پانێلی من",
   "studentPanelHeadline": "مامۆستا، دانیشتن و پەیامەکان لە یەک شوێن.",
   "studentPanelStatUnread": "نەخوێندراوە",
   "teacherClassSessionsHintEmpty": "بە + هەر دانیشتنێک تۆمار بکە؛ کاتەکە خۆکار پاشەکەوت دەکرێت.",
@@ -586,10 +601,19 @@
   "profilePresetAvatars": "یان وێنۆچکەی ئامادە هەڵبژێرە",
   "profileBoyAvatars": "وێنۆچکەی کوڕ",
   "profileGirlAvatars": "وێنۆچکەی کچ",
+  "profilePasswordSectionTitle": "وشەی نهێنی",
+  "profilePasswordSecurityNote": "بۆ ئاسایش، وشەی نهێنیت لەسەر سێرڤەر وەک هاش هەڵدەگیرێت و ناتوانرێت پیشان بدرێت. بۆ گۆڕین، وشەی نهێنی ئێستا و نوێ لە خانەکان بنووسە؛ بە ئایکۆنی چاو دەتوانیت لە کاتی نووسیندا دەربکەیت یان بشاریتەوە.",
+  "profileCurrentPasswordLabel": "وشەی نهێنی ئێستا",
+  "profilePasswordTooLong": "وشەی نهێنی دەبێت زۆرترین ٧٢ پیت بێت",
+  "profilePasswordSameAsCurrent": "وشەیەکی نهێنی هەڵبژێرە جیاواز لە ئێستا.",
+  "profileWrongCurrentPassword": "وشەی نهێنی ئێستا هەڵەیە",
+  "showPassword": "پیشاندانی وشەی نهێنی",
+  "hidePassword": "شاردنەوەی وشەی نهێنی",
   "save": "پاشەکەوت",
   "grammarResultsScreenTitle": "ئەنجامەکانی ڕێزمان",
   "grammarExplanationTabFa": "فارسی",
   "grammarExplanationTabCkb": "کوردی",
+  "translationLangKurdiTab": "کوردی",
   "grammarExplanationTabEn": "ئینگلیزی",
   "grammarReportProblemTitle": "ڕاپۆرتکردنی کێشە",
   "grammarReportWhatWrong": "کێشەکە چییە؟",
@@ -644,6 +668,7 @@
   "adminUserManagement": "بەڕێوەبردنی بەکارهێنەران",
   "adminSearchUsersHint": "گەڕان بە ئیمەیڵ، ناو یان مامۆستا…",
   "adminStudentAccess": "هەژماری قوتابی",
+  "adminTeacherAccess": "هەژماری مامۆستا",
   "adminAssignedTeacher": "مامۆستای پۆل",
   "adminNoTeacher": "بێ مامۆستا",
   "adminSave": "پاشەکەوت",
@@ -699,6 +724,24 @@
   "wordBuilderHintLetter": "پیتێک لە یەکێک لە وشەکان دەردەکەوێت.",
   "wordBuilderHintRemoved": "پیتێکی زیادە لە وشەکەت لابرا.",
   "wordBuilderHintRemoveNone": "ئێستا پیتێکی زیادە نییە.",
+  "wordBuilderNotEnoughCoins": "سکە بەس نییە. بە دۆزینەوەی وشەکان سکە بەدەست بهێنە.",
+  "wordBuilderCoinsCost": "{coins} سکە",
+  "@wordBuilderCoinsCost": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderCoinsBalance": "{coins}",
+  "@wordBuilderCoinsBalance": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderSessionSoundTitle": "دەنگ",
+  "wordBuilderSessionBgmSwitch": "مۆسیقای پاشبنەما",
+  "wordBuilderSessionBgmSubtitle": "لەم یارییەدا کاتێک وشەکان دەکۆڵیتەوە دەگوازرێتەوە.",
+  "wordBuilderSessionSfxSwitch": "دەنگەکانی یاری",
+  "wordBuilderSessionSfxSubtitle": "وەڵامی ڕاست، هەڵە و کۆتایی قۆناغ.",
   "wordBuilderHintMeaningLine": "یارمەتی: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -729,7 +772,7 @@
   "wordBuilderCampaignStageLockedSnackbar": "سەرەتا قۆناغی پێشوو تەواو بکە.",
   "wordBuilderCampaignTierLockedBody": "بۆ کردنەوەی ئەم ئاستە، هەموو ٥٠ قۆناغی ئاستی پێشوو تەواو بکە.",
   "wordBuilderCampaignPlanError": "وشەی پێویست بۆ ئەم قۆناغە نییە. دواتر هەوڵ بدەوە.",
-  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignReset": "ڕێکخستنەوەی پێشکەوتن",
   "wordBuilderCampaignResetConfirm": "هەموو پێشڕەوی واژەساز بسڕدرێتەوە؟ گەڕانەوە نییە.",
   "wordBuilderCampaignResetDone": "پێشڕەوی قۆناغەکان سڕایەوە.",
   "wordBuilderCampaignStageOf": "قۆناغ {stage} لە {total}",
@@ -746,5 +789,93 @@
     }
   },
   "wordBuilderCampaignStageCompleted": "تەواو",
-  "wordBuilderCampaignStageReplayHint": "کرتە بکە بۆ دووبارەکردنەوە"
+  "wordBuilderCampaignStageReplayHint": "کرتە بکە بۆ دووبارەکردنەوە",
+  "previous": "پێشوو",
+  "finish": "کۆتایی",
+  "noWordsForSection": "وشە بۆ ئەم بەشە نییە.",
+  "noFavoriteWordsYet": "هێشتا وشەی دڵخوازت نییە.",
+  "tapCardToRevealAndRate": "کارتەکە بکەرەوە بۆ بینینی وەڵام و نمرەدان",
+  "tapToFlip": "کرتە بکە بۆ گۆڕین",
+  "flashcardCardProgress": "کارت {current} لە {total}",
+  "@flashcardCardProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardMeaningLabel": "واتا",
+  "flashcardWordLabel": "وشە",
+  "allCardsReviewed": "هەموو کارتەکان پێداچوونەوە کران!",
+  "couldNotLoadSectionsWithError": "بارکردنی بەشەکان سەرکەوتوو نەبوو.\n{error}",
+  "@couldNotLoadSectionsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "couldNotLoadUnitsWithError": "بارکردنی یەکەکان سەرکەوتوو نەبوو.\n{error}",
+  "@couldNotLoadUnitsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "noUnitsFound": "هیچ یەکەیەک لەم داتاسێتەدا نەدۆزرایەوە.",
+  "unitsGridHint": "{count, plural, =1{١ یەکە · کرتە بکە بۆ کردنەوە} other{{count} یەکە · کرتە بکە بۆ کردنەوە}}",
+  "@unitsGridHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "checkingEllipsis": "پشکنین…",
+  "backToUnits": "گەڕانەوە بۆ یەکەکان",
+  "englishMeaning": "واتای ئینگلیزی",
+  "wordsTabLabel": "وشەکان",
+  "samplesTabLabel": "دەقی نموونە",
+  "unitSectionLine": "یەکە {unit} · بەش {section}",
+  "@unitSectionLine": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "sectionNumberLabel": "بەش {section}",
+  "@sectionNumberLabel": {
+    "placeholders": {
+      "section": {"type": "int"}
+    }
+  },
+  "grammarReviewQuestionsHeading": "پرسیارەکان",
+  "grammarNoPerQuestionData": "زانیاری هەر پرسیارێک پاشەکەوت نەکراوە (ئەنجامی کۆن یان گواستنەوەی سێرڤەر).",
+  "grammarReviewQuestionTitle": "پ{index} · {topic}",
+  "@grammarReviewQuestionTitle": {
+    "placeholders": {
+      "index": {"type": "int"},
+      "topic": {"type": "String"}
+    }
+  },
+  "answerCorrect": "ڕاست",
+  "answerIncorrect": "هەڵە",
+  "statsQuizCorrectFraction": "{correct} / {answered} ڕاست",
+  "@statsQuizCorrectFraction": {
+    "placeholders": {
+      "correct": {"type": "int"},
+      "answered": {"type": "int"}
+    }
+  },
+  "statsAccuracyPercent": "وردی {pct}٪",
+  "@statsAccuracyPercent": {
+    "placeholders": {
+      "pct": {"type": "String"}
+    }
+  },
+  "unitSamplesLoadingCatalog": "بارکردنی پێرستی وشەکان…",
+  "unitSamplesTextSize": "قەبارەی دەق",
+  "profilePresetBoy1": "کوڕ ١",
+  "profilePresetBoy2": "کوڕ ٢",
+  "profilePresetBoy3": "کوڕ ٣",
+  "profilePresetBoy4": "کوڕ ٤",
+  "profilePresetGirl1": "کچ ١",
+  "profilePresetGirl2": "کچ ٢",
+  "profilePresetGirl3": "کچ ٣",
+  "profilePresetGirl4": "کچ ٤",
+  "unitSampleUntitled": "نموونە"
 }

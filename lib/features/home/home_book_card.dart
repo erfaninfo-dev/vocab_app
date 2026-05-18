@@ -33,7 +33,10 @@ class HomeBookCard extends ConsumerWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(28),
-        child: Container(
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
             gradient: LinearGradient(
@@ -45,7 +48,7 @@ class HomeBookCard extends ConsumerWidget {
               ],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,66 +87,60 @@ class HomeBookCard extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 3),
+              const Spacer(),
 
               Align(
                 alignment: rtlUnitLine
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
-                child: Directionality(
-                  textDirection: rtlUnitLine
-                      ? TextDirection.rtl
-                      : TextDirection.ltr,
-                  child: Text(
-                    unitsValue.when(
-                      loading: () => l10n.loadingEllipsis,
-                      error: (_, __) => l10n.tapToOpen,
-                      data: (units) {
-                        final n = units.length;
-                        return '$n ${n == 1 ? l10n.unitSingular : l10n.unitPlural}';
-                      },
-                    ),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              if ((book.description ?? '').isNotEmpty)
-                Container(
+                child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 4,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.surface.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 15,
-                        color: accents.first,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          book.description!,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                  child: Directionality(
+                    textDirection: rtlUnitLine
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.layers_rounded,
+                          size: 16,
+                          color: accents.first,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          unitsValue.when(
+                            loading: () => l10n.loadingEllipsis,
+                            error: (_, __) => l10n.tapToOpen,
+                            data: (units) {
+                              final n = units.length;
+                              return '$n ${n == 1 ? l10n.unitSingular : l10n.unitPlural}';
+                            },
+                          ),
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
+        ),
         ),
       ),
     );

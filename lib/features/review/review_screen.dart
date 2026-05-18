@@ -11,7 +11,9 @@ import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
-  const ReviewScreen({super.key});
+  const ReviewScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
@@ -50,32 +52,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     // Load all books, then load all words, then filter by due today
     final booksValue = ref.watch(apiBooksProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(l10n.reviewToday),
-        actions: [
-          Consumer(
-            builder: (context, ref, _) {
-              final count = ref.watch(
-                srsProvider.select((s) => s.dueTodayCount),
-              );
-              if (count == 0) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Chip(
-                  label: Text(l10n.dueCount(count)),
-                  backgroundColor: scheme.primaryContainer,
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: booksValue.when(
+    final dueChip = Consumer(
+      builder: (context, ref, _) {
+        final count = ref.watch(
+          srsProvider.select((s) => s.dueTodayCount),
+        );
+        if (count == 0) return const SizedBox.shrink();
+        return Chip(
+          label: Text(l10n.dueCount(count)),
+          backgroundColor: scheme.primaryContainer,
+        );
+      },
+    );
+
+    final body = booksValue.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => Center(
           child: Text(l10n.fetchErrorRetry),
@@ -196,7 +186,47 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             ),
           );
         },
+      );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.reviewToday,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                dueChip,
+              ],
+            ),
+          ),
+          Expanded(child: body),
+        ],
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(l10n.reviewToday),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: dueChip,
+          ),
+        ],
       ),
+      body: body,
     );
   }
 }

@@ -48,7 +48,19 @@
   "studentCodeLabel": "کد دانش‌آموزی",
   "studentCodeRequired": "کدی که مدرس به شما داده را وارد کنید",
   "redeemStudentCode": "وارد کردن کد دانش‌آموزی",
-  "redeemStudentCodeSubtitle": "با کد شخصی‌تان تب دانش‌آموز را باز کنید.",
+  "redeemStudentCodeSubtitle": "کد ۵ رقمی معلم خود را وارد کنید.",
+  "createStudentCode": "ساخت کد دانش‌آموزی",
+  "createStudentCodeSubtitle": "یک کد ۵ رقمی یک‌بارمصرف برای یک شاگرد ثبت کنید.",
+  "studentCodeFiveDigitsHint": "۱۲۳۴۵",
+  "studentCodeFiveDigitsInvalid": "دقیقاً ۵ رقم وارد کنید",
+  "teacherStudentCodeRegistered": "کد {code} برای یک شاگرد آماده است.",
+  "@teacherStudentCodeRegistered": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "teacherStudentCodeRegisterFailed": "ثبت این کد ممکن نشد.",
+  "teacherUnusedCodesTitle": "کدهای استفاده‌نشده",
   "invalidStudentCode": "کد نامعتبر یا منقضی است.",
   "studentAccessGranted": "دسترسی دانش‌آموزی فعال شد.",
   "studentTabSignIn": "برای دیدن کتاب‌های کلاس، وارد حساب شوید.",
@@ -188,6 +200,8 @@
   "aboutForcedUpdateNote": "این آپدیت اجباری است. لطفاً آخرین نسخه را دانلود و نصب کنید.",
   "aboutUpdateCheckFailed": "بررسی آپدیت ممکن نشد.",
   "aboutRetryUpdateCheck": "تلاش دوباره",
+  "homeNewUpdatesTitle": "آپدیت‌های جدید",
+  "homeNewUpdatesLetsGo": "بزن بریم!",
   "aboutLater": "بعداً",
   "aboutCouldNotOpenLink": "باز کردن لینک ممکن نشد.",
   "aboutPhoneLabel": "تماس",
@@ -374,6 +388,7 @@
   "youClassSessionsEmpty": "هنوز جلسه‌ای ثبت نشده است.",
   "studentPanelTitle": "پنل کلاس",
   "studentPanelFabTooltip": "باز کردن پنل کلاس",
+  "myPanelFab": "پنل من",
   "studentPanelHeadline": "استاد، جلسات و پیام‌ها در یک نگاه.",
   "studentPanelStatUnread": "خوانده‌نشده",
   "teacherClassSessionsHintEmpty": "با زدن + هر جلسهٔ کلاس را ثبت کنید؛ زمان به‌صورت خودکار ذخیره می‌شود.",
@@ -586,10 +601,19 @@
   "profilePresetAvatars": "یا آواتار از پیش‌تعریف انتخاب کنید",
   "profileBoyAvatars": "آواتار پسر",
   "profileGirlAvatars": "آواتار دختر",
+  "profilePasswordSectionTitle": "رمز عبور",
+  "profilePasswordSecurityNote": "به‌خاطر امنیت، رمز شما روی سرور به‌صورت هش ذخیره می‌شود و قابل نمایش نیست. برای تغییر، رمز فعلی و رمز جدید را در کادرها بنویسید؛ با آیکن چشم می‌توانید موقع تایپ، نمایش یا مخفی بودن متن را عوض کنید.",
+  "profileCurrentPasswordLabel": "رمز فعلی",
+  "profilePasswordTooLong": "رمز باید حداکثر ۷۲ کاراکتر باشد",
+  "profilePasswordSameAsCurrent": "رمز جدید باید با رمز فعلی فرق داشته باشد.",
+  "profileWrongCurrentPassword": "رمز فعلی درست نیست",
+  "showPassword": "نمایش رمز",
+  "hidePassword": "مخفی کردن رمز",
   "save": "ذخیره",
   "grammarResultsScreenTitle": "نتایج گرامر",
   "grammarExplanationTabFa": "فارسی",
   "grammarExplanationTabCkb": "کردی",
+  "translationLangKurdiTab": "کوردی",
   "grammarExplanationTabEn": "انگلیسی",
   "grammarReportProblemTitle": "گزارش مشکل",
   "grammarReportWhatWrong": "مشکل چیست؟",
@@ -644,6 +668,7 @@
   "adminUserManagement": "مدیریت کاربران",
   "adminSearchUsersHint": "جستجو با ایمیل، نام یا معلم…",
   "adminStudentAccess": "حساب دانش‌آموز",
+  "adminTeacherAccess": "حساب معلم",
   "adminAssignedTeacher": "معلم کلاس",
   "adminNoTeacher": "بدون معلم",
   "adminSave": "ذخیره",
@@ -699,6 +724,24 @@
   "wordBuilderHintLetter": "یک حرف در یکی از کلمات نمایش داده شد.",
   "wordBuilderHintRemoved": "یک حرف اضافه از کلمهٔ شما حذف شد.",
   "wordBuilderHintRemoveNone": "الان حرف اضافه‌ای برای حذف نیست.",
+  "wordBuilderNotEnoughCoins": "سکه کافی نیست. با پیدا کردن کلمات سکه بگیرید.",
+  "wordBuilderCoinsCost": "{coins} سکه",
+  "@wordBuilderCoinsCost": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderCoinsBalance": "{coins}",
+  "@wordBuilderCoinsBalance": {
+    "placeholders": {
+      "coins": {"type": "int"}
+    }
+  },
+  "wordBuilderSessionSoundTitle": "صدا",
+  "wordBuilderSessionBgmSwitch": "موزیک پس‌زمینه",
+  "wordBuilderSessionBgmSubtitle": "در همین بازی هنگام حل کلمات پخش می‌شود.",
+  "wordBuilderSessionSfxSwitch": "صداهای بازی",
+  "wordBuilderSessionSfxSubtitle": "پاسخ درست، اشتباه و پایان مرحله.",
   "wordBuilderHintMeaningLine": "راهنما: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -729,7 +772,7 @@
   "wordBuilderCampaignStageLockedSnackbar": "ابتدا مرحلهٔ قبل را تمام کنید.",
   "wordBuilderCampaignTierLockedBody": "برای باز شدن این سطح، هر ۵۰ مرحلهٔ سطح قبلی را تمام کنید.",
   "wordBuilderCampaignPlanError": "واژهٔ کافی برای این مرحله روی سرور نیست. بعداً دوباره امتحان کنید یا کتاب‌ها را تازه کنید.",
-  "wordBuilderCampaignReset": "reset",
+  "wordBuilderCampaignReset": "بازنشانی پیشرفت",
   "wordBuilderCampaignResetConfirm": "همهٔ پیشرفت مراحل واژه‌ساز پاک شود؟ این کار برگشت‌ناپذیر است.",
   "wordBuilderCampaignResetDone": "پیشرفت مراحل پاک شد.",
   "wordBuilderCampaignStageOf": "مرحله {stage} از {total}",
@@ -746,5 +789,93 @@
     }
   },
   "wordBuilderCampaignStageCompleted": "تمام‌شده",
-  "wordBuilderCampaignStageReplayHint": "برای تکرار این مرحله بزنید"
+  "wordBuilderCampaignStageReplayHint": "برای تکرار این مرحله بزنید",
+  "previous": "قبلی",
+  "finish": "پایان",
+  "noWordsForSection": "برای این بخش واژه‌ای نیست.",
+  "noFavoriteWordsYet": "هنوز واژهٔ موردعلاقه‌ای ندارید.",
+  "tapCardToRevealAndRate": "برای دیدن پاسخ و امتیاز، روی کارت بزنید",
+  "tapToFlip": "برای برگرداندن بزنید",
+  "flashcardCardProgress": "کارت {current} از {total}",
+  "@flashcardCardProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardMeaningLabel": "معنی",
+  "flashcardWordLabel": "واژه",
+  "allCardsReviewed": "همهٔ کارت‌ها مرور شد!",
+  "couldNotLoadSectionsWithError": "بارگذاری بخش‌ها ناموفق بود.\n{error}",
+  "@couldNotLoadSectionsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "couldNotLoadUnitsWithError": "بارگذاری یونیت‌ها ناموفق بود.\n{error}",
+  "@couldNotLoadUnitsWithError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "noUnitsFound": "در این مجموعه یونتی یافت نشد.",
+  "unitsGridHint": "{count, plural, =1{۱ یونیت · برای باز کردن بزنید} other{{count} یونیت · برای باز کردن بزنید}}",
+  "@unitsGridHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "checkingEllipsis": "در حال بررسی…",
+  "backToUnits": "بازگشت به یونیت‌ها",
+  "englishMeaning": "معنی انگلیسی",
+  "wordsTabLabel": "واژه‌ها",
+  "samplesTabLabel": "متن نمونه",
+  "unitSectionLine": "یونیت {unit} · بخش {section}",
+  "@unitSectionLine": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "sectionNumberLabel": "بخش {section}",
+  "@sectionNumberLabel": {
+    "placeholders": {
+      "section": {"type": "int"}
+    }
+  },
+  "grammarReviewQuestionsHeading": "سؤالات",
+  "grammarNoPerQuestionData": "دادهٔ تفکیک‌شده برای هر سؤال ذخیره نشده (نتیجهٔ قدیمی یا مهاجرت سرور).",
+  "grammarReviewQuestionTitle": "س{index} · {topic}",
+  "@grammarReviewQuestionTitle": {
+    "placeholders": {
+      "index": {"type": "int"},
+      "topic": {"type": "String"}
+    }
+  },
+  "answerCorrect": "درست",
+  "answerIncorrect": "نادرست",
+  "statsQuizCorrectFraction": "{correct} / {answered} درست",
+  "@statsQuizCorrectFraction": {
+    "placeholders": {
+      "correct": {"type": "int"},
+      "answered": {"type": "int"}
+    }
+  },
+  "statsAccuracyPercent": "دقت {pct}٪",
+  "@statsAccuracyPercent": {
+    "placeholders": {
+      "pct": {"type": "String"}
+    }
+  },
+  "unitSamplesLoadingCatalog": "در حال بارگذاری فهرست لغات…",
+  "unitSamplesTextSize": "اندازه متن",
+  "profilePresetBoy1": "پسر ۱",
+  "profilePresetBoy2": "پسر ۲",
+  "profilePresetBoy3": "پسر ۳",
+  "profilePresetBoy4": "پسر ۴",
+  "profilePresetGirl1": "دختر ۱",
+  "profilePresetGirl2": "دختر ۲",
+  "profilePresetGirl3": "دختر ۳",
+  "profilePresetGirl4": "دختر ۴",
+  "unitSampleUntitled": "نمونه"
 }

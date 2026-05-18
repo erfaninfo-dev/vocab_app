@@ -1,18 +1,24 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../domain/api_providers.dart';
 import '../data/word_builder_progress_repository.dart';
 import '../data/word_builder_vocab.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_campaign_constants.dart';
 import 'word_builder_campaign_providers.dart';
+import '../domain/tray_water_constants.dart';
 import '../domain/word_builder_game_logic.dart';
 import '../domain/word_builder_models.dart';
+import '../word_builder_coin_constants.dart';
 import '../word_builder_constants.dart';
+import 'word_builder_coins_provider.dart';
+import 'word_builder_session_audio.dart';
 
 final wordBuilderProgressRepoProvider =
     Provider<WordBuilderProgressRepository>(
@@ -35,9 +41,16 @@ class WordBuilderViewState {
     required this.path,
     required this.solvedLower,
     required this.revealedPositions,
+    required this.hintTargetCycleIndex,
     required this.feedbackMessage,
     this.lastSolvedWord,
     this.pathWrongHighlight = false,
+    this.trayWaterLevel = 0,
+    this.isInletValveOpen = false,
+    this.isOutletValveOpen = false,
+    this.faceMood = TrayFaceMood.neutral,
+    this.wrongAnswerCount = 0,
+    this.isTrayGameOver = false,
   });
 
   final WordBuilderPersistedProgress persisted;
@@ -47,9 +60,18 @@ class WordBuilderViewState {
   final List<LetterInstance> path;
   final Set<String> solvedLower;
   final Map<String, Set<int>> revealedPositions;
+  final int hintTargetCycleIndex;
   final String? feedbackMessage;
   final WordBuilderTargetWord? lastSolvedWord;
   final bool pathWrongHighlight;
+  final double trayWaterLevel;
+  final bool isInletValveOpen;
+  final bool isOutletValveOpen;
+  final TrayFaceMood faceMood;
+  final int wrongAnswerCount;
+  final bool isTrayGameOver;
+
+  bool get trayInputBlocked => pathWrongHighlight || isTrayGameOver;
 
   WordBuilderLevel get level => sessionLevels[levelIndex];
 
@@ -70,10 +92,17 @@ class WordBuilderViewState {
     List<LetterInstance>? path,
     Set<String>? solvedLower,
     Map<String, Set<int>>? revealedPositions,
+    int? hintTargetCycleIndex,
     String? feedbackMessage,
     Object? lastSolvedWord = _unsetLastSolved,
     bool clearFeedback = false,
     bool? pathWrongHighlight,
+    double? trayWaterLevel,
+    bool? isInletValveOpen,
+    bool? isOutletValveOpen,
+    TrayFaceMood? faceMood,
+    int? wrongAnswerCount,
+    bool? isTrayGameOver,
   }) {
     return WordBuilderViewState(
       persisted: persisted ?? this.persisted,
@@ -83,12 +112,20 @@ class WordBuilderViewState {
       path: path ?? this.path,
       solvedLower: solvedLower ?? this.solvedLower,
       revealedPositions: revealedPositions ?? this.revealedPositions,
+      hintTargetCycleIndex:
+          hintTargetCycleIndex ?? this.hintTargetCycleIndex,
       feedbackMessage:
           clearFeedback ? null : (feedbackMessage ?? this.feedbackMessage),
       lastSolvedWord: identical(lastSolvedWord, _unsetLastSolved)
           ? this.lastSolvedWord
           : lastSolvedWord as WordBuilderTargetWord?,
       pathWrongHighlight: pathWrongHighlight ?? this.pathWrongHighlight,
+      trayWaterLevel: trayWaterLevel ?? this.trayWaterLevel,
+      isInletValveOpen: isInletValveOpen ?? this.isInletValveOpen,
+      isOutletValveOpen: isOutletValveOpen ?? this.isOutletValveOpen,
+      faceMood: faceMood ?? this.faceMood,
+      wrongAnswerCount: wrongAnswerCount ?? this.wrongAnswerCount,
+      isTrayGameOver: isTrayGameOver ?? this.isTrayGameOver,
     );
   }
 
@@ -122,6 +159,7 @@ class WordBuilderViewState {
       path: const [],
       solvedLower: solved,
       revealedPositions: {},
+      hintTargetCycleIndex: 0,
       feedbackMessage: null,
       lastSolvedWord: null,
       pathWrongHighlight: false,
@@ -132,12 +170,162 @@ class WordBuilderViewState {
 class WordBuilderGameNotifier
     extends AutoDisposeFamilyAsyncNotifier<WordBuilderViewState, int> {
   final Random _random = Random();
+  Timer? _passiveWaterTimer;
 
   WordBuilderProgressRepository get _repo =>
       ref.read(wordBuilderProgressRepoProvider);
 
+  TrayFaceMood _faceMoodForWater(double level, {required bool overflow}) {
+    if (overflow || level >= 1.0) return TrayFaceMood.dead;
+    if (level >= 0.8) return TrayFaceMood.panic;
+    if (level >= TrayWaterConstants.waterPerWrong) return TrayFaceMood.stressed;
+    return TrayFaceMood.neutral;
+  }
+
+  void _startPassiveWaterTimer() {
+    _passiveWaterTimer?.cancel();
+    _passiveWaterTimer = Timer.periodic(
+      TrayWaterConstants.passiveWaterTickInterval,
+      (_) => unawaited(_tickPassiveWater()),
+    );
+  }
+
+  Future<void> _tickPassiveWater() async {
+    final s = state.valueOrNull;
+    if (s == null ||
+        s.isTrayGameOver ||
+        s.levelComplete ||
+        s.pathWrongHighlight ||
+        s.isInletValveOpen ||
+        s.isOutletValveOpen) {
+      return;
+    }
+
+    final nextLevel = (s.trayWaterLevel + TrayWaterConstants.passiveWaterIncrement)
+        .clamp(0.0, 1.0);
+    if ((nextLevel - s.trayWaterLevel) < 0.0005) return;
+
+    final overflow = nextLevel >= 1.0;
+    await _commit(
+      s.copyWith(
+        trayWaterLevel: nextLevel,
+        isOutletValveOpen: false,
+        faceMood: _faceMoodForWater(nextLevel, overflow: overflow),
+        isTrayGameOver: overflow,
+      ),
+    );
+  }
+
+  void _playSound(WordBuilderSound sound) {
+    final enabled = ref.read(wordBuilderGameSfxEnabledProvider);
+    unawaited(
+      ref.read(wordBuilderSoundServiceProvider).play(sound, enabled: enabled),
+    );
+  }
+
+  Future<void> _closeInletValve() async {
+    final s = state.valueOrNull;
+    if (s == null || !s.isInletValveOpen) return;
+    await _commit(s.copyWith(isInletValveOpen: false));
+  }
+
+  Future<void> _closeOutletValveOnly() async {
+    final s = state.valueOrNull;
+    if (s == null || !s.isOutletValveOpen) return;
+    await _commit(s.copyWith(isOutletValveOpen: false));
+  }
+
+  Future<void> _setFaceMoodNeutral() async {
+    final s = state.valueOrNull;
+    if (s == null || s.isTrayGameOver) return;
+    if (s.faceMood == TrayFaceMood.neutral) return;
+    await _commit(s.copyWith(faceMood: TrayFaceMood.neutral));
+  }
+
+  Future<void> _setFaceMoodAfterHappy() async {
+    final s = state.valueOrNull;
+    if (s == null || s.isTrayGameOver) return;
+    if (s.trayWaterLevel >= TrayWaterConstants.waterPerWrong) {
+      final mood = _faceMoodForWater(s.trayWaterLevel, overflow: false);
+      if (s.faceMood == mood) return;
+      await _commit(s.copyWith(faceMood: mood));
+      return;
+    }
+    await _setFaceMoodNeutral();
+  }
+
+  Future<void> _commitWrongWithTray(WordBuilderViewState s) async {
+    if (s.isTrayGameOver) return;
+    final nextLevel = (s.trayWaterLevel + TrayWaterConstants.waterPerWrong)
+        .clamp(0.0, 1.0);
+    final nextCount = s.wrongAnswerCount + 1;
+    final overflow = nextLevel >= 1.0;
+    await _commit(
+      s.copyWith(
+        pathWrongHighlight: true,
+        clearFeedback: true,
+        trayWaterLevel: nextLevel,
+        wrongAnswerCount: nextCount,
+        isInletValveOpen: true,
+        isOutletValveOpen: false,
+        faceMood: _faceMoodForWater(nextLevel, overflow: overflow),
+        isTrayGameOver: overflow,
+      ),
+    );
+    _playSound(WordBuilderSound.wrong);
+    unawaited(
+      Future<void>.delayed(TrayWaterConstants.inletOpenDuration, () {
+        if (state.valueOrNull != null) unawaited(_closeInletValve());
+      }),
+    );
+  }
+
+  Future<void> _commitCorrectWithTrayDrain(WordBuilderViewState next) async {
+    final s = state.valueOrNull;
+    final prevLevel = s?.trayWaterLevel ?? 0.0;
+    final prevWrong = s?.wrongAnswerCount ?? 0;
+    final drainedLevel = (prevLevel - TrayWaterConstants.waterPerWrong)
+        .clamp(0.0, 1.0);
+    final nextWrong = max(0, prevWrong - 1);
+
+    await _commit(
+      next.copyWith(
+        trayWaterLevel: drainedLevel,
+        wrongAnswerCount: nextWrong,
+        isInletValveOpen: false,
+        isOutletValveOpen: true,
+        faceMood: TrayFaceMood.happy,
+        pathWrongHighlight: false,
+      ),
+    );
+    unawaited(
+      Future<void>.delayed(TrayWaterConstants.outletOpenDuration, () {
+        if (state.valueOrNull != null) unawaited(_closeOutletValveOnly());
+      }),
+    );
+    unawaited(
+      Future<void>.delayed(TrayWaterConstants.happyMoodDuration, () {
+        if (state.valueOrNull != null) unawaited(_setFaceMoodAfterHappy());
+      }),
+    );
+  }
+
+  Future<void> resetTrayAfterGameOver() async {
+    final s = state.valueOrNull;
+    if (s == null || !s.isTrayGameOver) return;
+    final fresh = WordBuilderViewState.createInitial(
+      persisted: s.persisted,
+      sessionLevels: s.sessionLevels,
+      levelIndex: s.levelIndex,
+      random: _random,
+    );
+    await _commit(fresh);
+  }
+
   @override
   Future<WordBuilderViewState> build(int bookKey) async {
+    ref.onDispose(() => _passiveWaterTimer?.cancel());
+
     final persisted = await _repo.load();
     final campaign = decodeWordBuilderCampaignSessionKey(bookKey);
     if (campaign != null) {
@@ -162,12 +350,14 @@ class WordBuilderGameNotifier
       if (level.targetWords.isEmpty) {
         throw StateError('NO_WORDS');
       }
-      return WordBuilderViewState.createInitial(
+      final initial = WordBuilderViewState.createInitial(
         persisted: persisted,
         sessionLevels: [level],
         levelIndex: 0,
         random: _random,
       );
+      _startPassiveWaterTimer();
+      return initial;
     }
 
     final entries = bookKey == kWordBuilderAllBooksKey
@@ -196,12 +386,14 @@ class WordBuilderGameNotifier
       throw StateError('NO_WORDS');
     }
 
-    return WordBuilderViewState.createInitial(
+    final initial = WordBuilderViewState.createInitial(
       persisted: persisted,
       sessionLevels: levels,
       levelIndex: 0,
       random: _random,
     );
+    _startPassiveWaterTimer();
+    return initial;
   }
 
   Future<void> _commit(WordBuilderViewState next) async {
@@ -213,9 +405,11 @@ class WordBuilderGameNotifier
     WordBuilderViewState afterPathCommit,
     int pathLength,
   ) async {
-    final active =
-        firstUnsolvedTarget(afterPathCommit.level, afterPathCommit.solvedLower);
-    if (active != null && pathLength == active.word.length) {
+    if (anyUnsolvedTargetHasLength(
+      afterPathCommit.level,
+      afterPathCommit.solvedLower,
+      pathLength,
+    )) {
       await SchedulerBinding.instance.endOfFrame;
     }
   }
@@ -230,7 +424,7 @@ class WordBuilderGameNotifier
 
   Future<void> tapCircleLetter(LetterInstance letter) async {
     final s = state.valueOrNull;
-    if (s == null || s.pathWrongHighlight) return;
+    if (s == null || s.trayInputBlocked) return;
     if (!s.circleLetters.any((e) => e.id == letter.id)) return;
 
     if (s.path.isNotEmpty && s.path.last.id == letter.id) {
@@ -258,13 +452,70 @@ class WordBuilderGameNotifier
 
   Future<void> appendLetterFromDrag(LetterInstance letter) async {
     final s = state.valueOrNull;
-    if (s == null || s.pathWrongHighlight) return;
+    if (s == null || s.trayInputBlocked) return;
     if (s.path.any((e) => e.id == letter.id)) return;
     final newPath = List<LetterInstance>.of(s.path)..add(letter);
     await _commit(s.copyWith(path: newPath, clearFeedback: true));
-    final afterCommit = state.requireValue;
-    await _deferEvaluationForFullPathPaint(afterCommit, newPath.length);
-    await _evaluatePathAfterChange(state.requireValue);
+  }
+
+  Future<void> evaluatePathOnDragRelease() async {
+    final s = state.valueOrNull;
+    if (s == null || s.trayInputBlocked || s.path.isEmpty) return;
+    if (s.path.length == 1) {
+      await clearPathOnly();
+      return;
+    }
+
+    await _deferEvaluationForFullPathPaint(s, s.path.length);
+    final current = state.requireValue;
+    if (unsolvedTargets(current.level, current.solvedLower).isEmpty) {
+      await clearPathOnly();
+      return;
+    }
+
+    final builtLower =
+        normalizeWord(current.path.map((e) => e.char).join());
+    final matched = findUnsolvedTargetMatchingBuilt(
+      current.level,
+      current.solvedLower,
+      builtLower,
+    );
+    if (matched != null) {
+      await _applyCorrectWord(
+        current,
+        normalizeWord(matched.word),
+        matched,
+      );
+      return;
+    }
+
+    final plen = current.path.length;
+    final maxLen = maxUnsolvedTargetLength(current.level, current.solvedLower);
+
+    if (plen > maxLen) {
+      await _commitWrongWithTray(current);
+      return;
+    }
+
+    if (pathCanExtendToLongerUnsolvedTarget(
+      current.level,
+      current.solvedLower,
+      builtLower,
+    )) {
+      await clearPathOnly();
+      return;
+    }
+
+    if (anyUnsolvedTargetHasLength(
+      current.level,
+      current.solvedLower,
+      plen,
+    )) {
+      await _commitWrongWithTray(current);
+      return;
+    }
+
+    await clearPathOnly();
   }
 
   Future<void> shuffleCircle() async {
@@ -310,26 +561,33 @@ class WordBuilderGameNotifier
 
   Future<void> _evaluatePathAfterChange(WordBuilderViewState s) async {
     if (s.path.isEmpty) return;
-
-    final active = firstUnsolvedTarget(s.level, s.solvedLower);
-    if (active == null) return;
+    if (unsolvedTargets(s.level, s.solvedLower).isEmpty) return;
 
     final plen = s.path.length;
-    if (plen > active.word.length) {
-      await _commit(
-        s.copyWith(pathWrongHighlight: true, clearFeedback: true),
-      );
+    final maxLen = maxUnsolvedTargetLength(s.level, s.solvedLower);
+    if (plen > maxLen) {
+      await _commitWrongWithTray(s);
       return;
     }
-    if (plen < active.word.length) return;
 
     final builtLower = normalizeWord(s.path.map((e) => e.char).join());
-    if (normalizeWord(active.word) == builtLower) {
-      await _applyCorrectWord(s, normalizeWord(active.word), active);
-    } else {
-      await _commit(
-        s.copyWith(pathWrongHighlight: true, clearFeedback: true),
-      );
+    final matched =
+        findUnsolvedTargetMatchingBuilt(s.level, s.solvedLower, builtLower);
+    if (matched != null) {
+      await _applyCorrectWord(s, normalizeWord(matched.word), matched);
+      return;
+    }
+
+    if (pathCanExtendToLongerUnsolvedTarget(
+      s.level,
+      s.solvedLower,
+      builtLower,
+    )) {
+      return;
+    }
+
+    if (anyUnsolvedTargetHasLength(s.level, s.solvedLower, plen)) {
+      await _commitWrongWithTray(s);
     }
   }
 
@@ -382,19 +640,30 @@ class WordBuilderGameNotifier
             _random,
           );
 
-    await _commit(
-      WordBuilderViewState(
-        persisted: persisted,
-        sessionLevels: s.sessionLevels,
-        levelIndex: s.levelIndex,
-        circleLetters: newCircle,
-        path: const [],
-        solvedLower: newSolved,
-        revealedPositions: s.revealedPositions,
-        feedbackMessage: '__correct',
-        lastSolvedWord: matched,
-        pathWrongHighlight: false,
-      ),
+    final next = WordBuilderViewState(
+      persisted: persisted,
+      sessionLevels: s.sessionLevels,
+      levelIndex: s.levelIndex,
+      circleLetters: newCircle,
+      path: const [],
+      solvedLower: newSolved,
+      revealedPositions: s.revealedPositions,
+      hintTargetCycleIndex: s.hintTargetCycleIndex,
+      feedbackMessage: '__correct',
+      lastSolvedWord: null,
+      pathWrongHighlight: false,
+      wrongAnswerCount: s.wrongAnswerCount,
+    );
+    await _commitCorrectWithTrayDrain(next);
+    var coinReward = wordBuilderCoinsPerCorrectWord();
+    if (isLevelComplete(s.level, newSolved)) {
+      coinReward += wordBuilderCoinsLevelCompleteBonus();
+    }
+    await ref.read(wordBuilderCoinsProvider.notifier).addCoins(coinReward);
+    _playSound(
+      isLevelComplete(s.level, newSolved)
+          ? WordBuilderSound.levelComplete
+          : WordBuilderSound.correct,
     );
   }
 
@@ -421,19 +690,58 @@ class WordBuilderGameNotifier
 
   Future<void> hintRevealLetter() async {
     final s = state.valueOrNull;
-    if (s == null || s.pathWrongHighlight) return;
-    final target = firstUnsolvedTarget(s.level, s.solvedLower);
-    if (target == null) return;
-    final lw = normalizeWord(target.word);
+    if (s == null || s.trayInputBlocked) return;
+
+    final targets = s.level.targetWords;
+    if (targets.isEmpty) return;
+
+    final n = targets.length;
     final revealed = Map<String, Set<int>>.from(s.revealedPositions);
-    final setFor = Set<int>.from(revealed[lw] ?? {});
-    final idx = pickHiddenIndexForReveal(lw, setFor, _random);
-    if (idx == null) return;
-    setFor.add(idx);
-    revealed[lw] = setFor;
+    final start = s.hintTargetCycleIndex % n;
+
+    int? chosenSlot;
+    String? chosenLw;
+    int? chosenIdx;
+    Set<int>? baseSetFor;
+
+    for (var i = 0; i < n; i++) {
+      final slot = (start + i) % n;
+      final target = targets[slot];
+      final lw = normalizeWord(target.word);
+      if (s.solvedLower.contains(lw)) continue;
+
+      final setFor = Set<int>.from(revealed[lw] ?? {});
+      final idx = pickHiddenIndexForReveal(lw, setFor, _random);
+      if (idx == null) continue;
+
+      chosenSlot = slot;
+      chosenLw = lw;
+      chosenIdx = idx;
+      baseSetFor = setFor;
+      break;
+    }
+
+    if (chosenSlot == null ||
+        chosenLw == null ||
+        chosenIdx == null ||
+        baseSetFor == null) {
+      return;
+    }
+
+    final cost = wordBuilderCoinsCostHintLetter();
+    final paid =
+        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(cost);
+    if (!paid) {
+      await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
+      return;
+    }
+
+    final setFor = Set<int>.from(baseSetFor)..add(chosenIdx);
+    revealed[chosenLw] = setFor;
     await _commit(
       s.copyWith(
         revealedPositions: revealed,
+        hintTargetCycleIndex: (chosenSlot + 1) % n,
         feedbackMessage: '__hint_letter',
         clearFeedback: false,
       ),
@@ -442,10 +750,9 @@ class WordBuilderGameNotifier
 
   Future<void> hintRemoveWrongLetter() async {
     final s = state.valueOrNull;
-    if (s == null || s.path.isEmpty || s.pathWrongHighlight) return;
-    final active = firstUnsolvedTarget(s.level, s.solvedLower);
-    if (active == null) return;
-    final allowed = multisetForWords([normalizeWord(active.word)]);
+    if (s == null || s.path.isEmpty || s.trayInputBlocked) return;
+    if (unsolvedTargets(s.level, s.solvedLower).isEmpty) return;
+    final allowed = multisetUnsolvedTargets(s.level, s.solvedLower);
     final before = List<LetterInstance>.of(s.path);
     final newPath = List<LetterInstance>.of(s.path);
     final ok = removeOneExcessLetterFromRack(newPath, allowed);
@@ -455,6 +762,13 @@ class WordBuilderGameNotifier
           feedbackMessage: '__hint_remove_none',
         ),
       );
+      return;
+    }
+    final removeCost = wordBuilderCoinsCostHintRemoveWrong();
+    final paidRemove =
+        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(removeCost);
+    if (!paidRemove) {
+      await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
       return;
     }
     final remainingIds = newPath.map((e) => e.id).toSet();
@@ -470,9 +784,16 @@ class WordBuilderGameNotifier
 
   Future<void> hintMeaning({required bool preferKur}) async {
     final s = state.valueOrNull;
-    if (s == null || s.pathWrongHighlight) return;
+    if (s == null || s.trayInputBlocked) return;
     final target = firstUnsolvedTarget(s.level, s.solvedLower);
     if (target == null) return;
+    final meaningCost = wordBuilderCoinsCostHintMeaning();
+    final paid =
+        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(meaningCost);
+    if (!paid) {
+      await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
+      return;
+    }
     final m = target.meaningForLang(preferKur: preferKur);
     await _commit(
       s.copyWith(

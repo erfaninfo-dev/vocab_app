@@ -150,7 +150,32 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get redeemStudentCode => 'تۆمارکردنی کۆدی قوتابی';
 
   @override
-  String get redeemStudentCodeSubtitle => 'بە کۆدی تایبەت تابی قوتابی بکەرەوە.';
+  String get redeemStudentCodeSubtitle => 'کۆدی ٥ ژمارەیی مامۆستاکەت بنووسە.';
+
+  @override
+  String get createStudentCode => 'دروستکردنی کۆدی قوتابی';
+
+  @override
+  String get createStudentCodeSubtitle =>
+      'کۆدێکی ٥ ژمارەیی یەک‌جار بۆ قوتابیەک تۆمار بکە.';
+
+  @override
+  String get studentCodeFiveDigitsHint => '١٢٣٤٥';
+
+  @override
+  String get studentCodeFiveDigitsInvalid => 'تەواو ٥ ژمارە بنووسە';
+
+  @override
+  String teacherStudentCodeRegistered(String code) {
+    return 'کۆدی $code بۆ قوتابیەک ئامادەیە.';
+  }
+
+  @override
+  String get teacherStudentCodeRegisterFailed =>
+      'نەتوانرا ئەم کۆدە تۆمار بکرێت.';
+
+  @override
+  String get teacherUnusedCodesTitle => 'کۆدە بەکارنەهاتووەکان';
 
   @override
   String get invalidStudentCode => 'کۆدەکە نادروستە یان بەسەرچووە.';
@@ -534,6 +559,12 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get aboutRetryUpdateCheck => 'دووبارە هەوڵ بدە';
+
+  @override
+  String get homeNewUpdatesTitle => 'نوێکارییەکان';
+
+  @override
+  String get homeNewUpdatesLetsGo => 'با بڕۆین!';
 
   @override
   String get aboutLater => 'دواتر';
@@ -1117,6 +1148,9 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get studentPanelFabTooltip => 'کردنەوەی پانێلی پۆل';
+
+  @override
+  String get myPanelFab => 'پانێلی من';
 
   @override
   String get studentPanelHeadline =>
@@ -1797,6 +1831,32 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get profileGirlAvatars => 'وێنۆچکەی کچ';
 
   @override
+  String get profilePasswordSectionTitle => 'وشەی نهێنی';
+
+  @override
+  String get profilePasswordSecurityNote =>
+      'بۆ ئاسایش، وشەی نهێنیت لەسەر سێرڤەر وەک هاش هەڵدەگیرێت و ناتوانرێت پیشان بدرێت. بۆ گۆڕین، وشەی نهێنی ئێستا و نوێ لە خانەکان بنووسە؛ بە ئایکۆنی چاو دەتوانیت لە کاتی نووسیندا دەربکەیت یان بشاریتەوە.';
+
+  @override
+  String get profileCurrentPasswordLabel => 'وشەی نهێنی ئێستا';
+
+  @override
+  String get profilePasswordTooLong => 'وشەی نهێنی دەبێت زۆرترین ٧٢ پیت بێت';
+
+  @override
+  String get profilePasswordSameAsCurrent =>
+      'وشەیەکی نهێنی هەڵبژێرە جیاواز لە ئێستا.';
+
+  @override
+  String get profileWrongCurrentPassword => 'وشەی نهێنی ئێستا هەڵەیە';
+
+  @override
+  String get showPassword => 'پیشاندانی وشەی نهێنی';
+
+  @override
+  String get hidePassword => 'شاردنەوەی وشەی نهێنی';
+
+  @override
   String get save => 'پاشەکەوت';
 
   @override
@@ -1807,6 +1867,9 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get grammarExplanationTabCkb => 'کوردی';
+
+  @override
+  String get translationLangKurdiTab => 'کوردی';
 
   @override
   String get grammarExplanationTabEn => 'ئینگلیزی';
@@ -2008,6 +2071,9 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get adminStudentAccess => 'هەژماری قوتابی';
 
   @override
+  String get adminTeacherAccess => 'هەژماری مامۆستا';
+
+  @override
   String get adminAssignedTeacher => 'مامۆستای پۆل';
 
   @override
@@ -2145,6 +2211,37 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get wordBuilderHintRemoveNone => 'ئێستا پیتێکی زیادە نییە.';
 
   @override
+  String get wordBuilderNotEnoughCoins =>
+      'سکە بەس نییە. بە دۆزینەوەی وشەکان سکە بەدەست بهێنە.';
+
+  @override
+  String wordBuilderCoinsCost(int coins) {
+    return '$coins سکە';
+  }
+
+  @override
+  String wordBuilderCoinsBalance(int coins) {
+    return '$coins';
+  }
+
+  @override
+  String get wordBuilderSessionSoundTitle => 'دەنگ';
+
+  @override
+  String get wordBuilderSessionBgmSwitch => 'مۆسیقای پاشبنەما';
+
+  @override
+  String get wordBuilderSessionBgmSubtitle =>
+      'لەم یارییەدا کاتێک وشەکان دەکۆڵیتەوە دەگوازرێتەوە.';
+
+  @override
+  String get wordBuilderSessionSfxSwitch => 'دەنگەکانی یاری';
+
+  @override
+  String get wordBuilderSessionSfxSubtitle =>
+      'وەڵامی ڕاست، هەڵە و کۆتایی قۆناغ.';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'یارمەتی: $meaning';
   }
@@ -2199,7 +2296,7 @@ class AppLocalizationsCkb extends AppLocalizations {
       'وشەی پێویست بۆ ئەم قۆناغە نییە. دواتر هەوڵ بدەوە.';
 
   @override
-  String get wordBuilderCampaignReset => 'reset';
+  String get wordBuilderCampaignReset => 'ڕێکخستنەوەی پێشکەوتن';
 
   @override
   String get wordBuilderCampaignResetConfirm =>
@@ -2226,4 +2323,147 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get adminEditUserSheetTitle => 'دەستکاری دەستپێگەیشتن';
+
+  @override
+  String get previous => 'پێشوو';
+
+  @override
+  String get finish => 'کۆتایی';
+
+  @override
+  String get noWordsForSection => 'وشە بۆ ئەم بەشە نییە.';
+
+  @override
+  String get noFavoriteWordsYet => 'هێشتا وشەی دڵخوازت نییە.';
+
+  @override
+  String get tapCardToRevealAndRate =>
+      'کارتەکە بکەرەوە بۆ بینینی وەڵام و نمرەدان';
+
+  @override
+  String get tapToFlip => 'کرتە بکە بۆ گۆڕین';
+
+  @override
+  String flashcardCardProgress(int current, int total) {
+    return 'کارت $current لە $total';
+  }
+
+  @override
+  String get flashcardMeaningLabel => 'واتا';
+
+  @override
+  String get flashcardWordLabel => 'وشە';
+
+  @override
+  String get allCardsReviewed => 'هەموو کارتەکان پێداچوونەوە کران!';
+
+  @override
+  String couldNotLoadSectionsWithError(String error) {
+    return 'بارکردنی بەشەکان سەرکەوتوو نەبوو.\n$error';
+  }
+
+  @override
+  String couldNotLoadUnitsWithError(String error) {
+    return 'بارکردنی یەکەکان سەرکەوتوو نەبوو.\n$error';
+  }
+
+  @override
+  String get noUnitsFound => 'هیچ یەکەیەک لەم داتاسێتەدا نەدۆزرایەوە.';
+
+  @override
+  String unitsGridHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یەکە · کرتە بکە بۆ کردنەوە',
+      one: '١ یەکە · کرتە بکە بۆ کردنەوە',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get checkingEllipsis => 'پشکنین…';
+
+  @override
+  String get backToUnits => 'گەڕانەوە بۆ یەکەکان';
+
+  @override
+  String get englishMeaning => 'واتای ئینگلیزی';
+
+  @override
+  String get wordsTabLabel => 'وشەکان';
+
+  @override
+  String get samplesTabLabel => 'دەقی نموونە';
+
+  @override
+  String unitSectionLine(int unit, int section) {
+    return 'یەکە $unit · بەش $section';
+  }
+
+  @override
+  String sectionNumberLabel(int section) {
+    return 'بەش $section';
+  }
+
+  @override
+  String get grammarReviewQuestionsHeading => 'پرسیارەکان';
+
+  @override
+  String get grammarNoPerQuestionData =>
+      'زانیاری هەر پرسیارێک پاشەکەوت نەکراوە (ئەنجامی کۆن یان گواستنەوەی سێرڤەر).';
+
+  @override
+  String grammarReviewQuestionTitle(int index, String topic) {
+    return 'پ$index · $topic';
+  }
+
+  @override
+  String get answerCorrect => 'ڕاست';
+
+  @override
+  String get answerIncorrect => 'هەڵە';
+
+  @override
+  String statsQuizCorrectFraction(int correct, int answered) {
+    return '$correct / $answered ڕاست';
+  }
+
+  @override
+  String statsAccuracyPercent(String pct) {
+    return 'وردی $pct٪';
+  }
+
+  @override
+  String get unitSamplesLoadingCatalog => 'بارکردنی پێرستی وشەکان…';
+
+  @override
+  String get unitSamplesTextSize => 'قەبارەی دەق';
+
+  @override
+  String get profilePresetBoy1 => 'کوڕ ١';
+
+  @override
+  String get profilePresetBoy2 => 'کوڕ ٢';
+
+  @override
+  String get profilePresetBoy3 => 'کوڕ ٣';
+
+  @override
+  String get profilePresetBoy4 => 'کوڕ ٤';
+
+  @override
+  String get profilePresetGirl1 => 'کچ ١';
+
+  @override
+  String get profilePresetGirl2 => 'کچ ٢';
+
+  @override
+  String get profilePresetGirl3 => 'کچ ٣';
+
+  @override
+  String get profilePresetGirl4 => 'کچ ٤';
+
+  @override
+  String get unitSampleUntitled => 'نموونە';
 }

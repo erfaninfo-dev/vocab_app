@@ -361,8 +361,50 @@ abstract class AppLocalizations {
   /// No description provided for @redeemStudentCodeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Unlock the Students tab with your personal code.'**
+  /// **'Enter the 5-digit code from your teacher.'**
   String get redeemStudentCodeSubtitle;
+
+  /// No description provided for @createStudentCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Create student code'**
+  String get createStudentCode;
+
+  /// No description provided for @createStudentCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register a one-time 5-digit code for one student.'**
+  String get createStudentCodeSubtitle;
+
+  /// No description provided for @studentCodeFiveDigitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'12345'**
+  String get studentCodeFiveDigitsHint;
+
+  /// No description provided for @studentCodeFiveDigitsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter exactly 5 digits'**
+  String get studentCodeFiveDigitsInvalid;
+
+  /// No description provided for @teacherStudentCodeRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Code {code} is ready for one student.'**
+  String teacherStudentCodeRegistered(String code);
+
+  /// No description provided for @teacherStudentCodeRegisterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not register this code.'**
+  String get teacherStudentCodeRegisterFailed;
+
+  /// No description provided for @teacherUnusedCodesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unused codes'**
+  String get teacherUnusedCodesTitle;
 
   /// No description provided for @invalidStudentCode.
   ///
@@ -1005,6 +1047,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get aboutRetryUpdateCheck;
+
+  /// No description provided for @homeNewUpdatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New updates'**
+  String get homeNewUpdatesTitle;
+
+  /// No description provided for @homeNewUpdatesLetsGo.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s go!'**
+  String get homeNewUpdatesLetsGo;
 
   /// No description provided for @aboutLater.
   ///
@@ -1989,6 +2043,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open class panel'**
   String get studentPanelFabTooltip;
+
+  /// No description provided for @myPanelFab.
+  ///
+  /// In en, this message translates to:
+  /// **'My pannel'**
+  String get myPanelFab;
 
   /// No description provided for @studentPanelHeadline.
   ///
@@ -3196,6 +3256,54 @@ abstract class AppLocalizations {
   /// **'Girl avatars'**
   String get profileGirlAvatars;
 
+  /// No description provided for @profilePasswordSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get profilePasswordSectionTitle;
+
+  /// No description provided for @profilePasswordSecurityNote.
+  ///
+  /// In en, this message translates to:
+  /// **'For security, your password is stored as a hash on the server and cannot be shown. Use the fields below to type your current password and set a new one. You can tap the eye icon to show or hide what you type.'**
+  String get profilePasswordSecurityNote;
+
+  /// No description provided for @profileCurrentPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get profileCurrentPasswordLabel;
+
+  /// No description provided for @profilePasswordTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at most 72 characters'**
+  String get profilePasswordTooLong;
+
+  /// No description provided for @profilePasswordSameAsCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a password that is different from your current one.'**
+  String get profilePasswordSameAsCurrent;
+
+  /// No description provided for @profileWrongCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is incorrect'**
+  String get profileWrongCurrentPassword;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
@@ -3217,8 +3325,14 @@ abstract class AppLocalizations {
   /// No description provided for @grammarExplanationTabCkb.
   ///
   /// In en, this message translates to:
-  /// **'Kurdish'**
+  /// **'Kurdi'**
   String get grammarExplanationTabCkb;
+
+  /// No description provided for @translationLangKurdiTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Kurdi'**
+  String get translationLangKurdiTab;
 
   /// No description provided for @grammarExplanationTabEn.
   ///
@@ -3514,6 +3628,12 @@ abstract class AppLocalizations {
   /// **'Student account'**
   String get adminStudentAccess;
 
+  /// No description provided for @adminTeacherAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher account'**
+  String get adminTeacherAccess;
+
   /// No description provided for @adminAssignedTeacher.
   ///
   /// In en, this message translates to:
@@ -3772,6 +3892,54 @@ abstract class AppLocalizations {
   /// **'No extra letters to remove right now.'**
   String get wordBuilderHintRemoveNone;
 
+  /// No description provided for @wordBuilderNotEnoughCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins. Solve words to earn more.'**
+  String get wordBuilderNotEnoughCoins;
+
+  /// No description provided for @wordBuilderCoinsCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Costs {coins} coins'**
+  String wordBuilderCoinsCost(int coins);
+
+  /// No description provided for @wordBuilderCoinsBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'{coins}'**
+  String wordBuilderCoinsBalance(int coins);
+
+  /// No description provided for @wordBuilderSessionSoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get wordBuilderSessionSoundTitle;
+
+  /// No description provided for @wordBuilderSessionBgmSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Background music'**
+  String get wordBuilderSessionBgmSwitch;
+
+  /// No description provided for @wordBuilderSessionBgmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays while you solve words in this game.'**
+  String get wordBuilderSessionBgmSubtitle;
+
+  /// No description provided for @wordBuilderSessionSfxSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Game sounds'**
+  String get wordBuilderSessionSfxSwitch;
+
+  /// No description provided for @wordBuilderSessionSfxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct answers, mistakes, and level complete.'**
+  String get wordBuilderSessionSfxSubtitle;
+
   /// No description provided for @wordBuilderHintMeaningLine.
   ///
   /// In en, this message translates to:
@@ -3865,7 +4033,7 @@ abstract class AppLocalizations {
   /// No description provided for @wordBuilderCampaignReset.
   ///
   /// In en, this message translates to:
-  /// **'reset'**
+  /// **'Reset progress'**
   String get wordBuilderCampaignReset;
 
   /// No description provided for @wordBuilderCampaignResetConfirm.
@@ -3909,6 +4077,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit access'**
   String get adminEditUserSheetTitle;
+
+  /// No description provided for @previous.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previous;
+
+  /// No description provided for @finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get finish;
+
+  /// No description provided for @noWordsForSection.
+  ///
+  /// In en, this message translates to:
+  /// **'No words for this section.'**
+  String get noWordsForSection;
+
+  /// No description provided for @noFavoriteWordsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite words yet.'**
+  String get noFavoriteWordsYet;
+
+  /// No description provided for @tapCardToRevealAndRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap card to reveal answer & rate'**
+  String get tapCardToRevealAndRate;
+
+  /// No description provided for @tapToFlip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to flip'**
+  String get tapToFlip;
+
+  /// No description provided for @flashcardCardProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Card {current} of {total}'**
+  String flashcardCardProgress(int current, int total);
+
+  /// No description provided for @flashcardMeaningLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Meaning'**
+  String get flashcardMeaningLabel;
+
+  /// No description provided for @flashcardWordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Word'**
+  String get flashcardWordLabel;
+
+  /// No description provided for @allCardsReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'All cards reviewed!'**
+  String get allCardsReviewed;
+
+  /// No description provided for @couldNotLoadSectionsWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load sections.\n{error}'**
+  String couldNotLoadSectionsWithError(String error);
+
+  /// No description provided for @couldNotLoadUnitsWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load units.\n{error}'**
+  String couldNotLoadUnitsWithError(String error);
+
+  /// No description provided for @noUnitsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No units found in this dataset.'**
+  String get noUnitsFound;
+
+  /// No description provided for @unitsGridHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unit · tap a card to open} other{{count} units · tap a card to open}}'**
+  String unitsGridHint(int count);
+
+  /// No description provided for @checkingEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get checkingEllipsis;
+
+  /// No description provided for @backToUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to units'**
+  String get backToUnits;
+
+  /// No description provided for @englishMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'English meaning'**
+  String get englishMeaning;
+
+  /// No description provided for @wordsTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get wordsTabLabel;
+
+  /// No description provided for @samplesTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample texts'**
+  String get samplesTabLabel;
+
+  /// No description provided for @unitSectionLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit {unit} · Section {section}'**
+  String unitSectionLine(int unit, int section);
+
+  /// No description provided for @sectionNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Section {section}'**
+  String sectionNumberLabel(int section);
+
+  /// No description provided for @grammarReviewQuestionsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get grammarReviewQuestionsHeading;
+
+  /// No description provided for @grammarNoPerQuestionData.
+  ///
+  /// In en, this message translates to:
+  /// **'No per-question data was stored for this attempt (older results or server not migrated).'**
+  String get grammarNoPerQuestionData;
+
+  /// No description provided for @grammarReviewQuestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Q{index} · {topic}'**
+  String grammarReviewQuestionTitle(int index, String topic);
+
+  /// No description provided for @answerCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get answerCorrect;
+
+  /// No description provided for @answerIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect'**
+  String get answerIncorrect;
+
+  /// No description provided for @statsQuizCorrectFraction.
+  ///
+  /// In en, this message translates to:
+  /// **'{correct} / {answered} correct'**
+  String statsQuizCorrectFraction(int correct, int answered);
+
+  /// No description provided for @statsAccuracyPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{pct}% accuracy'**
+  String statsAccuracyPercent(String pct);
+
+  /// No description provided for @unitSamplesLoadingCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading vocabulary…'**
+  String get unitSamplesLoadingCatalog;
+
+  /// No description provided for @unitSamplesTextSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get unitSamplesTextSize;
+
+  /// No description provided for @profilePresetBoy1.
+  ///
+  /// In en, this message translates to:
+  /// **'Boy 1'**
+  String get profilePresetBoy1;
+
+  /// No description provided for @profilePresetBoy2.
+  ///
+  /// In en, this message translates to:
+  /// **'Boy 2'**
+  String get profilePresetBoy2;
+
+  /// No description provided for @profilePresetBoy3.
+  ///
+  /// In en, this message translates to:
+  /// **'Boy 3'**
+  String get profilePresetBoy3;
+
+  /// No description provided for @profilePresetBoy4.
+  ///
+  /// In en, this message translates to:
+  /// **'Boy 4'**
+  String get profilePresetBoy4;
+
+  /// No description provided for @profilePresetGirl1.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl 1'**
+  String get profilePresetGirl1;
+
+  /// No description provided for @profilePresetGirl2.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl 2'**
+  String get profilePresetGirl2;
+
+  /// No description provided for @profilePresetGirl3.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl 3'**
+  String get profilePresetGirl3;
+
+  /// No description provided for @profilePresetGirl4.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl 4'**
+  String get profilePresetGirl4;
+
+  /// No description provided for @unitSampleUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample'**
+  String get unitSampleUntitled;
 }
 
 class _AppLocalizationsDelegate

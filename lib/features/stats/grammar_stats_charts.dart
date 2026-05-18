@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../data/models/grammar_result.dart';
 import '../../domain/api_providers.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Grammar quiz trends (uses saved results from the server).
 class GrammarStatsCharts extends ConsumerWidget {
@@ -31,6 +32,7 @@ class GrammarStatsCharts extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final loggedIn = ref.watch(authProvider).valueOrNull != null;
 
@@ -44,7 +46,7 @@ class GrammarStatsCharts extends ConsumerWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  'Sign in to see grammar score trends from your saved quizzes.',
+                  l10n.statsSignInGrammarTrend,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -69,7 +71,7 @@ class GrammarStatsCharts extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Text(
-            'Could not load grammar stats.',
+            l10n.statsCouldNotLoadGrammar,
             style: TextStyle(color: scheme.error),
           ),
         ),
@@ -85,7 +87,7 @@ class GrammarStatsCharts extends ConsumerWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'No grammar results yet. Complete a grammar quiz and save your score.',
+                      l10n.statsNoGrammarYet,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -144,14 +146,14 @@ class GrammarStatsCharts extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Grammar overview',
+                      l10n.grammarOverview,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Average (last $attemptCount saved): '
+                      '${l10n.averageLastAttempts(attemptCount)}'
                       '${avg.toStringAsFixed(1)}%',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: scheme.primary,
@@ -165,26 +167,26 @@ class GrammarStatsCharts extends ConsumerWidget {
                       children: [
                         _MetricChip(
                           icon: Icons.numbers_rounded,
-                          label: 'Attempts',
+                          label: l10n.attempts,
                           value: '$attemptCount',
                           scheme: scheme,
                         ),
                         if (last != null)
                           _MetricChip(
                             icon: Icons.schedule_rounded,
-                            label: 'Last',
+                            label: l10n.lastLabel,
                             value: '${last.pct.toStringAsFixed(1)}%',
                             scheme: scheme,
                           ),
                         _MetricChip(
                           icon: Icons.trending_up_rounded,
-                          label: 'Best',
+                          label: l10n.bestLabel,
                           value: '${best.toStringAsFixed(1)}%',
                           scheme: scheme,
                         ),
                         _MetricChip(
                           icon: Icons.trending_down_rounded,
-                          label: 'Worst',
+                          label: l10n.worstLabel,
                           value: '${worst.toStringAsFixed(1)}%',
                           scheme: scheme,
                         ),
@@ -193,7 +195,7 @@ class GrammarStatsCharts extends ConsumerWidget {
                             icon: trendDelta >= 0
                                 ? Icons.arrow_upward_rounded
                                 : Icons.arrow_downward_rounded,
-                            label: 'Trend',
+                            label: l10n.trendLabel,
                             value:
                                 '${trendDelta >= 0 ? '+' : ''}${trendDelta.toStringAsFixed(1)}%',
                             scheme: scheme,
@@ -214,7 +216,7 @@ class GrammarStatsCharts extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 8, bottom: 8),
                       child: Text(
-                        'Score trend (oldest → newest)',
+                        l10n.scoreTrendTitle,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -224,7 +226,7 @@ class GrammarStatsCharts extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Text(
-                          'Save at least two grammar quizzes to see a line chart.',
+                          l10n.saveTwoQuizzesChart,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -352,7 +354,7 @@ class GrammarStatsCharts extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Attempts distribution',
+                      l10n.attemptsDistribution,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
