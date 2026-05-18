@@ -35,7 +35,6 @@ import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/you/you_screen.dart';
 import '../../features/you/student_class_sessions_screen.dart';
-import '../../features/you/student_panel_screen.dart';
 import '../../features/you/student_message_peers_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
@@ -128,19 +127,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/teacher/inbox',
         redirect: (_, __) => '/teacher?tab=messages',
-      ),
-      GoRoute(
-        path: '/student-panel',
-        builder: (context, state) {
-          final tab = state.uri.queryParameters['tab'];
-          return StudentPanelScreen(
-            initialTab: switch (tab) {
-              'sessions' => StudentPanelTab.classSessions,
-              'review' => StudentPanelTab.review,
-              _ => StudentPanelTab.progress,
-            },
-          );
-        },
       ),
       GoRoute(
         path: '/teacher/student/:studentId',

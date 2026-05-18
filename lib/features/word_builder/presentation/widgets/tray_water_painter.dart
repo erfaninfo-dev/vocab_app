@@ -69,29 +69,12 @@ class TrayWaterPainter extends CustomPainter {
 
   double _saucerBottomY() => center.dy + saucerRadius;
 
-  static const double _bottomPipeBleed = 10.0;
-  static const double _rightPipeBleed = 10.0;
+  static const double _screenEdgeBleed = 10.0;
+
+  double _pipeScreenRight(double canvasWidth) => canvasWidth + _screenEdgeBleed;
 
   double _pipeScreenBottom(double canvasHeight) =>
-      canvasHeight + _bottomPipeBleed;
-
-  double _pipeScreenRight(double canvasWidth) => canvasWidth + _rightPipeBleed;
-
-  void _clipExcludeBowl(Canvas canvas, Size canvasSize, Rect tub) {
-    final path = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRect(
-        Rect.fromLTWH(
-          -40,
-          -40,
-          canvasSize.width + 80,
-          canvasSize.height + 80,
-        ),
-      )
-      ..addOval(tub)
-      ..addOval(Rect.fromCircle(center: center, radius: saucerRadius));
-    canvas.clipPath(path);
-  }
+      canvasHeight + _screenEdgeBleed;
 
   /// Faucet sits just under the cream saucer circle.
   Offset _outletFaucetAnchor(Rect tub) {
@@ -103,11 +86,11 @@ class TrayWaterPainter extends CustomPainter {
     return Offset(tub.center.dx, y);
   }
 
-  /// Tub side rounded; wall side (right/bottom) square so the pipe sits flush.
+  /// Horizontal: square ends (no bulge into bowl). Vertical: rounded top at tub.
   RRect _pipeShellRRect(Rect outer, {required bool horizontal}) {
     final r = Radius.circular(_pipeThick);
     if (horizontal) {
-      return RRect.fromRectAndCorners(outer, topLeft: r, bottomLeft: r);
+      return RRect.fromRectAndCorners(outer);
     }
     return RRect.fromRectAndCorners(outer, topLeft: r, topRight: r);
   }
@@ -115,7 +98,7 @@ class TrayWaterPainter extends CustomPainter {
   RRect _pipeBoreRRect(Rect bore, {required bool horizontal}) {
     final r = Radius.circular(_pipeThick * 0.55);
     if (horizontal) {
-      return RRect.fromRectAndCorners(bore, topLeft: r, bottomLeft: r);
+      return RRect.fromRectAndCorners(bore);
     }
     return RRect.fromRectAndCorners(bore, topLeft: r, topRight: r);
   }
@@ -126,8 +109,8 @@ class TrayWaterPainter extends CustomPainter {
     final cw = canvasSize.width;
     final ch = canvasSize.height;
 
-    _drawOutletAssembly(canvas, tub, cw, ch, canvasSize);
-    _drawInletAssembly(canvas, tub, cw, ch, canvasSize);
+    _drawOutletAssembly(canvas, tub, cw, ch);
+    _drawInletAssembly(canvas, tub, cw, ch);
     _drawTubBack(canvas, tub);
     _drawWater(canvas, tub);
     _drawTubFront(canvas, tub);
@@ -136,7 +119,7 @@ class TrayWaterPainter extends CustomPainter {
 
     if (inletValveOpen > 0.05) {
       canvas.save();
-      _clipExcludeBowl(canvas, canvasSize, tub);
+      canvas.clipRect(Rect.fromLTWH(tub.right, 0, cw - tub.right, ch));
       _redrawPipeFlow(
         canvas,
         tub: tub,
@@ -149,8 +132,6 @@ class TrayWaterPainter extends CustomPainter {
       canvas.restore();
     }
     if (outletValveOpen > 0.05) {
-      canvas.save();
-      _clipExcludeBowl(canvas, canvasSize, tub);
       _redrawPipeFlow(
         canvas,
         tub: tub,
@@ -159,7 +140,6 @@ class TrayWaterPainter extends CustomPainter {
         horizontal: false,
         flow: outletValveOpen,
       );
-      canvas.restore();
     }
 
     if (liveInletDrip) {
@@ -336,12 +316,12 @@ class TrayWaterPainter extends CustomPainter {
     double? flowAnimPhase,
   }) {
     if (horizontal) {
-      final y = _inletValvePos.dy;
-      final joinX = tub.right - tub.width * 0.05;
+      final y = _inletPipeY(tub);
+      final pipeLeft = _inletPipeLeftX(tub);
       _drawPipeWaterFlow(
         canvas,
         bore: Rect.fromLTRB(
-          joinX,
+          pipeLeft,
           y - _pipeThick * 0.7,
           _pipeScreenRight(cw),
           y + _pipeThick * 0.7,
@@ -373,13 +353,17 @@ class TrayWaterPainter extends CustomPainter {
   void _drawTubBack(Canvas canvas, Rect tub) {
     canvas.drawOval(
       tub,
+      Paint()..color = _tubGlass,
+    );
+    canvas.drawOval(
+      tub,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            _tubGlass.withValues(alpha: 0.55),
-            _tubGlass.withValues(alpha: 0.28),
+            _tubGlass.withValues(alpha: 0.72),
+            _tubGlass.withValues(alpha: 0.38),
           ],
         ).createShader(tub),
     );
@@ -476,25 +460,23 @@ class TrayWaterPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawInletAssembly(
-    Canvas canvas,
-    Rect tub,
-    double cw,
-    double ch,
-    Size canvasSize,
-  ) {
-    final y = tub.center.dy - tub.height * 0.04;
-    final joinX = tub.right - tub.width * 0.05;
-    _inletValvePos = Offset(cw - tubRadius * 0.36, y);
+  double _inletPipeY(Rect tub) => tub.center.dy - tub.height * 0.04;
+
+  /// Inlet runs under the bowl; only the segment at/ past the rim stays visible.
+  double _inletPipeLeftX(Rect tub) => tub.right - tub.width * 0.28;
+
+  void _drawInletAssembly(Canvas canvas, Rect tub, double cw, double ch) {
+    final y = _inletPipeY(tub);
+    final pipeLeft = _inletPipeLeftX(tub);
+    final pipeRight = _pipeScreenRight(cw);
+    _inletValvePos = Offset(pipeRight - tubRadius * 0.36, y);
 
     final outer = Rect.fromLTRB(
-      joinX,
+      pipeLeft,
       y - _pipeThick,
-      _pipeScreenRight(cw),
+      pipeRight,
       y + _pipeThick,
     );
-    canvas.save();
-    _clipExcludeBowl(canvas, canvasSize, tub);
     _drawPipeRun(
       canvas,
       outer: outer,
@@ -503,25 +485,15 @@ class TrayWaterPainter extends CustomPainter {
       flowToStart: true,
       flowAnimPhase: inletPipeFlowPhase * math.pi * 2,
     );
-    canvas.restore();
-    _drawWallPlate(canvas, Offset(cw, y), horizontal: true);
-    if (inletValveOpen > 0.05) {
-      _drawTubJet(
-        canvas,
-        from: Offset(joinX + tubRadius * 0.02, y),
-        to: Offset(tub.right - tub.width * 0.06, y + tubRadius * 0.02),
-        strength: inletValveOpen,
-      );
-    }
+    _drawWallPlate(
+      canvas,
+      horizontal: true,
+      screenEdge: pipeRight,
+      centerAlong: y,
+    );
   }
 
-  void _drawOutletAssembly(
-    Canvas canvas,
-    Rect tub,
-    double cw,
-    double ch,
-    Size canvasSize,
-  ) {
+  void _drawOutletAssembly(Canvas canvas, Rect tub, double cw, double ch) {
     final x = tub.center.dx;
     final joinY = tub.bottom - tub.height * 0.05;
     final pipeBottom = _pipeScreenBottom(ch);
@@ -533,8 +505,6 @@ class TrayWaterPainter extends CustomPainter {
       x + _pipeThick,
       pipeBottom,
     );
-    canvas.save();
-    _clipExcludeBowl(canvas, canvasSize, tub);
     _drawPipeRun(
       canvas,
       outer: outer,
@@ -542,8 +512,13 @@ class TrayWaterPainter extends CustomPainter {
       flow: outletValveOpen,
       flowToStart: true,
     );
-    canvas.restore();
-    _drawWallPlate(canvas, Offset(x, ch), horizontal: false);
+    _drawWallPlate(
+      canvas,
+      horizontal: false,
+      screenEdge: pipeBottom,
+      centerAlong: x,
+    );
+    _drawPipeEndCap(canvas, Offset(x, joinY), horizontal: false);
     if (outletValveOpen > 0.05) {
       _drawTubJet(
         canvas,
@@ -552,6 +527,27 @@ class TrayWaterPainter extends CustomPainter {
         strength: outletValveOpen,
       );
     }
+  }
+
+  void _drawPipeEndCap(Canvas canvas, Offset at, {required bool horizontal}) {
+    final cap = horizontal
+        ? Rect.fromCenter(
+            center: at,
+            width: _pipeThick * 1.15,
+            height: _pipeThick * 2.25,
+          )
+        : Rect.fromCenter(
+            center: at,
+            width: _pipeThick * 2.25,
+            height: _pipeThick * 1.15,
+          );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(cap, Radius.circular(_pipeThick)),
+      Paint()
+        ..shader = LinearGradient(
+          colors: [_chromeHi, _chromeMid],
+        ).createShader(cap),
+    );
   }
 
   void _drawTubJet(
@@ -755,14 +751,38 @@ class TrayWaterPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawWallPlate(Canvas canvas, Offset edge, {required bool horizontal}) {
-    final w = tubRadius * 0.36;
-    final h = tubRadius * 0.24;
-    final rect = horizontal
-        ? Rect.fromLTWH(edge.dx - 2, edge.dy - w / 2, h + 2, w)
-        : Rect.fromLTWH(edge.dx - w / 2, edge.dy - 2, w, h + 2);
+  void _drawWallPlate(
+    Canvas canvas, {
+    required bool horizontal,
+    required double screenEdge,
+    required double centerAlong,
+  }) {
+    final span = tubRadius * 0.36;
+    final depth = tubRadius * 0.24;
+    const r = Radius.circular(4);
+
+    final Rect rect;
+    final RRect shape;
+    if (horizontal) {
+      rect = Rect.fromLTRB(
+        screenEdge - depth,
+        centerAlong - span / 2,
+        screenEdge,
+        centerAlong + span / 2,
+      );
+      shape = RRect.fromRectAndCorners(rect, topLeft: r, bottomLeft: r);
+    } else {
+      rect = Rect.fromLTRB(
+        centerAlong - span / 2,
+        screenEdge - depth,
+        centerAlong + span / 2,
+        screenEdge,
+      );
+      shape = RRect.fromRectAndCorners(rect, topLeft: r, topRight: r);
+    }
+
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      shape,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topLeft,
@@ -771,7 +791,7 @@ class TrayWaterPainter extends CustomPainter {
         ).createShader(rect),
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect.deflate(1.5), const Radius.circular(3)),
+      shape.deflate(1.5),
       Paint()
         ..color = Colors.white.withValues(alpha: 0.22)
         ..style = PaintingStyle.stroke
@@ -784,10 +804,8 @@ class TrayWaterPainter extends CustomPainter {
   Offset _inletSpoutEnd = Offset.zero;
 
   void _drawInletFaucet(Canvas canvas, Rect tub) {
-    _inletSpoutEnd = Offset(
-      tub.right - tub.width * 0.12,
-      _inletValvePos.dy + tubRadius * 0.08,
-    );
+    final y = _inletPipeY(tub);
+    _inletSpoutEnd = Offset(tub.right - 1.5, y);
     _drawFaucet(
       canvas,
       anchor: _inletValvePos,

@@ -1057,7 +1057,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeNewUpdatesLetsGo.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s go!'**
+  /// **'Got it'**
   String get homeNewUpdatesLetsGo;
 
   /// No description provided for @aboutLater.

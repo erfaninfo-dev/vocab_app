@@ -562,7 +562,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get homeNewUpdatesTitle => 'آپدیت‌های جدید';
 
   @override
-  String get homeNewUpdatesLetsGo => 'بزن بریم!';
+  String get homeNewUpdatesLetsGo => 'متوجه شدم';
 
   @override
   String get aboutLater => 'بعداً';

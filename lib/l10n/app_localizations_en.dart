@@ -563,7 +563,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNewUpdatesTitle => 'New updates';
 
   @override
-  String get homeNewUpdatesLetsGo => 'Let\'s go!';
+  String get homeNewUpdatesLetsGo => 'Got it';
 
   @override
   String get aboutLater => 'Later';
