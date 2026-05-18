@@ -908,7 +908,7 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     );
     return _HomeStudentPanelFab(
       count: fabCount,
-      onPressed: () => context.go('/you'),
+      onPressed: () => context.push('/student-panel'),
     );
   }
 }
