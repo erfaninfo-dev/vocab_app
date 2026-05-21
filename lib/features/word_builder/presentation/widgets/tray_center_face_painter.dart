@@ -13,6 +13,7 @@ class TrayCenterFaceLayer extends StatefulWidget {
     required this.radius,
     this.mood = TrayFaceMood.neutral,
     this.waterSubmerge = 0,
+    this.waterSurfaceY,
     this.reactionPulse = 0,
     this.wrongAnswerCount = 0,
     this.solvedInLevel = 0,
@@ -24,6 +25,9 @@ class TrayCenterFaceLayer extends StatefulWidget {
   final double radius;
   final TrayFaceMood mood;
   final double waterSubmerge;
+
+  /// Screen Y of tub water surface (same coords as [center]).
+  final double? waterSurfaceY;
   final double reactionPulse;
   final int wrongAnswerCount;
   final int solvedInLevel;
@@ -122,6 +126,7 @@ class _TrayCenterFaceLayerState extends State<TrayCenterFaceLayer>
             lookY: isDead ? 0 : math.cos(t * math.pi * 2 * 0.38) * 0.1,
             mood: widget.mood,
             waterSubmerge: widget.waterSubmerge,
+            waterSurfaceY: widget.waterSurfaceY,
             reactionPulse: widget.reactionPulse,
             wrongAnswerCount: widget.wrongAnswerCount,
             solvedInLevel: widget.solvedInLevel,
@@ -145,6 +150,7 @@ class TrayCenterFacePainter extends CustomPainter {
     this.lookY = 0,
     this.mood = TrayFaceMood.neutral,
     this.waterSubmerge = 0,
+    this.waterSurfaceY,
     this.reactionPulse = 0,
     this.wrongAnswerCount = 0,
     this.solvedInLevel = 0,
@@ -161,6 +167,7 @@ class TrayCenterFacePainter extends CustomPainter {
   final double lookY;
   final TrayFaceMood mood;
   final double waterSubmerge;
+  final double? waterSurfaceY;
   final double reactionPulse;
   final int wrongAnswerCount;
   final int solvedInLevel;
@@ -805,12 +812,48 @@ class TrayCenterFacePainter extends CustomPainter {
     }
   }
 
+  double _submergedTopY(Rect oval) {
+    final sub = waterSubmerge.clamp(0.0, 1.0);
+    if (waterSurfaceY != null) {
+      return waterSurfaceY!.clamp(oval.top, oval.bottom);
+    }
+    return oval.bottom - oval.height * sub;
+  }
+
   void _drawWaterOverlay(Canvas canvas, Offset c, double r) {
     final sub = waterSubmerge.clamp(0.0, 1.0);
-    final top = c.dy + r * (0.15 - sub * 0.35);
+    if (sub <= 0.01) return;
+
+    final oval = _faceOvalRect(c, r);
+    final top = _submergedTopY(oval);
+    if (top >= oval.bottom - 0.5) return;
+
+    final submerged = Rect.fromLTRB(
+      oval.left - r * 0.06,
+      top,
+      oval.right + r * 0.06,
+      oval.bottom + r * 0.04,
+    );
+
     canvas.drawRect(
-      Rect.fromLTRB(c.dx - r, top, c.dx + r, c.dy + r),
-      Paint()..color = const Color(0xFF4FC3F7).withValues(alpha: 0.22 * sub),
+      submerged,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF81D4FA).withValues(alpha: 0.16 + sub * 0.1),
+            const Color(0xFF4FC3F7).withValues(alpha: 0.26 + sub * 0.14),
+          ],
+        ).createShader(submerged),
+    );
+
+    canvas.drawLine(
+      Offset(oval.left, top),
+      Offset(oval.right, top),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.28 + sub * 0.2)
+        ..strokeWidth = (r * 0.018).clamp(1.0, 2.2),
     );
   }
 
@@ -1474,6 +1517,7 @@ class TrayCenterFacePainter extends CustomPainter {
         oldDelegate.lookY != lookY ||
         oldDelegate.mood != mood ||
         oldDelegate.waterSubmerge != waterSubmerge ||
+        oldDelegate.waterSurfaceY != waterSurfaceY ||
         oldDelegate.reactionPulse != reactionPulse ||
         oldDelegate.wrongAnswerCount != wrongAnswerCount ||
         oldDelegate.solvedInLevel != solvedInLevel ||

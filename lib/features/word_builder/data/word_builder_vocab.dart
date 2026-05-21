@@ -12,8 +12,7 @@ String? wordBuilderGameLemma(VocabEntry e) {
   if (t.length < 2 || t.length > 7) return null;
   for (final r in t.runes) {
     final u = String.fromCharCode(r).codeUnitAt(0);
-    final isLetter =
-        (u >= 65 && u <= 90) || (u >= 97 && u <= 122);
+    final isLetter = (u >= 65 && u <= 90) || (u >= 97 && u <= 122);
     if (!isLetter) return null;
   }
   return normalizeWord(t);
@@ -232,14 +231,20 @@ List<VocabEntry>? pickCampaignStageEntries({
     );
     if (triple != null) {
       final out = [triple.$1, triple.$2, triple.$3]
-        ..sort((a, b) => wordBuilderGameLemma(a)!.length
-            .compareTo(wordBuilderGameLemma(b)!.length));
+        ..sort(
+          (a, b) => wordBuilderGameLemma(
+            a,
+          )!.length.compareTo(wordBuilderGameLemma(b)!.length),
+        );
       return out;
     }
   }
 
-  available.sort((a, b) => wordBuilderGameLemma(a)!.length
-      .compareTo(wordBuilderGameLemma(b)!.length));
+  available.sort(
+    (a, b) => wordBuilderGameLemma(
+      a,
+    )!.length.compareTo(wordBuilderGameLemma(b)!.length),
+  );
 
   final scan = available.length > 28 ? available.sublist(0, 28) : available;
   for (var a = 0; a < scan.length - 2; a++) {
@@ -247,8 +252,11 @@ List<VocabEntry>? pickCampaignStageEntries({
       for (var c = b + 1; c < scan.length; c++) {
         final triple = [scan[a], scan[b], scan[c]];
         if (campaignTriplePlayable(triple, difficulty)) {
-          triple.sort((x, y) => wordBuilderGameLemma(x)!.length
-              .compareTo(wordBuilderGameLemma(y)!.length));
+          triple.sort(
+            (x, y) => wordBuilderGameLemma(
+              x,
+            )!.length.compareTo(wordBuilderGameLemma(y)!.length),
+          );
           return triple;
         }
       }
@@ -268,8 +276,9 @@ WordBuilderLevel _levelFromCampaignEntries(
   for (final e in ordered) {
     targets.add(targetFromVocab(e, normalizeWord(e.word.trim())));
   }
-  final wordsLower =
-      targets.map((t) => normalizeWord(t.word)).toList(growable: false);
+  final wordsLower = targets
+      .map((t) => normalizeWord(t.word))
+      .toList(growable: false);
   final letters = expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
   return WordBuilderLevel(
     levelId: 900000000 + difficulty.index * 20 + stage1Based,
@@ -304,9 +313,7 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
       }
     }
     if (pick == null) {
-      list.sort(
-        (a, b) => a.word.trim().length.compareTo(b.word.trim().length),
-      );
+      list.sort((a, b) => a.word.trim().length.compareTo(b.word.trim().length));
       pick = list.first;
     }
     byKey[k] = pick;
@@ -347,11 +354,12 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
       );
       if (triple == null) break;
       final (ea, eb, ec) = triple;
-      final ordered = [ea, eb, ec]..sort((a, b) {
-        final la = wordBuilderGameLemma(a)!.length;
-        final lb = wordBuilderGameLemma(b)!.length;
-        return la.compareTo(lb);
-      });
+      final ordered = [ea, eb, ec]
+        ..sort((a, b) {
+          final la = wordBuilderGameLemma(a)!.length;
+          final lb = wordBuilderGameLemma(b)!.length;
+          return la.compareTo(lb);
+        });
 
       final targets = <WordBuilderTargetWord>[];
       for (final e in ordered) {
@@ -361,10 +369,12 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
         usedHeads.add(w);
       }
 
-      final wordsLower =
-          targets.map((t) => normalizeWord(t.word)).toList(growable: false);
-      final letters =
-          expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
+      final wordsLower = targets
+          .map((t) => normalizeWord(t.word))
+          .toList(growable: false);
+      final letters = expandPoolLetters(
+        poolMaxPerLetterAcrossWords(wordsLower),
+      );
 
       levels.add(
         WordBuilderLevel(
@@ -401,9 +411,11 @@ WordBuilderLevel buildCampaignStageLevel({
 
   if (usable.length >= 3) {
     final picked = usable.length == 3
-        ? (List<VocabEntry>.of(usable)
-          ..sort((a, b) => wordBuilderGameLemma(a)!.length
-              .compareTo(wordBuilderGameLemma(b)!.length)))
+        ? (List<VocabEntry>.of(usable)..sort(
+            (a, b) => wordBuilderGameLemma(
+              a,
+            )!.length.compareTo(wordBuilderGameLemma(b)!.length),
+          ))
         : pickCampaignStageEntries(
             candidates: usable,
             difficulty: difficulty,
@@ -448,8 +460,11 @@ WordBuilderLevel buildCampaignStageLevel({
     );
     if (triple != null) {
       final ordered = [triple.$1, triple.$2, triple.$3]
-        ..sort((a, b) => wordBuilderGameLemma(a)!.length
-            .compareTo(wordBuilderGameLemma(b)!.length));
+        ..sort(
+          (a, b) => wordBuilderGameLemma(
+            a,
+          )!.length.compareTo(wordBuilderGameLemma(b)!.length),
+        );
       return _levelFromCampaignEntries(
         ordered,
         difficulty,

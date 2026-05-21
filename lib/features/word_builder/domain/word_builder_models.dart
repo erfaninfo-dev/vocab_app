@@ -106,15 +106,14 @@ class WordBuilderLevelProgress {
   final int correctSubmissions;
   final Set<String> solvedWordsLower;
 
-  double get accuracy =>
-      attempts == 0 ? 1.0 : correctSubmissions / attempts;
+  double get accuracy => attempts == 0 ? 1.0 : correctSubmissions / attempts;
 
   Map<String, Object?> toJson() => {
-        'completed': completed,
-        'attempts': attempts,
-        'correctSubmissions': correctSubmissions,
-        'solved': solvedWordsLower.toList(),
-      };
+    'completed': completed,
+    'attempts': attempts,
+    'correctSubmissions': correctSubmissions,
+    'solved': solvedWordsLower.toList(),
+  };
 
   static WordBuilderLevelProgress fromJson(Map<String, Object?>? map) {
     if (map == null) {
@@ -135,8 +134,7 @@ class WordBuilderLevelProgress {
     return WordBuilderLevelProgress(
       completed: map['completed'] == true,
       attempts: (map['attempts'] as num?)?.toInt() ?? 0,
-      correctSubmissions:
-          (map['correctSubmissions'] as num?)?.toInt() ?? 0,
+      correctSubmissions: (map['correctSubmissions'] as num?)?.toInt() ?? 0,
       solvedWordsLower: solved,
     );
   }
@@ -150,8 +148,7 @@ class WordBuilderLevelProgress {
     return WordBuilderLevelProgress(
       completed: completed ?? this.completed,
       attempts: attempts ?? this.attempts,
-      correctSubmissions:
-          correctSubmissions ?? this.correctSubmissions,
+      correctSubmissions: correctSubmissions ?? this.correctSubmissions,
       solvedWordsLower: solvedWordsLower ?? this.solvedWordsLower,
     );
   }
@@ -175,14 +172,12 @@ class WordBuilderPersistedProgress {
       globalAttempts == 0 ? 1.0 : globalCorrect / globalAttempts;
 
   Map<String, Object?> toJson() => {
-        'v': 1,
-        'totalXp': totalXp,
-        'globalAttempts': globalAttempts,
-        'globalCorrect': globalCorrect,
-        'perLevel': perLevel.map(
-          (k, v) => MapEntry('$k', v.toJson()),
-        ),
-      };
+    'v': 1,
+    'totalXp': totalXp,
+    'globalAttempts': globalAttempts,
+    'globalCorrect': globalCorrect,
+    'perLevel': perLevel.map((k, v) => MapEntry('$k', v.toJson())),
+  };
 
   static WordBuilderPersistedProgress empty() =>
       const WordBuilderPersistedProgress(

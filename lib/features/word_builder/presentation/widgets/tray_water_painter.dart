@@ -158,6 +158,24 @@ class TrayWaterPainter extends CustomPainter {
     return tub.bottom - tub.height * waterLevel.clamp(0.0, 1.0);
   }
 
+  /// Same tub geometry as [TrayWaterPainter] — for face submerge sync.
+  static double waterSurfaceScreenY({
+    required Offset tubCenter,
+    required double tubRadius,
+    required double waterLevel,
+  }) {
+    final tub = Rect.fromCenter(
+      center: tubCenter + Offset(0, tubRadius * 0.04),
+      width: tubRadius * 1.75,
+      height: tubRadius * 1.95,
+    );
+    final level = waterLevel.clamp(0.0, 1.0);
+    if (level <= 0.01) {
+      return tub.bottom - tub.height * 0.06;
+    }
+    return tub.bottom - tub.height * level;
+  }
+
   void _drawLiveInletDrips(
     Canvas canvas,
     Rect tub, {

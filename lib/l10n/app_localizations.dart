@@ -1924,6 +1924,108 @@ abstract class AppLocalizations {
   /// **'End time must be after start time.'**
   String get classScheduleInvalidRange;
 
+  /// No description provided for @teacherTemporaryClassAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add temporary class'**
+  String get teacherTemporaryClassAddButton;
+
+  /// No description provided for @teacherTemporaryClassTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary class'**
+  String get teacherTemporaryClassTitle;
+
+  /// No description provided for @teacherTemporaryClassStudentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Student'**
+  String get teacherTemporaryClassStudentLabel;
+
+  /// No description provided for @teacherTemporaryClassSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary class added'**
+  String get teacherTemporaryClassSaved;
+
+  /// No description provided for @teacherTemporaryClassUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary class updated'**
+  String get teacherTemporaryClassUpdated;
+
+  /// No description provided for @teacherTemporaryClassDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary class removed'**
+  String get teacherTemporaryClassDeleted;
+
+  /// No description provided for @teacherTemporaryClassBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary'**
+  String get teacherTemporaryClassBadge;
+
+  /// No description provided for @teacherTemporaryClassDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this temporary class?'**
+  String get teacherTemporaryClassDeleteConfirmTitle;
+
+  /// No description provided for @teacherTemporaryClassDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This one-off schedule item will be removed.'**
+  String get teacherTemporaryClassDeleteConfirmBody;
+
+  /// No description provided for @teacherTemporaryClassNoStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'No students available.'**
+  String get teacherTemporaryClassNoStudents;
+
+  /// No description provided for @teacherTemporaryClassSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a student, date, and time for a one-hour class.'**
+  String get teacherTemporaryClassSubtitle;
+
+  /// No description provided for @teacherScheduleModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get teacherScheduleModeAuto;
+
+  /// No description provided for @teacherScheduleModeManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get teacherScheduleModeManual;
+
+  /// No description provided for @teacherScheduleDidClassHappen.
+  ///
+  /// In en, this message translates to:
+  /// **'Was this class held?'**
+  String get teacherScheduleDidClassHappen;
+
+  /// No description provided for @teacherScheduleYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get teacherScheduleYes;
+
+  /// No description provided for @teacherScheduleNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get teacherScheduleNo;
+
+  /// No description provided for @teacherScheduleClassSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Class skipped'**
+  String get teacherScheduleClassSkipped;
+
   /// No description provided for @youClassScheduleSubtitle.
   ///
   /// In en, this message translates to:
@@ -3094,6 +3196,36 @@ abstract class AppLocalizations {
   /// **'No important words in this selection. Choose all words or adjust units / mistakes.'**
   String get bookQuizPoolTooSmallImportant;
 
+  /// No description provided for @bookQuizSectionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sections'**
+  String get bookQuizSectionsTitle;
+
+  /// No description provided for @bookQuizSectionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one or more sections per unit for the quiz.'**
+  String get bookQuizSectionsHint;
+
+  /// No description provided for @bookQuizSectionsSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get bookQuizSectionsSelectAll;
+
+  /// No description provided for @bookQuizSectionsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get bookQuizSectionsClear;
+
+  /// No description provided for @bookQuizPickAtLeastOneSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one section in each chosen unit.'**
+  String get bookQuizPickAtLeastOneSection;
+
   /// No description provided for @statsStudiedToday.
   ///
   /// In en, this message translates to:
@@ -3874,6 +4006,18 @@ abstract class AppLocalizations {
   /// **'Nice!'**
   String get wordBuilderCorrectNice;
 
+  /// No description provided for @wordBuilderLevelCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Level complete!'**
+  String get wordBuilderLevelCompleteTitle;
+
+  /// No description provided for @wordBuilderLevelCompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Great job. You found all the words in this stage.'**
+  String get wordBuilderLevelCompleteBody;
+
   /// No description provided for @wordBuilderHintLetter.
   ///
   /// In en, this message translates to:
@@ -3939,6 +4083,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Correct answers, mistakes, and level complete.'**
   String get wordBuilderSessionSfxSubtitle;
+
+  /// No description provided for @wordBuilderSessionWaterSfxSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Water sounds'**
+  String get wordBuilderSessionWaterSfxSwitch;
+
+  /// No description provided for @wordBuilderSessionWaterSfxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pouring water, drowning tension, and tray effects when you make mistakes.'**
+  String get wordBuilderSessionWaterSfxSubtitle;
 
   /// No description provided for @wordBuilderHintMeaningLine.
   ///
@@ -4189,7 +4345,7 @@ abstract class AppLocalizations {
   /// No description provided for @samplesTabLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sample texts'**
+  /// **'Text'**
   String get samplesTabLabel;
 
   /// No description provided for @unitSectionLine.
@@ -4311,6 +4467,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sample'**
   String get unitSampleUntitled;
+
+  /// No description provided for @sampleHighlightPickMainColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight color'**
+  String get sampleHighlightPickMainColor;
+
+  /// No description provided for @sampleHighlightTapColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a color to highlight'**
+  String get sampleHighlightTapColor;
+
+  /// No description provided for @sampleHighlightRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove highlight'**
+  String get sampleHighlightRemove;
+
+  /// No description provided for @sampleHighlightDefaultColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get sampleHighlightDefaultColor;
 }
 
 class _AppLocalizationsDelegate

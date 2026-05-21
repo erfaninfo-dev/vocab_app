@@ -208,9 +208,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           GoRoute(
             path: '/word-builder',
-            builder: (_, __) => const WordBuilderLtrScope(
-              child: WordBuilderLobbyScreen(),
-            ),
+            builder: (_, __) =>
+                const WordBuilderLtrScope(child: WordBuilderLobbyScreen()),
           ),
           GoRoute(
             path: '/word-builder/campaign',
@@ -448,11 +447,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                   int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
               final unit =
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
-              // Use the same setup screen as book-level quiz, but seed only this unit.
-              // (User can still select other units.)
+              final section =
+                  int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
               return BookVocabQuizSetupScreen(
                 bookId: bookId,
-                initialSelectedUnits: {unit},
+                lockedUnit: unit,
+                initialSelectedSections: {unit: {section}},
               );
             },
           ),
@@ -467,7 +467,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
               return BookVocabQuizSetupScreen(
                 bookId: bookId,
-                initialSelectedUnits: {unit},
+                lockedUnit: unit,
               );
             },
           ),

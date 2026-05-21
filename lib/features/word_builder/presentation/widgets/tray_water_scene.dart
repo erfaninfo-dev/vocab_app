@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/audio/word_builder_sound_service.dart';
 import '../../application/word_builder_game_notifier.dart';
 import '../../application/word_builder_session_audio.dart';
+import '../../application/word_builder_tray_water_audio.dart';
 import '../../domain/tray_water_constants.dart';
 import 'tray_center_face_painter.dart';
 import 'tray_game_over_dialog.dart';
@@ -144,6 +145,9 @@ class _TrayWaterSceneState extends ConsumerState<TrayWaterScene>
   }
 
   void _playGameOverFailureSound() {
+    unawaited(
+      ref.read(wordBuilderTrayWaterAudioProvider(widget.bookKey)).stopAll(),
+    );
     final enabled = ref.read(wordBuilderGameSfxEnabledProvider);
     unawaited(
       ref
@@ -288,12 +292,19 @@ class _TrayWaterSceneState extends ConsumerState<TrayWaterScene>
               _ => 1.0,
             };
 
+    final waterSurfaceY = TrayWaterPainter.waterSurfaceScreenY(
+      tubCenter: widget.center,
+      tubRadius: widget.tubRadius,
+      waterLevel: isGameOver ? 1.0 : water,
+    );
+
     final faceLayer = TrayCenterFaceLayer(
       size: widget.size,
       center: faceCenter,
       radius: faceR,
       mood: mood,
       waterSubmerge: isGameOver ? 1.0 : water,
+      waterSurfaceY: waterSurfaceY,
       reactionPulse: isGameOver ? 0 : pulse,
       wrongAnswerCount: s.wrongAnswerCount,
       solvedInLevel: s.solvedCount,

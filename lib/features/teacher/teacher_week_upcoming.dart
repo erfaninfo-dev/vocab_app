@@ -8,10 +8,7 @@ bool _sameCalendarDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 /// Next calendar hit for [sl.weekday] + start time strictly after [afterLocal].
-DateTime? nextWeeklySlotOccurrence(
-  ClassScheduleSlot sl,
-  DateTime afterLocal,
-) {
+DateTime? nextWeeklySlotOccurrence(ClassScheduleSlot sl, DateTime afterLocal) {
   final tod = parseScheduleHm(sl.startTime);
   if (tod == null) return null;
   final wd = sl.weekday.clamp(1, 7);
@@ -24,6 +21,67 @@ DateTime? nextWeeklySlotOccurrence(
     day = day.add(const Duration(days: 1));
   }
   return null;
+}
+
+/// Most recent calendar hit for [sl.weekday] + start time at or before [nowLocal].
+DateTime? previousWeeklySlotOccurrence(
+  ClassScheduleSlot sl,
+  DateTime nowLocal,
+) {
+  final tod = parseScheduleHm(sl.startTime);
+  if (tod == null) return null;
+  final wd = sl.weekday.clamp(1, 7);
+  var day = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+  for (var i = 0; i < 14; i++) {
+    final cand = DateTime(day.year, day.month, day.day, tod.hour, tod.minute);
+    if (cand.weekday == wd && !cand.isAfter(nowLocal)) {
+      return cand;
+    }
+    day = day.subtract(const Duration(days: 1));
+  }
+  return null;
+}
+
+List<DateTime> weeklySlotOccurrencesBetween({
+  required ClassScheduleSlot slot,
+  required DateTime fromLocal,
+  required DateTime toLocal,
+}) {
+  final tod = parseScheduleHm(slot.startTime);
+  if (tod == null) return const [];
+  final wd = slot.weekday.clamp(1, 7);
+  final out = <DateTime>[];
+  var day = DateTime(fromLocal.year, fromLocal.month, fromLocal.day);
+  final endDay = DateTime(toLocal.year, toLocal.month, toLocal.day);
+  while (!day.isAfter(endDay)) {
+    final cand = DateTime(day.year, day.month, day.day, tod.hour, tod.minute);
+    if (cand.weekday == wd &&
+        !cand.isBefore(fromLocal) &&
+        !cand.isAfter(toLocal)) {
+      out.add(cand);
+    }
+    day = day.add(const Duration(days: 1));
+  }
+  return out;
+}
+
+DateTime slotOccurrenceEndLocal(
+  ClassScheduleSlot slot,
+  DateTime occurrenceStartLocal,
+) {
+  final endParsed = slot.endTime != null && slot.endTime!.trim().isNotEmpty
+      ? parseScheduleHm(slot.endTime!)
+      : null;
+  if (endParsed == null) {
+    return occurrenceStartLocal.add(const Duration(hours: 1));
+  }
+  return DateTime(
+    occurrenceStartLocal.year,
+    occurrenceStartLocal.month,
+    occurrenceStartLocal.day,
+    endParsed.hour,
+    endParsed.minute,
+  );
 }
 
 /// Whether [sessions] contains a recorded class that covers this weekly occurrence.

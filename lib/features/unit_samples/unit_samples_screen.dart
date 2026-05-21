@@ -13,32 +13,16 @@ import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/widgets/word_card.dart';
+import 'sample_text_highlight_rendering.dart';
+import 'sample_text_highlight_ui.dart';
+import 'sample_text_highlights_controller.dart';
 
 typedef _BookUnitKey = ({int bookId, int unit, int? section});
 
-String _sampleSectionBadgeLabel(
-  WidgetRef ref,
-  _BookUnitKey key,
-  UnitSample sample,
-) {
+String _sampleSectionBadgeLabel(AppLocalizations l10n, UnitSample sample) {
   final n = sample.section;
   if (n == null || n <= 0) return '';
-  final async = ref.watch(
-    apiSectionsProvider((bookId: key.bookId, unit: key.unit)),
-  );
-  return async.maybeWhen(
-    data: (list) {
-      for (final info in list) {
-        if (info.section == n) {
-          final d = info.sectionDetails?.trim();
-          if (d != null && d.isNotEmpty) return d;
-          break;
-        }
-      }
-      return 'Section $n';
-    },
-    orElse: () => 'Section $n',
-  );
+  return l10n.sectionNumberLabel(n);
 }
 
 final _expandedSampleIdProvider = StateProvider.family
@@ -487,15 +471,11 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
         widget.expandedId != null && widget.expandedId == widget.sample.id;
     final lang = ref.watch(langProvider);
     final l10n = AppLocalizations.of(context)!;
-    final segmentTextStyle = tt.labelMedium?.copyWith(
-      fontWeight: FontWeight.w500,
+    final segmentTextStyle = tt.labelLarge?.copyWith(
+      fontWeight: FontWeight.w600,
     );
     final cardColor = isExpanded ? scheme.surfaceContainerLow : scheme.surface;
-    final sectionBadge = _sampleSectionBadgeLabel(
-      ref,
-      widget.screenKey,
-      widget.sample,
-    );
+    final sectionBadge = _sampleSectionBadgeLabel(l10n, widget.sample);
     return Card(
       key: _cardLeadKey,
       elevation: isExpanded ? 0.6 : 2.2,
@@ -603,11 +583,11 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
                     selected: {lang},
                     showSelectedIcon: false,
                     style: ButtonStyle(
-                      visualDensity: VisualDensity.compact,
+                      visualDensity: VisualDensity.standard,
                       padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
-                      minimumSize: WidgetStateProperty.all(const Size(0, 36)),
+                      minimumSize: WidgetStateProperty.all(const Size(0, 42)),
                     ),
                     onSelectionChanged: (set) {
                       if (set.isEmpty) return;
@@ -624,6 +604,8 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
                 padding: const EdgeInsets.only(right: 14),
                 child: _AlignedBlock(
                   screenKey: widget.screenKey,
+                  sampleId: widget.sample.id,
+                  langKey: sampleTextLangKey(lang),
                   combinedText: lang == TranslationLang.fa
                       ? widget.sample.textEnFa
                       : widget.sample.textEnKur,
@@ -666,6 +648,8 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
                               padding: const EdgeInsets.only(right: 14),
                               child: _AlignedBlock(
                                 screenKey: widget.screenKey,
+                                sampleId: widget.sample.id,
+                                langKey: sampleTextLangKey(lang),
                                 combinedText: lang == TranslationLang.fa
                                     ? widget.sample.textEnFa
                                     : widget.sample.textEnKur,
@@ -691,11 +675,15 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
 class _AlignedBlock extends ConsumerWidget {
   const _AlignedBlock({
     required this.screenKey,
+    required this.sampleId,
+    required this.langKey,
     required this.combinedText,
     required this.textScale,
   });
 
   final _BookUnitKey screenKey;
+  final int sampleId;
+  final String langKey;
   final String combinedText;
   final double textScale;
 
@@ -719,6 +707,9 @@ class _AlignedBlock extends ConsumerWidget {
               for (var i = 0; i < pairs.length; i++) ...[
                 _ParagraphPairBlock(
                   screenKey: screenKey,
+                  sampleId: sampleId,
+                  langKey: langKey,
+                  paragraphIndex: i,
                   pair: pairs[i],
                   textScale: textScale,
                 ),
@@ -778,23 +769,11 @@ class _SamplesPinchTextScaleState extends ConsumerState<_SamplesPinchTextScale> 
   }
 }
 
-class _EnWordToken {
-  const _EnWordToken({
-    required this.start,
-    required this.end,
-    required this.text,
-  });
-
-  final int start;
-  final int end;
-  final String text;
-}
-
-List<_EnWordToken> _tokenizeEnglishWords(String s) {
-  final out = <_EnWordToken>[];
+List<EnWordToken> _tokenizeEnglishWords(String s) {
+  final out = <EnWordToken>[];
   final re = RegExp(r"[A-Za-z]+(?:['\u2019\u2018\u02BC][A-Za-z]+)?");
   for (final m in re.allMatches(s)) {
-    out.add(_EnWordToken(start: m.start, end: m.end, text: m.group(0)!));
+    out.add(EnWordToken(start: m.start, end: m.end, text: m.group(0)!));
   }
   return out;
 }
@@ -842,7 +821,7 @@ bool _isCommonCollocationTail(String word) {
 }
 
 String? _bestTappedPhrase({
-  required List<_EnWordToken> tokens,
+  required List<EnWordToken> tokens,
   required int startTokenIndex,
 }) {
   if (startTokenIndex < 0 || startTokenIndex >= tokens.length) return null;
@@ -921,7 +900,7 @@ Set<String> _englishLemmaCandidates(
 }
 
 List<VocabEntry> _lookupCatalogMatches({
-  required List<_EnWordToken> tokens,
+  required List<EnWordToken> tokens,
   required int startTokenIndex,
   required List<VocabEntry> catalog,
   required int preferredBookId,
@@ -1058,11 +1037,16 @@ List<VocabEntry> _lookupCatalogMatches({
 
 class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
   const _SelectableEnglishWithTtsHighlight({
+    super.key,
     required this.plainEn,
     required this.baseStyle,
     required this.scheme,
     required this.bookId,
     required this.unit,
+    required this.sampleId,
+    required this.langKey,
+    required this.paragraphIndex,
+    this.onTextSelectionActive,
   });
 
   final String plainEn;
@@ -1070,6 +1054,10 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
   final ColorScheme scheme;
   final int bookId;
   final int unit;
+  final int sampleId;
+  final String langKey;
+  final int paragraphIndex;
+  final VoidCallback? onTextSelectionActive;
 
   @override
   ConsumerState<_SelectableEnglishWithTtsHighlight> createState() =>
@@ -1079,6 +1067,9 @@ class _SelectableEnglishWithTtsHighlight extends ConsumerStatefulWidget {
 class _SelectableEnglishWithTtsHighlightState
     extends ConsumerState<_SelectableEnglishWithTtsHighlight> {
   final List<TapGestureRecognizer> _tapRecognizers = [];
+  TextSelection? _textSelection;
+  (int start, int end)? _lastAutoHighlighted;
+  Key _selectableKey = UniqueKey();
 
   @override
   void dispose() {
@@ -1222,9 +1213,41 @@ class _SelectableEnglishWithTtsHighlightState
     );
   }
 
+  void dismissHighlightUi() {
+    setState(() {
+      _textSelection = null;
+      _lastAutoHighlighted = null;
+      _selectableKey = UniqueKey();
+    });
+  }
+
+  void _clearTextSelection() => dismissHighlightUi();
+
+  Future<void> _autoHighlightSelection(TextSelection sel) async {
+    if (widget.sampleId <= 0) return;
+    final preview = sampleHighlightSelectionPreview(widget.plainEn, sel);
+    if (preview.isEmpty) return;
+
+    final range = (sel.start, sel.end);
+    if (_lastAutoHighlighted == range) return;
+
+    final color = ref.read(sampleTextHighlightsProvider).defaultColor;
+    await ref.read(sampleTextHighlightsProvider.notifier).replaceHighlightForSelection(
+      sampleId: widget.sampleId,
+      langKey: widget.langKey,
+      paragraphIndex: widget.paragraphIndex,
+      start: sel.start,
+      end: sel.end,
+      plainText: widget.plainEn,
+      color: color,
+    );
+    _lastAutoHighlighted = range;
+    HapticFeedback.selectionClick();
+  }
+
   void _onWordTap(
     int startTokenIndex,
-    List<_EnWordToken> tokens,
+    List<EnWordToken> tokens,
     List<VocabEntry> catalog,
   ) {
     final catalogAsync = ref.read(apiAllWordsCatalogProvider);
@@ -1270,84 +1293,6 @@ class _SelectableEnglishWithTtsHighlightState
     );
   }
 
-  TextStyle? _styleForWordRange({
-    required int ws,
-    required int we,
-    required bool highlightOn,
-    required bool lingering,
-    required bool karaoke,
-    required int a,
-    required int b,
-    required TextStyle? readStyle,
-    required TextStyle? currentStyle,
-  }) {
-    if (!highlightOn) return widget.baseStyle;
-    if (lingering) return readStyle;
-    if (!karaoke) return widget.baseStyle;
-    if (we <= a) return readStyle;
-    if (a < b && ws < b && we > a) return currentStyle;
-    return widget.baseStyle;
-  }
-
-  TextSpan _buildTappableEnglishSpan({
-    required String en,
-    required List<_EnWordToken> tokens,
-    required List<VocabEntry> catalog,
-    required TextStyle? readStyle,
-    required TextStyle? currentStyle,
-    required bool highlightOn,
-    required bool lingering,
-    required bool karaoke,
-    required int a,
-    required int b,
-  }) {
-    if (tokens.isEmpty) {
-      return TextSpan(text: _bidiWrapLtr(en), style: widget.baseStyle);
-    }
-
-    final children = <InlineSpan>[];
-    var cursor = 0;
-    for (var i = 0; i < tokens.length; i++) {
-      final tok = tokens[i];
-      if (cursor < tok.start) {
-        children.add(
-          TextSpan(
-            text: _bidiWrapLtr(en.substring(cursor, tok.start)),
-            style: widget.baseStyle,
-          ),
-        );
-      }
-      final ws = tok.start;
-      final we = tok.end;
-      final wordStyle = _styleForWordRange(
-        ws: ws,
-        we: we,
-        highlightOn: highlightOn,
-        lingering: lingering,
-        karaoke: karaoke,
-        a: a,
-        b: b,
-        readStyle: readStyle,
-        currentStyle: currentStyle,
-      );
-      final r = _tapRecognizers[i]
-        ..onTap = () => _onWordTap(i, tokens, catalog);
-      children.add(
-        TextSpan(text: _bidiWrapLtr(tok.text), style: wordStyle, recognizer: r),
-      );
-      cursor = tok.end;
-    }
-    if (cursor < en.length) {
-      children.add(
-        TextSpan(
-          text: _bidiWrapLtr(en.substring(cursor)),
-          style: widget.baseStyle,
-        ),
-      );
-    }
-    return TextSpan(style: widget.baseStyle, children: children);
-  }
-
   @override
   Widget build(BuildContext context) {
     final en = widget.plainEn;
@@ -1369,6 +1314,15 @@ class _SelectableEnglishWithTtsHighlightState
     final highlightOn = ref.watch(ttsTextHighlightEnabledProvider);
     final catalogAsync = ref.watch(apiAllWordsCatalogProvider);
     final catalog = catalogAsync.valueOrNull ?? const <VocabEntry>[];
+    final userHighlights = ref.watch(
+      sampleTextHighlightsProvider.select(
+        (s) => s.forParagraph(
+          sampleId: widget.sampleId,
+          langKey: widget.langKey,
+          paragraphIndex: widget.paragraphIndex,
+        ),
+      ),
+    );
 
     if (en.isEmpty) return const SizedBox.shrink();
 
@@ -1404,50 +1358,130 @@ class _SelectableEnglishWithTtsHighlightState
 
     final tokens = _tokenizeEnglishWords(en);
     _ensureTapRecognizerCount(tokens.length);
-    final rootSpan = _buildTappableEnglishSpan(
+    final spanChildren = buildEnglishSpans(
       en: en,
       tokens: tokens,
-      catalog: catalog,
-      readStyle: readStyle,
-      currentStyle: currentStyle,
-      highlightOn: highlightOn,
-      lingering: lingering,
-      karaoke: karaoke,
-      a: a,
-      b: b,
+      userHighlights: userHighlights,
+      baseStyle: widget.baseStyle,
+      ttsReadStyle: readStyle,
+      ttsCurrentStyle: currentStyle,
+      ttsLingering: lingering,
+      ttsKaraoke: karaoke,
+      ttsA: a,
+      ttsB: b,
+      tapRecognizers: _tapRecognizers,
+      onWordTap: (i) => _onWordTap(i, tokens, catalog),
+      bidiWrap: (s) => s,
     );
+    final rootSpan = spanChildren.isEmpty
+        ? TextSpan(text: en, style: widget.baseStyle)
+        : TextSpan(style: widget.baseStyle, children: spanChildren);
 
-    return SelectableText.rich(
-      rootSpan,
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.justify,
-      textWidthBasis: TextWidthBasis.parent,
+    final selection = _textSelection;
+    final showHighlightBar =
+        selection != null &&
+        selection.isValid &&
+        !selection.isCollapsed &&
+        widget.sampleId > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SelectableText.rich(
+            key: _selectableKey,
+            rootSpan,
+            textDirection: TextDirection.ltr,
+            textAlign: TextAlign.justify,
+            textWidthBasis: TextWidthBasis.parent,
+            onSelectionChanged: (sel, _) {
+              if (!mounted) return;
+              if (!sel.isValid || sel.isCollapsed) {
+                setState(() {
+                  _textSelection = null;
+                  _lastAutoHighlighted = null;
+                });
+                return;
+              }
+              setState(() => _textSelection = sel);
+              widget.onTextSelectionActive?.call();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                final current = _textSelection;
+                if (current == null ||
+                    current.start != sel.start ||
+                    current.end != sel.end) {
+                  return;
+                }
+                _autoHighlightSelection(sel);
+              });
+            },
+          ),
+          if (showHighlightBar)
+            SampleHighlightSelectionBar(
+              sampleId: widget.sampleId,
+              langKey: widget.langKey,
+              paragraphIndex: widget.paragraphIndex,
+              plainText: en,
+              selection: selection,
+              onClearSelection: _clearTextSelection,
+          ),
+      ],
     );
   }
 }
 
-class _ParagraphPairBlock extends ConsumerWidget {
+class _ParagraphPairBlock extends ConsumerStatefulWidget {
   const _ParagraphPairBlock({
     required this.screenKey,
+    required this.sampleId,
+    required this.langKey,
+    required this.paragraphIndex,
     required this.pair,
     required this.textScale,
   });
 
   final _BookUnitKey screenKey;
+  final int sampleId;
+  final String langKey;
+  final int paragraphIndex;
   final _AlignedPair pair;
   final double textScale;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ParagraphPairBlock> createState() => _ParagraphPairBlockState();
+}
+
+class _ParagraphPairBlockState extends ConsumerState<_ParagraphPairBlock> {
+  final _englishKey = GlobalKey<_SelectableEnglishWithTtsHighlightState>();
+  bool _showDefaultColorPicker = false;
+
+  void _dismissAllHighlightUi() {
+    _englishKey.currentState?.dismissHighlightUi();
+    if (_showDefaultColorPicker) {
+      setState(() => _showDefaultColorPicker = false);
+    }
+  }
+
+  void _toggleDefaultColorPicker() {
+    setState(() {
+      _showDefaultColorPicker = !_showDefaultColorPicker;
+      if (_showDefaultColorPicker) {
+        _englishKey.currentState?.dismissHighlightUi();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final en = pair.en.trim();
-    final local = pair.local.trim();
+    final en = widget.pair.en.trim();
+    final local = widget.pair.local.trim();
     final enStyle = tt.bodyMedium?.copyWith(
       color: scheme.onSurface,
       height: 1.55,
-      fontSize: (tt.bodyMedium?.fontSize ?? 14) * textScale,
+      fontSize: (tt.bodyMedium?.fontSize ?? 14) * widget.textScale,
     );
 
     return Column(
@@ -1458,30 +1492,46 @@ class _ParagraphPairBlock extends ConsumerWidget {
             textDirection: TextDirection.ltr,
             child: SizedBox(
               width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SelectableEnglishWithTtsHighlight(
-                    plainEn: en,
-                    baseStyle: enStyle,
-                    scheme: scheme,
-                    bookId: screenKey.bookId,
-                    unit: screenKey.unit,
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: IconButton.filledTonal(
-                      tooltip: _textSizeLabel(context),
-                      onPressed: () => _openUnitSamplesTextSizePicker(
-                        context,
-                        ref,
-                        screenKey,
-                      ),
-                      icon: const Icon(Icons.text_fields_rounded),
+              child: TapRegion(
+                groupId: sampleHighlightTapRegionGroup,
+                onTapOutside: (_) => _dismissAllHighlightUi(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SelectableEnglishWithTtsHighlight(
+                      key: _englishKey,
+                      plainEn: en,
+                      baseStyle: enStyle,
+                      scheme: scheme,
+                      bookId: widget.screenKey.bookId,
+                      unit: widget.screenKey.unit,
+                      sampleId: widget.sampleId,
+                      langKey: widget.langKey,
+                      paragraphIndex: widget.paragraphIndex,
+                      onTextSelectionActive: () {
+                        if (_showDefaultColorPicker) {
+                          setState(() => _showDefaultColorPicker = false);
+                        }
+                      },
                     ),
-                  ),
-                ],
+                    if (_showDefaultColorPicker)
+                      const SampleDefaultColorPickerBar(),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: SampleParagraphToolStrip(
+                        showHighlight: widget.sampleId > 0,
+                        highlightPickerOpen: _showDefaultColorPicker,
+                        onHighlightTap: _toggleDefaultColorPicker,
+                        onTextSizeTap: () => _openUnitSamplesTextSizePicker(
+                          context,
+                          ref,
+                          widget.screenKey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1508,7 +1558,7 @@ class _ParagraphPairBlock extends ConsumerWidget {
                 style: tt.bodyMedium?.copyWith(
                   color: scheme.onSurface,
                   height: 1.9,
-                  fontSize: (tt.bodyMedium?.fontSize ?? 14) * textScale,
+                  fontSize: (tt.bodyMedium?.fontSize ?? 14) * widget.textScale,
                 ),
               ),
             ),
@@ -1755,14 +1805,6 @@ class _TextPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-String _bidiWrapLtr(String s) {
-  // Force LTR isolation for punctuation-heavy English inside RTL UIs.
-  // LRI ... PDI keeps punctuation (., :) from jumping in mixed-direction layouts.
-  const lri = '\u2066';
-  const pdi = '\u2069';
-  return '$lri$s$pdi';
 }
 
 String _bidiWrapRtl(String s) {

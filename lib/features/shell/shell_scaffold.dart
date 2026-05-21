@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../home/widgets/home_release_notes_banner.dart';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 
@@ -72,16 +74,19 @@ bool _hideBottomBarForLocation(String location) {
   return false;
 }
 
+/// Height of [ShellScaffold]'s [NavigationBar]; keep FAB offsets in sync.
+const double kShellBottomNavigationBarHeight = 80;
+
 // ─── Shell Scaffold ───────────────────────────────────────────────────────────
 
-class ShellScaffold extends StatelessWidget {
+class ShellScaffold extends ConsumerWidget {
   const ShellScaffold({super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _tabs(l10n);
 
@@ -95,26 +100,32 @@ class ShellScaffold extends StatelessWidget {
       }
     }
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: hideBottomBar
-          ? null
-          : NavigationBar(
-              selectedIndex: currentIndex,
-              onDestinationSelected: (index) {
-                if (index == 0) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  context.go(tabs[0].path);
-                } else if (!location.startsWith(tabs[index].path)) {
-                  context.push(tabs[index].path);
-                }
-              },
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              height: 80,
-              destinations: [
-                for (int i = 0; i < tabs.length; i++) _navDestination(tabs[i]),
-              ],
-            ),
+    final onHome = location == '/home';
+
+    return HomeReleaseNotesOverlayGate(
+      show: onHome,
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: hideBottomBar
+            ? null
+            : NavigationBar(
+                selectedIndex: currentIndex,
+                onDestinationSelected: (index) {
+                  if (index == 0) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    context.go(tabs[0].path);
+                  } else if (!location.startsWith(tabs[index].path)) {
+                    context.push(tabs[index].path);
+                  }
+                },
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                height: kShellBottomNavigationBarHeight,
+                destinations: [
+                  for (int i = 0; i < tabs.length; i++)
+                    _navDestination(tabs[i]),
+                ],
+              ),
+      ),
     );
   }
 }

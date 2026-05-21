@@ -12,6 +12,7 @@ import '../../core/tts/tts_service.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
+import 'book_quiz_section_filter.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 import 'widgets/slider_with_value_below.dart';
@@ -697,12 +698,28 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
   List<VocabEntry> _filterPool(
     List<VocabEntry> words,
     Set<int> unitFilter,
+    Map<int, Set<int>> sectionFilter,
     bool wrongsOnly,
     Set<String> wrongKeys,
   ) {
     var pool = words;
     if (unitFilter.isNotEmpty) {
       pool = pool.where((w) => unitFilter.contains(w.unit)).toList();
+    }
+    if (sectionFilter.isNotEmpty) {
+      final unitsWithSections = sectionFilter.map(
+        (k, v) => MapEntry(k, v.toList()),
+      );
+      pool = pool
+          .where(
+            (w) => vocabEntryMatchesBookQuizScope(
+              entry: w,
+              selectedUnits: unitFilter.isEmpty ? {w.unit} : unitFilter,
+              unitsWithSections: unitsWithSections,
+              selectedSectionsByUnit: sectionFilter,
+            ),
+          )
+          .toList();
     }
     if (wrongsOnly) {
       pool = pool
@@ -813,20 +830,27 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         .map((e) => int.tryParse(e.trim()))
         .whereType<int>()
         .toSet();
+    final sectionFilter = parseBookQuizSectionsQuery(
+      route.uri.queryParameters['sections'] ?? '',
+    );
+    final singleUnitFromQuery =
+        widget.unit == null && unitFilter.length == 1 ? unitFilter.first : null;
+    final scopedUnit = widget.unit ?? singleUnitFromQuery;
 
-    final wordsAsync = widget.unit != null
+    final wordsAsync = scopedUnit != null
         ? ref.watch(
             apiWordsProvider((
               bookId: widget.bookId,
-              unit: widget.unit!,
+              unit: scopedUnit,
               section: widget.section,
             )),
           )
         : ref.watch(apiAllWordsForBookProvider(widget.bookId));
 
     final wrongsAsync = ref.watch(
-      vocabQuizWrongsProvider((bookId: widget.bookId, unit: widget.unit)),
+      vocabQuizWrongsProvider((bookId: widget.bookId, unit: scopedUnit)),
     );
+    final wrongs = wrongsAsync.valueOrNull ?? [];
     final importantState = ref.watch(importantWordsProvider);
 
     final l10n = AppLocalizations.of(context)!;
@@ -875,11 +899,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => Center(child: Text(l10n.couldNotLoadWords)),
           data: (words) {
-            return wrongsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => Center(child: Text(l10n.couldNotLoadMistakes)),
-              data: (wrongs) {
-                final wrongsForUnits = widget.unit != null
+                final wrongsForUnits = scopedUnit != null
                     ? wrongs
                     : (unitFilter.isEmpty
                           ? wrongs
@@ -887,15 +907,23 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                                 .where((w) => unitFilter.contains(w.unit))
                                 .toList());
                 final wrongKeys = wrongsForUnits.map((w) => w.wordKey).toSet();
+                final effectiveUnitFilter = scopedUnit != null
+                    ? {scopedUnit}
+                    : unitFilter;
+                final effectiveSectionFilter = widget.section != null
+                    ? const <int, Set<int>>{}
+                    : sectionFilter;
                 final basePool = _filterPool(
                   words,
-                  widget.unit == null ? unitFilter : <int>{},
+                  effectiveUnitFilter,
+                  effectiveSectionFilter,
                   _scopeWrongsOnly,
                   wrongKeys,
                 );
                 final basePoolAllSelected = _filterPool(
                   words,
-                  widget.unit == null ? unitFilter : <int>{},
+                  effectiveUnitFilter,
+                  effectiveSectionFilter,
                   false,
                   wrongKeys,
                 );
@@ -1076,8 +1104,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                     onLearned: _onLearnedCurrent,
                   ),
                 );
-              },
-            );
           },
         ),
       ),

@@ -37,12 +37,14 @@ class WordBuilderSoundService {
       await player.stop();
       await player.setLoopMode(LoopMode.off);
       await player.setVolume(_volumes[sound]!);
-      await player.setAudioSource(AudioSource.asset(path));
+      await player.setAudioSource(
+        AudioSource.asset(path),
+        preload: true,
+      );
+      await player.seek(Duration.zero);
       await player.play();
     } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('WordBuilderSoundService: skipped $sound ($e)\n$st');
-      }
+      debugPrint('WordBuilderSoundService: skipped $sound ($e)\n$st');
     }
   }
 

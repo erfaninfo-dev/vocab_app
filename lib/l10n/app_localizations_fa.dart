@@ -1078,6 +1078,60 @@ class AppLocalizationsFa extends AppLocalizations {
       'ساعت پایان باید بعد از ساعت شروع باشد.';
 
   @override
+  String get teacherTemporaryClassAddButton => 'افزودن کلاس موقتی';
+
+  @override
+  String get teacherTemporaryClassTitle => 'کلاس موقتی';
+
+  @override
+  String get teacherTemporaryClassStudentLabel => 'شاگرد';
+
+  @override
+  String get teacherTemporaryClassSaved => 'کلاس موقتی اضافه شد';
+
+  @override
+  String get teacherTemporaryClassUpdated => 'کلاس موقتی ویرایش شد';
+
+  @override
+  String get teacherTemporaryClassDeleted => 'کلاس موقتی حذف شد';
+
+  @override
+  String get teacherTemporaryClassBadge => 'موقتی';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmTitle =>
+      'این کلاس موقتی حذف شود؟';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmBody =>
+      'این مورد یک‌باره از برنامه حذف می‌شود.';
+
+  @override
+  String get teacherTemporaryClassNoStudents => 'شاگردی برای انتخاب نیست.';
+
+  @override
+  String get teacherTemporaryClassSubtitle =>
+      'شاگرد، تاریخ و ساعت یک کلاس یک‌ساعته را انتخاب کنید.';
+
+  @override
+  String get teacherScheduleModeAuto => 'اتوماتیک';
+
+  @override
+  String get teacherScheduleModeManual => 'دستی';
+
+  @override
+  String get teacherScheduleDidClassHappen => 'این کلاس برگزار شد؟';
+
+  @override
+  String get teacherScheduleYes => 'بله';
+
+  @override
+  String get teacherScheduleNo => 'نه';
+
+  @override
+  String get teacherScheduleClassSkipped => 'کلاس رد شد';
+
+  @override
   String get youClassScheduleSubtitle =>
       'روز و ساعت تکراری کلاس از طرف معلم شما';
 
@@ -1725,6 +1779,23 @@ class AppLocalizationsFa extends AppLocalizations {
       'در این انتخاب لغت مهمی نیست. «همهٔ لغات» را بزنید یا یونیت‌ها را عوض کنید.';
 
   @override
+  String get bookQuizSectionsTitle => 'سکشن‌ها';
+
+  @override
+  String get bookQuizSectionsHint =>
+      'برای هر یونیت یک یا چند سکشن برای کوییز انتخاب کنید.';
+
+  @override
+  String get bookQuizSectionsSelectAll => 'انتخاب همه';
+
+  @override
+  String get bookQuizSectionsClear => 'پاک کردن';
+
+  @override
+  String get bookQuizPickAtLeastOneSection =>
+      'حداقل یک سکشن در هر یونیت انتخاب‌شده لازم است.';
+
+  @override
   String get statsStudiedToday => '✅ امروز مطالعه کردید!';
 
   @override
@@ -2187,6 +2258,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get wordBuilderCorrectNice => 'آفرین!';
 
   @override
+  String get wordBuilderLevelCompleteTitle => 'مرحله کامل شد!';
+
+  @override
+  String get wordBuilderLevelCompleteBody =>
+      'عالی بود؛ همهٔ کلمات این مرحله را پیدا کردی.';
+
+  @override
   String get wordBuilderHintLetter => 'یک حرف در یکی از کلمات نمایش داده شد.';
 
   @override
@@ -2225,6 +2303,13 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get wordBuilderSessionSfxSubtitle =>
       'پاسخ درست، اشتباه و پایان مرحله.';
+
+  @override
+  String get wordBuilderSessionWaterSfxSwitch => 'صداهای آب';
+
+  @override
+  String get wordBuilderSessionWaterSfxSubtitle =>
+      'ریختن آب، فشار غرق‌شدن و جلوه‌های سینی هنگام اشتباه.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {
@@ -2451,4 +2536,16 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'نمونه';
+
+  @override
+  String get sampleHighlightPickMainColor => 'رنگ هایلایت';
+
+  @override
+  String get sampleHighlightTapColor => 'برای هایلایت یک رنگ بزنید';
+
+  @override
+  String get sampleHighlightRemove => 'حذف هایلایت';
+
+  @override
+  String get sampleHighlightDefaultColor => 'هایلایت';
 }

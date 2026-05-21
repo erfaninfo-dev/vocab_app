@@ -1084,6 +1084,60 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get classScheduleInvalidRange => 'کاتی کۆتایی دەبێت دوای دەستپێک بێت.';
 
   @override
+  String get teacherTemporaryClassAddButton => 'زیادکردنی وانەی کاتی';
+
+  @override
+  String get teacherTemporaryClassTitle => 'وانەی کاتی';
+
+  @override
+  String get teacherTemporaryClassStudentLabel => 'قوتابی';
+
+  @override
+  String get teacherTemporaryClassSaved => 'وانەی کاتی زیادکرا';
+
+  @override
+  String get teacherTemporaryClassUpdated => 'وانەی کاتی دەستکاری کرا';
+
+  @override
+  String get teacherTemporaryClassDeleted => 'وانەی کاتی سڕایەوە';
+
+  @override
+  String get teacherTemporaryClassBadge => 'کاتی';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmTitle =>
+      'ئەم وانەیەی کاتی بسڕدرێتەوە؟';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmBody =>
+      'ئەم بڕگەیەی جارێک لە خشتەکە دەسڕدرێتەوە.';
+
+  @override
+  String get teacherTemporaryClassNoStudents => 'قوتابی بۆ هەڵبژاردن نییە.';
+
+  @override
+  String get teacherTemporaryClassSubtitle =>
+      'قوتابی، بەروار و کاتی وانەیەکی یەک کاتژمێری هەڵبژێرە.';
+
+  @override
+  String get teacherScheduleModeAuto => 'خۆکار';
+
+  @override
+  String get teacherScheduleModeManual => 'دەستی';
+
+  @override
+  String get teacherScheduleDidClassHappen => 'ئەم وانەیە بەڕێوەچوو؟';
+
+  @override
+  String get teacherScheduleYes => 'بەڵێ';
+
+  @override
+  String get teacherScheduleNo => 'نەخێر';
+
+  @override
+  String get teacherScheduleClassSkipped => 'وانەکە تێپەڕێنرا';
+
+  @override
   String get youClassScheduleSubtitle =>
       'ڕۆژ و کاتی وانەی دووبارە لە مامۆستاکەت';
 
@@ -1739,6 +1793,23 @@ class AppLocalizationsCkb extends AppLocalizations {
       'لەم هەڵبژاردنەدا وشەی گرنگ نییە. «هەموو وشەکان» هەڵبژێرە یان یەکەکان بگۆڕە.';
 
   @override
+  String get bookQuizSectionsTitle => 'بەشەکان';
+
+  @override
+  String get bookQuizSectionsHint =>
+      'بۆ هەر یەکەیەک یەک یان زیاتر بەش بۆ کویز هەڵبژێرە.';
+
+  @override
+  String get bookQuizSectionsSelectAll => 'هەمووی هەڵبژێرە';
+
+  @override
+  String get bookQuizSectionsClear => 'پاککردنەوە';
+
+  @override
+  String get bookQuizPickAtLeastOneSection =>
+      'لانیکەم یەک بەش لە هەر یەکەی هەڵبژێردراو پێویستە.';
+
+  @override
   String get statsStudiedToday => '✅ ئەمڕۆ خوێندنت کرد!';
 
   @override
@@ -2202,6 +2273,13 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get wordBuilderCorrectNice => 'باشە!';
 
   @override
+  String get wordBuilderLevelCompleteTitle => 'ئاستەکە تەواو بوو!';
+
+  @override
+  String get wordBuilderLevelCompleteBody =>
+      'زۆر باش بوو؛ هەموو وشەکانی ئەم ئاستەت دۆزییەوە.';
+
+  @override
   String get wordBuilderHintLetter => 'پیتێک لە یەکێک لە وشەکان دەردەکەوێت.';
 
   @override
@@ -2240,6 +2318,13 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get wordBuilderSessionSfxSubtitle =>
       'وەڵامی ڕاست، هەڵە و کۆتایی قۆناغ.';
+
+  @override
+  String get wordBuilderSessionWaterSfxSwitch => 'دەنگەکانی ئاو';
+
+  @override
+  String get wordBuilderSessionWaterSfxSubtitle =>
+      'ڕژانی ئاو، فشار و کاریگەری سینی کاتێک هەڵە دەکەیت.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {
@@ -2466,4 +2551,16 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'نموونە';
+
+  @override
+  String get sampleHighlightPickMainColor => 'ڕەنگی دیاریکردن';
+
+  @override
+  String get sampleHighlightTapColor => 'ڕەنگێک بگرە بۆ دیاریکردن';
+
+  @override
+  String get sampleHighlightRemove => 'سڕینەوەی دیاریکردن';
+
+  @override
+  String get sampleHighlightDefaultColor => 'دیاریکردن';
 }

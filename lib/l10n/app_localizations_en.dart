@@ -1077,6 +1077,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get classScheduleInvalidRange => 'End time must be after start time.';
 
   @override
+  String get teacherTemporaryClassAddButton => 'Add temporary class';
+
+  @override
+  String get teacherTemporaryClassTitle => 'Temporary class';
+
+  @override
+  String get teacherTemporaryClassStudentLabel => 'Student';
+
+  @override
+  String get teacherTemporaryClassSaved => 'Temporary class added';
+
+  @override
+  String get teacherTemporaryClassUpdated => 'Temporary class updated';
+
+  @override
+  String get teacherTemporaryClassDeleted => 'Temporary class removed';
+
+  @override
+  String get teacherTemporaryClassBadge => 'Temporary';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmTitle =>
+      'Remove this temporary class?';
+
+  @override
+  String get teacherTemporaryClassDeleteConfirmBody =>
+      'This one-off schedule item will be removed.';
+
+  @override
+  String get teacherTemporaryClassNoStudents => 'No students available.';
+
+  @override
+  String get teacherTemporaryClassSubtitle =>
+      'Pick a student, date, and time for a one-hour class.';
+
+  @override
+  String get teacherScheduleModeAuto => 'Auto';
+
+  @override
+  String get teacherScheduleModeManual => 'Manual';
+
+  @override
+  String get teacherScheduleDidClassHappen => 'Was this class held?';
+
+  @override
+  String get teacherScheduleYes => 'Yes';
+
+  @override
+  String get teacherScheduleNo => 'No';
+
+  @override
+  String get teacherScheduleClassSkipped => 'Class skipped';
+
+  @override
   String get youClassScheduleSubtitle =>
       'Recurring class days and times from your teacher';
 
@@ -1727,6 +1781,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'No important words in this selection. Choose all words or adjust units / mistakes.';
 
   @override
+  String get bookQuizSectionsTitle => 'Sections';
+
+  @override
+  String get bookQuizSectionsHint =>
+      'Pick one or more sections per unit for the quiz.';
+
+  @override
+  String get bookQuizSectionsSelectAll => 'Select all';
+
+  @override
+  String get bookQuizSectionsClear => 'Clear';
+
+  @override
+  String get bookQuizPickAtLeastOneSection =>
+      'Select at least one section in each chosen unit.';
+
+  @override
   String get statsStudiedToday => '✅ Studied today!';
 
   @override
@@ -2190,6 +2261,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordBuilderCorrectNice => 'Nice!';
 
   @override
+  String get wordBuilderLevelCompleteTitle => 'Level complete!';
+
+  @override
+  String get wordBuilderLevelCompleteBody =>
+      'Great job. You found all the words in this stage.';
+
+  @override
   String get wordBuilderHintLetter =>
       'A letter was revealed in one of the words.';
 
@@ -2231,6 +2309,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wordBuilderSessionSfxSubtitle =>
       'Correct answers, mistakes, and level complete.';
+
+  @override
+  String get wordBuilderSessionWaterSfxSwitch => 'Water sounds';
+
+  @override
+  String get wordBuilderSessionWaterSfxSubtitle =>
+      'Pouring water, drowning tension, and tray effects when you make mistakes.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {
@@ -2385,7 +2470,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordsTabLabel => 'Words';
 
   @override
-  String get samplesTabLabel => 'Sample texts';
+  String get samplesTabLabel => 'Text';
 
   @override
   String unitSectionLine(int unit, int section) {
@@ -2457,4 +2542,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'Sample';
+
+  @override
+  String get sampleHighlightPickMainColor => 'Highlight color';
+
+  @override
+  String get sampleHighlightTapColor => 'Tap a color to highlight';
+
+  @override
+  String get sampleHighlightRemove => 'Remove highlight';
+
+  @override
+  String get sampleHighlightDefaultColor => 'Highlight';
 }

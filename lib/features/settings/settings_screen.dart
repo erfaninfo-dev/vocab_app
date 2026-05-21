@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_info/package_info_provider.dart';
-import '../../core/audio/splash_sound_controller.dart';
+// import '../../core/audio/splash_sound_controller.dart';
 import '../../core/network/resolve_update_url.dart';
 import '../../core/update/apk_download_dialog.dart';
 import '../../domain/app_update_provider.dart';
@@ -104,8 +104,6 @@ class SettingsScreen extends ConsumerWidget {
     final theme = ref.read(themeModeProvider.notifier);
     final notif = ref.watch(notifProvider);
     final notifN = ref.read(notifProvider.notifier);
-    final splashSound = ref.watch(splashSoundProvider);
-    final splashSoundN = ref.read(splashSoundProvider.notifier);
     final lang = ref.watch(langProvider);
     final langN = ref.read(langProvider.notifier);
     final scheme = Theme.of(context).colorScheme;
@@ -284,19 +282,18 @@ class SettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // ── Sound ─────────────────────────────────────────────────────────
-            _SectionLabel(label: l10n.sectionSound),
-            Card(
-              child: SwitchListTile(
-                secondary: const Icon(Icons.music_note_rounded),
-                title: Text(l10n.splashSoundTitle),
-                subtitle: Text(l10n.splashSoundSubtitle),
-                value: splashSound,
-                onChanged: (v) => splashSoundN.setEnabled(v),
-              ),
-            ),
-
-            const SizedBox(height: 16),
+            // Startup chime setting hidden for now.
+            // _SectionLabel(label: l10n.sectionSound),
+            // Card(
+            //   child: SwitchListTile(
+            //     secondary: const Icon(Icons.music_note_rounded),
+            //     title: Text(l10n.splashSoundTitle),
+            //     subtitle: Text(l10n.splashSoundSubtitle),
+            //     value: splashSound,
+            //     onChanged: (v) => splashSoundN.setEnabled(v),
+            //   ),
+            // ),
+            // const SizedBox(height: 16),
 
             // ── About ──────────────────────────────────────────────────────────
             _SectionLabel(label: l10n.sectionAbout),
