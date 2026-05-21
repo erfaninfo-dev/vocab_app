@@ -62,7 +62,7 @@ class WordBuilderLobbyScreen extends ConsumerWidget {
                   : null,
               actions: [
                 Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 6),
+                  padding: const EdgeInsetsDirectional.only(end: 10),
                   child: Center(
                     child: coinsAsync.when(
                       data: (c) => WordBuilderCoinsChip(
@@ -73,31 +73,6 @@ class WordBuilderLobbyScreen extends ConsumerWidget {
                       loading: () =>
                           WordBuilderCoinsChipLoading(scheme: scheme),
                       error: (_, __) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: Center(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        minimumSize: const Size(0, 44),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => _confirmReset(context, ref, l10n),
-                      child: Text(
-                        l10n.wordBuilderCampaignReset,
-                        style: GoogleFonts.fredoka(
-                          color: const Color(0xFFB71C1C),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          height: 1.1,
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -162,6 +137,12 @@ class WordBuilderLobbyScreen extends ConsumerWidget {
                         onTap: () => context.push(
                           '/word-builder/campaign?difficulty=advanced',
                         ),
+                      ),
+                      const SizedBox(height: 22),
+                      _ResetProgressCard(
+                        title: l10n.wordBuilderCampaignReset,
+                        subtitle: l10n.wordBuilderCampaignResetConfirm,
+                        onTap: () => _confirmReset(context, ref, l10n),
                       ),
                     ],
                   ),
@@ -312,6 +293,115 @@ class _TierLaunchCard extends StatelessWidget {
                       color: Color(0xFF5D4037),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResetProgressCard extends StatelessWidget {
+  const _ResetProgressCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFF3E0), Color(0xFFFFCCBC)],
+            ),
+            border: Border.all(
+              color: const Color(0xFFFF7043).withValues(alpha: 0.45),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFF7043).withValues(alpha: 0.22),
+                blurRadius: 16,
+                spreadRadius: 1,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFAB91), Color(0xFFFF7043)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF7043).withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(11),
+                    child: Icon(
+                      Icons.restart_alt_rounded,
+                      size: 30,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFBF360C),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13,
+                          height: 1.25,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF6D4C41),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFBF360C),
+                  size: 28,
                 ),
               ],
             ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/section_info.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../quiz/widgets/book_vocab_quiz_fab.dart';
 
 class SectionsScreen extends ConsumerWidget {
   const SectionsScreen({super.key, required this.bookId, required this.unit});
@@ -20,7 +21,17 @@ class SectionsScreen extends ConsumerWidget {
       apiSectionsProvider((bookId: bookId, unit: unit)),
     );
 
+    final showQuizFab = sectionsValue.maybeWhen(
+      data: (sections) => sections.isNotEmpty,
+      orElse: () => false,
+    );
+
     return Scaffold(
+      floatingActionButtonLocation:
+          BookVocabQuizFab.floatingActionButtonLocation,
+      floatingActionButton: showQuizFab
+          ? BookVocabQuizFab(bookId: bookId, unit: unit)
+          : null,
       appBar: AppBar(
         title: Text(l10n.unitLabel(unit)),
         leading: IconButton(
@@ -62,6 +73,7 @@ class SectionsScreen extends ConsumerWidget {
               sections: sections,
               bookId: bookId,
               unit: unit,
+              showQuizFab: showQuizFab,
             );
           },
         ),
@@ -76,19 +88,26 @@ class _SectionList extends StatelessWidget {
     required this.sections,
     required this.bookId,
     required this.unit,
+    required this.showQuizFab,
   });
 
   final AppLocalizations l10n;
   final List<SectionInfo> sections;
   final int bookId;
   final int unit;
+  final bool showQuizFab;
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          showQuizFab ? BookVocabQuizFab.scrollBottomPadding(context) : 18,
+        ),
         itemCount: sections.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {

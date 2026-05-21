@@ -21,6 +21,7 @@ import 'widgets/circular_letter_tray.dart';
 import 'widgets/magic_background.dart';
 import 'widgets/shake_wrapper.dart';
 import 'widgets/word_builder_coins_chip.dart';
+import 'widgets/word_builder_level_complete_dialog.dart';
 import 'widgets/word_builder_meaning_banner.dart';
 import 'widgets/word_builder_session_audio_sheet.dart';
 import 'widgets/word_builder_tray_circle_button.dart';
@@ -38,46 +39,70 @@ class WordBuilderSessionScreen extends ConsumerStatefulWidget {
 
 class _WordBuilderSessionScreenState
     extends ConsumerState<WordBuilderSessionScreen> {
-  bool _levelAdvanceInFlight = false;
+  bool _levelCompleteDialogOpen = false;
+
+  Future<void> _finishCampaignStageAndExit() async {
+    final key = widget.bookKey;
+    final camp = decodeWordBuilderCampaignSessionKey(key);
+    if (camp != null) {
+      final repo = ref.read(wordBuilderCampaignProgressRepositoryProvider);
+      final snap = await repo.load();
+      final nextProg = snap.afterClearingStage(
+        camp.difficulty,
+        camp.stage1Based,
+      );
+      await repo.save(nextProg);
+      ref.invalidate(wordBuilderCampaignProgressProvider);
+      ref.invalidate(wordBuilderGameProvider(key));
+    }
+    if (mounted) context.pop();
+  }
 
   Future<void> _advanceAfterLevelComplete() async {
-    if (_levelAdvanceInFlight || !mounted) return;
-    _levelAdvanceInFlight = true;
+    final key = widget.bookKey;
+    final camp = decodeWordBuilderCampaignSessionKey(key);
+    if (camp != null) {
+      await _finishCampaignStageAndExit();
+      return;
+    }
+    await ref.read(wordBuilderGameProvider(key).notifier).goToNextLevel();
+  }
+
+  Future<void> _showLevelCompleteDialog() async {
+    if (_levelCompleteDialogOpen || !mounted) return;
+    _levelCompleteDialogOpen = true;
     try {
       final key = widget.bookKey;
-      await Future<void>.delayed(const Duration(milliseconds: 320));
+      await Future<void>.delayed(const Duration(milliseconds: 420));
       if (!mounted) return;
       final after = ref.read(wordBuilderGameProvider(key)).valueOrNull;
       if (after == null || !after.levelComplete) return;
 
-      final camp = decodeWordBuilderCampaignSessionKey(key);
-      if (camp != null) {
-        final repo = ref.read(wordBuilderCampaignProgressRepositoryProvider);
-        final snap = await repo.load();
-        final nextProg = snap.afterClearingStage(
-          camp.difficulty,
-          camp.stage1Based,
-        );
-        await repo.save(nextProg);
-        ref.invalidate(wordBuilderCampaignProgressProvider);
-        ref.invalidate(wordBuilderGameProvider(key));
-        if (!mounted) return;
-        context.pop();
-      } else {
-        await ref.read(wordBuilderGameProvider(key).notifier).goToNextLevel();
+      final action = await WordBuilderLevelCompleteDialog.show(context);
+      if (!mounted || action == null) return;
+      switch (action) {
+        case WordBuilderLevelCompleteAction.next:
+          await _advanceAfterLevelComplete();
+        case WordBuilderLevelCompleteAction.exit:
+          await _finishCampaignStageAndExit();
       }
     } finally {
-      _levelAdvanceInFlight = false;
+      _levelCompleteDialogOpen = false;
     }
+  }
+
+  Future<void> _maybeShowLevelCompleteDialog() async {
+    if (!mounted) return;
+    final after = ref.read(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
+    if (after == null || !after.levelComplete) return;
+    await _showLevelCompleteDialog();
   }
 
   Future<void> _onSolvedWordTapped(WordBuilderTargetWord target) async {
     if (!mounted) return;
     await WordInfoSheet.show(context, target, bookKey: widget.bookKey);
     if (!mounted) return;
-    final after = ref.read(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
-    if (after == null || !after.levelComplete) return;
-    await _advanceAfterLevelComplete();
+    await _maybeShowLevelCompleteDialog();
   }
 
   @override
@@ -95,7 +120,7 @@ class _WordBuilderSessionScreenState
       if (data == null) return;
       final prevData = prev?.valueOrNull;
       if (data.levelComplete && prevData?.levelComplete != true) {
-        unawaited(_advanceAfterLevelComplete());
+        unawaited(_showLevelCompleteDialog());
       }
       final msg = data.feedbackMessage;
       if (msg != null && msg != prevData?.feedbackMessage) {

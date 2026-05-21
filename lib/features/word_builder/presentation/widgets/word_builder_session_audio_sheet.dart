@@ -19,8 +19,11 @@ class WordBuilderSessionAudioSheet {
           builder: (context, ref2, _) {
             final bgmOn = ref2.watch(wordBuilderGameBgmEnabledProvider);
             final sfxOn = ref2.watch(wordBuilderGameSfxEnabledProvider);
+            final waterOn = ref2.watch(wordBuilderGameWaterSfxEnabledProvider);
             final bgmN = ref2.read(wordBuilderGameBgmEnabledProvider.notifier);
             final sfxN = ref2.read(wordBuilderGameSfxEnabledProvider.notifier);
+            final waterN =
+                ref2.read(wordBuilderGameWaterSfxEnabledProvider.notifier);
             return Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
               child: DecoratedBox(
@@ -113,6 +116,16 @@ class WordBuilderSessionAudioSheet {
                         subtitle: l10n.wordBuilderSessionSfxSubtitle,
                         value: sfxOn,
                         onChanged: (v) => sfxN.setEnabled(v),
+                        scheme: scheme,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 12),
+                      _SoundTile(
+                        icon: Icons.water_drop_rounded,
+                        title: l10n.wordBuilderSessionWaterSfxSwitch,
+                        subtitle: l10n.wordBuilderSessionWaterSfxSubtitle,
+                        value: waterOn,
+                        onChanged: (v) => waterN.setEnabled(v),
                         scheme: scheme,
                         isDark: isDark,
                       ),

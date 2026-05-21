@@ -7,7 +7,9 @@ import '../data/models/book_model.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
 import '../data/models/class_schedule_slot.dart';
+import '../data/models/schedule_attendance.dart';
 import '../data/models/teacher_upcoming_slot.dart';
+import '../data/models/temporary_class_schedule_slot.dart';
 import '../features/teacher/teacher_week_upcoming.dart';
 import '../data/models/grammar_result.dart';
 import '../data/models/grammar_result_detail.dart';
@@ -71,11 +73,9 @@ typedef BookUnitSamples = ({int bookId, int unit, int? section});
 final apiUnitSamplesProvider =
     FutureProvider.family<List<UnitSample>, BookUnitSamples>((ref, arg) {
       ref.watch(apiRemoteDataEpochProvider);
-      return ref.read(apiServiceProvider).fetchUnitSamples(
-            arg.bookId,
-            arg.unit,
-            section: arg.section,
-          );
+      return ref
+          .read(apiServiceProvider)
+          .fetchUnitSamples(arg.bookId, arg.unit, section: arg.section);
     });
 
 // ─── Words ────────────────────────────────────────────────────────────────────
@@ -363,7 +363,20 @@ final teacherStudentScheduleProvider =
           .fetchTeacherStudentSchedule(studentId);
     });
 
-/// Teacher dashboard: upcoming weekly-slot occurrences this ISO week (Mon–Sun local),
+/// Teacher / admin: one-off temporary class slots created from Schedule tab.
+final teacherTemporaryScheduleProvider =
+    FutureProvider<List<TemporaryClassScheduleSlot>>((ref) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchTeacherTemporarySchedule();
+    });
+
+String _hmFromDateTime(DateTime dt) {
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
+
+/// Teacher dashboard: upcoming weekly and one-off class slots in the next 7 days,
 /// excluding times already covered by a logged class session for that student.
 final teacherWeekUpcomingProvider =
     FutureProvider<List<TeacherUpcomingSlotItem>>((ref) async {
@@ -378,11 +391,18 @@ final teacherWeekUpcomingProvider =
       if (students.isEmpty) return [];
 
       final nowLocal = DateTime.now();
+      final temporarySlots = await api
+          .fetchTeacherTemporarySchedule()
+          .catchError((_) => <TemporaryClassScheduleSlot>[]);
+      final sessionsByStudent = <int, List<ClassSessionEntry>>{};
+      final slotsByStudent = <int, List<ClassScheduleSlot>>{};
       final batches = await Future.wait(
         students.map((stu) async {
           try {
             final slots = await api.fetchTeacherStudentSchedule(stu.id);
             final info = await api.fetchTeacherStudentSessions(stu.id);
+            slotsByStudent[stu.id] = slots;
+            sessionsByStudent[stu.id] = info.sessions;
             return computeTeacherWeekUpcomingForStudent(
               nowLocal: nowLocal,
               student: stu,
@@ -395,8 +415,168 @@ final teacherWeekUpcomingProvider =
         }),
       );
 
-      final aggregated = batches.expand((e) => e).toList()
-        ..sort((a, b) => a.startLocal.compareTo(b.startLocal));
+      final horizonExclusive = nowLocal.add(const Duration(days: 7));
+      final dueHorizonStart = nowLocal.subtract(const Duration(hours: 6));
+      final dueOccurrences = <ScheduleAttendanceDueOccurrence>[];
+
+      for (final stu in students) {
+        final sessions = sessionsByStudent[stu.id] ?? const [];
+        for (final slot
+            in slotsByStudent[stu.id] ?? const <ClassScheduleSlot>[]) {
+          final occurrences = weeklySlotOccurrencesBetween(
+            slot: slot,
+            fromLocal: dueHorizonStart,
+            toLocal: nowLocal,
+          );
+          for (final occ in occurrences) {
+            if (slotOccurrenceHasRecordedSession(
+              slot: slot,
+              occurrenceStartLocal: occ,
+              sessions: sessions,
+            )) {
+              continue;
+            }
+            dueOccurrences.add(
+              ScheduleAttendanceDueOccurrence(
+                studentId: stu.id,
+                sourceType: 'weekly',
+                sourceId: slot.id,
+                startAt: occ,
+                endAt: slotOccurrenceEndLocal(slot, occ),
+                label: slot.label,
+              ),
+            );
+          }
+        }
+      }
+
+      for (final t in temporarySlots) {
+        if (t.startLocal.isAfter(nowLocal) ||
+            t.startLocal.isBefore(dueHorizonStart)) {
+          continue;
+        }
+        final synthetic = ClassScheduleSlot(
+          id: t.id,
+          weekday: t.startLocal.weekday,
+          startTime: _hmFromDateTime(t.startLocal),
+          endTime: _hmFromDateTime(t.endLocal),
+          label: t.label,
+        );
+        if (slotOccurrenceHasRecordedSession(
+          slot: synthetic,
+          occurrenceStartLocal: t.startLocal,
+          sessions: sessionsByStudent[t.studentId] ?? const [],
+        )) {
+          continue;
+        }
+        dueOccurrences.add(
+          ScheduleAttendanceDueOccurrence(
+            studentId: t.studentId,
+            sourceType: 'temporary',
+            sourceId: t.id,
+            startAt: t.startLocal,
+            endAt: t.endLocal,
+            label: t.label,
+          ),
+        );
+      }
+
+      var attendanceState = const ScheduleAttendanceState();
+      try {
+        attendanceState = await api.processTeacherScheduleAttendance(
+          occurrences: dueOccurrences,
+        );
+        if (dueOccurrences.isNotEmpty) {
+          for (final occ in dueOccurrences) {
+            ref.invalidate(teacherStudentSessionsProvider(occ.studentId));
+          }
+          ref.invalidate(teacherStudentsProvider);
+        }
+      } catch (_) {
+        if (dueOccurrences.isNotEmpty) rethrow;
+        attendanceState = const ScheduleAttendanceState();
+      }
+
+      final temporaryItems = <TeacherUpcomingSlotItem>[];
+      for (final t in temporarySlots) {
+        if (!t.startLocal.isAfter(nowLocal)) continue;
+        if (!t.startLocal.isBefore(horizonExclusive)) continue;
+        final synthetic = ClassScheduleSlot(
+          id: t.id,
+          weekday: t.startLocal.weekday,
+          startTime: _hmFromDateTime(t.startLocal),
+          endTime: _hmFromDateTime(t.endLocal),
+          label: t.label,
+        );
+        if (slotOccurrenceHasRecordedSession(
+          slot: synthetic,
+          occurrenceStartLocal: t.startLocal,
+          sessions: sessionsByStudent[t.studentId] ?? const [],
+        )) {
+          continue;
+        }
+        temporaryItems.add(
+          TeacherUpcomingSlotItem(
+            studentId: t.studentId,
+            studentDisplayLabel: t.studentDisplayLabel,
+            studentEmail: t.studentEmail,
+            avatarId: t.avatarId,
+            startLocal: t.startLocal,
+            slot: synthetic,
+            isTemporary: true,
+            temporarySlotId: t.id,
+            temporaryEndLocal: t.endLocal,
+            attendanceMode: attendanceState.modeFor(t.studentId),
+          ),
+        );
+      }
+
+      final upcomingWeeklyItems = batches
+          .expand((e) => e)
+          .map(
+            (item) => TeacherUpcomingSlotItem(
+              studentId: item.studentId,
+              studentDisplayLabel: item.studentDisplayLabel,
+              studentEmail: item.studentEmail,
+              avatarId: item.avatarId,
+              startLocal: item.startLocal,
+              slot: item.slot,
+              isTemporary: item.isTemporary,
+              temporarySlotId: item.temporarySlotId,
+              attendanceMode: attendanceState.modeFor(item.studentId),
+            ),
+          );
+
+      final pendingItems = attendanceState.pending.map((p) {
+        final end = p.endLocal ?? p.startLocal.add(const Duration(hours: 1));
+        final synthetic = ClassScheduleSlot(
+          id: p.sourceId,
+          weekday: p.startLocal.weekday,
+          startTime: _hmFromDateTime(p.startLocal),
+          endTime: _hmFromDateTime(end),
+          label: p.label,
+        );
+        return TeacherUpcomingSlotItem(
+          studentId: p.studentId,
+          studentDisplayLabel: p.studentDisplayLabel,
+          studentEmail: p.studentEmail,
+          avatarId: p.avatarId,
+          startLocal: p.startLocal,
+          slot: synthetic,
+          isTemporary: p.sourceType == 'temporary',
+          temporarySlotId: p.sourceType == 'temporary' ? p.sourceId : null,
+          temporaryEndLocal: p.sourceType == 'temporary' ? p.endLocal : null,
+          attendanceMode: attendanceState.modeFor(p.studentId),
+          isManualPending: true,
+          attendanceOccurrenceId: p.id,
+        );
+      });
+
+      final aggregated = [
+        ...pendingItems,
+        ...upcomingWeeklyItems,
+        ...temporaryItems,
+      ]..sort((a, b) => a.startLocal.compareTo(b.startLocal));
       return aggregated;
     });
 

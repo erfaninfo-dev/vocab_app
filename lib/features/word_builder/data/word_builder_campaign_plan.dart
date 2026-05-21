@@ -60,12 +60,14 @@ List<VocabEntry> _unusedLemmaPool(
   int minLen = 2,
   int maxLen = 7,
 }) {
-  return _dedupePool(raw.where((e) {
-    final h = wordBuilderGameLemma(e);
-    if (h == null || h.length < minLen || h.length > maxLen) return false;
-    final k = _normalizedHead(e);
-    return k != null && !usedHeads.contains(k);
-  }));
+  return _dedupePool(
+    raw.where((e) {
+      final h = wordBuilderGameLemma(e);
+      if (h == null || h.length < minLen || h.length > maxLen) return false;
+      final k = _normalizedHead(e);
+      return k != null && !usedHeads.contains(k);
+    }),
+  );
 }
 
 List<List<VocabEntry>> _buildTierStages({
@@ -75,6 +77,7 @@ List<List<VocabEntry>> _buildTierStages({
   required List<VocabEntry> fallbackCandidates,
   required Set<String> usedHeads,
   required Random random,
+
   /// When true (Advanced), never mix primary + fallback in one stage — General only
   /// if the IELTS pool cannot supply that stage.
   bool strictTrackFallback = false,
@@ -204,7 +207,12 @@ class WordBuilderCampaignPlan {
       random: random,
     );
 
-    final interPrimary = _unusedLemmaPool(general, usedHeads, minLen: 3, maxLen: 4);
+    final interPrimary = _unusedLemmaPool(
+      general,
+      usedHeads,
+      minLen: 3,
+      maxLen: 4,
+    );
     final interFallback = [
       ..._unusedLemmaPool(general, usedHeads),
       ..._unusedLemmaPool(ielts, usedHeads),

@@ -9,15 +9,14 @@ Future<void> configureAppAudioSession() async {
   final session = await AudioSession.instance;
   await session.configure(
     const AudioSessionConfiguration(
-      avAudioSessionCategory: AVAudioSessionCategory.ambient,
+      avAudioSessionCategory: AVAudioSessionCategory.playback,
       avAudioSessionCategoryOptions:
           AVAudioSessionCategoryOptions.mixWithOthers,
       androidAudioAttributes: AndroidAudioAttributes(
         contentType: AndroidAudioContentType.music,
         usage: AndroidAudioUsage.media,
       ),
-      androidAudioFocusGainType:
-          AndroidAudioFocusGainType.gainTransientMayDuck,
+      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       androidWillPauseWhenDucked: false,
     ),
   );

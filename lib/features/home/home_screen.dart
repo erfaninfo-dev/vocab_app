@@ -14,7 +14,6 @@ import 'home_book_card.dart';
 import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
 import 'series_books_screen.dart';
-import 'widgets/home_release_notes_banner.dart';
 
 const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
 
@@ -133,13 +132,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final session = ref.watch(authProvider).valueOrNull;
     final user = session?.user;
-    final showMessageFab = user != null &&
+    final showMessageFab =
+        user != null &&
         (user.isTeacher || user.isAdmin || user.teacherUserId != null);
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton:
-          showMessageFab ? const _HomeTeacherOrStudentFab() : null,
+      floatingActionButton: showMessageFab
+          ? const _HomeTeacherOrStudentFab()
+          : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -160,7 +161,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                 child: const _HomeHeader(),
               ),
-              const HomeReleaseNotesBanner(),
               _HomeTrackSegment(pageController: _pageController),
               Expanded(
                 child: PageView(
@@ -360,24 +360,66 @@ class _HomeHeader extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            track.isStudentCatalog
-                ? l10n.studentBooksTitle
-                : l10n.chooseYourBook,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            l10n.booksAvailable(bookCount),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.isStudentCatalog
+                          ? l10n.studentBooksTitle
+                          : l10n.chooseYourBook,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      l10n.booksAvailable(bookCount),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              const _HomeHeaderAppIcon(),
+            ],
           ),
           const SizedBox(height: 16),
           const _SearchField(),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeHeaderAppIcon extends StatelessWidget {
+  const _HomeHeaderAppIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Image.asset(
+          'assets/app_icon.png',
+          width: 56,
+          height: 56,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -896,9 +938,7 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     if (session == null) return const SizedBox.shrink();
     final u = session.user;
     if (u.isTeacher || u.isAdmin) {
-      return _HomeTeacherStudentsFab(
-        onPressed: () => context.push('/teacher'),
-      );
+      return _HomeTeacherStudentsFab(onPressed: () => context.push('/teacher'));
     }
     final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
     final fabCount = fabUnread.when(

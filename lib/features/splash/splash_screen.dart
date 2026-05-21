@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/audio/splash_sound_controller.dart';
+// import '../../core/audio/splash_sound_controller.dart';
 import '../../core/onboarding/language_selection_prefs.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
 import '../../domain/api_providers.dart';
@@ -31,8 +31,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_prefetchBooksList());
-      // Fire-and-forget: chime should never block boot.
-      unawaited(ref.read(splashSoundProvider.notifier).playIfEnabled());
+      // Startup chime disabled for now.
+      // unawaited(ref.read(splashSoundProvider.notifier).playIfEnabled());
     });
     unawaited(_goNext());
   }

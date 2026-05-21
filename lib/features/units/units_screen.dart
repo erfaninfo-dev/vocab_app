@@ -6,6 +6,7 @@ import '../../data/models/unit_model.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../quiz/widgets/book_vocab_quiz_fab.dart';
 
 class UnitsScreen extends ConsumerStatefulWidget {
   const UnitsScreen({super.key, required this.bookId});
@@ -55,8 +56,17 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final unitsValue = ref.watch(apiUnitsProvider(widget.bookId));
     final scheme = Theme.of(context).colorScheme;
+    final showQuizFab = unitsValue.maybeWhen(
+      data: (units) => units.isNotEmpty,
+      orElse: () => false,
+    );
 
     return Scaffold(
+      floatingActionButtonLocation:
+          BookVocabQuizFab.floatingActionButtonLocation,
+      floatingActionButton: showQuizFab
+          ? BookVocabQuizFab(bookId: widget.bookId)
+          : null,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -70,11 +80,6 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
         ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.quiz_rounded),
-            tooltip: l10n.bookQuiz,
-            onPressed: () => context.push('/books/${widget.bookId}/vocab-quiz'),
-          ),
           IconButton(
             icon: const Icon(Icons.bookmarks_rounded),
             tooltip: l10n.favorites,
@@ -165,7 +170,14 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        showQuizFab
+                            ? BookVocabQuizFab.scrollBottomPadding(context)
+                            : 20,
+                      ),
                       sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,

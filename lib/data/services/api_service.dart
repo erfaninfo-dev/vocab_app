@@ -20,6 +20,8 @@ import '../models/vocab_entry.dart';
 import '../models/vocab_quiz_result.dart';
 import '../models/teacher_message.dart';
 import '../models/class_schedule_slot.dart';
+import '../models/schedule_attendance.dart';
+import '../models/temporary_class_schedule_slot.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
@@ -134,9 +136,9 @@ class ApiService {
     if (installedVersion != null && installedVersion > 0) {
       query['installed_version'] = '$installedVersion';
     }
-    final uri = Uri.parse('$baseUrl/app_update.php').replace(
-      queryParameters: query.isEmpty ? null : query,
-    );
+    final uri = Uri.parse(
+      '$baseUrl/app_update.php',
+    ).replace(queryParameters: query.isEmpty ? null : query);
     try {
       final response = await http.get(uri, headers: _mergeHeaders());
       if (response.statusCode != 200) return null;
@@ -1262,6 +1264,165 @@ class ApiService {
     return _parseScheduleSlots(map);
   }
 
+  List<TemporaryClassScheduleSlot> _parseTemporaryScheduleSlots(
+    Map<String, dynamic> map,
+  ) {
+    final raw = map['slots'] as List<dynamic>? ?? const [];
+    return raw
+        .map(
+          (e) => TemporaryClassScheduleSlot.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// GET /teacher_temporary_schedule.php — one-off classes for the schedule tab.
+  Future<List<TemporaryClassScheduleSlot>>
+  fetchTeacherTemporarySchedule() async {
+    final uri = Uri.parse('$baseUrl/teacher_temporary_schedule.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTemporaryScheduleSlots(map);
+  }
+
+  /// Adds a one-off temporary class. [startAt] is sent as UTC and displayed local.
+  Future<List<TemporaryClassScheduleSlot>> addTeacherTemporaryScheduleSlot({
+    required int studentId,
+    required DateTime startAt,
+    String? label,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_temporary_schedule.php');
+    final body = <String, dynamic>{
+      'student_id': studentId,
+      'add_temporary_slot': true,
+      'start_at': startAt.toUtc().toIso8601String(),
+      'duration_minutes': 60,
+    };
+    if (label != null && label.trim().isNotEmpty) {
+      body['label'] = label.trim();
+    }
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTemporaryScheduleSlots(map);
+  }
+
+  Future<List<TemporaryClassScheduleSlot>> updateTeacherTemporaryScheduleSlot({
+    required int slotId,
+    required int studentId,
+    required DateTime startAt,
+    String? label,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_temporary_schedule.php');
+    final body = <String, dynamic>{
+      'slot_id': slotId,
+      'student_id': studentId,
+      'update_temporary_slot': true,
+      'start_at': startAt.toUtc().toIso8601String(),
+      'duration_minutes': 60,
+      'label': label?.trim(),
+    };
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTemporaryScheduleSlots(map);
+  }
+
+  Future<List<TemporaryClassScheduleSlot>> deleteTeacherTemporaryScheduleSlot({
+    required int slotId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_temporary_schedule.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'delete_temporary_slot_id': slotId}),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTemporaryScheduleSlots(map);
+  }
+
+  ScheduleAttendanceState _parseScheduleAttendanceState(
+    Map<String, dynamic> map,
+  ) {
+    return ScheduleAttendanceState.fromJson(map);
+  }
+
+  Future<ScheduleAttendanceState> processTeacherScheduleAttendance({
+    required List<ScheduleAttendanceDueOccurrence> occurrences,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_schedule_attendance.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'process_due': true,
+        'occurrences': occurrences.map((e) => e.toJson()).toList(),
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleAttendanceState(map);
+  }
+
+  Future<ScheduleAttendanceState> setTeacherScheduleAttendanceMode({
+    required int studentId,
+    required ScheduleAttendanceMode mode,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_schedule_attendance.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'set_mode': true,
+        'student_id': studentId,
+        'mode': mode.apiValue,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleAttendanceState(map);
+  }
+
+  Future<ScheduleAttendanceState> resolveTeacherSchedulePendingOccurrence({
+    required int occurrenceId,
+    required bool didHappen,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_schedule_attendance.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'resolve_occurrence': true,
+        'occurrence_id': occurrenceId,
+        'did_happen': didHappen,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseScheduleAttendanceState(map);
+  }
+
   /// Legacy POST /teacher_student_sessions.php — prefer [addTeacherClassSession] / [updateTeacherStudentNote].
   Future<TeacherSessionInfo> setTeacherStudentSessions({
     required int studentId,
@@ -1490,9 +1651,7 @@ class ApiService {
     }
 
     if (code == 401) {
-      throw UnauthorizedException(
-        map?['error']?.toString() ?? 'Unauthorized',
-      );
+      throw UnauthorizedException(map?['error']?.toString() ?? 'Unauthorized');
     }
 
     final errorCode = map?['error_code']?.toString().trim();

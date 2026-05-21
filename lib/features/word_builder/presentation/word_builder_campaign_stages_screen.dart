@@ -11,16 +11,63 @@ import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
 import 'widgets/magic_background.dart';
 
-class WordBuilderCampaignStagesScreen extends ConsumerWidget {
+class WordBuilderCampaignStagesScreen extends ConsumerStatefulWidget {
   const WordBuilderCampaignStagesScreen({super.key, required this.difficulty});
 
   final WordBuilderDifficulty difficulty;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WordBuilderCampaignStagesScreen> createState() =>
+      _WordBuilderCampaignStagesScreenState();
+}
+
+class _WordBuilderCampaignStagesScreenState
+    extends ConsumerState<WordBuilderCampaignStagesScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _stageKeys = <int, GlobalKey>{};
+  String? _lastAutoScrollKey;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  int _nextStageFor(WordBuilderCampaignProgressSnapshot progress) {
+    final cleared = progress.clearedFor(widget.difficulty);
+    return (cleared + 1).clamp(1, kWordBuilderStagesPerTier);
+  }
+
+  void _scheduleScrollToStage({
+    required WordBuilderCampaignProgressSnapshot progress,
+  }) {
+    final targetStage = _nextStageFor(progress);
+    final key = '${widget.difficulty.name}:$targetStage';
+    if (_lastAutoScrollKey == key) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final context = _stageKeys[targetStage]?.currentContext;
+      if (context == null) return;
+      _lastAutoScrollKey = key;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.35,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  GlobalKey _stageKeyFor(int stage) =>
+      _stageKeys.putIfAbsent(stage, GlobalKey.new);
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final difficulty = widget.difficulty;
     final planAsync = ref.watch(wordBuilderCampaignPlanProvider);
     final progAsync = ref.watch(wordBuilderCampaignProgressProvider);
 
@@ -58,9 +105,7 @@ class WordBuilderCampaignStagesScreen extends ConsumerWidget {
             ),
             body: planAsync.when(
               loading: () => const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFFB300),
-                ),
+                child: CircularProgressIndicator(color: Color(0xFFFFB300)),
               ),
               error: (e, _) => Center(
                 child: Padding(
@@ -90,9 +135,7 @@ class WordBuilderCampaignStagesScreen extends ConsumerWidget {
               ),
               data: (plan) => progAsync.when(
                 loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFFFB300),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFFFFB300)),
                 ),
                 error: (_, __) => Center(
                   child: Text(
@@ -116,47 +159,56 @@ class WordBuilderCampaignStagesScreen extends ConsumerWidget {
                           final cell =
                               (c.maxWidth - spacing * (cols - 1)) / cols;
                           final side = cell.clamp(52.0, 72.0);
+                          _scheduleScrollToStage(progress: progress);
                           return SingleChildScrollView(
+                            controller: _scrollController,
                             child: Wrap(
                               spacing: spacing,
                               runSpacing: runSpacing,
                               alignment: WrapAlignment.center,
                               children: [
-                                for (var i = 1;
-                                    i <= kWordBuilderStagesPerTier;
-                                    i++)
-                                  _StageCell(
-                                    side: side,
-                                    index: i,
-                                    difficulty: difficulty,
-                                    progress: progress,
-                                    stagePoolEmpty: i <= stages.length &&
-                                        stages[i - 1].isEmpty,
-                                    l10n: l10n,
-                                    onLockedTap: () {
-                                      ScaffoldMessenger.of(context)
-                                          .hideCurrentSnackBar();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            l10n
-                                                .wordBuilderCampaignStageLockedSnackbar,
+                                for (
+                                  var i = 1;
+                                  i <= kWordBuilderStagesPerTier;
+                                  i++
+                                )
+                                  KeyedSubtree(
+                                    key: _stageKeyFor(i),
+                                    child: _StageCell(
+                                      side: side,
+                                      index: i,
+                                      difficulty: difficulty,
+                                      progress: progress,
+                                      stagePoolEmpty:
+                                          i <= stages.length &&
+                                          stages[i - 1].isEmpty,
+                                      l10n: l10n,
+                                      onLockedTap: () {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).hideCurrentSnackBar();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              l10n.wordBuilderCampaignStageLockedSnackbar,
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
                                           ),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    },
-                                    onOpenTap: () {
-                                      final k =
-                                          encodeWordBuilderCampaignSessionKey(
-                                        difficulty,
-                                        i,
-                                      );
-                                      context.push(
-                                        '/word-builder/session?bookId=$k',
-                                      );
-                                    },
+                                        );
+                                      },
+                                      onOpenTap: () {
+                                        final k =
+                                            encodeWordBuilderCampaignSessionKey(
+                                              difficulty,
+                                              i,
+                                            );
+                                        context.push(
+                                          '/word-builder/session?bookId=$k',
+                                        );
+                                      },
+                                    ),
                                   ),
                               ],
                             ),
@@ -247,10 +299,7 @@ class _StageCell extends StatelessWidget {
               height: side,
               child: _GlossyTile(
                 borderRadius: 18,
-                colors: const [
-                  Color(0xFFB0BEC5),
-                  Color(0xFF78909C),
-                ],
+                colors: const [Color(0xFFB0BEC5), Color(0xFF78909C)],
                 glow: Colors.blueGrey,
                 child: Icon(
                   Icons.lock_rounded,
@@ -268,14 +317,14 @@ class _StageCell extends StatelessWidget {
     final colors = completed
         ? const [Color(0xFFFFD54F), Color(0xFFFFB300)]
         : isCurrent
-            ? const [Color(0xFF81C784), Color(0xFF2E7D32)]
-            : const [Color(0xFFFFECB3), Color(0xFFFFB300)];
+        ? const [Color(0xFF81C784), Color(0xFF2E7D32)]
+        : const [Color(0xFFFFECB3), Color(0xFFFFB300)];
 
     final glow = completed
         ? Colors.orange
         : isCurrent
-            ? const Color(0xFF43A047)
-            : Colors.amber;
+        ? const Color(0xFF43A047)
+        : Colors.amber;
 
     return Semantics(
       button: true,

@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/audio/app_audio_session.dart';
+import 'word_builder_tray_water_audio.dart';
 
 final wordBuilderBgmPlayerProvider = Provider<WordBuilderBgmPlayer>((ref) {
   final player = WordBuilderBgmPlayer();
@@ -25,9 +26,16 @@ final wordBuilderGameBgmEnabledProvider =
   WordBuilderGameBgmNotifier.new,
 );
 
+final wordBuilderGameWaterSfxEnabledProvider =
+    NotifierProvider<WordBuilderGameWaterSfxNotifier, bool>(
+  WordBuilderGameWaterSfxNotifier.new,
+);
+
 final wordBuilderSessionAudioLifecycleProvider =
     Provider.autoDispose.family<int, int>((ref, bookKey) {
   final bgm = ref.read(wordBuilderBgmPlayerProvider);
+
+  ref.watch(wordBuilderTrayWaterAudioProvider(bookKey));
 
   ref.listen<bool>(
     wordBuilderGameBgmEnabledProvider,
@@ -36,9 +44,22 @@ final wordBuilderSessionAudioLifecycleProvider =
     },
   );
 
+  ref.listen<bool>(
+    wordBuilderGameWaterSfxEnabledProvider,
+    (prev, next) {
+      if (!next) {
+        unawaited(
+          ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll(),
+        );
+      }
+    },
+  );
+
+  unawaited(configureAppAudioSession());
   unawaited(bgm.onEnter(ref));
 
   ref.onDispose(() {
+    unawaited(ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll());
     unawaited(bgm.onLeave());
   });
 
@@ -47,6 +68,33 @@ final wordBuilderSessionAudioLifecycleProvider =
 
 class WordBuilderGameSfxNotifier extends Notifier<bool> {
   static const _key = 'word_builder_session_sfx_v1';
+
+  @override
+  bool build() {
+    Future.microtask(_load);
+    return true;
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = prefs.getBool(_key) ?? true;
+      if (v != state) state = v;
+    } catch (_) {}
+  }
+
+  Future<void> setEnabled(bool value) async {
+    if (state == value) return;
+    state = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_key, value);
+    } catch (_) {}
+  }
+}
+
+class WordBuilderGameWaterSfxNotifier extends Notifier<bool> {
+  static const _key = 'word_builder_session_water_sfx_v1';
 
   @override
   bool build() {
@@ -143,12 +191,14 @@ class WordBuilderBgmPlayer {
       await player.setLoopMode(LoopMode.one);
       await player.setVolume(_volume);
       if (player.playing) return;
-      await player.setAudioSource(AudioSource.asset(_asset));
+      await player.setAudioSource(
+        AudioSource.asset(_asset),
+        preload: true,
+      );
+      await player.seek(Duration.zero);
       await player.play();
     } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('WordBuilderBgmPlayer: $e\n$st');
-      }
+      debugPrint('WordBuilderBgmPlayer: $e\n$st');
     }
   }
 

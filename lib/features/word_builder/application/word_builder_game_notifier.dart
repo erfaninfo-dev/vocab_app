@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/audio/word_builder_sound_service.dart';
+import '../../../data/models/vocab_entry.dart';
 import '../../../domain/api_providers.dart';
 import '../data/word_builder_progress_repository.dart';
 import '../data/word_builder_vocab.dart';
@@ -19,15 +20,16 @@ import '../word_builder_coin_constants.dart';
 import '../word_builder_constants.dart';
 import 'word_builder_coins_provider.dart';
 import 'word_builder_session_audio.dart';
+import 'word_builder_tray_water_audio.dart';
 
-final wordBuilderProgressRepoProvider =
-    Provider<WordBuilderProgressRepository>(
+final wordBuilderProgressRepoProvider = Provider<WordBuilderProgressRepository>(
   (ref) => WordBuilderProgressRepository(),
 );
 
-final wordBuilderGameProvider =
-    AsyncNotifierProvider.autoDispose.family<WordBuilderGameNotifier,
-        WordBuilderViewState, int>(WordBuilderGameNotifier.new);
+final wordBuilderGameProvider = AsyncNotifierProvider.autoDispose
+    .family<WordBuilderGameNotifier, WordBuilderViewState, int>(
+      WordBuilderGameNotifier.new,
+    );
 
 @immutable
 class WordBuilderViewState {
@@ -112,10 +114,10 @@ class WordBuilderViewState {
       path: path ?? this.path,
       solvedLower: solvedLower ?? this.solvedLower,
       revealedPositions: revealedPositions ?? this.revealedPositions,
-      hintTargetCycleIndex:
-          hintTargetCycleIndex ?? this.hintTargetCycleIndex,
-      feedbackMessage:
-          clearFeedback ? null : (feedbackMessage ?? this.feedbackMessage),
+      hintTargetCycleIndex: hintTargetCycleIndex ?? this.hintTargetCycleIndex,
+      feedbackMessage: clearFeedback
+          ? null
+          : (feedbackMessage ?? this.feedbackMessage),
       lastSolvedWord: identical(lastSolvedWord, _unsetLastSolved)
           ? this.lastSolvedWord
           : lastSolvedWord as WordBuilderTargetWord?,
@@ -136,7 +138,8 @@ class WordBuilderViewState {
     required Random random,
   }) {
     final level = sessionLevels[levelIndex];
-    final prev = persisted.perLevel[level.levelId] ??
+    final prev =
+        persisted.perLevel[level.levelId] ??
         const WordBuilderLevelProgress(
           completed: false,
           attempts: 0,
@@ -171,9 +174,218 @@ class WordBuilderGameNotifier
     extends AutoDisposeFamilyAsyncNotifier<WordBuilderViewState, int> {
   final Random _random = Random();
   Timer? _passiveWaterTimer;
+  Map<String, WordBuilderTargetWord> _globalTargetsByLemma = const {};
 
   WordBuilderProgressRepository get _repo =>
       ref.read(wordBuilderProgressRepoProvider);
+
+  Map<String, WordBuilderTargetWord> _targetsByLemma(
+    Iterable<VocabEntry> entries,
+  ) {
+    final out = <String, WordBuilderTargetWord>{};
+    for (final e in entries) {
+      final lemma = wordBuilderGameLemma(e);
+      if (lemma == null || lemma.isEmpty || out.containsKey(lemma)) continue;
+      out[lemma] = targetFromVocab(e, lemma);
+    }
+    return out;
+  }
+
+  bool _wasSolvedAnywhere(
+    String norm,
+    WordBuilderPersistedProgress persisted,
+    Set<String> currentSolved,
+  ) {
+    if (currentSolved.contains(norm)) return true;
+    for (final progress in persisted.perLevel.values) {
+      if (progress.solvedWordsLower.contains(norm)) return true;
+    }
+    return false;
+  }
+
+  bool _isCurrentLevelTarget(WordBuilderLevel level, String norm) {
+    for (final target in level.targetWords) {
+      if (normalizeWord(target.word) == norm) return true;
+    }
+    return false;
+  }
+
+  WordBuilderTargetWord? _catalogMatchForBuilt(
+    WordBuilderViewState s,
+    String builtLower,
+  ) {
+    final norm = normalizeWord(builtLower);
+    if (norm.length < 2) return null;
+    if (_isCurrentLevelTarget(s.level, norm)) return null;
+    if (_wasSolvedAnywhere(norm, s.persisted, s.solvedLower)) return null;
+    final target = _globalTargetsByLemma[norm];
+    if (target == null) return null;
+    if (!canSpellFromPool(norm, letterCounts(s.level.letters))) return null;
+    return target;
+  }
+
+  bool _isKnownDuplicateBuilt(WordBuilderViewState s, String builtLower) {
+    final norm = normalizeWord(builtLower);
+    if (norm.length < 2) return false;
+    if (!_wasSolvedAnywhere(norm, s.persisted, s.solvedLower)) return false;
+    return _isCurrentLevelTarget(s.level, norm) ||
+        _globalTargetsByLemma.containsKey(norm);
+  }
+
+  bool _catalogCanExtendBuilt(WordBuilderViewState s, String builtLower) {
+    final prefix = normalizeWord(builtLower);
+    if (prefix.isEmpty) return false;
+    final pool = letterCounts(s.level.letters);
+    for (final entry in _globalTargetsByLemma.entries) {
+      final word = entry.key;
+      if (word.length <= prefix.length || !word.startsWith(prefix)) continue;
+      if (_isCurrentLevelTarget(s.level, word)) continue;
+      if (_wasSolvedAnywhere(word, s.persisted, s.solvedLower)) continue;
+      if (canSpellFromPool(word, pool)) return true;
+    }
+    return false;
+  }
+
+  WordBuilderLevel _levelWithTargets(
+    WordBuilderLevel level,
+    List<WordBuilderTargetWord> targets, {
+    required bool preserveLetters,
+  }) {
+    final letters = preserveLetters
+        ? List<String>.of(level.letters)
+        : expandPoolLetters(
+            poolMaxPerLetterAcrossWords(
+              targets.map((t) => normalizeWord(t.word)),
+            ),
+          );
+    return WordBuilderLevel(
+      levelId: level.levelId,
+      difficulty: level.difficulty,
+      category: level.category,
+      letters: letters,
+      targetWords: List<WordBuilderTargetWord>.unmodifiable(targets),
+    );
+  }
+
+  int _firstReplaceableTargetIndex(
+    WordBuilderLevel level,
+    Set<String> solvedLower, {
+    int? preferredLength,
+  }) {
+    var fallback = -1;
+    for (var i = 0; i < level.targetWords.length; i++) {
+      final target = level.targetWords[i];
+      if (solvedLower.contains(normalizeWord(target.word))) continue;
+      fallback = fallback == -1 ? i : fallback;
+      if (preferredLength != null &&
+          normalizeWord(target.word).length == preferredLength) {
+        return i;
+      }
+    }
+    return fallback;
+  }
+
+  List<WordBuilderLevel> _carryDisplacedTargetForward({
+    required List<WordBuilderLevel> levels,
+    required int startIndex,
+    required WordBuilderTargetWord displaced,
+    required String acceptedNorm,
+    required WordBuilderPersistedProgress persisted,
+  }) {
+    var pending = displaced;
+    final nextLevels = List<WordBuilderLevel>.of(levels);
+
+    for (
+      var levelIndex = startIndex;
+      levelIndex < nextLevels.length;
+      levelIndex++
+    ) {
+      final level = nextLevels[levelIndex];
+      final progress = persisted.perLevel[level.levelId];
+      if (progress?.completed == true) continue;
+      final solved = progress?.solvedWordsLower ?? const <String>{};
+      final targets = List<WordBuilderTargetWord>.of(level.targetWords);
+
+      var replaceIndex = -1;
+      for (var i = 0; i < targets.length; i++) {
+        final norm = normalizeWord(targets[i].word);
+        if (solved.contains(norm)) continue;
+        if (norm == acceptedNorm) {
+          replaceIndex = i;
+          break;
+        }
+      }
+      if (replaceIndex == -1) {
+        replaceIndex = _firstReplaceableTargetIndex(
+          level,
+          solved,
+          preferredLength: normalizeWord(pending.word).length,
+        );
+      }
+      if (replaceIndex == -1) continue;
+
+      final outgoing = targets[replaceIndex];
+      targets[replaceIndex] = pending;
+      nextLevels[levelIndex] = _levelWithTargets(
+        level,
+        targets,
+        preserveLetters: false,
+      );
+
+      if (normalizeWord(outgoing.word) == acceptedNorm) {
+        return nextLevels;
+      }
+      pending = outgoing;
+    }
+
+    return nextLevels;
+  }
+
+  WordBuilderViewState? _replaceUnsolvedTargetWithCatalogWord(
+    WordBuilderViewState s,
+    WordBuilderTargetWord accepted,
+  ) {
+    final acceptedNorm = normalizeWord(accepted.word);
+    final currentReplaceIndex = _firstReplaceableTargetIndex(
+      s.level,
+      s.solvedLower,
+      preferredLength: acceptedNorm.length,
+    );
+    if (currentReplaceIndex == -1) return null;
+
+    final currentTargets = List<WordBuilderTargetWord>.of(s.level.targetWords);
+    final displaced = currentTargets[currentReplaceIndex];
+    currentTargets[currentReplaceIndex] = accepted;
+
+    var nextLevels = List<WordBuilderLevel>.of(s.sessionLevels);
+    nextLevels[s.levelIndex] = _levelWithTargets(
+      s.level,
+      currentTargets,
+      preserveLetters: true,
+    );
+    nextLevels = _carryDisplacedTargetForward(
+      levels: nextLevels,
+      startIndex: s.levelIndex + 1,
+      displaced: displaced,
+      acceptedNorm: acceptedNorm,
+      persisted: s.persisted,
+    );
+
+    final revealed = Map<String, Set<int>>.from(s.revealedPositions)
+      ..remove(normalizeWord(displaced.word));
+
+    return s.copyWith(sessionLevels: nextLevels, revealedPositions: revealed);
+  }
+
+  Future<void> _commitDuplicateSelection(WordBuilderViewState s) async {
+    await _commit(
+      s.copyWith(
+        path: const [],
+        pathWrongHighlight: false,
+        feedbackMessage: '__already_found',
+      ),
+    );
+  }
 
   TrayFaceMood _faceMoodForWater(double level, {required bool overflow}) {
     if (overflow || level >= 1.0) return TrayFaceMood.dead;
@@ -201,8 +413,11 @@ class WordBuilderGameNotifier
       return;
     }
 
-    final nextLevel = (s.trayWaterLevel + TrayWaterConstants.passiveWaterIncrement)
-        .clamp(0.0, 1.0);
+    final nextLevel =
+        (s.trayWaterLevel + TrayWaterConstants.passiveWaterIncrement).clamp(
+          0.0,
+          1.0,
+        );
     if ((nextLevel - s.trayWaterLevel) < 0.0005) return;
 
     final overflow = nextLevel >= 1.0;
@@ -214,12 +429,39 @@ class WordBuilderGameNotifier
         isTrayGameOver: overflow,
       ),
     );
+    if (overflow) _stopTrayWaterAudio();
   }
 
   void _playSound(WordBuilderSound sound) {
     final enabled = ref.read(wordBuilderGameSfxEnabledProvider);
     unawaited(
       ref.read(wordBuilderSoundServiceProvider).play(sound, enabled: enabled),
+    );
+  }
+
+  void _stopTrayWaterAudio() {
+    unawaited(ref.read(wordBuilderTrayWaterAudioProvider(arg)).stopAll());
+  }
+
+  bool get _waterSfxEnabled => ref.read(wordBuilderGameWaterSfxEnabledProvider);
+
+  void _onTrayWrongWaterAudio(int wrongCount, {required bool overflow}) {
+    final enabled = _waterSfxEnabled;
+    final audio = ref.read(wordBuilderTrayWaterAudioProvider(arg));
+    if (overflow) {
+      unawaited(audio.playPillOnly(enabled: enabled));
+      unawaited(audio.stopLoops());
+      return;
+    }
+    unawaited(audio.onWrongAnswer(wrongCount, enabled: enabled));
+  }
+
+  void _syncTrayWaterStageAudio(int wrongCount) {
+    final enabled = _waterSfxEnabled;
+    unawaited(
+      ref
+          .read(wordBuilderTrayWaterAudioProvider(arg))
+          .syncWaterStage(wrongCount, enabled: enabled),
     );
   }
 
@@ -273,6 +515,7 @@ class WordBuilderGameNotifier
       ),
     );
     _playSound(WordBuilderSound.wrong);
+    _onTrayWrongWaterAudio(nextCount, overflow: overflow);
     unawaited(
       Future<void>.delayed(TrayWaterConstants.inletOpenDuration, () {
         if (state.valueOrNull != null) unawaited(_closeInletValve());
@@ -284,8 +527,10 @@ class WordBuilderGameNotifier
     final s = state.valueOrNull;
     final prevLevel = s?.trayWaterLevel ?? 0.0;
     final prevWrong = s?.wrongAnswerCount ?? 0;
-    final drainedLevel = (prevLevel - TrayWaterConstants.waterPerWrong)
-        .clamp(0.0, 1.0);
+    final drainedLevel = (prevLevel - TrayWaterConstants.waterPerWrong).clamp(
+      0.0,
+      1.0,
+    );
     final nextWrong = max(0, prevWrong - 1);
 
     await _commit(
@@ -298,6 +543,7 @@ class WordBuilderGameNotifier
         pathWrongHighlight: false,
       ),
     );
+    _syncTrayWaterStageAudio(nextWrong);
     unawaited(
       Future<void>.delayed(TrayWaterConstants.outletOpenDuration, () {
         if (state.valueOrNull != null) unawaited(_closeOutletValveOnly());
@@ -320,6 +566,7 @@ class WordBuilderGameNotifier
       random: _random,
     );
     await _commit(fresh);
+    _stopTrayWaterAudio();
   }
 
   @override
@@ -327,6 +574,8 @@ class WordBuilderGameNotifier
     ref.onDispose(() => _passiveWaterTimer?.cancel());
 
     final persisted = await _repo.load();
+    final globalCatalog = await ref.read(apiAllWordsCatalogProvider.future);
+    _globalTargetsByLemma = _targetsByLemma(globalCatalog);
     final campaign = decodeWordBuilderCampaignSessionKey(bookKey);
     if (campaign != null) {
       final plan = await ref.read(wordBuilderCampaignPlanProvider.future);
@@ -361,7 +610,7 @@ class WordBuilderGameNotifier
     }
 
     final entries = bookKey == kWordBuilderAllBooksKey
-        ? await ref.read(apiAllWordsCatalogProvider.future)
+        ? globalCatalog
         : await ref.read(apiAllWordsForBookProvider(bookKey).future);
 
     String categoryLabel = '__LOCAL_ALL__';
@@ -405,11 +654,15 @@ class WordBuilderGameNotifier
     WordBuilderViewState afterPathCommit,
     int pathLength,
   ) async {
+    final builtLower = normalizeWord(
+      afterPathCommit.path.map((e) => e.char).join(),
+    );
     if (anyUnsolvedTargetHasLength(
-      afterPathCommit.level,
-      afterPathCommit.solvedLower,
-      pathLength,
-    )) {
+          afterPathCommit.level,
+          afterPathCommit.solvedLower,
+          pathLength,
+        ) ||
+        _catalogMatchForBuilt(afterPathCommit, builtLower) != null) {
       await SchedulerBinding.instance.endOfFrame;
     }
   }
@@ -473,44 +726,53 @@ class WordBuilderGameNotifier
       return;
     }
 
-    final builtLower =
-        normalizeWord(current.path.map((e) => e.char).join());
+    final builtLower = normalizeWord(current.path.map((e) => e.char).join());
     final matched = findUnsolvedTargetMatchingBuilt(
       current.level,
       current.solvedLower,
       builtLower,
     );
     if (matched != null) {
-      await _applyCorrectWord(
-        current,
-        normalizeWord(matched.word),
-        matched,
-      );
+      await _applyCorrectWord(current, normalizeWord(matched.word), matched);
       return;
+    }
+
+    if (_isKnownDuplicateBuilt(current, builtLower)) {
+      await _commitDuplicateSelection(current);
+      return;
+    }
+
+    final catalogMatch = _catalogMatchForBuilt(current, builtLower);
+    if (catalogMatch != null) {
+      final replaced = _replaceUnsolvedTargetWithCatalogWord(
+        current,
+        catalogMatch,
+      );
+      if (replaced != null) {
+        await _applyCorrectWord(replaced, builtLower, catalogMatch);
+        return;
+      }
     }
 
     final plen = current.path.length;
     final maxLen = maxUnsolvedTargetLength(current.level, current.solvedLower);
 
-    if (plen > maxLen) {
+    if (plen > maxLen && !_catalogCanExtendBuilt(current, builtLower)) {
       await _commitWrongWithTray(current);
       return;
     }
 
     if (pathCanExtendToLongerUnsolvedTarget(
-      current.level,
-      current.solvedLower,
-      builtLower,
-    )) {
+          current.level,
+          current.solvedLower,
+          builtLower,
+        ) ||
+        _catalogCanExtendBuilt(current, builtLower)) {
       await clearPathOnly();
       return;
     }
 
-    if (anyUnsolvedTargetHasLength(
-      current.level,
-      current.solvedLower,
-      plen,
-    )) {
+    if (anyUnsolvedTargetHasLength(current.level, current.solvedLower, plen)) {
       await _commitWrongWithTray(current);
       return;
     }
@@ -564,25 +826,43 @@ class WordBuilderGameNotifier
     if (unsolvedTargets(s.level, s.solvedLower).isEmpty) return;
 
     final plen = s.path.length;
-    final maxLen = maxUnsolvedTargetLength(s.level, s.solvedLower);
-    if (plen > maxLen) {
-      await _commitWrongWithTray(s);
-      return;
-    }
-
     final builtLower = normalizeWord(s.path.map((e) => e.char).join());
-    final matched =
-        findUnsolvedTargetMatchingBuilt(s.level, s.solvedLower, builtLower);
+    final matched = findUnsolvedTargetMatchingBuilt(
+      s.level,
+      s.solvedLower,
+      builtLower,
+    );
     if (matched != null) {
       await _applyCorrectWord(s, normalizeWord(matched.word), matched);
       return;
     }
 
+    if (_isKnownDuplicateBuilt(s, builtLower)) {
+      await _commitDuplicateSelection(s);
+      return;
+    }
+
+    final catalogMatch = _catalogMatchForBuilt(s, builtLower);
+    if (catalogMatch != null) {
+      final replaced = _replaceUnsolvedTargetWithCatalogWord(s, catalogMatch);
+      if (replaced != null) {
+        await _applyCorrectWord(replaced, builtLower, catalogMatch);
+        return;
+      }
+    }
+
+    final maxLen = maxUnsolvedTargetLength(s.level, s.solvedLower);
+    if (plen > maxLen && !_catalogCanExtendBuilt(s, builtLower)) {
+      await _commitWrongWithTray(s);
+      return;
+    }
+
     if (pathCanExtendToLongerUnsolvedTarget(
-      s.level,
-      s.solvedLower,
-      builtLower,
-    )) {
+          s.level,
+          s.solvedLower,
+          builtLower,
+        ) ||
+        _catalogCanExtendBuilt(s, builtLower)) {
       return;
     }
 
@@ -598,7 +878,8 @@ class WordBuilderGameNotifier
   ) async {
     var persisted = s.persisted;
     final levelId = s.level.levelId;
-    var lp = persisted.perLevel[levelId] ??
+    var lp =
+        persisted.perLevel[levelId] ??
         const WordBuilderLevelProgress(
           completed: false,
           attempts: 0,
@@ -655,6 +936,9 @@ class WordBuilderGameNotifier
       wrongAnswerCount: s.wrongAnswerCount,
     );
     await _commitCorrectWithTrayDrain(next);
+    if (isLevelComplete(s.level, newSolved)) {
+      _stopTrayWaterAudio();
+    }
     var coinReward = wordBuilderCoinsPerCorrectWord();
     if (isLevelComplete(s.level, newSolved)) {
       coinReward += wordBuilderCoinsLevelCompleteBonus();
@@ -672,11 +956,8 @@ class WordBuilderGameNotifier
     if (s == null || !s.levelComplete) return;
     final nextIndex = s.levelIndex + 1;
     if (nextIndex >= s.sessionLevels.length) {
-      await _commit(
-        s.copyWith(
-          feedbackMessage: '__all_levels_done',
-        ),
-      );
+      _stopTrayWaterAudio();
+      await _commit(s.copyWith(feedbackMessage: '__all_levels_done'));
       return;
     }
     final next = WordBuilderViewState.createInitial(
@@ -685,6 +966,7 @@ class WordBuilderGameNotifier
       levelIndex: nextIndex,
       random: _random,
     );
+    _stopTrayWaterAudio();
     await _commit(next);
   }
 
@@ -729,8 +1011,9 @@ class WordBuilderGameNotifier
     }
 
     final cost = wordBuilderCoinsCostHintLetter();
-    final paid =
-        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(cost);
+    final paid = await ref
+        .read(wordBuilderCoinsProvider.notifier)
+        .trySpend(cost);
     if (!paid) {
       await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
       return;
@@ -757,16 +1040,13 @@ class WordBuilderGameNotifier
     final newPath = List<LetterInstance>.of(s.path);
     final ok = removeOneExcessLetterFromRack(newPath, allowed);
     if (!ok) {
-      await _commit(
-        s.copyWith(
-          feedbackMessage: '__hint_remove_none',
-        ),
-      );
+      await _commit(s.copyWith(feedbackMessage: '__hint_remove_none'));
       return;
     }
     final removeCost = wordBuilderCoinsCostHintRemoveWrong();
-    final paidRemove =
-        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(removeCost);
+    final paidRemove = await ref
+        .read(wordBuilderCoinsProvider.notifier)
+        .trySpend(removeCost);
     if (!paidRemove) {
       await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
       return;
@@ -774,12 +1054,7 @@ class WordBuilderGameNotifier
     final remainingIds = newPath.map((e) => e.id).toSet();
     final removed = before.where((e) => !remainingIds.contains(e.id)).toList();
     if (removed.length != 1) return;
-    await _commit(
-      s.copyWith(
-        path: newPath,
-        feedbackMessage: '__hint_removed',
-      ),
-    );
+    await _commit(s.copyWith(path: newPath, feedbackMessage: '__hint_removed'));
   }
 
   Future<void> hintMeaning({required bool preferKur}) async {
@@ -788,17 +1063,14 @@ class WordBuilderGameNotifier
     final target = firstUnsolvedTarget(s.level, s.solvedLower);
     if (target == null) return;
     final meaningCost = wordBuilderCoinsCostHintMeaning();
-    final paid =
-        await ref.read(wordBuilderCoinsProvider.notifier).trySpend(meaningCost);
+    final paid = await ref
+        .read(wordBuilderCoinsProvider.notifier)
+        .trySpend(meaningCost);
     if (!paid) {
       await _commit(s.copyWith(feedbackMessage: '__not_enough_coins'));
       return;
     }
     final m = target.meaningForLang(preferKur: preferKur);
-    await _commit(
-      s.copyWith(
-        feedbackMessage: '$kWordBuilderMeaningPrefix$m',
-      ),
-    );
+    await _commit(s.copyWith(feedbackMessage: '$kWordBuilderMeaningPrefix$m'));
   }
 }

@@ -152,9 +152,11 @@ Set<String> sanitizeSolvedForLevel(
   WordBuilderLevel level,
   Set<String> solvedLower,
 ) {
-  final allowed =
-      level.targetWords.map((t) => normalizeWord(t.word)).toSet();
-  return {for (final s in solvedLower) if (allowed.contains(s)) s};
+  final allowed = level.targetWords.map((t) => normalizeWord(t.word)).toSet();
+  return {
+    for (final s in solvedLower)
+      if (allowed.contains(s)) s,
+  };
 }
 
 bool isLevelComplete(WordBuilderLevel level, Set<String> solvedLower) {
@@ -192,10 +194,7 @@ List<WordBuilderTargetWord> unsolvedTargets(
   ];
 }
 
-int maxUnsolvedTargetLength(
-  WordBuilderLevel level,
-  Set<String> solvedLower,
-) {
+int maxUnsolvedTargetLength(WordBuilderLevel level, Set<String> solvedLower) {
   var max = 0;
   for (final t in unsolvedTargets(level, solvedLower)) {
     final len = normalizeWord(t.word).length;
