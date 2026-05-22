@@ -3,7 +3,6 @@ class AuthUser {
     required this.id,
     required this.email,
     this.displayName,
-    this.bio,
     this.avatar = 'm1',
     this.studentAccess = false,
     this.isTeacher = false,
@@ -14,7 +13,6 @@ class AuthUser {
   final int id;
   final String email;
   final String? displayName;
-  final String? bio;
 
   /// Preset id from server: m1–m4 (boy-style), f1–f4 (girl-style).
   final String avatar;
@@ -41,7 +39,6 @@ class AuthUser {
       id: (json['id'] as num).toInt(),
       email: json['email'] as String,
       displayName: json['display_name'] as String?,
-      bio: json['bio'] as String?,
       avatar: (av != null && av.isNotEmpty) ? av : 'm1',
       studentAccess: sa == true || sa == 1,
       isTeacher: it == true || it == 1,
@@ -54,20 +51,22 @@ class AuthUser {
   /// stay identical to the server's `/me.php` payload so [AuthUser.fromJson]
   /// can be reused to rehydrate cached copies.
   Map<String, dynamic> toJson() => <String, dynamic>{
-    'id': id,
-    'email': email,
-    'display_name': displayName,
-    'bio': bio,
-    'avatar': avatar,
-    'student_access': studentAccess,
-    'is_teacher': isTeacher,
-    'is_admin': isAdmin,
-    'teacher_user_id': teacherUserId,
-  };
+        'id': id,
+        'email': email,
+        'display_name': displayName,
+        'avatar': avatar,
+        'student_access': studentAccess,
+        'is_teacher': isTeacher,
+        'is_admin': isAdmin,
+        'teacher_user_id': teacherUserId,
+      };
 }
 
 class AuthSession {
-  const AuthSession({required this.token, required this.user});
+  const AuthSession({
+    required this.token,
+    required this.user,
+  });
 
   final String token;
   final AuthUser user;

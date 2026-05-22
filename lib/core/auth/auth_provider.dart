@@ -10,9 +10,8 @@ import '../../features/home/home_displayed_books_provider.dart';
 import '../profile/profile_photo_cache.dart';
 import 'auth_storage.dart';
 
-final authProvider = AsyncNotifierProvider<AuthNotifier, AuthSession?>(
-  AuthNotifier.new,
-);
+final authProvider =
+    AsyncNotifierProvider<AuthNotifier, AuthSession?>(AuthNotifier.new);
 
 /// Handles sign-in, sign-out and cold-start session restoration.
 ///
@@ -189,16 +188,16 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
   /// Updates display name + avatar on the server and refreshes local session.
   Future<void> updateProfile({
     required String displayName,
-    required String bio,
     required String avatar,
   }) async {
     final s = state.valueOrNull;
     if (s == null) {
       throw StateError('Not signed in');
     }
-    final user = await ApiService(
-      authToken: s.token,
-    ).updateProfile(displayName: displayName, bio: bio, avatar: avatar);
+    final user = await ApiService(authToken: s.token).updateProfile(
+      displayName: displayName,
+      avatar: avatar,
+    );
     await _storage.saveCachedUser(user);
     state = AsyncData(AuthSession(token: s.token, user: user));
   }
@@ -224,9 +223,9 @@ class AuthNotifier extends AsyncNotifier<AuthSession?> {
     if (s == null) {
       throw StateError('Not signed in');
     }
-    final user = await ApiService(
-      authToken: s.token,
-    ).uploadProfilePhoto(jpegBytes);
+    final user = await ApiService(authToken: s.token).uploadProfilePhoto(
+      jpegBytes,
+    );
     await _storage.saveCachedUser(user);
     ref.read(profilePhotoCacheNonceProvider.notifier).state++;
     state = AsyncData(AuthSession(token: s.token, user: user));

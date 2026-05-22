@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
-import '../../core/profile/profile_avatar.dart';
 import '../../data/models/grammar_result.dart';
 import 'grammar_practice_result_card.dart';
 import '../../domain/api_full_refresh.dart';
@@ -201,7 +200,10 @@ class _GrammarSortBar extends ConsumerWidget {
                 ),
                 items: [
                   for (final o in options)
-                    DropdownMenuItem(value: o.label, child: Text(o.label)),
+                    DropdownMenuItem(
+                      value: o.label,
+                      child: Text(o.label),
+                    ),
                 ],
                 onChanged: (label) {
                   if (label == null) return;
@@ -292,38 +294,6 @@ class _MyResultsTab extends ConsumerWidget {
 class _PublicResultsTab extends ConsumerWidget {
   const _PublicResultsTab();
 
-  void _showCommunityProfile(
-    BuildContext context,
-    GrammarResult result,
-    String? practiceTotalsLabel,
-  ) {
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: Colors.black.withValues(alpha: 0.42),
-      transitionDuration: const Duration(milliseconds: 280),
-      pageBuilder: (dialogContext, _, __) => _CommunityProfileDialog(
-        result: result,
-        practiceTotalsLabel: practiceTotalsLabel,
-      ),
-      transitionBuilder: (_, animation, __, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutBack,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.88, end: 1).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
   void _maybeLoadMore(ScrollMetrics m, WidgetRef ref) {
     if (!m.hasViewportDimension) return;
     if (m.maxScrollExtent <= 0) return;
@@ -346,7 +316,9 @@ class _PublicResultsTab extends ConsumerWidget {
       ),
       data: (state) {
         final raw = state.rawItems;
-        final items = practiceMode ? mergeGrammarPracticeLeaderboard(raw) : raw;
+        final items = practiceMode
+            ? mergeGrammarPracticeLeaderboard(raw)
+            : raw;
         if (raw.isEmpty) {
           return _EmptyStateScaffold(
             icon: Icons.public_off_rounded,
@@ -389,221 +361,55 @@ class _PublicResultsTab extends ConsumerWidget {
                 return false;
               },
               child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-                itemCount:
-                    items.length +
-                    ((state.hasMore || state.isLoadingMore) ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, i) {
-                  if (i >= items.length) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: state.isLoadingMore
-                              ? CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: scheme.primary,
-                                )
-                              : const SizedBox.shrink(),
-                        ),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+              itemCount:
+                  items.length + ((state.hasMore || state.isLoadingMore) ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                if (i >= items.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: state.isLoadingMore
+                            ? CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: scheme.primary,
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                    );
-                  }
-                  final r = items[i];
-                  final rank = i + 1;
-                  GrammarLeaderboardMedal? medal;
-                  if (practiceMode && rank <= 3) {
-                    medal = rank == 1
-                        ? GrammarLeaderboardMedal.gold
-                        : rank == 2
-                        ? GrammarLeaderboardMedal.silver
-                        : GrammarLeaderboardMedal.bronze;
-                  }
-                  final totalsLabel = practiceMode && r.grammarQuizTotal != null
-                      ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
-                      : null;
-                  return GrammarPracticeResultCard(
-                    r: r,
-                    style: GrammarPracticeResultCardStyle.community,
-                    rank: rank,
-                    leaderboardMedal: medal,
-                    practiceTotalsLabel: totalsLabel,
-                    onUserTap: r.userId == null
-                        ? null
-                        : () => _showCommunityProfile(context, r, totalsLabel),
+                    ),
                   );
-                },
-              ),
+                }
+                final r = items[i];
+                final rank = i + 1;
+                GrammarLeaderboardMedal? medal;
+                if (practiceMode && rank <= 3) {
+                  medal = rank == 1
+                      ? GrammarLeaderboardMedal.gold
+                      : rank == 2
+                          ? GrammarLeaderboardMedal.silver
+                          : GrammarLeaderboardMedal.bronze;
+                }
+                final totalsLabel = practiceMode && r.grammarQuizTotal != null
+                    ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
+                    : null;
+                return GrammarPracticeResultCard(
+                  r: r,
+                  style: GrammarPracticeResultCardStyle.community,
+                  rank: rank,
+                  leaderboardMedal: medal,
+                  practiceTotalsLabel: totalsLabel,
+                );
+              },
+            ),
             ),
           ),
         );
       },
-    );
-  }
-}
-
-class _CommunityProfileDialog extends StatelessWidget {
-  const _CommunityProfileDialog({
-    required this.result,
-    required this.practiceTotalsLabel,
-  });
-
-  final GrammarResult result;
-  final String? practiceTotalsLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final displayName = (result.userName ?? '').trim().isEmpty
-        ? l10n.guestUser
-        : result.userName!.trim();
-    final bio = (result.bio ?? '').trim();
-    final avatarId = (result.avatar ?? '').trim().isEmpty
-        ? 'm1'
-        : result.avatar!.trim();
-
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                scheme.primaryContainer.withValues(alpha: 0.95),
-                scheme.surface,
-                scheme.secondaryContainer.withValues(alpha: 0.68),
-              ],
-            ),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.24),
-                blurRadius: 28,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ProfileAvatar(
-                      avatarId: avatarId,
-                      userId: result.userId,
-                      size: 104,
-                      showBorder: true,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      displayName,
-                      textAlign: TextAlign.center,
-                      style: tt.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: scheme.onSurface,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    if (practiceTotalsLabel != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.11),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: scheme.primary.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        child: Text(
-                          practiceTotalsLabel!,
-                          style: tt.labelMedium?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: scheme.surface.withValues(alpha: 0.74),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: scheme.outlineVariant.withValues(alpha: 0.38),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.notes_rounded,
-                                size: 18,
-                                color: scheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.profileBio,
-                                style: tt.labelLarge?.copyWith(
-                                  color: scheme.primary,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            bio.isEmpty ? l10n.profileBioEmpty : bio,
-                            style: tt.bodyMedium?.copyWith(
-                              color: bio.isEmpty
-                                  ? scheme.onSurfaceVariant
-                                  : scheme.onSurface,
-                              height: 1.45,
-                              fontStyle: bio.isEmpty
-                                  ? FontStyle.italic
-                                  : FontStyle.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              PositionedDirectional(
-                top: 8,
-                end: 8,
-                child: IconButton.filledTonal(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

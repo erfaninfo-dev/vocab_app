@@ -1879,12 +1879,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get profileDisplayNameHint => 'نامی که نمایش داده می‌شود';
 
   @override
-  String get profileBio => 'بیو';
-
-  @override
-  String get profileBioHint => 'یک متن کوتاه دربارهٔ خودتان بنویسید';
-
-  @override
   String get profilePresetAvatars => 'یا آواتار از پیش‌تعریف انتخاب کنید';
 
   @override
@@ -2030,9 +2024,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get guestUser => 'مهمان';
-
-  @override
-  String get profileBioEmpty => 'هنوز بیویی نوشته نشده است.';
 
   @override
   String get resultVisibilityPublic => 'عمومی';

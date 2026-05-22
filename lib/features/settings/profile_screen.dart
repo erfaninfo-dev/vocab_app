@@ -26,20 +26,17 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final TextEditingController _nameCtrl;
-  late final TextEditingController _bioCtrl;
   String _selectedAvatarId = kDefaultAvatarId;
   var _saving = false;
   var _uploadingPhoto = false;
   var _loadedUserFields = false;
   String _initialName = '';
-  String _initialBio = '';
   String _initialAvatarId = kDefaultAvatarId;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
-    _bioCtrl = TextEditingController();
     ref.listenManual(authProvider, (prev, next) {
       next.whenData((session) {
         if (!mounted || session == null || _loadedUserFields) return;
@@ -61,24 +58,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
     _loadedUserFields = true;
     _initialName = user.displayName?.trim() ?? '';
-    _initialBio = user.bio?.trim() ?? '';
     _initialAvatarId = user.avatar;
     _nameCtrl.text = _initialName;
-    _bioCtrl.text = _initialBio;
     _selectedAvatarId = _initialAvatarId;
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _bioCtrl.dispose();
     super.dispose();
   }
 
   bool get _hasUnsavedChanges {
     if (!_loadedUserFields) return false;
     return _nameCtrl.text.trim() != _initialName.trim() ||
-        _bioCtrl.text.trim() != _initialBio.trim() ||
         _selectedAvatarId != _initialAvatarId;
   }
 
@@ -225,14 +218,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .read(authProvider.notifier)
           .updateProfile(
             displayName: _nameCtrl.text.trim(),
-            bio: _bioCtrl.text.trim(),
             avatar: _selectedAvatarId,
           );
       if (!mounted) {
         return;
       }
       _initialName = _nameCtrl.text.trim();
-      _initialBio = _bioCtrl.text.trim();
       _initialAvatarId = _selectedAvatarId;
       ScaffoldMessenger.of(
         context,
@@ -365,20 +356,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: const OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _bioCtrl,
-                      minLines: 3,
-                      maxLines: 5,
-                      maxLength: 160,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: l10n.profileBio,
-                        hintText: l10n.profileBioHint,
-                        alignLabelWithHint: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
                     if (_kProfilePasswordSectionEnabled) ...[
                       const SizedBox(height: 12),
                       const _ProfilePasswordSection(),
@@ -504,7 +481,8 @@ class _ProfilePasswordSectionState
     if (s.contains('new_password_required')) {
       return l10n.passwordResetNewPassword;
     }
-    if (s.contains('unauthorized') || s.contains('unauthorizedexception')) {
+    if (s.contains('unauthorized') ||
+        s.contains('unauthorizedexception')) {
       return l10n.loginFailed;
     }
     if (s.contains('not_found') || s.contains('404')) {
@@ -541,7 +519,9 @@ class _ProfilePasswordSectionState
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_mapPasswordChangeError(e, l10n))));
+      ).showSnackBar(
+        SnackBar(content: Text(_mapPasswordChangeError(e, l10n))),
+      );
     } finally {
       if (mounted) {
         setState(() => _submitting = false);

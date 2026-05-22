@@ -3370,18 +3370,6 @@ abstract class AppLocalizations {
   /// **'How your name appears'**
   String get profileDisplayNameHint;
 
-  /// No description provided for @profileBio.
-  ///
-  /// In en, this message translates to:
-  /// **'Bio'**
-  String get profileBio;
-
-  /// No description provided for @profileBioHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write a short note about yourself'**
-  String get profileBioHint;
-
   /// No description provided for @profilePresetAvatars.
   ///
   /// In en, this message translates to:
@@ -3633,12 +3621,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Guest'**
   String get guestUser;
-
-  /// No description provided for @profileBioEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No bio yet.'**
-  String get profileBioEmpty;
 
   /// No description provided for @resultVisibilityPublic.
   ///

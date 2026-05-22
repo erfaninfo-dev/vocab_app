@@ -620,8 +620,6 @@
   "profileCamera": "دوربین",
   "profileDisplayName": "نام نمایشی",
   "profileDisplayNameHint": "نامی که نمایش داده می‌شود",
-  "profileBio": "بیو",
-  "profileBioHint": "یک متن کوتاه دربارهٔ خودتان بنویسید",
   "profilePresetAvatars": "یا آواتار از پیش‌تعریف انتخاب کنید",
   "profileBoyAvatars": "آواتار پسر",
   "profileGirlAvatars": "آواتار دختر",
@@ -669,7 +667,6 @@
     }
   },
   "guestUser": "مهمان",
-  "profileBioEmpty": "هنوز بیویی نوشته نشده است.",
   "resultVisibilityPublic": "عمومی",
   "resultVisibilityPrivate": "خصوصی",
   "errorConnectionTryAgain": "اتصال را بررسی کنید و دوباره تلاش کنید.",

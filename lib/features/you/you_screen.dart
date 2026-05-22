@@ -15,7 +15,9 @@ BoxDecoration _youPanelCardDecoration(ColorScheme scheme) {
   return BoxDecoration(
     color: scheme.surface,
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    border: Border.all(
+      color: scheme.outlineVariant.withValues(alpha: 0.5),
+    ),
     boxShadow: [
       BoxShadow(
         color: scheme.shadow.withValues(alpha: 0.04),
@@ -128,25 +130,15 @@ class YouScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.youPageTitle)),
-      floatingActionButton: session?.user.isAdmin == true
-          ? FloatingActionButton.extended(
-              heroTag: 'you_add_story_fab',
-              onPressed: () => context.push('/stories/create'),
-              backgroundColor: const Color(0xFFE1306C),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_circle_outline_rounded),
-              label: const Text(
-                'Add Story',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-            )
-          : null,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.06), scheme.surface],
+            colors: [
+              scheme.primary.withValues(alpha: 0.06),
+              scheme.surface,
+            ],
           ),
         ),
         child: ListView(
@@ -264,7 +256,10 @@ class _YouAdminUsersInkCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -345,7 +340,10 @@ class _YouReviewInkCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -402,7 +400,10 @@ class _YouProgressInkCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -459,7 +460,10 @@ class _YouTeacherPanelInkCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -469,7 +473,10 @@ class _YouTeacherPanelInkCard extends StatelessWidget {
 }
 
 class _YouNoTeacherMessagesCard extends StatelessWidget {
-  const _YouNoTeacherMessagesCard({required this.scheme, required this.l10n});
+  const _YouNoTeacherMessagesCard({
+    required this.scheme,
+    required this.l10n,
+  });
 
   final ColorScheme scheme;
   final AppLocalizations l10n;

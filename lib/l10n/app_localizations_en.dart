@@ -1882,12 +1882,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileDisplayNameHint => 'How your name appears';
 
   @override
-  String get profileBio => 'Bio';
-
-  @override
-  String get profileBioHint => 'Write a short note about yourself';
-
-  @override
   String get profilePresetAvatars => 'Or pick a preset avatar';
 
   @override
@@ -2034,9 +2028,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guestUser => 'Guest';
-
-  @override
-  String get profileBioEmpty => 'No bio yet.';
 
   @override
   String get resultVisibilityPublic => 'Public';

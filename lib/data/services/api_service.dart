@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import '../../core/cache/api_disk_cache.dart';
 import '../models/admin_user_row.dart';
-import '../models/admin_story.dart';
 import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
@@ -28,8 +26,6 @@ import '../models/temporary_class_schedule_slot.dart';
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
 const String kApiBaseUrl = 'http://erfaninfo.com/wordsapi';
-const Duration _storyUploadTimeout = Duration(seconds: 45);
-const Duration _storyCreateTimeout = Duration(seconds: 20);
 
 /// Thrown when the server explicitly rejects the current bearer token (HTTP
 /// 401). Call sites use this to distinguish "token is truly invalid — sign the
@@ -53,14 +49,6 @@ const Duration _ttlGrammarResultsMy = Duration(minutes: 6);
 const Duration _ttlGrammarResultDetail = Duration(minutes: 12);
 const Duration _ttlVocabQuizResultsList = Duration(minutes: 4);
 const Duration _ttlUserVocabMarks = Duration(minutes: 6);
-
-String apiAbsoluteMediaUrl(String path) {
-  final p = path.trim();
-  if (p.startsWith('http://') || p.startsWith('https://')) return p;
-  final base = kApiBaseUrl.replaceAll(RegExp(r'/$'), '');
-  final clean = p.replaceFirst(RegExp(r'^/+'), '');
-  return '$base/$clean';
-}
 
 class ApiService {
   ApiService({this.baseUrl = kApiBaseUrl, this.authToken});
@@ -891,201 +879,6 @@ class ApiService {
     return AdminUserRow.fromJson(map['user'] as Map<String, dynamic>);
   }
 
-  /// GET /admin_stories.php — visible stories for current user.
-  Future<List<StoryItem>> fetchVisibleStories() async {
-    final uri = Uri.parse('$baseUrl/admin_stories.php').replace(
-      queryParameters: {'_': DateTime.now().millisecondsSinceEpoch.toString()},
-    );
-    final response = await http.get(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    final list = map['stories'] as List<dynamic>? ?? const [];
-    return list
-        .map((e) => StoryItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// GET /admin_stories.php?mode=admin — admin story management list.
-  Future<List<StoryItem>> fetchAdminStories() async {
-    final uri = Uri.parse('$baseUrl/admin_stories.php').replace(
-      queryParameters: {
-        'mode': 'admin',
-        '_': DateTime.now().millisecondsSinceEpoch.toString(),
-      },
-    );
-    final response = await http.get(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    final list = map['stories'] as List<dynamic>? ?? const [];
-    return list
-        .map((e) => StoryItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// POST /admin_story_upload.php — admin multipart image upload.
-  Future<String> uploadStoryImage(Uint8List imageBytes) async {
-    final uri = Uri.parse('$baseUrl/admin_story_upload.php');
-    final req = http.MultipartRequest('POST', uri);
-    final t = authToken;
-    if (t != null && t.isNotEmpty) {
-      req.headers['Authorization'] = 'Bearer $t';
-    }
-    req.files.add(
-      http.MultipartFile.fromBytes('photo', imageBytes, filename: 'story.jpg'),
-    );
-    final streamed = await req.send().timeout(
-      _storyUploadTimeout,
-      onTimeout: () {
-        throw TimeoutException(
-          'Story image upload timed out. Please try again with a smaller image or a better connection.',
-        );
-      },
-    );
-    final response = await http.Response.fromStream(streamed).timeout(
-      _storyCreateTimeout,
-      onTimeout: () {
-        throw TimeoutException(
-          'Story upload response timed out. Please try again.',
-        );
-      },
-    );
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    if (map['ok'] != true) {
-      throw Exception(map['error']?.toString() ?? 'Upload failed');
-    }
-    final path = (map['image_path'] as String?)?.trim() ?? '';
-    if (path.isEmpty) {
-      throw Exception('Upload succeeded but image path was empty');
-    }
-    return path;
-  }
-
-  /// POST /admin_stories.php — admin creates text or image story.
-  Future<int> createAdminStory({
-    required String clientRequestId,
-    required String contentType,
-    String? imagePath,
-    String? textContent,
-    StoryTextStyle? textStyle,
-    required String targetMode,
-    required List<int> targetUserIds,
-  }) async {
-    final uri = Uri.parse('$baseUrl/admin_stories.php');
-    final payload = <String, dynamic>{
-      'client_request_id': clientRequestId,
-      'content_type': contentType,
-      'target_mode': targetMode,
-      'target_user_ids': targetUserIds,
-    };
-    if (imagePath != null) payload['image_path'] = imagePath;
-    if (textContent != null) payload['text_content'] = textContent;
-    if (textStyle != null) payload['text_style'] = textStyle.toJson();
-    final response = await http
-        .post(
-          uri,
-          headers: _mergeHeaders({
-            'Content-Type': 'application/json; charset=utf-8',
-          }),
-          body: jsonEncode(payload),
-        )
-        .timeout(
-          _storyCreateTimeout,
-          onTimeout: () {
-            throw TimeoutException(
-              'The server took too long to create the story. Please try again in a moment.',
-            );
-          },
-        );
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    if (map['ok'] != true) {
-      throw Exception(map['error']?.toString() ?? 'Story creation failed');
-    }
-    return (map['id'] as num?)?.toInt() ?? 0;
-  }
-
-  /// DELETE /admin_stories.php?id= — admin soft delete.
-  Future<void> deleteAdminStory(int storyId) async {
-    final uri = Uri.parse(
-      '$baseUrl/admin_stories.php',
-    ).replace(queryParameters: {'id': '$storyId'});
-    final response = await http.delete(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
-  }
-
-  /// POST /admin_story_view.php — mark story viewed once.
-  Future<void> markStoryViewed(int storyId) async {
-    final uri = Uri.parse('$baseUrl/admin_story_view.php');
-    final response = await http.post(
-      uri,
-      headers: _mergeHeaders({
-        'Content-Type': 'application/json; charset=utf-8',
-      }),
-      body: jsonEncode({'story_id': storyId}),
-    );
-    _assertAuthResponse(response);
-  }
-
-  /// POST /admin_story_like.php — like/unlike story.
-  Future<({bool liked, int likeCount})> toggleStoryLike({
-    required int storyId,
-    required bool liked,
-  }) async {
-    final uri = Uri.parse('$baseUrl/admin_story_like.php');
-    final response = await http.post(
-      uri,
-      headers: _mergeHeaders({
-        'Content-Type': 'application/json; charset=utf-8',
-      }),
-      body: jsonEncode({'story_id': storyId, 'liked': liked}),
-    );
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return (
-      liked: map['liked'] == true || map['liked'] == 1,
-      likeCount: (map['like_count'] as num?)?.toInt() ?? 0,
-    );
-  }
-
-  /// POST /admin_story_poll_vote.php — vote once on a story poll.
-  Future<StoryPoll> voteStoryPoll({
-    required int storyId,
-    required int pollId,
-    required String optionId,
-  }) async {
-    final uri = Uri.parse('$baseUrl/admin_story_poll_vote.php');
-    final response = await http.post(
-      uri,
-      headers: _mergeHeaders({
-        'Content-Type': 'application/json; charset=utf-8',
-      }),
-      body: jsonEncode({
-        'story_id': storyId,
-        'poll_id': pollId,
-        'option_id': optionId,
-      }),
-    );
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    final poll = map['poll'] as Map<String, dynamic>?;
-    if (poll == null) {
-      throw Exception(map['error']?.toString() ?? 'Poll vote failed');
-    }
-    return StoryPoll.fromJson(poll);
-  }
-
-  /// GET /admin_story_audience.php?story_id= — admin viewers/likers.
-  Future<StoryAudienceSummary> fetchStoryAudience(int storyId) async {
-    final uri = Uri.parse(
-      '$baseUrl/admin_story_audience.php',
-    ).replace(queryParameters: {'story_id': '$storyId'});
-    final response = await http.get(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
-    final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return StoryAudienceSummary.fromJson(map);
-  }
-
   // ── Teacher panel (requires is_teacher on server) ───────────────────────────
 
   /// GET /teacher_students.php — [inbox] adds unread + last activity and server sort.
@@ -1811,7 +1604,6 @@ class ApiService {
   /// POST /update_profile.php — requires [authToken].
   Future<AuthUser> updateProfile({
     required String displayName,
-    required String bio,
     required String avatar,
   }) async {
     final uri = Uri.parse('$baseUrl/update_profile.php');
@@ -1820,15 +1612,10 @@ class ApiService {
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'display_name': displayName,
-        'bio': bio,
-        'avatar': avatar,
-      }),
+      body: jsonEncode({'display_name': displayName, 'avatar': avatar}),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    await bustGrammarResultsListCaches();
     return AuthUser.fromJson(map['user'] as Map<String, dynamic>);
   }
 

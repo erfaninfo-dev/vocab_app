@@ -25,7 +25,6 @@ class GrammarPracticeResultCard extends StatelessWidget {
     this.rank,
     this.leaderboardMedal,
     this.practiceTotalsLabel,
-    this.onUserTap,
   });
 
   final GrammarResult r;
@@ -33,7 +32,6 @@ class GrammarPracticeResultCard extends StatelessWidget {
   final int? rank;
   final GrammarLeaderboardMedal? leaderboardMedal;
   final String? practiceTotalsLabel;
-  final VoidCallback? onUserTap;
 
   /// Topic labels: JSON [selectedGrammarsRaw] or `quizName` split by ` + `.
   static List<String> topicLabelsForResult(GrammarResult r) {
@@ -88,8 +86,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
       ratio = 0.0;
     }
 
-    final showCommunityHeader =
-        style == GrammarPracticeResultCardStyle.community;
+    final showCommunityHeader = style == GrammarPracticeResultCardStyle.community;
     final showPrivacyPill = style == GrammarPracticeResultCardStyle.personal;
 
     return Material(
@@ -118,9 +115,9 @@ class GrammarPracticeResultCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
               if (showCommunityHeader && rank != null) ...[
                 _CommunityRankBadge(
                   rank: rank!,
@@ -135,68 +132,53 @@ class GrammarPracticeResultCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (showCommunityHeader)
-                      InkWell(
-                        onTap: onUserTap,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 2,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _UserAvatar(
+                            scheme: scheme,
+                            avatarId: r.avatar,
+                            userId: r.userId,
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              _UserAvatar(
-                                scheme: scheme,
-                                avatarId: r.avatar,
-                                userId: r.userId,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      displayName,
-                                      style: tt.labelLarge?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: scheme.primary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: tt.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.primary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (practiceTotalsLabel != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    practiceTotalsLabel!,
+                                    style: tt.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    if (practiceTotalsLabel != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        practiceTotalsLabel!,
-                                        style: tt.labelSmall?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              if (onUserTap != null) ...[
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.account_circle_outlined,
-                                  size: 18,
-                                  color: scheme.primary,
-                                ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     if (showCommunityHeader && chips.isNotEmpty)
                       const SizedBox(height: 8),
                     if (chips.isNotEmpty)
-                      _GrammarTopicChipsWrap(labels: chips, scheme: scheme),
+                      _GrammarTopicChipsWrap(
+                        labels: chips,
+                        scheme: scheme,
+                      ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -258,7 +240,10 @@ String _formatCreatedAtRaw(String raw) {
 }
 
 class _GrammarTopicChipsWrap extends StatelessWidget {
-  const _GrammarTopicChipsWrap({required this.labels, required this.scheme});
+  const _GrammarTopicChipsWrap({
+    required this.labels,
+    required this.scheme,
+  });
 
   final List<String> labels;
   final ColorScheme scheme;
@@ -363,7 +348,11 @@ class _CommunityRankBadge extends StatelessWidget {
 }
 
 class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({required this.scheme, this.avatarId, this.userId});
+  const _UserAvatar({
+    required this.scheme,
+    this.avatarId,
+    this.userId,
+  });
 
   final ColorScheme scheme;
   final String? avatarId;
@@ -373,19 +362,30 @@ class _UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = (avatarId ?? '').trim();
     if (id.isNotEmpty) {
-      return ProfileAvatar(avatarId: id, userId: userId, size: 40);
+      return ProfileAvatar(
+        avatarId: id,
+        userId: userId,
+        size: 40,
+      );
     }
     return CircleAvatar(
       radius: 20,
       backgroundColor: scheme.primaryContainer.withValues(alpha: 0.85),
       foregroundColor: scheme.onPrimaryContainer,
-      child: Icon(Icons.person_rounded, color: scheme.primary, size: 22),
+      child: Icon(
+        Icons.person_rounded,
+        color: scheme.primary,
+        size: 22,
+      ),
     );
   }
 }
 
 class _PrivacyPill extends StatelessWidget {
-  const _PrivacyPill({required this.isPublic, required this.scheme});
+  const _PrivacyPill({
+    required this.isPublic,
+    required this.scheme,
+  });
 
   final bool isPublic;
   final ColorScheme scheme;
@@ -401,7 +401,9 @@ class _PrivacyPill extends StatelessWidget {
             ? scheme.secondaryContainer.withValues(alpha: 0.75)
             : scheme.surfaceContainerHighest.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -415,9 +417,7 @@ class _PrivacyPill extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            isPublic
-                ? l10n.resultVisibilityPublic
-                : l10n.resultVisibilityPrivate,
+            isPublic ? l10n.resultVisibilityPublic : l10n.resultVisibilityPrivate,
             style: tt.labelSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: isPublic
@@ -452,8 +452,7 @@ class _ScoreRing extends StatelessWidget {
     final pct = hasScore ? (ratio * 100).round() : null;
     final ratioLabel = hasScore ? '$score/$total' : '';
     final totalQ = total;
-    final compact =
-        hasScore &&
+    final compact = hasScore &&
         (ratioLabel.length > 5 || (totalQ != null && totalQ >= 100));
 
     return SizedBox(

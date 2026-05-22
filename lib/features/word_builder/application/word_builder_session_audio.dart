@@ -18,49 +18,53 @@ final wordBuilderBgmPlayerProvider = Provider<WordBuilderBgmPlayer>((ref) {
 
 final wordBuilderGameSfxEnabledProvider =
     NotifierProvider<WordBuilderGameSfxNotifier, bool>(
-      WordBuilderGameSfxNotifier.new,
-    );
+  WordBuilderGameSfxNotifier.new,
+);
 
 final wordBuilderGameBgmEnabledProvider =
     NotifierProvider<WordBuilderGameBgmNotifier, bool>(
-      WordBuilderGameBgmNotifier.new,
-    );
+  WordBuilderGameBgmNotifier.new,
+);
 
 final wordBuilderGameWaterSfxEnabledProvider =
     NotifierProvider<WordBuilderGameWaterSfxNotifier, bool>(
-      WordBuilderGameWaterSfxNotifier.new,
-    );
+  WordBuilderGameWaterSfxNotifier.new,
+);
 
-final wordBuilderSessionAudioLifecycleProvider = Provider.autoDispose
-    .family<int, int>((ref, bookKey) {
-      final bgm = ref.read(wordBuilderBgmPlayerProvider);
+final wordBuilderSessionAudioLifecycleProvider =
+    Provider.autoDispose.family<int, int>((ref, bookKey) {
+  final bgm = ref.read(wordBuilderBgmPlayerProvider);
 
-      ref.watch(wordBuilderTrayWaterAudioProvider(bookKey));
+  ref.watch(wordBuilderTrayWaterAudioProvider(bookKey));
 
-      ref.listen<bool>(wordBuilderGameBgmEnabledProvider, (prev, next) {
-        unawaited(bgm.applyFromRef(ref));
-      });
+  ref.listen<bool>(
+    wordBuilderGameBgmEnabledProvider,
+    (prev, next) {
+      unawaited(bgm.applyFromRef(ref));
+    },
+  );
 
-      ref.listen<bool>(wordBuilderGameWaterSfxEnabledProvider, (prev, next) {
-        if (!next) {
-          unawaited(
-            ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll(),
-          );
-        }
-      });
-
-      unawaited(configureAppAudioSession());
-      unawaited(bgm.onEnter(ref));
-
-      ref.onDispose(() {
+  ref.listen<bool>(
+    wordBuilderGameWaterSfxEnabledProvider,
+    (prev, next) {
+      if (!next) {
         unawaited(
           ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll(),
         );
-        unawaited(bgm.onLeave());
-      });
+      }
+    },
+  );
 
-      return 0;
-    });
+  unawaited(configureAppAudioSession());
+  unawaited(bgm.onEnter(ref));
+
+  ref.onDispose(() {
+    unawaited(ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll());
+    unawaited(bgm.onLeave());
+  });
+
+  return 0;
+});
 
 class WordBuilderGameSfxNotifier extends Notifier<bool> {
   static const _key = 'word_builder_session_sfx_v1';
@@ -160,11 +164,6 @@ class WordBuilderBgmPlayer {
     await _syncPlayback();
   }
 
-  Future<void> apply({required bool enabled}) async {
-    _userWantsBgm = enabled;
-    await _syncPlayback();
-  }
-
   Future<void> onEnter(Ref ref) async {
     _sessions++;
     await applyFromRef(ref);
@@ -175,8 +174,6 @@ class WordBuilderBgmPlayer {
     if (_sessions < 0) _sessions = 0;
     await _syncPlayback();
   }
-
-  Future<void> stopForAppBackground() => _stop();
 
   Future<void> _syncPlayback() async {
     final should = _sessions > 0 && _userWantsBgm;
@@ -194,7 +191,10 @@ class WordBuilderBgmPlayer {
       await player.setLoopMode(LoopMode.one);
       await player.setVolume(_volume);
       if (player.playing) return;
-      await player.setAudioSource(AudioSource.asset(_asset), preload: true);
+      await player.setAudioSource(
+        AudioSource.asset(_asset),
+        preload: true,
+      );
       await player.seek(Duration.zero);
       await player.play();
     } catch (e, st) {

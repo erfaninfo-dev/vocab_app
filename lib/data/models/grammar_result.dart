@@ -7,7 +7,6 @@ class GrammarResult {
     required this.totalQuestions,
     this.userId,
     this.userName,
-    this.bio,
     this.public,
     this.selectedGrammarsRaw,
     this.avatar,
@@ -21,7 +20,6 @@ class GrammarResult {
   final int? score;
   final int? totalQuestions;
   final String? userName;
-  final String? bio;
   final int? public;
   final String? selectedGrammarsRaw;
 
@@ -37,7 +35,6 @@ class GrammarResult {
       userId: (json['user_id'] as num?)?.toInt(),
       createdAt: (json['created_at'] as String?) ?? '',
       userName: json['user_name'] as String?,
-      bio: json['bio'] as String?,
       quizName: (json['quiz_name'] as String?) ?? '',
       score: (json['score'] as num?)?.toInt(),
       totalQuestions: (json['total_questions'] as num?)?.toInt(),
@@ -59,3 +56,4 @@ class PublicGrammarResultsPage {
   final List<GrammarResult> results;
   final bool hasMore;
 }
+

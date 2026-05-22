@@ -22,10 +22,7 @@ List<GrammarResult> mergeGrammarPracticeLeaderboard(List<GrammarResult> raw) {
   }
   final merged = <GrammarResult>[];
   for (final g in groups.values) {
-    g.sort(
-      (a, b) =>
-          _grammarResultCreatedAt(b).compareTo(_grammarResultCreatedAt(a)),
-    );
+    g.sort((a, b) => _grammarResultCreatedAt(b).compareTo(_grammarResultCreatedAt(a)));
     final rep = g.first;
     final fromApi = g.map((e) => e.grammarQuizTotal).whereType<int>();
     final total = fromApi.isNotEmpty
@@ -40,7 +37,6 @@ List<GrammarResult> mergeGrammarPracticeLeaderboard(List<GrammarResult> raw) {
         score: rep.score,
         totalQuestions: rep.totalQuestions,
         userName: rep.userName,
-        bio: rep.bio,
         public: rep.public,
         selectedGrammarsRaw: rep.selectedGrammarsRaw,
         avatar: rep.avatar,

@@ -210,23 +210,12 @@ class WordBuilderGameNotifier
     return false;
   }
 
-  Set<int> _unsolvedTargetLengths(WordBuilderLevel level, Set<String> solved) {
-    return {
-      for (final target in level.targetWords)
-        if (!solved.contains(normalizeWord(target.word)))
-          normalizeWord(target.word).length,
-    };
-  }
-
   WordBuilderTargetWord? _catalogMatchForBuilt(
     WordBuilderViewState s,
     String builtLower,
   ) {
     final norm = normalizeWord(builtLower);
     if (norm.length < 2) return null;
-    if (!_unsolvedTargetLengths(s.level, s.solvedLower).contains(norm.length)) {
-      return null;
-    }
     if (_isCurrentLevelTarget(s.level, norm)) return null;
     if (_wasSolvedAnywhere(norm, s.persisted, s.solvedLower)) return null;
     final target = _globalTargetsByLemma[norm];
@@ -247,11 +236,9 @@ class WordBuilderGameNotifier
     final prefix = normalizeWord(builtLower);
     if (prefix.isEmpty) return false;
     final pool = letterCounts(s.level.letters);
-    final allowedLengths = _unsolvedTargetLengths(s.level, s.solvedLower);
     for (final entry in _globalTargetsByLemma.entries) {
       final word = entry.key;
       if (word.length <= prefix.length || !word.startsWith(prefix)) continue;
-      if (!allowedLengths.contains(word.length)) continue;
       if (_isCurrentLevelTarget(s.level, word)) continue;
       if (_wasSolvedAnywhere(word, s.persisted, s.solvedLower)) continue;
       if (canSpellFromPool(word, pool)) return true;
@@ -283,14 +270,19 @@ class WordBuilderGameNotifier
   int _firstReplaceableTargetIndex(
     WordBuilderLevel level,
     Set<String> solvedLower, {
-    required int length,
+    int? preferredLength,
   }) {
+    var fallback = -1;
     for (var i = 0; i < level.targetWords.length; i++) {
       final target = level.targetWords[i];
       if (solvedLower.contains(normalizeWord(target.word))) continue;
-      if (normalizeWord(target.word).length == length) return i;
+      fallback = fallback == -1 ? i : fallback;
+      if (preferredLength != null &&
+          normalizeWord(target.word).length == preferredLength) {
+        return i;
+      }
     }
-    return -1;
+    return fallback;
   }
 
   List<WordBuilderLevel> _carryDisplacedTargetForward({
@@ -327,7 +319,7 @@ class WordBuilderGameNotifier
         replaceIndex = _firstReplaceableTargetIndex(
           level,
           solved,
-          length: normalizeWord(pending.word).length,
+          preferredLength: normalizeWord(pending.word).length,
         );
       }
       if (replaceIndex == -1) continue;
@@ -357,7 +349,7 @@ class WordBuilderGameNotifier
     final currentReplaceIndex = _firstReplaceableTargetIndex(
       s.level,
       s.solvedLower,
-      length: acceptedNorm.length,
+      preferredLength: acceptedNorm.length,
     );
     if (currentReplaceIndex == -1) return null;
 

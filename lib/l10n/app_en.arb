@@ -790,8 +790,6 @@
   "profileCamera": "Camera",
   "profileDisplayName": "Display name",
   "profileDisplayNameHint": "How your name appears",
-  "profileBio": "Bio",
-  "profileBioHint": "Write a short note about yourself",
   "profilePresetAvatars": "Or pick a preset avatar",
   "profileBoyAvatars": "Boy avatars",
   "profileGirlAvatars": "Girl avatars",
@@ -844,7 +842,6 @@
     }
   },
   "guestUser": "Guest",
-  "profileBioEmpty": "No bio yet.",
   "resultVisibilityPublic": "Public",
   "resultVisibilityPrivate": "Private",
   "errorConnectionTryAgain": "Check your connection and try again.",
