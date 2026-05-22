@@ -33,6 +33,9 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/stats/learning_insights_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/stories/admin_story_audience_screen.dart';
+import '../../features/stories/admin_story_create_screen.dart';
+import '../../features/stories/story_viewer_screen.dart';
 import '../../features/you/you_screen.dart';
 import '../../features/you/student_class_sessions_screen.dart';
 import '../../features/you/student_panel_screen.dart';
@@ -108,6 +111,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/users',
         builder: (_, __) => const AdminUsersScreen(),
+      ),
+      GoRoute(
+        path: '/stories/create',
+        builder: (_, __) => const AdminStoryCreateScreen(),
+      ),
+      GoRoute(
+        path: '/stories/viewer',
+        builder: (_, state) => StoryViewerScreen(
+          initialStoryId: int.tryParse(
+            state.uri.queryParameters['storyId'] ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/stories/admin/audience/:storyId',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['storyId'] ?? '') ?? 0;
+          return AdminStoryAudienceScreen(storyId: id);
+        },
       ),
 
       GoRoute(
@@ -452,7 +474,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               return BookVocabQuizSetupScreen(
                 bookId: bookId,
                 lockedUnit: unit,
-                initialSelectedSections: {unit: {section}},
+                initialSelectedSections: {
+                  unit: {section},
+                },
               );
             },
           ),
@@ -465,10 +489,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
               final unit =
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
-              return BookVocabQuizSetupScreen(
-                bookId: bookId,
-                lockedUnit: unit,
-              );
+              return BookVocabQuizSetupScreen(bookId: bookId, lockedUnit: unit);
             },
           ),
 

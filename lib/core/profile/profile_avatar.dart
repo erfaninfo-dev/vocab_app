@@ -5,7 +5,8 @@ import '../../data/services/api_service.dart';
 import 'profile_photo_cache.dart';
 import 'profile_presets.dart';
 
-/// Circular avatar: preset icons, or a network JPEG when [avatarId] is `custom`.
+/// Circular avatar: preset icons, or a network photo when [avatarId] is
+/// `custom` / an uploaded avatar path.
 class ProfileAvatar extends ConsumerWidget {
   const ProfileAvatar({
     super.key,
@@ -16,12 +17,20 @@ class ProfileAvatar extends ConsumerWidget {
   });
 
   final String avatarId;
+
   /// Required for loading `custom` photo from the API.
   final int? userId;
   final double size;
   final bool showBorder;
 
   static bool isCustomPhoto(String id) => id.trim().toLowerCase() == 'custom';
+
+  static bool isPhotoPath(String id) {
+    final value = id.trim().toLowerCase();
+    return value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('uploads/avatars/');
+  }
 
   static String customPhotoUrl(int userId, int cacheNonce) {
     final base = kApiBaseUrl.replaceAll(RegExp(r'/$'), '');
@@ -34,9 +43,11 @@ class ProfileAvatar extends ConsumerWidget {
     final id = avatarId.trim();
     final uid = userId;
 
-    if (isCustomPhoto(id) && uid != null && uid > 0) {
+    if ((isCustomPhoto(id) && uid != null && uid > 0) || isPhotoPath(id)) {
       final nonce = ref.watch(profilePhotoCacheNonceProvider);
-      final url = customPhotoUrl(uid, nonce);
+      final url = isPhotoPath(id)
+          ? apiAbsoluteMediaUrl(id)
+          : customPhotoUrl(uid!, nonce);
       return Container(
         width: size,
         height: size,
@@ -47,30 +58,23 @@ class ProfileAvatar extends ConsumerWidget {
               )
             : null,
         child: ClipOval(
-          child: Image.network(
-            url,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-            errorBuilder: (_, __, ___) => _FallbackPreset(
-              size: size,
-              scheme: scheme,
-              showBorder: showBorder,
-            ),
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return Center(
-                child: SizedBox(
-                  width: size * 0.45,
-                  height: size * 0.45,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: scheme.primary,
-                  ),
-                ),
-              );
-            },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _FallbackPreset(size: size, scheme: scheme, showBorder: false),
+              Image.network(
+                url,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
         ),
       );
@@ -89,11 +93,7 @@ class ProfileAvatar extends ConsumerWidget {
       child: CircleAvatar(
         radius: size / 2,
         backgroundColor: p.background,
-        child: Icon(
-          p.icon,
-          color: p.foreground,
-          size: size * 0.52,
-        ),
+        child: Icon(p.icon, color: p.foreground, size: size * 0.52),
       ),
     );
   }

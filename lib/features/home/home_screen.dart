@@ -9,6 +9,8 @@ import '../../data/models/auth_user.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
+import '../stories/story_providers.dart';
+import '../stories/story_ring.dart';
 import '../../l10n/app_localizations.dart';
 import 'home_book_card.dart';
 import 'home_book_track_provider.dart';
@@ -396,11 +398,16 @@ class _HomeHeader extends ConsumerWidget {
   }
 }
 
-class _HomeHeaderAppIcon extends StatelessWidget {
+class _HomeHeaderAppIcon extends ConsumerWidget {
   const _HomeHeaderAppIcon();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storiesAsync = ref.watch(visibleStoriesProvider);
+    final stories = storiesAsync.valueOrNull ?? const [];
+    if (stories.isNotEmpty) {
+      return StoryRing(stories: stories);
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),

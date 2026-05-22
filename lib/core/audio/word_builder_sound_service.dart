@@ -4,12 +4,7 @@ import 'package:just_audio/just_audio.dart';
 
 import 'app_audio_session.dart';
 
-enum WordBuilderSound {
-  correct,
-  wrong,
-  levelComplete,
-  gameOver,
-}
+enum WordBuilderSound { correct, wrong, levelComplete, gameOver }
 
 class WordBuilderSoundService {
   static const _paths = {
@@ -37,15 +32,20 @@ class WordBuilderSoundService {
       await player.stop();
       await player.setLoopMode(LoopMode.off);
       await player.setVolume(_volumes[sound]!);
-      await player.setAudioSource(
-        AudioSource.asset(path),
-        preload: true,
-      );
+      await player.setAudioSource(AudioSource.asset(path), preload: true);
       await player.seek(Duration.zero);
       await player.play();
     } catch (e, st) {
       debugPrint('WordBuilderSoundService: skipped $sound ($e)\n$st');
     }
+  }
+
+  Future<void> stop() async {
+    final p = _player;
+    if (p == null) return;
+    try {
+      await p.stop();
+    } catch (_) {}
   }
 
   Future<void> dispose() async {
@@ -59,7 +59,9 @@ class WordBuilderSoundService {
   }
 }
 
-final wordBuilderSoundServiceProvider = Provider<WordBuilderSoundService>((ref) {
+final wordBuilderSoundServiceProvider = Provider<WordBuilderSoundService>((
+  ref,
+) {
   final service = WordBuilderSoundService();
   ref.onDispose(service.dispose);
   return service;
