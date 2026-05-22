@@ -40,7 +40,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ielts_vocab_app"
-        minSdk = flutter.minSdkVersion
+        // Keep the APK installable on older devices that previous releases supported.
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -54,6 +55,8 @@ android {
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
