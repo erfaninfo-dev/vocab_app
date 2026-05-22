@@ -25,7 +25,7 @@ val hasReleaseSigning =
 
 android {
     namespace = "com.example.ielts_vocab_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -40,8 +40,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ielts_vocab_app"
-        // Keep the APK installable on older devices that previous releases supported.
-        minSdk = 21
+        // flutter_tts requires API 24+, so releases cannot install below Android 7.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
