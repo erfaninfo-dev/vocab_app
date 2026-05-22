@@ -25,7 +25,7 @@ val hasReleaseSigning =
 
 android {
     namespace = "com.example.ielts_vocab_app"
-    compileSdk = 36
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -40,8 +40,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ielts_vocab_app"
-        // flutter_tts requires API 24+, so releases cannot install below Android 7.
-        minSdk = 24
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -55,8 +54,6 @@ android {
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
-                enableV1Signing = true
-                enableV2Signing = true
             }
         }
     }
