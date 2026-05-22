@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../l10n/app_localizations.dart';
+import '../stories/story_providers.dart';
+import '../stories/story_ring.dart';
 import 'student_code_dialogs.dart';
 
 /// Account card moved from Settings — sign-in, profile, student code, sign-out.
@@ -71,64 +73,86 @@ class YouAccountSection extends ConsumerWidget {
               decoration: _cardDecoration(scheme),
               child: Column(
                 children: [
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => context.push('/profile'),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            ProfileAvatar(
+                  Builder(
+                    builder: (context) {
+                      final ownStories =
+                          ref
+                              .watch(visibleStoriesProvider)
+                              .valueOrNull
+                              ?.where(
+                                (story) => story.adminUserId == session.user.id,
+                              )
+                              .toList() ??
+                          const [];
+                      final profileAvatar = ownStories.isEmpty
+                          ? ProfileAvatar(
                               avatarId: session.user.avatar,
                               userId: session.user.id,
                               size: 48,
+                            )
+                          : StoryRing(
+                              stories: ownStories,
+                              size: 60,
+                              initialStoryId: ownStories.first.id,
+                            );
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => context.push('/profile'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.profile,
-                                    style: theme.textTheme.titleMedium,
+                            child: Row(
+                              children: [
+                                profileAvatar,
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.profile,
+                                        style: theme.textTheme.titleMedium,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        session.user.displayName != null &&
+                                                session.user.displayName!
+                                                    .trim()
+                                                    .isNotEmpty
+                                            ? '${session.user.displayName!.trim()}\n${session.user.email}'
+                                            : session.user.email,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                              height:
+                                                  session.user.displayName !=
+                                                          null &&
+                                                      session.user.displayName!
+                                                          .trim()
+                                                          .isNotEmpty
+                                                  ? 1.35
+                                                  : 1.2,
+                                            ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    session.user.displayName != null &&
-                                            session.user
-                                                .displayName!
-                                                .trim()
-                                                .isNotEmpty
-                                        ? '${session.user.displayName!.trim()}\n${session.user.email}'
-                                        : session.user.email,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                      height: session.user.displayName !=
-                                                  null &&
-                                              session.user.displayName!
-                                                  .trim()
-                                                  .isNotEmpty
-                                          ? 1.35
-                                          : 1.2,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
+                                ),
+                                Icon(
+                                  Icons.edit_outlined,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ],
                             ),
-                            Icon(
-                              Icons.edit_outlined,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   if (session.user.isTeacher || session.user.isAdmin) ...[
                     const Divider(height: 0),

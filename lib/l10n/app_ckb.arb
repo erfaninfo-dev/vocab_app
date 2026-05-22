@@ -620,6 +620,8 @@
   "profileCamera": "کامێرا",
   "profileDisplayName": "ناوی پیشاندان",
   "profileDisplayNameHint": "ناوەکەت چۆن دەردەکەوێت",
+  "profileBio": "بایۆ",
+  "profileBioHint": "دەقێکی کورت دەربارەی خۆت بنووسە",
   "profilePresetAvatars": "یان وێنۆچکەی ئامادە هەڵبژێرە",
   "profileBoyAvatars": "وێنۆچکەی کوڕ",
   "profileGirlAvatars": "وێنۆچکەی کچ",
@@ -667,6 +669,7 @@
     }
   },
   "guestUser": "میوان",
+  "profileBioEmpty": "هێشتا بایۆیەک نەنووسراوە.",
   "resultVisibilityPublic": "گشتی",
   "resultVisibilityPrivate": "تایبەت",
   "errorConnectionTryAgain": "پەیوەندی بپشکنە و دووبارە هەوڵ بدە.",

@@ -1893,6 +1893,12 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get profileDisplayNameHint => 'ناوەکەت چۆن دەردەکەوێت';
 
   @override
+  String get profileBio => 'بایۆ';
+
+  @override
+  String get profileBioHint => 'دەقێکی کورت دەربارەی خۆت بنووسە';
+
+  @override
   String get profilePresetAvatars => 'یان وێنۆچکەی ئامادە هەڵبژێرە';
 
   @override
@@ -2038,6 +2044,9 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get guestUser => 'میوان';
+
+  @override
+  String get profileBioEmpty => 'هێشتا بایۆیەک نەنووسراوە.';
 
   @override
   String get resultVisibilityPublic => 'گشتی';

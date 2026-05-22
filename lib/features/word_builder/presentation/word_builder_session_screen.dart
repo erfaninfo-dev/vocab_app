@@ -6,12 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
 import '../application/word_builder_coins_provider.dart';
 import '../application/word_builder_game_notifier.dart';
 import '../application/word_builder_session_audio.dart';
+import '../application/word_builder_tray_water_audio.dart';
 import '../domain/word_builder_models.dart';
+import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_coin_constants.dart';
 import 'word_builder_feedback.dart';
@@ -38,23 +41,61 @@ class WordBuilderSessionScreen extends ConsumerStatefulWidget {
 }
 
 class _WordBuilderSessionScreenState
-    extends ConsumerState<WordBuilderSessionScreen> {
+    extends ConsumerState<WordBuilderSessionScreen>
+    with WidgetsBindingObserver {
   bool _levelCompleteDialogOpen = false;
 
-  Future<void> _finishCampaignStageAndExit() async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(
+          ref
+              .read(wordBuilderBgmPlayerProvider)
+              .apply(enabled: ref.read(wordBuilderGameBgmEnabledProvider)),
+        );
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _stopSessionAudioForBackground();
+    }
+  }
+
+  void _stopSessionAudioForBackground() {
+    unawaited(ref.read(wordBuilderBgmPlayerProvider).stopForAppBackground());
+    unawaited(ref.read(wordBuilderSoundServiceProvider).stop());
+    unawaited(
+      ref.read(wordBuilderTrayWaterAudioProvider(widget.bookKey)).stopAll(),
+    );
+  }
+
+  Future<void> _saveCampaignStageProgress() async {
     final key = widget.bookKey;
     final camp = decodeWordBuilderCampaignSessionKey(key);
-    if (camp != null) {
-      final repo = ref.read(wordBuilderCampaignProgressRepositoryProvider);
-      final snap = await repo.load();
-      final nextProg = snap.afterClearingStage(
-        camp.difficulty,
-        camp.stage1Based,
-      );
-      await repo.save(nextProg);
-      ref.invalidate(wordBuilderCampaignProgressProvider);
-      ref.invalidate(wordBuilderGameProvider(key));
-    }
+    if (camp == null) return;
+    final repo = ref.read(wordBuilderCampaignProgressRepositoryProvider);
+    final snap = await repo.load();
+    final nextProg = snap.afterClearingStage(camp.difficulty, camp.stage1Based);
+    await repo.save(nextProg);
+    ref.invalidate(wordBuilderCampaignProgressProvider);
+    ref.invalidate(wordBuilderGameProvider(key));
+  }
+
+  Future<void> _finishCampaignStageAndExit() async {
+    await _saveCampaignStageProgress();
     if (mounted) context.pop();
   }
 
@@ -62,7 +103,17 @@ class _WordBuilderSessionScreenState
     final key = widget.bookKey;
     final camp = decodeWordBuilderCampaignSessionKey(key);
     if (camp != null) {
-      await _finishCampaignStageAndExit();
+      await _saveCampaignStageProgress();
+      if (!mounted) return;
+      if (camp.stage1Based >= kWordBuilderStagesPerTier) {
+        context.pop();
+        return;
+      }
+      final nextKey = encodeWordBuilderCampaignSessionKey(
+        camp.difficulty,
+        camp.stage1Based + 1,
+      );
+      context.pushReplacement('/word-builder/session?bookId=$nextKey');
       return;
     }
     await ref.read(wordBuilderGameProvider(key).notifier).goToNextLevel();
