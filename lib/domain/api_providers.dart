@@ -13,6 +13,7 @@ import '../data/models/temporary_class_schedule_slot.dart';
 import '../features/teacher/teacher_week_upcoming.dart';
 import '../data/models/grammar_result.dart';
 import '../data/models/grammar_result_detail.dart';
+import '../data/models/league.dart';
 import '../data/models/unit_model.dart';
 import '../data/models/section_info.dart';
 import '../data/models/unit_sample.dart';
@@ -278,12 +279,36 @@ final myVocabQuizResultsProvider = FutureProvider<List<VocabQuizResultSummary>>(
   },
 );
 
+/// Lifetime vocabulary quiz points for the signed-in user.
+/// This is not the leaderboard; admins keep points here even when hidden there.
+final myVocabQuizTotalPointsProvider = FutureProvider<int>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null) return 0;
+  return ref.read(apiServiceProvider).fetchMyVocabQuizTotalPoints();
+});
+
 /// GET /vocab_quiz_result_detail.php?id= (auth).
 final vocabQuizResultDetailProvider =
     FutureProvider.family<VocabQuizResultDetail, int>((ref, id) {
       ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
     });
+
+/// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=... (auth).
+final leagueProvider = FutureProvider.family<LeagueResponse, LeagueQuery>((
+  ref,
+  query,
+) {
+  ref.watch(apiRemoteDataEpochProvider);
+  final session = ref.watch(authProvider).valueOrNull;
+  if (session == null) {
+    throw const UnauthorizedException('Please sign in to view the league');
+  }
+  return ref
+      .read(apiServiceProvider)
+      .fetchLeague(query.type, period: query.period, sort: query.sort);
+});
 
 /// GET /teacher_students.php — requires teacher role on server.
 final teacherStudentsProvider = FutureProvider<List<TeacherStudentSummary>>((

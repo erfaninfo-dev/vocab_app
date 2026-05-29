@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/onboarding/onboarding_prefs.dart';
-import '../../domain/api_providers.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../l10n/app_localizations.dart';
 
 class _Slide {
@@ -65,12 +65,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _prefetchBooksList() async {
-    try {
-      await ref.read(apiSearchBooksProvider.future);
-    } catch (_) {
-      if (!mounted) return;
-      ref.invalidate(apiSearchBooksProvider);
-    }
+    if (!mounted) return;
+    await prefetchBooksCatalogForHome(ref);
   }
 
   @override

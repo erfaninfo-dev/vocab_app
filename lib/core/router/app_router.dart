@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../tts/tts_service.dart';
+import '../../data/models/league.dart';
 import '../../features/favorites/favorites_screen.dart';
 import '../../features/word_builder/word_builder_constants.dart';
 import '../../features/word_builder/presentation/word_builder_lobby_screen.dart';
@@ -17,6 +18,7 @@ import '../../features/grammar/grammar_topics_screen.dart';
 import '../../features/flashcards/flashcards_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/series_books_screen.dart';
+import '../../features/league/league_screen.dart';
 import '../../features/quiz/book_vocab_quiz_setup_screen.dart';
 import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
@@ -122,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           initialStoryId: int.tryParse(
             state.uri.queryParameters['storyId'] ?? '',
           ),
+          grammarOnly: state.uri.queryParameters['scope'] == 'grammar',
         ),
       ),
       GoRoute(
@@ -263,6 +266,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/grammar',
             builder: (_, __) => const GrammarTopicsScreen(),
+          ),
+          GoRoute(
+            path: '/league',
+            builder: (_, state) => LeagueScreen(
+              initialType: LeagueType.fromApi(
+                state.uri.queryParameters['type'],
+              ),
+            ),
           ),
           GoRoute(
             path: '/grammar/results',

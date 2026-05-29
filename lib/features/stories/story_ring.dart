@@ -1,10 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/admin_story.dart';
 
-class StoryRing extends StatefulWidget {
+class StoryRing extends StatelessWidget {
   const StoryRing({
     super.key,
     required this.stories,
@@ -16,103 +18,141 @@ class StoryRing extends StatefulWidget {
   final double size;
   final int? initialStoryId;
 
-  @override
-  State<StoryRing> createState() => _StoryRingState();
-}
-
-class _StoryRingState extends State<StoryRing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-      lowerBound: 0,
-      upperBound: 1,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
+  static const _unseenRingColor = Color(0xFFD62976);
+  static const _seenRingColor = Color(0xFFB0B0B0);
 
   @override
   Widget build(BuildContext context) {
-    final first = widget.stories.first;
-    final hasUnseen = widget.stories.any((s) => !s.seen);
+    if (stories.isEmpty) return const SizedBox.shrink();
+
+    final first = stories.first;
     final scheme = Theme.of(context).colorScheme;
-    final borderGradient = hasUnseen
-        ? const LinearGradient(
-            colors: [Color(0xFFFEDA75), Color(0xFFFA7E1E), Color(0xFFD62976)],
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-          )
-        : LinearGradient(
-            colors: [
-              scheme.outlineVariant,
-              scheme.outline.withValues(alpha: 0.65),
-            ],
-          );
+    final ringStroke = size >= 60 ? 3.0 : 2.5;
+    final innerInset = ringStroke + 2.5;
 
     return Semantics(
       button: true,
       label: 'Stories',
       child: GestureDetector(
         onTap: () {
-          final initialStoryId = widget.initialStoryId;
+          final initialStoryId = this.initialStoryId;
           context.push(
             initialStoryId == null
                 ? '/stories/viewer'
                 : '/stories/viewer?storyId=$initialStoryId',
           );
         },
-        child: AnimatedBuilder(
-          animation: _pulse,
-          builder: (context, child) {
-            final spread = hasUnseen ? 3.0 + (_pulse.value * 5) : 0.0;
-            return Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  if (hasUnseen)
-                    BoxShadow(
-                      color: const Color(0xFFD62976).withValues(alpha: 0.22),
-                      blurRadius: 10 + spread,
-                      spreadRadius: spread * 0.18,
-                    ),
-                ],
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: Size.square(size),
+                painter: _SegmentedStoryRingPainter(
+                  seenFlags: [for (final story in stories) story.seen],
+                  strokeWidth: ringStroke,
+                  gapRadians: stories.length > 1 ? 16 * math.pi / 180 : 0,
+                  unseenColor: _unseenRingColor,
+                  seenColor: _seenRingColor,
+                ),
               ),
-              child: child,
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: borderGradient,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.surface,
+              Container(
+                width: size - innerInset * 2,
+                height: size - innerInset * 2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.surface,
+                ),
+                alignment: Alignment.center,
+                child: ProfileAvatar(
+                  avatarId: first.adminAvatar,
+                  userId: first.adminUserId,
+                  size: size - 12,
+                ),
               ),
-              child: ProfileAvatar(
-                avatarId: first.adminAvatar,
-                userId: first.adminUserId,
-                size: widget.size - 12,
-              ),
-            ),
+            ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _SegmentedStoryRingPainter extends CustomPainter {
+  const _SegmentedStoryRingPainter({
+    required this.seenFlags,
+    required this.strokeWidth,
+    required this.gapRadians,
+    required this.unseenColor,
+    required this.seenColor,
+  });
+
+  final List<bool> seenFlags;
+  final double strokeWidth;
+  final double gapRadians;
+  final Color unseenColor;
+  final Color seenColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final count = seenFlags.length;
+    if (count == 0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const startAtTop = -math.pi / 2;
+
+    if (count == 1) {
+      _drawSegment(
+        canvas: canvas,
+        rect: rect,
+        startAngle: startAtTop,
+        sweepAngle: math.pi * 2,
+        seen: seenFlags.first,
+      );
+      return;
+    }
+
+    final totalGap = gapRadians * count;
+    final sweepPerSegment = (math.pi * 2 - totalGap) / count;
+
+    for (var i = 0; i < count; i++) {
+      final startAngle = startAtTop + i * (sweepPerSegment + gapRadians);
+      _drawSegment(
+        canvas: canvas,
+        rect: rect,
+        startAngle: startAngle,
+        sweepAngle: sweepPerSegment,
+        seen: seenFlags[i],
+      );
+    }
+  }
+
+  void _drawSegment({
+    required Canvas canvas,
+    required Rect rect,
+    required double startAngle,
+    required double sweepAngle,
+    required bool seen,
+  }) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = seen ? seenColor : unseenColor;
+
+    canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentedStoryRingPainter oldDelegate) {
+    return oldDelegate.seenFlags != seenFlags ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.gapRadians != gapRadians ||
+        oldDelegate.unseenColor != unseenColor ||
+        oldDelegate.seenColor != seenColor;
   }
 }

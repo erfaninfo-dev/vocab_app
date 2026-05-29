@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/word-builder-game
+      - leauge
   workflow_dispatch:
 
 env:

@@ -228,6 +228,8 @@
   "quizTitle": "کوییز",
   "couldNotLoadWords": "بارگذاری داده انجام نشد. دوباره تلاش کنید.",
   "couldNotLoadMistakes": "بارگذاری لیست اشتباهات ممکن نشد",
+  "couldNotLoadLeague": "بارگذاری لیگ انجام نشد",
+  "leagueErrorPullToRefresh": "برای به‌روزرسانی، صفحه را به پایین بکشید.",
   "quizNotEnoughImportant": "در این محدوده لغت مهمی نیست. همهٔ لغات را انتخاب کنید، محدوده را عوض کنید یا یونیت‌های بیشتری بگیرید.",
   "quizNotEnoughWrongs": "در این انتخاب لغتی از اشتباهات شما نیست. یونیت‌ها را عوض کنید یا «فقط اشتباهات قبلی» را خاموش کنید.",
   "quizNeedFourWords": "حداقل ۴ لغت برای شروع این کوییز لازم است.",
@@ -732,6 +734,10 @@
   "wordBuilderDifficultyBeginner": "مبتدی",
   "wordBuilderDifficultyIntermediate": "متوسط",
   "wordBuilderDifficultyAdvanced": "پیشرفته",
+  "wordBuilderTierLockedIntermediateSubtitle": "قفل است • اول مبتدی را کامل کن",
+  "wordBuilderTierLockedAdvancedSubtitle": "قفل است • اول متوسط را کامل کن",
+  "wordBuilderTierLockedIntermediateMessage": "همهٔ مراحل مبتدی را کامل کن تا سطح متوسط باز شود.",
+  "wordBuilderTierLockedAdvancedMessage": "همهٔ مراحل متوسط را کامل کن تا سطح پیشرفته باز شود.",
   "wordBuilderYourWord": "کلمهٔ شما",
   "wordBuilderLetters": "حرف‌ها",
   "wordBuilderSubmit": "بررسی کلمه",
@@ -748,6 +754,14 @@
   "wordBuilderCorrectNice": "آفرین!",
   "wordBuilderLevelCompleteTitle": "مرحله کامل شد!",
   "wordBuilderLevelCompleteBody": "عالی بود؛ همهٔ کلمات این مرحله را پیدا کردی.",
+  "wordBuilderBeginnerCompleteTitle": "مبتدی کامل شد!",
+  "wordBuilderBeginnerCompleteBody": "عالی بود! سطح متوسط باز شد؛ آمادهٔ چالش بعدی هستی؟",
+  "wordBuilderStartIntermediate": "شروع متوسط",
+  "wordBuilderIntermediateCompleteTitle": "متوسط کامل شد!",
+  "wordBuilderIntermediateCompleteBody": "فوق‌العاده بود! سطح پیشرفته باز شد؛ حالا چالش جدی‌تر شروع می‌شود.",
+  "wordBuilderStartAdvanced": "شروع پیشرفته",
+  "wordBuilderAdvancedCompleteTitle": "همهٔ بخش‌ها کامل شد!",
+  "wordBuilderAdvancedCompleteBody": "درخشان بود! کل کمپین Word Builder را تمام کردی.",
   "wordBuilderHintLetter": "یک حرف در یکی از کلمات نمایش داده شد.",
   "wordBuilderHintRemoved": "یک حرف اضافه از کلمهٔ شما حذف شد.",
   "wordBuilderHintRemoveNone": "الان حرف اضافه‌ای برای حذف نیست.",
@@ -910,5 +924,24 @@
   "sampleHighlightPickMainColor": "رنگ هایلایت",
   "sampleHighlightTapColor": "برای هایلایت یک رنگ بزنید",
   "sampleHighlightRemove": "حذف هایلایت",
-  "sampleHighlightDefaultColor": "هایلایت"
+  "sampleHighlightDefaultColor": "هایلایت",
+  "samplePlayFullText": "پخش نمونه",
+  "samplePauseFullText": "توقف",
+  "sampleTtsNowPlaying": "در حال خواندن متن نمونه",
+  "sampleTtsStop": "قطع",
+  "sampleTtsRewind5": "۵ ثانیه عقب",
+  "sampleTtsForward5": "۵ ثانیه جلو",
+  "sampleTtsHighlight": "هایلایت هم‌زمان",
+  "sampleTtsSpeed": "سرعت",
+  "sampleTtsSpeedLabel": "{speed}×",
+  "sampleTtsEngine": "صدا",
+  "sampleTtsEngineSystem": "سیستم",
+  "sampleTtsEngineGoogle": "گوگل",
+  "@sampleTtsSpeedLabel": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  }
 }

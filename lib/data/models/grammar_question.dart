@@ -1,4 +1,13 @@
+import 'dart:math';
+
 class GrammarQuestion {
+  static const List<String> optionKeys = [
+    'option1',
+    'option2',
+    'option3',
+    'option4',
+  ];
+
   const GrammarQuestion({
     required this.id,
     required this.topic,
@@ -72,5 +81,20 @@ class GrammarQuestion {
     final a = (correctAnswer ?? '').trim().toLowerCase();
     final b = (selectedKey ?? '').trim().toLowerCase();
     return a.isNotEmpty && a == b;
+  }
+
+  /// DB option keys that have non-empty text (fixed canonical order).
+  List<String> nonEmptyOptionKeys() {
+    return optionKeys
+        .where((key) => (optionByKey(key)?.trim().isNotEmpty ?? false))
+        .toList(growable: false);
+  }
+
+  /// Display order for MCQ UI. Same [shuffleSeed] always yields the same order.
+  List<String> shuffledOptionKeys(int shuffleSeed) {
+    final keys = List<String>.from(nonEmptyOptionKeys());
+    if (keys.length <= 1) return keys;
+    keys.shuffle(Random(shuffleSeed));
+    return keys;
   }
 }

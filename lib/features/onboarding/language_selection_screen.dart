@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/onboarding/language_selection_prefs.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
-import '../../domain/api_providers.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../l10n/app_localizations.dart';
 
 /// First-launch UI language: English, Persian, or Kurdish (Sorani).
@@ -33,12 +33,8 @@ class _LanguageSelectionScreenState
   }
 
   Future<void> _prefetchBooksList() async {
-    try {
-      await ref.read(apiSearchBooksProvider.future);
-    } catch (_) {
-      if (!mounted) return;
-      ref.invalidate(apiSearchBooksProvider);
-    }
+    if (!mounted) return;
+    await prefetchBooksCatalogForHome(ref);
   }
 
   Future<void> _continue() async {

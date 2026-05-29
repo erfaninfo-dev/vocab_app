@@ -9,6 +9,7 @@ class StoryTextStyle {
     this.layers = const [],
     this.imageTransform = const StoryImageTransform(),
     this.poll,
+    this.grammarGame,
   });
 
   final double fontSize;
@@ -20,6 +21,7 @@ class StoryTextStyle {
   final List<StoryTextLayer> layers;
   final StoryImageTransform imageTransform;
   final StoryPoll? poll;
+  final StoryGrammarGame? grammarGame;
 
   factory StoryTextStyle.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const StoryTextStyle();
@@ -44,6 +46,9 @@ class StoryTextStyle {
       poll: StoryPoll.fromJsonOrNull(
         (json['poll'] ?? json['story_poll']) as Map<String, dynamic>?,
       ),
+      grammarGame: StoryGrammarGame.fromJsonOrNull(
+        (json['grammar_game'] ?? json['grammarGame']) as Map<String, dynamic>?,
+      ),
     );
   }
 
@@ -58,6 +63,7 @@ class StoryTextStyle {
       'layers': layers.map((layer) => layer.toJson()).toList(),
     if (!imageTransform.isIdentity) 'image_transform': imageTransform.toJson(),
     if (poll != null) 'poll': poll!.toJson(),
+    if (grammarGame != null) 'grammar_game': grammarGame!.toJson(),
   };
 
   StoryTextStyle copyWith({
@@ -70,7 +76,9 @@ class StoryTextStyle {
     List<StoryTextLayer>? layers,
     StoryImageTransform? imageTransform,
     StoryPoll? poll,
+    StoryGrammarGame? grammarGame,
     bool clearPoll = false,
+    bool clearGrammarGame = false,
   }) {
     return StoryTextStyle(
       fontSize: fontSize ?? this.fontSize,
@@ -82,6 +90,7 @@ class StoryTextStyle {
       layers: layers ?? this.layers,
       imageTransform: imageTransform ?? this.imageTransform,
       poll: clearPoll ? null : poll ?? this.poll,
+      grammarGame: clearGrammarGame ? null : grammarGame ?? this.grammarGame,
     );
   }
 
@@ -229,6 +238,115 @@ class StoryPollOption {
   }
 }
 
+class StoryGrammarGame {
+  const StoryGrammarGame({
+    required this.id,
+    required this.questionId,
+    required this.topic,
+    required this.questionText,
+    required this.options,
+    this.gameType = 'water_rescue',
+    this.selectedOptionId,
+    this.isCorrect,
+  });
+
+  final int id;
+  final int questionId;
+  final String topic;
+  final String questionText;
+  final List<StoryGrammarGameOption> options;
+  final String gameType;
+  final String? selectedOptionId;
+  final bool? isCorrect;
+
+  bool get hasAnswered =>
+      selectedOptionId != null && selectedOptionId!.trim().isNotEmpty;
+
+  factory StoryGrammarGame.fromJson(Map<String, dynamic> json) {
+    final rawOptions = json['options'];
+    return StoryGrammarGame(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      questionId: (json['question_id'] as num?)?.toInt() ?? 0,
+      topic: (json['topic'] as String?) ?? '',
+      questionText:
+          (json['question_text'] ?? json['question']) as String? ?? '',
+      options: rawOptions is List
+          ? rawOptions
+                .whereType<Map<String, dynamic>>()
+                .map(StoryGrammarGameOption.fromJson)
+                .toList()
+          : const [],
+      gameType: (json['game_type'] as String?) ?? 'water_rescue',
+      selectedOptionId:
+          (json['selected_option_id'] ?? json['selectedOptionId']) as String?,
+      isCorrect: json['is_correct'] == null
+          ? null
+          : json['is_correct'] == true || json['is_correct'] == 1,
+    );
+  }
+
+  static StoryGrammarGame? fromJsonOrNull(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    final game = StoryGrammarGame.fromJson(json);
+    if (game.questionText.trim().isEmpty || game.options.length < 2) {
+      return null;
+    }
+    return game;
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    if (id > 0) 'id': id,
+    if (questionId > 0) 'question_id': questionId,
+    'topic': topic,
+    'question_text': questionText,
+    'options': options.map((option) => option.toJson()).toList(),
+    'game_type': gameType,
+    if (selectedOptionId != null) 'selected_option_id': selectedOptionId,
+    if (isCorrect != null) 'is_correct': isCorrect,
+  };
+
+  StoryGrammarGame copyWith({
+    int? id,
+    int? questionId,
+    String? topic,
+    String? questionText,
+    List<StoryGrammarGameOption>? options,
+    String? gameType,
+    String? selectedOptionId,
+    bool? isCorrect,
+    bool clearAttempt = false,
+  }) {
+    return StoryGrammarGame(
+      id: id ?? this.id,
+      questionId: questionId ?? this.questionId,
+      topic: topic ?? this.topic,
+      questionText: questionText ?? this.questionText,
+      options: options ?? this.options,
+      gameType: gameType ?? this.gameType,
+      selectedOptionId: clearAttempt
+          ? null
+          : selectedOptionId ?? this.selectedOptionId,
+      isCorrect: clearAttempt ? null : isCorrect ?? this.isCorrect,
+    );
+  }
+}
+
+class StoryGrammarGameOption {
+  const StoryGrammarGameOption({required this.id, required this.text});
+
+  final String id;
+  final String text;
+
+  factory StoryGrammarGameOption.fromJson(Map<String, dynamic> json) {
+    return StoryGrammarGameOption(
+      id: (json['id'] as String?) ?? '',
+      text: (json['text'] as String?) ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{'id': id, 'text': text};
+}
+
 class StoryTextLayer {
   const StoryTextLayer({
     required this.id,
@@ -241,6 +359,7 @@ class StoryTextLayer {
     this.fontFamily = 'Default',
     this.textColor = 0xFFFFFFFF,
     this.alignment = 'center',
+    this.lineHeight = 1.25,
   });
 
   final String id;
@@ -255,6 +374,7 @@ class StoryTextLayer {
   final String fontFamily;
   final int textColor;
   final String alignment;
+  final double lineHeight;
 
   factory StoryTextLayer.fromJson(Map<String, dynamic> json) {
     return StoryTextLayer(
@@ -274,6 +394,7 @@ class StoryTextLayer {
         0xFFFFFFFF,
       ),
       alignment: (json['alignment'] as String?) ?? 'center',
+      lineHeight: _parseDouble(json['line_height'] ?? json['lineHeight'], 1.25),
     );
   }
 
@@ -288,6 +409,7 @@ class StoryTextLayer {
     'font_family': fontFamily,
     'text_color': textColor,
     'alignment': alignment,
+    'line_height': lineHeight,
   };
 
   StoryTextLayer copyWith({
@@ -301,6 +423,7 @@ class StoryTextLayer {
     String? fontFamily,
     int? textColor,
     String? alignment,
+    double? lineHeight,
   }) {
     return StoryTextLayer(
       id: id ?? this.id,
@@ -313,6 +436,7 @@ class StoryTextLayer {
       fontFamily: fontFamily ?? this.fontFamily,
       textColor: textColor ?? this.textColor,
       alignment: alignment ?? this.alignment,
+      lineHeight: lineHeight ?? this.lineHeight,
     );
   }
 
@@ -324,14 +448,20 @@ class StoryTextLayer {
 }
 
 class StoryImageTransform {
-  const StoryImageTransform({this.x = 0, this.y = 0, this.scale = 1});
+  const StoryImageTransform({
+    this.x = 0,
+    this.y = 0,
+    this.scale = 1,
+    this.aspectRatio = 0,
+  });
 
   /// Normalized offset by canvas size.
   final double x;
   final double y;
   final double scale;
+  final double aspectRatio;
 
-  bool get isIdentity => x == 0 && y == 0 && scale == 1;
+  bool get isIdentity => x == 0 && y == 0 && scale == 1 && aspectRatio <= 0;
 
   factory StoryImageTransform.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const StoryImageTransform();
@@ -339,6 +469,10 @@ class StoryImageTransform {
       x: StoryTextLayer._parseDouble(json['x'], 0),
       y: StoryTextLayer._parseDouble(json['y'], 0),
       scale: StoryTextLayer._parseDouble(json['scale'], 1),
+      aspectRatio: StoryTextLayer._parseDouble(
+        json['aspect_ratio'] ?? json['aspectRatio'],
+        0,
+      ),
     );
   }
 
@@ -346,14 +480,45 @@ class StoryImageTransform {
     'x': x,
     'y': y,
     'scale': scale,
+    if (aspectRatio > 0) 'aspect_ratio': aspectRatio,
   };
 
-  StoryImageTransform copyWith({double? x, double? y, double? scale}) {
+  StoryImageTransform copyWith({
+    double? x,
+    double? y,
+    double? scale,
+    double? aspectRatio,
+  }) {
     return StoryImageTransform(
       x: x ?? this.x,
       y: y ?? this.y,
       scale: scale ?? this.scale,
+      aspectRatio: aspectRatio ?? this.aspectRatio,
     );
+  }
+}
+
+enum StoryVisibilityDuration {
+  hours24(24, '24'),
+  hours48(48, '48'),
+  week1(168, '1W'),
+  month1(720, '1M');
+
+  const StoryVisibilityDuration(this.hours, this.label);
+
+  final int hours;
+  final String label;
+
+  StoryVisibilityDuration get next {
+    const values = StoryVisibilityDuration.values;
+    return values[(index + 1) % values.length];
+  }
+
+  static StoryVisibilityDuration fromHours(int hours) {
+    for (final option in StoryVisibilityDuration.values) {
+      if (option.hours == hours) return option;
+    }
+    return StoryVisibilityDuration.hours24;
   }
 }
 
@@ -373,6 +538,7 @@ class StoryItem {
     this.textContent,
     this.textStyle = const StoryTextStyle(),
     this.targetMode = 'all',
+    this.visibilityHours = 24,
     this.viewedAt,
   });
 
@@ -385,6 +551,7 @@ class StoryItem {
   final String? textContent;
   final StoryTextStyle textStyle;
   final String targetMode;
+  final int visibilityHours;
   final String createdAt;
   final String? viewedAt;
   final bool seen;
@@ -392,8 +559,9 @@ class StoryItem {
   final int viewCount;
   final int likeCount;
 
-  bool get isImage => contentType == 'image';
-  bool get isText => contentType == 'text';
+  bool get isImage => contentType.trim().toLowerCase() == 'image';
+  bool get isText => contentType.trim().toLowerCase() == 'text';
+  bool get hasGrammarGame => textStyle.grammarGame != null;
 
   factory StoryItem.fromJson(Map<String, dynamic> json) {
     return StoryItem(
@@ -401,11 +569,16 @@ class StoryItem {
       adminUserId: (json['admin_user_id'] as num?)?.toInt() ?? 0,
       adminName: (json['admin_name'] as String?) ?? '',
       adminAvatar: (json['admin_avatar'] as String?) ?? 'm1',
-      contentType: (json['content_type'] as String?) ?? 'text',
-      imagePath: json['image_path'] as String?,
+      contentType: ((json['content_type'] as String?) ?? 'text')
+          .trim()
+          .toLowerCase(),
+      imagePath: (json['image_path'] as String?)?.trim(),
       textContent: json['text_content'] as String?,
-      textStyle: StoryTextStyle.fromJson(_mergePollIntoTextStyleJson(json)),
+      textStyle: StoryTextStyle.fromJson(
+        _mergeStoryExtrasIntoTextStyleJson(json),
+      ),
       targetMode: (json['target_mode'] as String?) ?? 'all',
+      visibilityHours: (json['visibility_hours'] as num?)?.toInt() ?? 24,
       createdAt: (json['created_at'] as String?) ?? '',
       viewedAt: json['viewed_at'] as String?,
       seen: json['seen'] == true || json['seen'] == 1,
@@ -422,6 +595,7 @@ class StoryItem {
     int? viewCount,
     String? viewedAt,
     StoryTextStyle? textStyle,
+    int? visibilityHours,
   }) {
     return StoryItem(
       id: id,
@@ -433,6 +607,7 @@ class StoryItem {
       textContent: textContent,
       textStyle: textStyle ?? this.textStyle,
       targetMode: targetMode,
+      visibilityHours: visibilityHours ?? this.visibilityHours,
       createdAt: createdAt,
       viewedAt: viewedAt ?? this.viewedAt,
       seen: seen ?? this.seen,
@@ -443,7 +618,9 @@ class StoryItem {
   }
 }
 
-Map<String, dynamic>? _mergePollIntoTextStyleJson(Map<String, dynamic> json) {
+Map<String, dynamic>? _mergeStoryExtrasIntoTextStyleJson(
+  Map<String, dynamic> json,
+) {
   final rawStyle = json['text_style'];
   final style = rawStyle is Map<String, dynamic>
       ? Map<String, dynamic>.from(rawStyle)
@@ -451,6 +628,10 @@ Map<String, dynamic>? _mergePollIntoTextStyleJson(Map<String, dynamic> json) {
   final rawPoll = json['poll'];
   if (rawPoll is Map<String, dynamic> && style['poll'] == null) {
     style['poll'] = rawPoll;
+  }
+  final rawGrammarGame = json['grammar_game'];
+  if (rawGrammarGame is Map<String, dynamic> && style['grammar_game'] == null) {
+    style['grammar_game'] = rawGrammarGame;
   }
   return style.isEmpty ? null : style;
 }

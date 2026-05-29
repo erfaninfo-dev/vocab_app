@@ -664,6 +664,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get couldNotLoadMistakes => 'بارگذاری لیست اشتباهات ممکن نشد';
 
   @override
+  String get couldNotLoadLeague => 'بارگذاری لیگ انجام نشد';
+
+  @override
+  String get leagueErrorPullToRefresh =>
+      'برای به‌روزرسانی، صفحه را به پایین بکشید.';
+
+  @override
   String get quizNotEnoughImportant =>
       'در این محدوده لغت مهمی نیست. همهٔ لغات را انتخاب کنید، محدوده را عوض کنید یا یونیت‌های بیشتری بگیرید.';
 
@@ -2225,6 +2232,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get wordBuilderDifficultyAdvanced => 'پیشرفته';
 
   @override
+  String get wordBuilderTierLockedIntermediateSubtitle =>
+      'قفل است • اول مبتدی را کامل کن';
+
+  @override
+  String get wordBuilderTierLockedAdvancedSubtitle =>
+      'قفل است • اول متوسط را کامل کن';
+
+  @override
+  String get wordBuilderTierLockedIntermediateMessage =>
+      'همهٔ مراحل مبتدی را کامل کن تا سطح متوسط باز شود.';
+
+  @override
+  String get wordBuilderTierLockedAdvancedMessage =>
+      'همهٔ مراحل متوسط را کامل کن تا سطح پیشرفته باز شود.';
+
+  @override
   String get wordBuilderYourWord => 'کلمهٔ شما';
 
   @override
@@ -2272,6 +2295,33 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get wordBuilderLevelCompleteBody =>
       'عالی بود؛ همهٔ کلمات این مرحله را پیدا کردی.';
+
+  @override
+  String get wordBuilderBeginnerCompleteTitle => 'مبتدی کامل شد!';
+
+  @override
+  String get wordBuilderBeginnerCompleteBody =>
+      'عالی بود! سطح متوسط باز شد؛ آمادهٔ چالش بعدی هستی؟';
+
+  @override
+  String get wordBuilderStartIntermediate => 'شروع متوسط';
+
+  @override
+  String get wordBuilderIntermediateCompleteTitle => 'متوسط کامل شد!';
+
+  @override
+  String get wordBuilderIntermediateCompleteBody =>
+      'فوق‌العاده بود! سطح پیشرفته باز شد؛ حالا چالش جدی‌تر شروع می‌شود.';
+
+  @override
+  String get wordBuilderStartAdvanced => 'شروع پیشرفته';
+
+  @override
+  String get wordBuilderAdvancedCompleteTitle => 'همهٔ بخش‌ها کامل شد!';
+
+  @override
+  String get wordBuilderAdvancedCompleteBody =>
+      'درخشان بود! کل کمپین Word Builder را تمام کردی.';
 
   @override
   String get wordBuilderHintLetter => 'یک حرف در یکی از کلمات نمایش داده شد.';
@@ -2557,4 +2607,42 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get sampleHighlightDefaultColor => 'هایلایت';
+
+  @override
+  String get samplePlayFullText => 'پخش نمونه';
+
+  @override
+  String get samplePauseFullText => 'توقف';
+
+  @override
+  String get sampleTtsNowPlaying => 'در حال خواندن متن نمونه';
+
+  @override
+  String get sampleTtsStop => 'قطع';
+
+  @override
+  String get sampleTtsRewind5 => '۵ ثانیه عقب';
+
+  @override
+  String get sampleTtsForward5 => '۵ ثانیه جلو';
+
+  @override
+  String get sampleTtsHighlight => 'هایلایت هم‌زمان';
+
+  @override
+  String get sampleTtsSpeed => 'سرعت';
+
+  @override
+  String sampleTtsSpeedLabel(String speed) {
+    return '$speed×';
+  }
+
+  @override
+  String get sampleTtsEngine => 'صدا';
+
+  @override
+  String get sampleTtsEngineSystem => 'سیستم';
+
+  @override
+  String get sampleTtsEngineGoogle => 'گوگل';
 }

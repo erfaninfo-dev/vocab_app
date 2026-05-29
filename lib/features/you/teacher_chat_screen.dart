@@ -204,7 +204,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
             _threadFuture = Future.value(next);
           });
           try {
-            await ref.read(apiServiceProvider).markTeacherMessagesRead(
+            await ref
+                .read(apiServiceProvider)
+                .markTeacherMessagesRead(
                   studentId: _sid,
                   peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
                 );
@@ -224,7 +226,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
   bool get _isTeacherView => _sid != null;
 
   Future<TeacherMessagesThread> _fetch() {
-    return ref.read(apiServiceProvider).fetchTeacherMessages(
+    return ref
+        .read(apiServiceProvider)
+        .fetchTeacherMessages(
           studentId: _sid,
           peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
         );
@@ -234,7 +238,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
     if (_didMarkRead) return;
     _didMarkRead = true;
     try {
-      await ref.read(apiServiceProvider).markTeacherMessagesRead(
+      await ref
+          .read(apiServiceProvider)
+          .markTeacherMessagesRead(
             studentId: _sid,
             peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
           );
@@ -261,7 +267,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
     _text.clear();
     FocusScope.of(context).unfocus();
     try {
-      await ref.read(apiServiceProvider).sendTeacherMessage(
+      await ref
+          .read(apiServiceProvider)
+          .sendTeacherMessage(
             t,
             studentId: _sid,
             peerTeacherId: _isTeacherView ? null : widget.peerTeacherId,
@@ -282,9 +290,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -362,10 +370,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
     }
 
     try {
-      await ref.read(apiServiceProvider).editTeacherMessage(
-            messageId: target.id,
-            newBody: trimmed,
-          );
+      await ref
+          .read(apiServiceProvider)
+          .editTeacherMessage(messageId: target.id, newBody: trimmed);
       if (!mounted) return;
       _text.clear();
       setState(() => _editingMessage = null);
@@ -380,9 +387,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
       ref.invalidate(teacherInboxStudentsProvider);
     } on TeacherMessageAlreadyReadException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.chatMessageEditFailedRead)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.chatMessageEditFailedRead)));
       // Recipient read it in the meantime — exit edit mode and refresh ticks.
       _text.clear();
       setState(() => _editingMessage = null);
@@ -390,9 +397,9 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
       setState(() => _threadFuture = next);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -455,21 +462,59 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
     AppLocalizations l10n,
     ColorScheme scheme, {
     required bool updating,
+    required int? myId,
   }) {
     final tt = Theme.of(context).textTheme;
+    final savedMessages = _isTeacherView
+        ? (_sid != null && _sid == myId)
+        : (widget.peerTeacherId != null && widget.peerTeacherId == myId);
+    if (savedMessages) {
+      return Row(
+        children: [
+          CircleAvatar(
+            radius: 21,
+            backgroundColor: scheme.primaryContainer,
+            child: Icon(
+              Icons.bookmark_rounded,
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Saved Messages',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                _buildSubtitle(
+                  context,
+                  l10n,
+                  scheme,
+                  'Only you can see these messages',
+                  updating: updating,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     if (_isTeacherView) {
       final p = widget.teacherPeer;
-      final title = _resolvedPeerTitle ??
-          p?.displayTitle ??
-          _defaultTitle(l10n);
+      final title =
+          _resolvedPeerTitle ?? p?.displayTitle ?? _defaultTitle(l10n);
       if (p != null) {
         return Row(
           children: [
-            ProfileAvatar(
-              avatarId: p.avatarId,
-              userId: p.userId,
-              size: 42,
-            ),
+            ProfileAvatar(avatarId: p.avatarId, userId: p.userId, size: 42),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -527,11 +572,7 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
     if (tid != null) {
       return Row(
         children: [
-          ProfileAvatar(
-            avatarId: 'm1',
-            userId: tid,
-            size: 42,
-          ),
+          ProfileAvatar(avatarId: 'm1', userId: tid, size: 42),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -567,11 +608,7 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          _defaultTitle(l10n),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        Text(_defaultTitle(l10n), maxLines: 1, overflow: TextOverflow.ellipsis),
         if (updating)
           MessagesUpdatingLabel(
             active: true,
@@ -612,7 +649,13 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: _appBarTitleWidget(context, l10n, scheme, updating: updating),
+        title: _appBarTitleWidget(
+          context,
+          l10n,
+          scheme,
+          updating: updating,
+          myId: myId,
+        ),
       ),
       body: DecoratedBox(
         decoration: TeacherChatUi.screenBackground(scheme),
@@ -709,18 +752,24 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
                     itemBuilder: (context, i) {
                       final m = msgs[i];
                       final mine = myId != null && m.senderUserId == myId;
-                      final showSender = i == 0 ||
-                          msgs[i - 1].senderUserId != m.senderUserId;
+                      final showSender =
+                          i == 0 || msgs[i - 1].senderUserId != m.senderUserId;
                       final senderCaption = showSender
-                          ? (mine ? l10n.chatSenderYou : _otherSenderLabel(l10n, thread))
+                          ? (mine
+                                ? l10n.chatSenderYou
+                                : _otherSenderLabel(l10n, thread))
                           : null;
-                      final localeName = Localizations.localeOf(context).toLanguageTag();
+                      final localeName = Localizations.localeOf(
+                        context,
+                      ).toLanguageTag();
                       final dt = TeacherChatUi.tryParseApiDate(m.createdAt);
                       final prevDt = i > 0
                           ? TeacherChatUi.tryParseApiDate(msgs[i - 1].createdAt)
                           : null;
-                      final showDayHeader = i == 0 ||
-                          (dt != null && (prevDt == null || !_sameDay(dt, prevDt)));
+                      final showDayHeader =
+                          i == 0 ||
+                          (dt != null &&
+                              (prevDt == null || !_sameDay(dt, prevDt)));
 
                       final canEdit = mine && !m.isRead;
                       final bubble = _Bubble(
@@ -730,16 +779,15 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
                         senderCaption: senderCaption,
                         timestampLocal: dt,
                         localeName: localeName,
-                        onLongPress: canEdit ? () => _onMessageLongPress(m) : null,
+                        onLongPress: canEdit
+                            ? () => _onMessageLongPress(m)
+                            : null,
                       );
 
                       if (!showDayHeader) return bubble;
                       return Column(
                         children: [
-                          _DaySeparator(
-                            dateLocal: dt,
-                            localeName: localeName,
-                          ),
+                          _DaySeparator(dateLocal: dt, localeName: localeName),
                           bubble,
                         ],
                       );
@@ -803,15 +851,17 @@ class _TeacherChatScreenState extends ConsumerState<TeacherChatScreen>
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(26),
                                   borderSide: BorderSide(
-                                    color: scheme.outlineVariant
-                                        .withValues(alpha: 0.5),
+                                    color: scheme.outlineVariant.withValues(
+                                      alpha: 0.5,
+                                    ),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(26),
                                   borderSide: BorderSide(
-                                    color: scheme.outlineVariant
-                                        .withValues(alpha: 0.45),
+                                    color: scheme.outlineVariant.withValues(
+                                      alpha: 0.45,
+                                    ),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -914,8 +964,9 @@ class _Bubble extends StatelessWidget {
           maxWidth: MediaQuery.sizeOf(context).width * 0.84,
         ),
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (senderCaption != null) ...[
               Padding(
@@ -991,8 +1042,7 @@ class _Bubble extends StatelessWidget {
                           ],
                           if (timestampLocal != null)
                             Text(
-                              DateFormat.jm(localeName)
-                                  .format(timestampLocal!),
+                              DateFormat.jm(localeName).format(timestampLocal!),
                               style: cap.labelSmall?.copyWith(
                                 color: footerColor,
                                 fontWeight: FontWeight.w600,
@@ -1061,10 +1111,7 @@ bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 class _DaySeparator extends StatelessWidget {
-  const _DaySeparator({
-    required this.dateLocal,
-    required this.localeName,
-  });
+  const _DaySeparator({required this.dateLocal, required this.localeName});
 
   final DateTime? dateLocal;
   final String localeName;
@@ -1089,9 +1136,9 @@ class _DaySeparator extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
@@ -1121,9 +1168,7 @@ class _EditBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.45),
-          ),
+          top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.45)),
         ),
       ),
       padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 6, 8),

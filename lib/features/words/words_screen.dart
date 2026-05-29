@@ -1,12 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/errors/user_friendly_error.dart';
 import '../../core/tts/tts_service.dart';
+import '../../core/errors/user_friendly_error.dart';
 import '../../l10n/app_localizations.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
+import '../unit_samples/sample_tts_player.dart';
 import '../unit_samples/unit_samples_screen.dart';
 import 'important_words_controller.dart';
 import 'word_preferences_controller.dart';
@@ -35,6 +38,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
   @override
   void dispose() {
     ref.read(ttsProvider.notifier).stop();
+    ref.read(sampleTtsSessionProvider.notifier).state = null;
     super.dispose();
   }
 
@@ -179,11 +183,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                       children: [
                         const Icon(Icons.menu_book_rounded),
                         const SizedBox(width: 8),
-                        Text(
-                          l10n.wordsTabLabel,
-                          maxLines: 1,
-                          softWrap: false,
-                        ),
+                        Text(l10n.wordsTabLabel, maxLines: 1, softWrap: false),
                       ],
                     ),
                   ),
@@ -233,7 +233,10 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
     final scaffold = Scaffold(appBar: appBar, body: content);
     return hasSamples
-        ? DefaultTabController(length: 2, child: scaffold)
+        ? DefaultTabController(
+            length: 2,
+            child: _WordsTabTtsSilencer(child: scaffold),
+          )
         : scaffold;
   }
 
@@ -282,7 +285,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             sliver: SliverList.separated(
               itemBuilder: (context, index) =>
-                  WordCard(entry: displayList[index]),
+                  WordCard(entry: displayList[index], number: index + 1),
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemCount: displayList.length,
             ),
@@ -290,4 +293,44 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       ],
     );
   }
+}
+
+class _WordsTabTtsSilencer extends ConsumerStatefulWidget {
+  const _WordsTabTtsSilencer({required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<_WordsTabTtsSilencer> createState() =>
+      _WordsTabTtsSilencerState();
+}
+
+class _WordsTabTtsSilencerState extends ConsumerState<_WordsTabTtsSilencer> {
+  TabController? _tabs;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next = DefaultTabController.maybeOf(context);
+    if (next == _tabs) return;
+    _tabs?.removeListener(_onTabChanged);
+    _tabs = next;
+    _tabs?.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    _tabs?.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabs == null || _tabs!.indexIsChanging) return;
+    if (_tabs!.index == 0) {
+      unawaited(stopSampleTts(ref));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

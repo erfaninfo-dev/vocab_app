@@ -269,6 +269,8 @@
   "quizTitle": "Quiz",
   "couldNotLoadWords": "Could not load data. Please try again.",
   "couldNotLoadMistakes": "Could not load mistake list",
+  "couldNotLoadLeague": "Could not load the league",
+  "leagueErrorPullToRefresh": "Pull down to refresh.",
   "quizNotEnoughImportant": "No important words in this scope. Choose all words, change scope, or pick more units.",
   "quizNotEnoughWrongs": "No words from your mistake list in this selection. Adjust units or turn off “only past mistakes”.",
   "quizNeedFourWords": "Need at least 4 words to start this quiz.",
@@ -933,6 +935,10 @@
   "wordBuilderDifficultyBeginner": "Beginner",
   "wordBuilderDifficultyIntermediate": "Intermediate",
   "wordBuilderDifficultyAdvanced": "Advanced",
+  "wordBuilderTierLockedIntermediateSubtitle": "Locked • finish Beginner first",
+  "wordBuilderTierLockedAdvancedSubtitle": "Locked • finish Intermediate first",
+  "wordBuilderTierLockedIntermediateMessage": "Finish all Beginner stages to unlock Intermediate.",
+  "wordBuilderTierLockedAdvancedMessage": "Finish all Intermediate stages to unlock Advanced.",
   "wordBuilderYourWord": "Your word",
   "wordBuilderLetters": "Letter pool",
   "wordBuilderSubmit": "Check word",
@@ -949,6 +955,14 @@
   "wordBuilderCorrectNice": "Nice!",
   "wordBuilderLevelCompleteTitle": "Level complete!",
   "wordBuilderLevelCompleteBody": "Great job. You found all the words in this stage.",
+  "wordBuilderBeginnerCompleteTitle": "Beginner complete!",
+  "wordBuilderBeginnerCompleteBody": "Amazing! Intermediate is unlocked. Ready for the next challenge?",
+  "wordBuilderStartIntermediate": "Start Intermediate",
+  "wordBuilderIntermediateCompleteTitle": "Intermediate complete!",
+  "wordBuilderIntermediateCompleteBody": "Fantastic work! Advanced is unlocked. Let’s raise the level.",
+  "wordBuilderStartAdvanced": "Start Advanced",
+  "wordBuilderAdvancedCompleteTitle": "All sections complete!",
+  "wordBuilderAdvancedCompleteBody": "You finished the full Word Builder campaign. Brilliant work!",
   "wordBuilderHintLetter": "A letter was revealed in one of the words.",
   "wordBuilderHintRemoved": "Removed an extra letter from your word.",
   "wordBuilderHintRemoveNone": "No extra letters to remove right now.",
@@ -1112,5 +1126,24 @@
   "sampleHighlightPickMainColor": "Highlight color",
   "sampleHighlightTapColor": "Tap a color to highlight",
   "sampleHighlightRemove": "Remove highlight",
-  "sampleHighlightDefaultColor": "Highlight"
+  "sampleHighlightDefaultColor": "Highlight",
+  "samplePlayFullText": "Play sample",
+  "samplePauseFullText": "Pause",
+  "sampleTtsNowPlaying": "Reading sample text",
+  "sampleTtsStop": "Stop",
+  "sampleTtsRewind5": "Back 5 seconds",
+  "sampleTtsForward5": "Forward 5 seconds",
+  "sampleTtsHighlight": "Karaoke highlight",
+  "sampleTtsSpeed": "Speed",
+  "sampleTtsSpeedLabel": "{speed}×",
+  "sampleTtsEngine": "Voice",
+  "sampleTtsEngineSystem": "System",
+  "sampleTtsEngineGoogle": "Google",
+  "@sampleTtsSpeedLabel": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  }
 }

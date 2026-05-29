@@ -80,7 +80,9 @@ class YouAccountSection extends ConsumerWidget {
                               .watch(visibleStoriesProvider)
                               .valueOrNull
                               ?.where(
-                                (story) => story.adminUserId == session.user.id,
+                                (story) =>
+                                    story.adminUserId == session.user.id &&
+                                    !story.hasGrammarGame,
                               )
                               .toList() ??
                           const [];
@@ -93,7 +95,6 @@ class YouAccountSection extends ConsumerWidget {
                           : StoryRing(
                               stories: ownStories,
                               size: 60,
-                              initialStoryId: ownStories.first.id,
                             );
                       return Material(
                         color: Colors.transparent,

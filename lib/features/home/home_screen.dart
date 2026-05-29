@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/branding/app_brand_logo.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/book_model.dart';
@@ -19,10 +22,9 @@ import 'series_books_screen.dart';
 
 const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
 
-/// IELTS / General / Students — Students tab for learners, teachers, and app admins.
+/// IELTS / General / Students — third segment hidden until re-enabled.
 bool homeShowStudentTab(AuthUser? user) {
-  if (user == null) return false;
-  return user.studentAccess || user.isTeacher || user.isAdmin;
+  return false;
 }
 
 int homePageIndexForTrack(HomeBookTrack track, bool showStudentTab) {
@@ -66,14 +68,22 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
+  Timer? _messageBadgeTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPageToTrack());
+    _messageBadgeTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!mounted) return;
+      ref.invalidate(teacherMessagesUnreadFabProvider);
+      ref.invalidate(teacherInboxStudentsProvider);
+    });
   }
 
   void _syncPageToTrack() {
@@ -109,7 +119,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(reloadBooksCatalogFromNetwork(ref));
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _messageBadgeTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -140,9 +159,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: showMessageFab
-          ? const _HomeTeacherOrStudentFab()
-          : null,
+      floatingActionButton: _HomeFloatingActions(
+        showMessageFab: showMessageFab,
+      ),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -233,15 +252,15 @@ class _HomeTrackBookPage extends ConsumerWidget {
               ),
             ),
             error: (error, _) => SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: Text(
-                    '${l10n.couldNotLoadBooks}\n'
-                    '${userFriendlyErrorMessage(error, l10n)}',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              child: _HomeBooksErrorState(
+                message: userFriendlyErrorMessage(error, l10n),
+                onRetry: () {
+                  if (track.isStudentCatalog) {
+                    ref.invalidate(apiStudentBooksForHomeProvider);
+                  } else {
+                    ref.invalidate(apiPublicBooksForHomeProvider);
+                  }
+                },
               ),
             ),
             data: (books) {
@@ -336,6 +355,117 @@ class _HomeTrackBookPage extends ConsumerWidget {
   }
 }
 
+class _HomeBooksErrorState extends StatelessWidget {
+  const _HomeBooksErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 44, 20, 24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.86),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.42),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.shadow.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              scheme.errorContainer,
+                              scheme.primaryContainer.withValues(alpha: 0.72),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '📡',
+                        style: theme.textTheme.displaySmall,
+                        semanticsLabel: l10n.errNoInternet,
+                      ),
+                      Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: scheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.wifi_off_rounded,
+                            size: 20,
+                            color: scheme.onError,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    l10n.couldNotLoadBooks,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(l10n.retry),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ───────────────────── Header ─────────────────────
 
 class _HomeHeader extends ConsumerWidget {
@@ -404,30 +534,24 @@ class _HomeHeaderAppIcon extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final storiesAsync = ref.watch(visibleStoriesProvider);
-    final stories = storiesAsync.valueOrNull ?? const [];
+    final stories =
+        storiesAsync.valueOrNull
+            ?.where((story) => !story.hasGrammarGame)
+            .toList() ??
+        const [];
     if (stories.isNotEmpty) {
       return StoryRing(stories: stories);
     }
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.10),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Image.asset(
-          'assets/app_icon.png',
-          width: 56,
-          height: 56,
-          fit: BoxFit.cover,
+    return AppBrandLogo(
+      size: 56,
+      borderRadius: 18,
+      boxShadow: [
+        BoxShadow(
+          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.10),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
         ),
-      ),
+      ],
     );
   }
 }
@@ -935,7 +1059,78 @@ class _GrammarPracticeBanner extends StatelessWidget {
   }
 }
 
-// ───────────────────── Home teacher/student FABs ─────────────────────
+// ───────────────────── Home floating actions ─────────────────────
+class _HomeFloatingActions extends StatelessWidget {
+  const _HomeFloatingActions({required this.showMessageFab});
+
+  final bool showMessageFab;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const _HomeLeagueFab(),
+        if (showMessageFab) ...[
+          const SizedBox(height: 12),
+          const _HomeTeacherOrStudentFab(),
+        ],
+      ],
+    );
+  }
+}
+
+class _HomeLeagueFab extends StatelessWidget {
+  const _HomeLeagueFab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => context.push('/league'),
+        child: Ink(
+          height: 52,
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 18, 0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF58529), Color(0xFFE1306C), Color(0xFF8134AF)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE1306C).withValues(alpha: 0.26),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_rounded, color: Colors.white, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'League',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HomeTeacherOrStudentFab extends ConsumerWidget {
   const _HomeTeacherOrStudentFab();
 
@@ -944,15 +1139,18 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
     final session = ref.watch(authProvider).valueOrNull;
     if (session == null) return const SizedBox.shrink();
     final u = session.user;
-    if (u.isTeacher || u.isAdmin) {
-      return _HomeTeacherStudentsFab(onPressed: () => context.push('/teacher'));
-    }
     final fabUnread = ref.watch(teacherMessagesUnreadFabProvider);
     final fabCount = fabUnread.when(
       data: (v) => v,
       loading: () => 0,
       error: (_, __) => 0,
     );
+    if (u.isTeacher || u.isAdmin) {
+      return _HomeTeacherStudentsFab(
+        count: fabCount,
+        onPressed: () => context.push('/teacher'),
+      );
+    }
     return _HomeStudentPanelFab(
       count: fabCount,
       onPressed: () => context.push('/student-panel'),
@@ -961,23 +1159,33 @@ class _HomeTeacherOrStudentFab extends ConsumerWidget {
 }
 
 class _HomeTeacherStudentsFab extends StatelessWidget {
-  const _HomeTeacherStudentsFab({required this.onPressed});
+  const _HomeTeacherStudentsFab({required this.count, required this.onPressed});
 
+  final int count;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return FloatingActionButton.extended(
-      heroTag: 'home_teacher_students_fab',
-      onPressed: onPressed,
-      backgroundColor: _kHomeFabHappyBlue,
-      foregroundColor: Colors.white,
-      tooltip: l10n.tabStudents,
-      icon: const Icon(Icons.groups_rounded),
+    return Badge(
+      isLabelVisible: count > 0,
+      backgroundColor: const Color(0xFFFFD60A),
+      textColor: const Color(0xFF2B2100),
       label: Text(
-        l10n.tabStudents,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+      ),
+      child: FloatingActionButton.extended(
+        heroTag: 'home_teacher_students_fab',
+        onPressed: onPressed,
+        backgroundColor: _kHomeFabHappyBlue,
+        foregroundColor: Colors.white,
+        tooltip: l10n.tabStudents,
+        icon: const Icon(Icons.groups_rounded),
+        label: Text(
+          l10n.tabStudents,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }

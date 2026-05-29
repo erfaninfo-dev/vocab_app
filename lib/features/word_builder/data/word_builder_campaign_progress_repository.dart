@@ -38,10 +38,22 @@ class WordBuilderCampaignProgressSnapshot {
     }
   }
 
+  bool isDifficultyUnlocked(WordBuilderDifficulty d) {
+    switch (d) {
+      case WordBuilderDifficulty.beginner:
+        return true;
+      case WordBuilderDifficulty.intermediate:
+        return beginnerStagesCleared >= kWordBuilderStagesPerTier;
+      case WordBuilderDifficulty.advanced:
+        return intermediateStagesCleared >= kWordBuilderStagesPerTier;
+    }
+  }
+
   bool isStageUnlocked(WordBuilderDifficulty d, int stage1Based) {
     if (stage1Based < 1 || stage1Based > kWordBuilderStagesPerTier) {
       return false;
     }
+    if (!isDifficultyUnlocked(d)) return false;
     final c = clearedFor(d);
     return stage1Based <= c + 1;
   }
@@ -84,11 +96,11 @@ class WordBuilderCampaignProgressSnapshot {
   }
 
   Map<String, Object?> toJson() => {
-        'v': 1,
-        'bc': beginnerStagesCleared,
-        'ic': intermediateStagesCleared,
-        'ac': advancedStagesCleared,
-      };
+    'v': 1,
+    'bc': beginnerStagesCleared,
+    'ic': intermediateStagesCleared,
+    'ac': advancedStagesCleared,
+  };
 
   static WordBuilderCampaignProgressSnapshot fromJson(
     Map<String, Object?> map,
@@ -108,7 +120,9 @@ class WordBuilderCampaignProgressRepository {
   Future<WordBuilderCampaignProgressSnapshot> load() async {
     final p = await SharedPreferences.getInstance();
     final raw = p.getString(kWordBuilderCampaignProgressPrefsKey);
-    if (raw == null || raw.isEmpty) return WordBuilderCampaignProgressSnapshot.empty;
+    if (raw == null || raw.isEmpty) {
+      return WordBuilderCampaignProgressSnapshot.empty;
+    }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return WordBuilderCampaignProgressSnapshot.empty;

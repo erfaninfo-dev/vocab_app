@@ -15,10 +15,12 @@ class WordCard extends ConsumerWidget {
     super.key,
     required this.entry,
     this.showUnitBadge = true,
+    this.number,
   });
 
   final VocabEntry entry;
   final bool showUnitBadge;
+  final int? number;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,6 +34,8 @@ class WordCard extends ConsumerWidget {
     final isImp = important.isMarked(entry);
     final scheme = Theme.of(context).colorScheme;
     final accent = _accent(entry.section);
+    final cardNumber = number;
+    const localMeaningColor = Colors.blue;
 
     final localMeaning = entry.meaningFor(lang);
     final localExample = entry.exampleLocalFor(lang);
@@ -79,10 +83,10 @@ class WordCard extends ConsumerWidget {
                       child: Text(
                         bookTitle,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                              height: 1.25,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -102,6 +106,32 @@ class WordCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
+                  if (cardNumber != null && cardNumber > 0) ...[
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 28),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest.withValues(
+                          alpha: 0.55,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      child: Text(
+                        '$cardNumber',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Text(
                       entry.word,
@@ -123,10 +153,11 @@ class WordCard extends ConsumerWidget {
                       ),
                       child: Text(
                         entry.type,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: accent,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: accent,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                 ],
@@ -150,7 +181,7 @@ class WordCard extends ConsumerWidget {
                         textAlign: TextAlign.right,
                         strutStyle: const StrutStyle(forceStrutHeight: true),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.blue,
+                          color: localMeaningColor,
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
@@ -164,7 +195,9 @@ class WordCard extends ConsumerWidget {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   padding: const EdgeInsets.all(10),
@@ -181,11 +214,12 @@ class WordCard extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           entry.exampleEn,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 14,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                                fontSize: 14,
+                              ),
                         ),
                       ],
                       if (localExample.isNotEmpty) ...[
@@ -199,10 +233,11 @@ class WordCard extends ConsumerWidget {
                               child: Text(
                                 localExample,
                                 textAlign: TextAlign.right,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: Colors.black87),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: localMeaningColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
                             ),
                           ),
@@ -220,9 +255,9 @@ class WordCard extends ConsumerWidget {
                     onPressed: entry.rowId <= 0
                         ? null
                         : () => prefsNotifier.toggleFavorite(
-                              entry,
-                              api.authToken != null ? api : null,
-                            ),
+                            entry,
+                            api.authToken != null ? api : null,
+                          ),
                     icon: Icon(
                       isFav
                           ? Icons.bookmark_rounded
@@ -235,14 +270,15 @@ class WordCard extends ConsumerWidget {
                     onPressed: entry.rowId <= 0
                         ? null
                         : () => importantNotifier.setImportant(
-                              entry,
-                              !isImp,
-                              api.authToken != null ? api : null,
-                            ),
+                            entry,
+                            !isImp,
+                            api.authToken != null ? api : null,
+                          ),
                     style: isImp
                         ? IconButton.styleFrom(
-                            backgroundColor:
-                                Colors.orange.withValues(alpha: 0.22),
+                            backgroundColor: Colors.orange.withValues(
+                              alpha: 0.22,
+                            ),
                             foregroundColor: Colors.deepOrange.shade700,
                           )
                         : null,
@@ -298,8 +334,7 @@ class _SpeakButton extends ConsumerWidget {
     final tts = ref.watch(ttsProvider);
     final notifier = ref.read(ttsProvider.notifier);
     final isSpeakingWord = tts.isSpeakingText(word);
-    final isSpeakingExample =
-        example.isNotEmpty && tts.isSpeakingText(example);
+    final isSpeakingExample = example.isNotEmpty && tts.isSpeakingText(example);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -309,14 +344,13 @@ class _SpeakButton extends ConsumerWidget {
           onPressed: () => notifier.speak(word, showMiniPlayer: false),
           style: isSpeakingWord
               ? IconButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
                 )
               : null,
           icon: Icon(
-            isSpeakingWord
-                ? Icons.volume_up_rounded
-                : Icons.volume_up_outlined,
+            isSpeakingWord ? Icons.volume_up_rounded : Icons.volume_up_outlined,
           ),
         ),
         if (example.isNotEmpty) ...[
@@ -326,8 +360,9 @@ class _SpeakButton extends ConsumerWidget {
             onPressed: () => notifier.speak(example, showMiniPlayer: false),
             style: isSpeakingExample
                 ? IconButton.styleFrom(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.secondaryContainer,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.secondaryContainer,
                   )
                 : null,
             icon: Icon(

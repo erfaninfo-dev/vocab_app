@@ -65,31 +65,34 @@ class _TwoOptionPoll extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = compact ? 286.0 : 300.0;
+    final question = poll.question.trim();
     return SizedBox(
       width: width,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            poll.question,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 36,
-              height: 1.12,
-              shadows: const [
-                Shadow(
-                  color: Colors.black45,
-                  blurRadius: 12,
-                  offset: Offset(0, 2),
-                ),
-              ],
+          if (question.isNotEmpty) ...[
+            Text(
+              question,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 36,
+                height: 1.12,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black45,
+                    blurRadius: 12,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
+          ],
           ClipRRect(
             borderRadius: BorderRadius.circular(9),
             child: DecoratedBox(
@@ -269,10 +272,18 @@ class _MultiOptionPoll extends StatelessWidget {
     final question = poll.question.trim();
     final likelyTwoLineQuestion =
         question.length > 28 || question.contains('\n');
-    final headerHeight = likelyTwoLineQuestion ? 72.0 : 63.0;
+    final dense = compact || poll.options.length >= 4;
+    final optionHeight = dense ? 34.0 : 42.0;
+    final optionGap = dense ? 4.0 : 6.0;
+    final headerHeight = dense
+        ? (likelyTwoLineQuestion ? 62.0 : 54.0)
+        : (likelyTwoLineQuestion ? 72.0 : 63.0);
     return Container(
       width: width,
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(
+        top: question.isEmpty ? (dense ? 6 : 8) : 0,
+        bottom: dense ? 6 : 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(18),
@@ -287,43 +298,45 @@ class _MultiOptionPoll extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 8),
-            height: headerHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF111116),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(18),
-                bottom: Radius.circular(8),
+          if (question.isNotEmpty)
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.only(bottom: dense ? 6 : 8),
+              height: headerHeight,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFF111116),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(18),
+                  bottom: Radius.circular(8),
+                ),
               ),
-            ),
-            child: Center(
-              child: Text(
-                question.toUpperCase(),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: compact ? 11 : 12,
-                  height: 1.12,
-                  letterSpacing: 0.2,
+              child: Center(
+                child: Text(
+                  question.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: compact ? 11 : 12,
+                    height: 1.12,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ),
-          ),
           for (final option in poll.options)
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+              padding: EdgeInsets.fromLTRB(8, 0, 8, optionGap),
               child: _PollOptionCell(
                 option: option,
                 selected: poll.selectedOptionId == option.id,
                 showResults: showResults,
                 voting: votingOptionId == option.id,
                 horizontal: false,
+                height: optionHeight,
                 onTap: onVote == null ? null : () => onVote!(option.id),
               ),
             ),
@@ -340,6 +353,7 @@ class _PollOptionCell extends StatelessWidget {
     required this.showResults,
     required this.voting,
     required this.horizontal,
+    this.height,
     this.optionColor,
     required this.onTap,
   });
@@ -349,6 +363,7 @@ class _PollOptionCell extends StatelessWidget {
   final bool showResults;
   final bool voting;
   final bool horizontal;
+  final double? height;
   final Color? optionColor;
   final VoidCallback? onTap;
 
@@ -361,7 +376,7 @@ class _PollOptionCell extends StatelessWidget {
         onTap: voting ? null : onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          height: horizontal ? 78 : 42,
+          height: horizontal ? 78 : height ?? 42,
           decoration: BoxDecoration(
             color: horizontal ? Colors.transparent : const Color(0xFFF1F1F5),
             borderRadius: BorderRadius.circular(horizontal ? 0 : 12),

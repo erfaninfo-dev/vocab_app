@@ -103,6 +103,30 @@ class VisibleStoriesNotifier extends AsyncNotifier<List<StoryItem>> {
     ]);
     return updatedPoll;
   }
+
+  Future<StoryGrammarGame> answerGrammarGame({
+    required StoryItem story,
+    required StoryGrammarGame game,
+    required String optionId,
+  }) async {
+    final current = state.valueOrNull ?? const <StoryItem>[];
+    final updatedGame = await ref
+        .read(apiServiceProvider)
+        .answerStoryGrammarGame(
+          storyId: story.id,
+          gameId: game.id,
+          optionId: optionId,
+        );
+    state = AsyncData([
+      for (final item in current)
+        item.id == story.id
+            ? item.copyWith(
+                textStyle: item.textStyle.copyWith(grammarGame: updatedGame),
+              )
+            : item,
+    ]);
+    return updatedGame;
+  }
 }
 
 final adminStoriesProvider = FutureProvider.autoDispose<List<StoryItem>>((

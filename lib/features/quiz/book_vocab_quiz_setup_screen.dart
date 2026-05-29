@@ -17,6 +17,7 @@ import 'book_quiz_section_filter.dart';
 import 'quiz_screen.dart';
 import 'widgets/book_quiz_sections_panel.dart';
 import 'widgets/slider_with_value_below.dart';
+import 'widgets/vocab_quiz_league_style.dart';
 
 /// Book quiz setup: multi-unit from [UnitsScreen], or single-unit + sections from a unit route.
 class BookVocabQuizSetupScreen extends ConsumerStatefulWidget {
@@ -111,12 +112,11 @@ class _BookVocabQuizSetupScreenState
   Map<int, List<SectionInfo>> _sectionsCatalog(
     List<VocabEntry> allWords,
     Map<int, List<SectionInfo>> apiSections,
-  ) =>
-      buildQuizSectionsCatalog(
-        apiSections: apiSections,
-        allWords: allWords,
-        selectedUnits: _selectedUnits,
-      );
+  ) => buildQuizSectionsCatalog(
+    apiSections: apiSections,
+    allWords: allWords,
+    selectedUnits: _selectedUnits,
+  );
 
   Widget _buildSectionsSlot({
     required AppLocalizations l10n,
@@ -129,37 +129,36 @@ class _BookVocabQuizSetupScreenState
 
     if (sectionsByUnit.isNotEmpty) {
       return BookQuizSectionsPanel(
-            l10n: l10n,
-            l10nEn: l10nEn,
-            sectionsByUnit: sectionsByUnit,
-            selectedSectionsByUnit: _selectedSectionsByUnit,
-            onSectionToggle: (unit, section, selected) {
-              setState(() {
-                final set = _selectedSectionsByUnit.putIfAbsent(
-                  unit,
-                  () => <int>{},
-                );
-                if (selected) {
-                  set.add(section);
-                } else {
-                  set.remove(section);
-                }
-              });
-            },
-            onSelectAllForUnit: (unit) {
-              final list = sectionsByUnit[unit];
-              if (list == null) return;
-              setState(() {
-                _selectedSectionsByUnit[unit] =
-                    list.map((e) => e.section).toSet();
-              });
-            },
-            onClearUnit: (unit) {
-              setState(() {
-                _selectedSectionsByUnit[unit] = <int>{};
-              });
-            },
-          );
+        l10n: l10n,
+        l10nEn: l10nEn,
+        sectionsByUnit: sectionsByUnit,
+        selectedSectionsByUnit: _selectedSectionsByUnit,
+        onSectionToggle: (unit, section, selected) {
+          setState(() {
+            final set = _selectedSectionsByUnit.putIfAbsent(
+              unit,
+              () => <int>{},
+            );
+            if (selected) {
+              set.add(section);
+            } else {
+              set.remove(section);
+            }
+          });
+        },
+        onSelectAllForUnit: (unit) {
+          final list = sectionsByUnit[unit];
+          if (list == null) return;
+          setState(() {
+            _selectedSectionsByUnit[unit] = list.map((e) => e.section).toSet();
+          });
+        },
+        onClearUnit: (unit) {
+          setState(() {
+            _selectedSectionsByUnit[unit] = <int>{};
+          });
+        },
+      );
     }
 
     final unit = widget.lockedUnit ?? _selectedUnits.first;
@@ -208,9 +207,7 @@ class _BookVocabQuizSetupScreenState
       if (!_selectedUnits.contains(row.unit)) return false;
       return allWords.any(
         (e) =>
-            inScope(e) &&
-            e.unit == row.unit &&
-            e.matchesWrongKey(row.wordKey),
+            inScope(e) && e.unit == row.unit && e.matchesWrongKey(row.wordKey),
       );
     }).toList();
     final wrongKeys = wrongsInSelectedUnits.map((w) => w.wordKey).toList();
@@ -224,9 +221,7 @@ class _BookVocabQuizSetupScreenState
     List<VocabEntry> basePoolForSelection() {
       var w = allWords.where(inScope).toList();
       if (wrongsOnly) {
-        w = w
-            .where((e) => wrongKeys.any((k) => e.matchesWrongKey(k)))
-            .toList();
+        w = w.where((e) => wrongKeys.any((k) => e.matchesWrongKey(k))).toList();
       }
       return w;
     }
@@ -271,7 +266,8 @@ class _BookVocabQuizSetupScreenState
     final sectionsValid =
         _isBookScope || _sectionsSelectionValid(sectionsByUnit);
 
-    final canStart = sectionsValid &&
+    final canStart =
+        sectionsValid &&
         maxQ >= 1 &&
         (needsMcq
             ? (wrongsOnly
@@ -315,7 +311,8 @@ class _BookVocabQuizSetupScreenState
 
     const bottomCtaSpace = 120.0;
 
-    if (_wordPool == _WordPoolChoice.importantOnly && !hasImportantInSelection) {
+    if (_wordPool == _WordPoolChoice.importantOnly &&
+        !hasImportantInSelection) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() => _wordPool = _WordPoolChoice.all);
@@ -342,8 +339,9 @@ class _BookVocabQuizSetupScreenState
           else ...[
             Text(
               l10n.unitsSectionTitle,
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Directionality(
@@ -356,10 +354,9 @@ class _BookVocabQuizSetupScreenState
                     FilterChip(
                       label: Text(
                         l10nEn.unitLabel(u.unit),
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(fontSize: 13),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelLarge?.copyWith(fontSize: 13),
                       ),
                       selected: _selectedUnits.contains(u.unit),
                       onSelected: (v) {
@@ -379,8 +376,9 @@ class _BookVocabQuizSetupScreenState
           const SizedBox(height: 20),
           Text(
             l10n.bookQuizWordPoolTitle,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           Container(
@@ -410,10 +408,7 @@ class _BookVocabQuizSetupScreenState
                   title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.local_fire_department_rounded,
-                        size: 18,
-                      ),
+                      const Icon(Icons.local_fire_department_rounded, size: 18),
                       const SizedBox(width: 8),
                       Text(l10n.importantOnlyChip),
                     ],
@@ -453,8 +448,9 @@ class _BookVocabQuizSetupScreenState
           const SizedBox(height: 20),
           Text(
             l10n.questionModes,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -484,8 +480,9 @@ class _BookVocabQuizSetupScreenState
           const SizedBox(height: 20),
           Text(
             l10n.bookQuizQuestionsSlider(maxQ),
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           SliderWithValueBelow(
             min: minQ > 0 ? minQ.toDouble() : 1,
@@ -524,15 +521,16 @@ class _BookVocabQuizSetupScreenState
                     disabledReason,
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.error,
-                          height: 1.3,
-                        ),
+                      color: scheme.error,
+                      height: 1.3,
+                    ),
                   ),
                 ),
               FilledButton.icon(
                 onPressed: canStart ? startQuiz : null,
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: Text(l10n.startQuiz),
+                style: vocabLeagueFilledButtonStyle(),
               ),
             ],
           ),
@@ -550,7 +548,15 @@ class _BookVocabQuizSetupScreenState
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.emoji_events_rounded),
+          icon: const Icon(
+            Icons.emoji_events_rounded,
+            color: kVocabLeagueAccent,
+          ),
+          tooltip: 'Vocabulary League',
+          onPressed: () => context.push('/league?type=vocab'),
+        ),
+        IconButton(
+          icon: const Icon(Icons.history_rounded),
           tooltip: l10n.vocabQuizHistoryTitle,
           onPressed: () => context.push('/vocab-quiz/history'),
         ),
@@ -562,8 +568,9 @@ class _BookVocabQuizSetupScreenState
     ref.listen(bookQuizSectionsForUnitsProvider(sectionsKey), (prev, next) {
       next.whenData((map) {
         if (!mounted) return;
-        final words =
-            ref.read(apiAllWordsForBookProvider(widget.bookId)).valueOrNull;
+        final words = ref
+            .read(apiAllWordsForBookProvider(widget.bookId))
+            .valueOrNull;
         if (words == null) return;
         _syncSectionsSelection(_sectionsCatalog(words, map));
       });
@@ -586,11 +593,14 @@ class _BookVocabQuizSetupScreenState
       final sortedUnits = sortedUnitList(_selectedUnits);
       final sectionsKey = (bookId: widget.bookId, units: sortedUnits);
       final cachedWords = allWordsAsync.valueOrNull;
-      final fetchSectionsApi = cachedWords != null &&
+      final fetchSectionsApi =
+          cachedWords != null &&
           selectedUnitsMayHaveSections(cachedWords, _selectedUnits);
       final apiSections = fetchSectionsApi
-          ? ref.watch(bookQuizSectionsForUnitsProvider(sectionsKey)).valueOrNull ??
-              {}
+          ? ref
+                    .watch(bookQuizSectionsForUnitsProvider(sectionsKey))
+                    .valueOrNull ??
+                {}
           : <int, List<SectionInfo>>{};
       if (fetchSectionsApi) {
         _listenSectionsSync(sectionsKey);
@@ -662,11 +672,7 @@ class _BookVocabQuizSetupScreenState
   }
 }
 
-enum _WordPoolChoice {
-  all,
-  importantOnly,
-  mistakesOnly,
-}
+enum _WordPoolChoice { all, importantOnly, mistakesOnly }
 
 class _WordPoolToggleTile extends StatelessWidget {
   const _WordPoolToggleTile({
@@ -687,17 +693,14 @@ class _WordPoolToggleTile extends StatelessWidget {
       visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       title: DefaultTextStyle.merge(
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         child: title,
       ),
       trailing: Transform.scale(
         scale: 0.9,
-        child: Switch(
-          value: value,
-          onChanged: effective,
-        ),
+        child: Switch(value: value, onChanged: effective),
       ),
       onTap: effective == null
           ? null

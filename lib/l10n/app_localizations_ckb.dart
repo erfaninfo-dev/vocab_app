@@ -669,6 +669,12 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get couldNotLoadMistakes => 'بارکردنی لیستی هەڵەکان سەرکەوتوو نەبوو';
 
   @override
+  String get couldNotLoadLeague => 'بارکردنی لیگ سەرکەوتوو نەبوو';
+
+  @override
+  String get leagueErrorPullToRefresh => 'بۆ نوێکردنەوە، پەڕەکە بکێشە خوارەوە.';
+
+  @override
   String get quizNotEnoughImportant =>
       'لەم مەودایەدا وشەی گرنگ نییە. هەموو وشەکان هەڵبژێرە، مەودا بگۆڕە یان یەکەی زیاتر.';
 
@@ -2240,6 +2246,22 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get wordBuilderDifficultyAdvanced => 'پێشکەوتوو';
 
   @override
+  String get wordBuilderTierLockedIntermediateSubtitle =>
+      'داخراوە • سەرەتا سەرەتایی تەواو بکە';
+
+  @override
+  String get wordBuilderTierLockedAdvancedSubtitle =>
+      'داخراوە • سەرەتا مامناوەند تەواو بکە';
+
+  @override
+  String get wordBuilderTierLockedIntermediateMessage =>
+      'هەموو قۆناغەکانی سەرەتایی تەواو بکە تا مامناوەند بکرێتەوە.';
+
+  @override
+  String get wordBuilderTierLockedAdvancedMessage =>
+      'هەموو قۆناغەکانی مامناوەند تەواو بکە تا پێشکەوتوو بکرێتەوە.';
+
+  @override
   String get wordBuilderYourWord => 'وشەکەت';
 
   @override
@@ -2287,6 +2309,33 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get wordBuilderLevelCompleteBody =>
       'زۆر باش بوو؛ هەموو وشەکانی ئەم ئاستەت دۆزییەوە.';
+
+  @override
+  String get wordBuilderBeginnerCompleteTitle => 'سەرەتایی تەواو بوو!';
+
+  @override
+  String get wordBuilderBeginnerCompleteBody =>
+      'نایاب بوو! ئاستی مامناوەند کرایەوە؛ ئامادەی قۆناغی دواتری؟';
+
+  @override
+  String get wordBuilderStartIntermediate => 'دەستپێکردنی مامناوەند';
+
+  @override
+  String get wordBuilderIntermediateCompleteTitle => 'مامناوەند تەواو بوو!';
+
+  @override
+  String get wordBuilderIntermediateCompleteBody =>
+      'زۆر جوان! ئاستی پێشکەوتوو کرایەوە؛ با ئاستەکە بەرزتر بکەین.';
+
+  @override
+  String get wordBuilderStartAdvanced => 'دەستپێکردنی پێشکەوتوو';
+
+  @override
+  String get wordBuilderAdvancedCompleteTitle => 'هەموو بەشەکان تەواو بوون!';
+
+  @override
+  String get wordBuilderAdvancedCompleteBody =>
+      'درەوشاوە بوو! هەموو کەمپەینی Word Builderت تەواو کرد.';
 
   @override
   String get wordBuilderHintLetter => 'پیتێک لە یەکێک لە وشەکان دەردەکەوێت.';
@@ -2572,4 +2621,42 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get sampleHighlightDefaultColor => 'دیاریکردن';
+
+  @override
+  String get samplePlayFullText => 'لێدانی نموونە';
+
+  @override
+  String get samplePauseFullText => 'وەستان';
+
+  @override
+  String get sampleTtsNowPlaying => 'خوێندنەوەی دەقی نموونە';
+
+  @override
+  String get sampleTtsStop => 'وەستان';
+
+  @override
+  String get sampleTtsRewind5 => '٥ چرکە دواوە';
+
+  @override
+  String get sampleTtsForward5 => '٥ چرکە پێشەوە';
+
+  @override
+  String get sampleTtsHighlight => 'دیاریکردنی هاوکات';
+
+  @override
+  String get sampleTtsSpeed => 'خێرایی';
+
+  @override
+  String sampleTtsSpeedLabel(String speed) {
+    return '$speed×';
+  }
+
+  @override
+  String get sampleTtsEngine => 'دەنگ';
+
+  @override
+  String get sampleTtsEngineSystem => 'سیستەم';
+
+  @override
+  String get sampleTtsEngineGoogle => 'گووگڵ';
 }

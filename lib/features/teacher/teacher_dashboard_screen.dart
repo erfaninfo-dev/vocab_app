@@ -188,9 +188,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
                 child: MessagesUpdatingLabel(
                   active: true,
                   color: scheme.primary,
-                  style: tt.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: tt.labelSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
           ],
@@ -223,11 +221,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         children: [
           _StudentsTab(l10n: l10n, scheme: scheme),
           TeacherScheduleTab(l10n: l10n, scheme: scheme),
-          _MessagesTab(
-            l10n: l10n,
-            scheme: scheme,
-            onRefresh: _refreshInbox,
-          ),
+          _MessagesTab(l10n: l10n, scheme: scheme, onRefresh: _refreshInbox),
         ],
       ),
     );
@@ -284,9 +278,9 @@ class _StudentsTab extends ConsumerWidget {
                   l10n.teacherStudentsEmpty,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        height: 1.45,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    height: 1.45,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             );
@@ -331,19 +325,13 @@ class _StudentsTab extends ConsumerWidget {
                               children: [
                                 Text(
                                   s.displayLabel,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   s.email,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: scheme.onSurfaceVariant,
                                       ),
@@ -357,15 +345,14 @@ class _StudentsTab extends ConsumerWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: scheme.primaryContainer
-                                  .withValues(alpha: 0.9),
+                              color: scheme.primaryContainer.withValues(
+                                alpha: 0.9,
+                              ),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
                               '${s.sessionCount}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
+                              style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     color: scheme.onPrimaryContainer,
@@ -409,14 +396,13 @@ class _MessagesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tt = Theme.of(context).textTheme;
     final async = ref.watch(teacherInboxStudentsProvider);
+    final myId = ref.watch(authProvider).valueOrNull?.user.id;
     final localeName = Localizations.localeOf(context).toString();
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: TeacherChatUi.inboxListBackgroundDecor(scheme),
-        ),
+        Positioned.fill(child: TeacherChatUi.inboxListBackgroundDecor(scheme)),
         Positioned.fill(
           child: async.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -482,8 +468,9 @@ class _MessagesTab extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final s = students[i];
                     final now = DateTime.now();
-                    final lastDt =
-                        TeacherChatUi.tryParseApiDate(s.lastMessageAt);
+                    final lastDt = TeacherChatUi.tryParseApiDate(
+                      s.lastMessageAt,
+                    );
                     final timeStr = lastDt != null
                         ? TeacherChatUi.formatListTimestamp(
                             messageLocal: lastDt,
@@ -505,16 +492,21 @@ class _MessagesTab extends ConsumerWidget {
                     }
 
                     final hasUnread = s.unreadFromStudent > 0;
+                    final isSavedMessages = myId != null && s.id == myId;
+                    final title = isSavedMessages
+                        ? 'Saved Messages'
+                        : s.displayLabel;
                     final openArgs = TeacherChatOpenArgs(
-                      displayTitle: s.displayLabel,
+                      displayTitle: title,
                       avatarId: s.avatar,
                       userId: s.id,
                     );
 
                     return Card(
                       elevation: hasUnread ? 3 : 2,
-                      shadowColor: scheme.primary
-                          .withValues(alpha: hasUnread ? 0.24 : 0.16),
+                      shadowColor: scheme.primary.withValues(
+                        alpha: hasUnread ? 0.24 : 0.16,
+                      ),
                       color: scheme.surface.withValues(alpha: 0.96),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -541,19 +533,28 @@ class _MessagesTab extends ConsumerWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ProfileAvatar(
-                                avatarId: s.avatar,
-                                userId: s.id,
-                                size: 54,
-                              ),
+                              if (isSavedMessages)
+                                CircleAvatar(
+                                  radius: 27,
+                                  backgroundColor: scheme.primaryContainer,
+                                  child: Icon(
+                                    Icons.bookmark_rounded,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                )
+                              else
+                                ProfileAvatar(
+                                  avatarId: s.avatar,
+                                  userId: s.id,
+                                  size: 54,
+                                ),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      s.displayLabel,
+                                      title,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: tt.titleMedium?.copyWith(
@@ -611,8 +612,7 @@ class _MessagesTab extends ConsumerWidget {
                                       ),
                                       decoration: BoxDecoration(
                                         color: scheme.primary,
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         s.unreadFromStudent > 99

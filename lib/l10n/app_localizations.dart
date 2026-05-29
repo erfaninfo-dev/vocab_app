@@ -1216,6 +1216,18 @@ abstract class AppLocalizations {
   /// **'Could not load mistake list'**
   String get couldNotLoadMistakes;
 
+  /// No description provided for @couldNotLoadLeague.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the league'**
+  String get couldNotLoadLeague;
+
+  /// No description provided for @leagueErrorPullToRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull down to refresh.'**
+  String get leagueErrorPullToRefresh;
+
   /// No description provided for @quizNotEnoughImportant.
   ///
   /// In en, this message translates to:
@@ -3940,6 +3952,30 @@ abstract class AppLocalizations {
   /// **'Advanced'**
   String get wordBuilderDifficultyAdvanced;
 
+  /// No description provided for @wordBuilderTierLockedIntermediateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked • finish Beginner first'**
+  String get wordBuilderTierLockedIntermediateSubtitle;
+
+  /// No description provided for @wordBuilderTierLockedAdvancedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked • finish Intermediate first'**
+  String get wordBuilderTierLockedAdvancedSubtitle;
+
+  /// No description provided for @wordBuilderTierLockedIntermediateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish all Beginner stages to unlock Intermediate.'**
+  String get wordBuilderTierLockedIntermediateMessage;
+
+  /// No description provided for @wordBuilderTierLockedAdvancedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish all Intermediate stages to unlock Advanced.'**
+  String get wordBuilderTierLockedAdvancedMessage;
+
   /// No description provided for @wordBuilderYourWord.
   ///
   /// In en, this message translates to:
@@ -4035,6 +4071,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Great job. You found all the words in this stage.'**
   String get wordBuilderLevelCompleteBody;
+
+  /// No description provided for @wordBuilderBeginnerCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner complete!'**
+  String get wordBuilderBeginnerCompleteTitle;
+
+  /// No description provided for @wordBuilderBeginnerCompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Amazing! Intermediate is unlocked. Ready for the next challenge?'**
+  String get wordBuilderBeginnerCompleteBody;
+
+  /// No description provided for @wordBuilderStartIntermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Intermediate'**
+  String get wordBuilderStartIntermediate;
+
+  /// No description provided for @wordBuilderIntermediateCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate complete!'**
+  String get wordBuilderIntermediateCompleteTitle;
+
+  /// No description provided for @wordBuilderIntermediateCompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Fantastic work! Advanced is unlocked. Let’s raise the level.'**
+  String get wordBuilderIntermediateCompleteBody;
+
+  /// No description provided for @wordBuilderStartAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Advanced'**
+  String get wordBuilderStartAdvanced;
+
+  /// No description provided for @wordBuilderAdvancedCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All sections complete!'**
+  String get wordBuilderAdvancedCompleteTitle;
+
+  /// No description provided for @wordBuilderAdvancedCompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished the full Word Builder campaign. Brilliant work!'**
+  String get wordBuilderAdvancedCompleteBody;
 
   /// No description provided for @wordBuilderHintLetter.
   ///
@@ -4509,6 +4593,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Highlight'**
   String get sampleHighlightDefaultColor;
+
+  /// No description provided for @samplePlayFullText.
+  ///
+  /// In en, this message translates to:
+  /// **'Play sample'**
+  String get samplePlayFullText;
+
+  /// No description provided for @samplePauseFullText.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get samplePauseFullText;
+
+  /// No description provided for @sampleTtsNowPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading sample text'**
+  String get sampleTtsNowPlaying;
+
+  /// No description provided for @sampleTtsStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get sampleTtsStop;
+
+  /// No description provided for @sampleTtsRewind5.
+  ///
+  /// In en, this message translates to:
+  /// **'Back 5 seconds'**
+  String get sampleTtsRewind5;
+
+  /// No description provided for @sampleTtsForward5.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 5 seconds'**
+  String get sampleTtsForward5;
+
+  /// No description provided for @sampleTtsHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Karaoke highlight'**
+  String get sampleTtsHighlight;
+
+  /// No description provided for @sampleTtsSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get sampleTtsSpeed;
+
+  /// No description provided for @sampleTtsSpeedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed}×'**
+  String sampleTtsSpeedLabel(String speed);
+
+  /// No description provided for @sampleTtsEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice'**
+  String get sampleTtsEngine;
+
+  /// No description provided for @sampleTtsEngineSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get sampleTtsEngineSystem;
+
+  /// No description provided for @sampleTtsEngineGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get sampleTtsEngineGoogle;
 }
 
 class _AppLocalizationsDelegate

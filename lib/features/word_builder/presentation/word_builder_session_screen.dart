@@ -11,6 +11,7 @@ import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
 import '../application/word_builder_coins_provider.dart';
 import '../application/word_builder_game_notifier.dart';
+import '../application/word_builder_league_sync.dart';
 import '../application/word_builder_session_audio.dart';
 import '../application/word_builder_tray_water_audio.dart';
 import '../domain/word_builder_models.dart';
@@ -24,7 +25,6 @@ import 'widgets/circular_letter_tray.dart';
 import 'widgets/magic_background.dart';
 import 'widgets/shake_wrapper.dart';
 import 'widgets/word_builder_coins_chip.dart';
-import 'widgets/word_builder_level_complete_dialog.dart';
 import 'widgets/word_builder_meaning_banner.dart';
 import 'widgets/word_builder_session_audio_sheet.dart';
 import 'widgets/word_builder_tray_circle_button.dart';
@@ -43,8 +43,6 @@ class WordBuilderSessionScreen extends ConsumerStatefulWidget {
 class _WordBuilderSessionScreenState
     extends ConsumerState<WordBuilderSessionScreen>
     with WidgetsBindingObserver {
-  bool _levelCompleteDialogOpen = false;
-
   @override
   void initState() {
     super.initState();
@@ -90,8 +88,70 @@ class _WordBuilderSessionScreenState
     final snap = await repo.load();
     final nextProg = snap.afterClearingStage(camp.difficulty, camp.stage1Based);
     await repo.save(nextProg);
+    final coins = ref.read(wordBuilderCoinsProvider).valueOrNull;
+    if (coins != null) {
+      unawaited(
+        syncWordBuilderLeagueSnapshot(
+          read: ref.read,
+          progress: nextProg,
+          coins: coins,
+        ),
+      );
+    }
     ref.invalidate(wordBuilderCampaignProgressProvider);
     ref.invalidate(wordBuilderGameProvider(key));
+  }
+
+  WordBuilderDifficulty? _nextCampaignDifficulty(WordBuilderDifficulty d) {
+    switch (d) {
+      case WordBuilderDifficulty.beginner:
+        return WordBuilderDifficulty.intermediate;
+      case WordBuilderDifficulty.intermediate:
+        return WordBuilderDifficulty.advanced;
+      case WordBuilderDifficulty.advanced:
+        return null;
+    }
+  }
+
+  bool _isCampaignTierComplete() {
+    final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
+    return camp != null && camp.stage1Based >= kWordBuilderStagesPerTier;
+  }
+
+  ({String emoji, String title, String body, String nextLabel})
+  _levelCompleteCopy(AppLocalizations l10n) {
+    final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
+    if (camp == null || camp.stage1Based < kWordBuilderStagesPerTier) {
+      return (
+        emoji: '🏆🎉',
+        title: l10n.wordBuilderLevelCompleteTitle,
+        body: l10n.wordBuilderLevelCompleteBody,
+        nextLabel: l10n.wordBuilderNextLevel,
+      );
+    }
+    switch (camp.difficulty) {
+      case WordBuilderDifficulty.beginner:
+        return (
+          emoji: '🎉🏆✨',
+          title: l10n.wordBuilderBeginnerCompleteTitle,
+          body: l10n.wordBuilderBeginnerCompleteBody,
+          nextLabel: l10n.wordBuilderStartIntermediate,
+        );
+      case WordBuilderDifficulty.intermediate:
+        return (
+          emoji: '🚀🏆🎉',
+          title: l10n.wordBuilderIntermediateCompleteTitle,
+          body: l10n.wordBuilderIntermediateCompleteBody,
+          nextLabel: l10n.wordBuilderStartAdvanced,
+        );
+      case WordBuilderDifficulty.advanced:
+        return (
+          emoji: '👑🏆🎉',
+          title: l10n.wordBuilderAdvancedCompleteTitle,
+          body: l10n.wordBuilderAdvancedCompleteBody,
+          nextLabel: l10n.exit,
+        );
+    }
   }
 
   Future<void> _finishCampaignStageAndExit() async {
@@ -106,6 +166,15 @@ class _WordBuilderSessionScreenState
       await _saveCampaignStageProgress();
       if (!mounted) return;
       if (camp.stage1Based >= kWordBuilderStagesPerTier) {
+        final nextDifficulty = _nextCampaignDifficulty(camp.difficulty);
+        if (nextDifficulty != null) {
+          final nextKey = encodeWordBuilderCampaignSessionKey(
+            nextDifficulty,
+            1,
+          );
+          context.pushReplacement('/word-builder/session?bookId=$nextKey');
+          return;
+        }
         context.pop();
         return;
       }
@@ -119,41 +188,9 @@ class _WordBuilderSessionScreenState
     await ref.read(wordBuilderGameProvider(key).notifier).goToNextLevel();
   }
 
-  Future<void> _showLevelCompleteDialog() async {
-    if (_levelCompleteDialogOpen || !mounted) return;
-    _levelCompleteDialogOpen = true;
-    try {
-      final key = widget.bookKey;
-      await Future<void>.delayed(const Duration(milliseconds: 420));
-      if (!mounted) return;
-      final after = ref.read(wordBuilderGameProvider(key)).valueOrNull;
-      if (after == null || !after.levelComplete) return;
-
-      final action = await WordBuilderLevelCompleteDialog.show(context);
-      if (!mounted || action == null) return;
-      switch (action) {
-        case WordBuilderLevelCompleteAction.next:
-          await _advanceAfterLevelComplete();
-        case WordBuilderLevelCompleteAction.exit:
-          await _finishCampaignStageAndExit();
-      }
-    } finally {
-      _levelCompleteDialogOpen = false;
-    }
-  }
-
-  Future<void> _maybeShowLevelCompleteDialog() async {
-    if (!mounted) return;
-    final after = ref.read(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
-    if (after == null || !after.levelComplete) return;
-    await _showLevelCompleteDialog();
-  }
-
   Future<void> _onSolvedWordTapped(WordBuilderTargetWord target) async {
     if (!mounted) return;
     await WordInfoSheet.show(context, target, bookKey: widget.bookKey);
-    if (!mounted) return;
-    await _maybeShowLevelCompleteDialog();
   }
 
   @override
@@ -170,9 +207,6 @@ class _WordBuilderSessionScreenState
       final data = next.valueOrNull;
       if (data == null) return;
       final prevData = prev?.valueOrNull;
-      if (data.levelComplete && prevData?.levelComplete != true) {
-        unawaited(_showLevelCompleteDialog());
-      }
       final msg = data.feedbackMessage;
       if (msg != null && msg != prevData?.feedbackMessage) {
         if (wordBuilderFeedbackIsMeaning(msg)) return;
@@ -183,11 +217,16 @@ class _WordBuilderSessionScreenState
             SnackBar(
               content: Text(
                 text,
-                style: GoogleFonts.fredoka(fontWeight: FontWeight.w600),
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w700,
+                  color: isDark
+                      ? const Color(0xFFFFF8E1)
+                      : const Color(0xFFFFFDE7),
+                ),
               ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: isDark
-                  ? const Color(0xFF3E3228)
+                  ? const Color(0xFF5D4037)
                   : const Color(0xFF5D4037),
             ),
           );
@@ -411,6 +450,11 @@ class _WordBuilderSessionScreenState
                                                       Color(0xFFFFCDD2),
                                                       Color(0xFFFF8A80),
                                                     ]
+                                                  : isDark
+                                                  ? const [
+                                                      Color(0xFF5D4037),
+                                                      Color(0xFF2D2640),
+                                                    ]
                                                   : const [
                                                       Color(0xFFFFF8E1),
                                                       Color(0xFFFFECB3),
@@ -419,7 +463,11 @@ class _WordBuilderSessionScreenState
                                             border: Border.all(
                                               color: s.pathWrongHighlight
                                                   ? const Color(0xFFD32F2F)
-                                                  : const Color(0xFFFFB300),
+                                                  : const Color(
+                                                      0xFFFFB300,
+                                                    ).withValues(
+                                                      alpha: isDark ? 0.82 : 1,
+                                                    ),
                                               width: 2.2,
                                             ),
                                             boxShadow: [
@@ -480,6 +528,10 @@ class _WordBuilderSessionScreenState
                                                           s.pathWrongHighlight
                                                           ? const Color(
                                                               0xFFB71C1C,
+                                                            )
+                                                          : isDark
+                                                          ? const Color(
+                                                              0xFFFFF8E1,
                                                             )
                                                           : const Color(
                                                               0xFF5D4037,
@@ -559,103 +611,159 @@ class _WordBuilderSessionScreenState
                                       18.0,
                                       32.0,
                                     );
-                                    return Stack(
-                                      fit: StackFit.expand,
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        Center(
-                                          child: Stack(
-                                            alignment: Alignment.center,
-                                            clipBehavior: Clip.none,
-                                            children: [
-                                              Container(
-                                                width: side * 1.1,
-                                                height: side * 1.1,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  gradient: RadialGradient(
-                                                    colors: [
-                                                      scheme.primary.withValues(
-                                                        alpha: 0.14,
+                                    final completeCopy = _levelCompleteCopy(
+                                      l10n,
+                                    );
+                                    return AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 520,
+                                      ),
+                                      switchInCurve: Curves.easeOutCubic,
+                                      switchOutCurve: Curves.easeInCubic,
+                                      transitionBuilder: (child, animation) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(
+                                              begin: 0.96,
+                                              end: 1,
+                                            ).animate(animation),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: s.levelComplete
+                                          ? _LevelCompleteActionPanel(
+                                              key: const ValueKey(
+                                                'level-complete-actions',
+                                              ),
+                                              l10n: l10n,
+                                              isDark: isDark,
+                                              layoutScale: sScale,
+                                              emoji: completeCopy.emoji,
+                                              title: completeCopy.title,
+                                              body: completeCopy.body,
+                                              nextLabel: completeCopy.nextLabel,
+                                              tierComplete:
+                                                  _isCampaignTierComplete(),
+                                              onNext:
+                                                  _advanceAfterLevelComplete,
+                                              onExit:
+                                                  _finishCampaignStageAndExit,
+                                            )
+                                          : Stack(
+                                              key: const ValueKey(
+                                                'letter-tray',
+                                              ),
+                                              fit: StackFit.expand,
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                Center(
+                                                  child: Stack(
+                                                    alignment: Alignment.center,
+                                                    clipBehavior: Clip.none,
+                                                    children: [
+                                                      Container(
+                                                        width: side * 1.1,
+                                                        height: side * 1.1,
+                                                        decoration: BoxDecoration(
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          gradient: RadialGradient(
+                                                            colors: [
+                                                              scheme.primary
+                                                                  .withValues(
+                                                                    alpha: 0.14,
+                                                                  ),
+                                                              scheme.primary
+                                                                  .withValues(
+                                                                    alpha: 0.04,
+                                                                  ),
+                                                              Colors
+                                                                  .transparent,
+                                                            ],
+                                                            stops: const [
+                                                              0.0,
+                                                              0.45,
+                                                              1.0,
+                                                            ],
+                                                          ),
+                                                        ),
                                                       ),
-                                                      scheme.primary.withValues(
-                                                        alpha: 0.04,
+                                                      Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                              6 * sScale,
+                                                              0,
+                                                              6 * sScale,
+                                                              8 * sScale,
+                                                            ),
+                                                        child: SizedBox(
+                                                          width: w,
+                                                          height:
+                                                              trayConstraints
+                                                                  .maxHeight,
+                                                          child: CircularLetterTray(
+                                                            bookKey: key,
+                                                            letters:
+                                                                s.circleLetters,
+                                                            layoutMinExtent:
+                                                                math.min(
+                                                                  w,
+                                                                  side,
+                                                                ),
+                                                            chromeInset: inset,
+                                                            chromeButtonSize:
+                                                                btn,
+                                                          ),
+                                                        ),
                                                       ),
-                                                      Colors.transparent,
-                                                    ],
-                                                    stops: const [
-                                                      0.0,
-                                                      0.45,
-                                                      1.0,
                                                     ],
                                                   ),
                                                 ),
-                                              ),
-                                              Padding(
-                                                padding: EdgeInsets.fromLTRB(
-                                                  6 * sScale,
-                                                  0,
-                                                  6 * sScale,
-                                                  8 * sScale,
-                                                ),
-                                                child: SizedBox(
-                                                  width: w,
-                                                  height:
-                                                      trayConstraints.maxHeight,
-                                                  child: CircularLetterTray(
+                                                PositionedDirectional(
+                                                  start: inset,
+                                                  top: inset,
+                                                  child: WordBuilderTrayCircleButton(
                                                     bookKey: key,
-                                                    letters: s.circleLetters,
-                                                    layoutMinExtent: math.min(
-                                                      w,
-                                                      side,
-                                                    ),
-                                                    chromeInset: inset,
-                                                    chromeButtonSize: btn,
+                                                    kind:
+                                                        WordBuilderTrayActionKind
+                                                            .hint,
+                                                    diameter: btn,
+                                                    l10n: l10n,
+                                                    enabled: canHint,
+                                                    tooltipOverride: hintTip,
                                                   ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        PositionedDirectional(
-                                          start: inset,
-                                          top: inset,
-                                          child: WordBuilderTrayCircleButton(
-                                            bookKey: key,
-                                            kind:
-                                                WordBuilderTrayActionKind.hint,
-                                            diameter: btn,
-                                            l10n: l10n,
-                                            enabled: canHint,
-                                            tooltipOverride: hintTip,
-                                          ),
-                                        ),
-                                        PositionedDirectional(
-                                          start: inset,
-                                          bottom: inset,
-                                          child: WordBuilderTrayCircleButton(
-                                            bookKey: key,
-                                            kind: WordBuilderTrayActionKind
-                                                .shuffle,
-                                            diameter: btn,
-                                            l10n: l10n,
-                                            enabled: !trayBlocked,
-                                          ),
-                                        ),
-                                        PositionedDirectional(
-                                          end: inset,
-                                          bottom: inset,
-                                          child: WordBuilderTrayCircleButton(
-                                            bookKey: key,
-                                            kind: WordBuilderTrayActionKind
-                                                .translate,
-                                            diameter: btn,
-                                            l10n: l10n,
-                                            enabled: canMeaning,
-                                            tooltipOverride: meaningTip,
-                                          ),
-                                        ),
-                                      ],
+                                                PositionedDirectional(
+                                                  start: inset,
+                                                  bottom: inset,
+                                                  child: WordBuilderTrayCircleButton(
+                                                    bookKey: key,
+                                                    kind:
+                                                        WordBuilderTrayActionKind
+                                                            .shuffle,
+                                                    diameter: btn,
+                                                    l10n: l10n,
+                                                    enabled: !trayBlocked,
+                                                  ),
+                                                ),
+                                                PositionedDirectional(
+                                                  end: inset,
+                                                  bottom: inset,
+                                                  child: WordBuilderTrayCircleButton(
+                                                    bookKey: key,
+                                                    kind:
+                                                        WordBuilderTrayActionKind
+                                                            .translate,
+                                                    diameter: btn,
+                                                    l10n: l10n,
+                                                    enabled: canMeaning,
+                                                    tooltipOverride: meaningTip,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                     );
                                   },
                                 ),
@@ -671,6 +779,211 @@ class _WordBuilderSessionScreenState
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LevelCompleteActionPanel extends StatelessWidget {
+  const _LevelCompleteActionPanel({
+    super.key,
+    required this.l10n,
+    required this.isDark,
+    required this.layoutScale,
+    required this.emoji,
+    required this.title,
+    required this.body,
+    required this.nextLabel,
+    required this.tierComplete,
+    required this.onNext,
+    required this.onExit,
+  });
+
+  final AppLocalizations l10n;
+  final bool isDark;
+  final double layoutScale;
+  final String emoji;
+  final String title;
+  final String body;
+  final String nextLabel;
+  final bool tierComplete;
+  final VoidCallback onNext;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = layoutScale.clamp(0.85, 1.15);
+    final titleColor = isDark
+        ? const Color(0xFFFFF8E1)
+        : const Color(0xFF4E342E);
+    final bodyColor = isDark
+        ? const Color(0xFFFFECB3).withValues(alpha: 0.82)
+        : const Color(0xFF6D4C41);
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 22 * s, vertical: 10 * s),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 360 * s),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28 * s),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? const [Color(0xFF5D4037), Color(0xFF2D2640)]
+                    : const [Color(0xFFFFFDE7), Color(0xFFFFECB3)],
+              ),
+              border: Border.all(
+                color: const Color(
+                  0xFFFFB300,
+                ).withValues(alpha: isDark ? 0.82 : 0.95),
+                width: 2.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0xFFFF9800,
+                  ).withValues(alpha: isDark ? 0.28 : 0.36),
+                  blurRadius: 24 * s,
+                  offset: Offset(0, 8 * s),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                  blurRadius: 16 * s,
+                  offset: Offset(0, 5 * s),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(18 * s, 18 * s, 18 * s, 16 * s),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    emoji,
+                    style: TextStyle(fontSize: tierComplete ? 46 * s : 40 * s),
+                  ),
+                  SizedBox(height: 8 * s),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.fredoka(
+                      fontSize: (24 * s).clamp(20.0, 28.0),
+                      fontWeight: FontWeight.w900,
+                      color: titleColor,
+                    ),
+                  ),
+                  SizedBox(height: 5 * s),
+                  Text(
+                    body,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.fredoka(
+                      fontSize: (13.5 * s).clamp(12.0, 16.0),
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                      color: bodyColor,
+                    ),
+                  ),
+                  SizedBox(height: 16 * s),
+                  _LevelCompleteButton(
+                    label: nextLabel,
+                    icon: Icons.arrow_forward_rounded,
+                    filled: true,
+                    isDark: isDark,
+                    onPressed: onNext,
+                  ),
+                  SizedBox(height: 10 * s),
+                  _LevelCompleteButton(
+                    label: l10n.exit,
+                    icon: Icons.logout_rounded,
+                    filled: false,
+                    isDark: isDark,
+                    onPressed: onExit,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelCompleteButton extends StatelessWidget {
+  const _LevelCompleteButton({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.isDark,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final bool isDark;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 22),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.w900, fontSize: 16),
+        ),
+      ],
+    );
+
+    if (filled) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: onPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFFFB300),
+            foregroundColor: const Color(0xFF4E342E),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          child: child,
+        ),
+      );
+    }
+
+    final outlineForeground = isDark
+        ? const Color(0xFFFFECB3)
+        : const Color(0xFF5D4037);
+    final outlineBorder = isDark
+        ? const Color(0xFFFFD54F).withValues(alpha: 0.85)
+        : const Color(0xFFFFB300).withValues(alpha: 0.95);
+    final outlineBackground = isDark
+        ? const Color(0xFF3E3228).withValues(alpha: 0.64)
+        : const Color(0xFFFFF8E1).withValues(alpha: 0.7);
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: outlineBackground,
+          foregroundColor: outlineForeground,
+          side: BorderSide(color: outlineBorder, width: 1.6),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: child,
       ),
     );
   }

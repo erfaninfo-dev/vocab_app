@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 // import '../../core/audio/splash_sound_controller.dart';
 import '../../core/onboarding/language_selection_prefs.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
-import '../../domain/api_providers.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../l10n/app_localizations.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -37,14 +37,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     unawaited(_goNext());
   }
 
-  /// Warm [apiSearchBooksProvider] so Home often shows data immediately.
+  /// Network-fresh catalog so Home shows newly added books after app reopen.
   Future<void> _prefetchBooksList() async {
-    try {
-      await ref.read(apiSearchBooksProvider.future);
-    } catch (_) {
-      if (!mounted) return;
-      ref.invalidate(apiSearchBooksProvider);
-    }
+    if (!mounted) return;
+    await prefetchBooksCatalogForHome(ref);
   }
 
   Future<void> _goNext() async {

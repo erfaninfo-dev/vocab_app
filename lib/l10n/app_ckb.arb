@@ -228,6 +228,8 @@
   "quizTitle": "کویز",
   "couldNotLoadWords": "بارکردنی داتا سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.",
   "couldNotLoadMistakes": "بارکردنی لیستی هەڵەکان سەرکەوتوو نەبوو",
+  "couldNotLoadLeague": "بارکردنی لیگ سەرکەوتوو نەبوو",
+  "leagueErrorPullToRefresh": "بۆ نوێکردنەوە، پەڕەکە بکێشە خوارەوە.",
   "quizNotEnoughImportant": "لەم مەودایەدا وشەی گرنگ نییە. هەموو وشەکان هەڵبژێرە، مەودا بگۆڕە یان یەکەی زیاتر.",
   "quizNotEnoughWrongs": "لەم هەڵبژاردنەدا هیچ وشەیەک لە هەڵەکانت نییە. یەکەکان بگۆڕە یان «تەنها هەڵەکانی پێشوو» کوژێوە بکە.",
   "quizNeedFourWords": "کەمترین ٤ وشە پێویستە بۆ دەستپێکردنی ئەم کویزە.",
@@ -732,6 +734,10 @@
   "wordBuilderDifficultyBeginner": "سەرەتایی",
   "wordBuilderDifficultyIntermediate": "مامناوەند",
   "wordBuilderDifficultyAdvanced": "پێشکەوتوو",
+  "wordBuilderTierLockedIntermediateSubtitle": "داخراوە • سەرەتا سەرەتایی تەواو بکە",
+  "wordBuilderTierLockedAdvancedSubtitle": "داخراوە • سەرەتا مامناوەند تەواو بکە",
+  "wordBuilderTierLockedIntermediateMessage": "هەموو قۆناغەکانی سەرەتایی تەواو بکە تا مامناوەند بکرێتەوە.",
+  "wordBuilderTierLockedAdvancedMessage": "هەموو قۆناغەکانی مامناوەند تەواو بکە تا پێشکەوتوو بکرێتەوە.",
   "wordBuilderYourWord": "وشەکەت",
   "wordBuilderLetters": "پیتەکان",
   "wordBuilderSubmit": "پشکنین",
@@ -748,6 +754,14 @@
   "wordBuilderCorrectNice": "باشە!",
   "wordBuilderLevelCompleteTitle": "ئاستەکە تەواو بوو!",
   "wordBuilderLevelCompleteBody": "زۆر باش بوو؛ هەموو وشەکانی ئەم ئاستەت دۆزییەوە.",
+  "wordBuilderBeginnerCompleteTitle": "سەرەتایی تەواو بوو!",
+  "wordBuilderBeginnerCompleteBody": "نایاب بوو! ئاستی مامناوەند کرایەوە؛ ئامادەی قۆناغی دواتری؟",
+  "wordBuilderStartIntermediate": "دەستپێکردنی مامناوەند",
+  "wordBuilderIntermediateCompleteTitle": "مامناوەند تەواو بوو!",
+  "wordBuilderIntermediateCompleteBody": "زۆر جوان! ئاستی پێشکەوتوو کرایەوە؛ با ئاستەکە بەرزتر بکەین.",
+  "wordBuilderStartAdvanced": "دەستپێکردنی پێشکەوتوو",
+  "wordBuilderAdvancedCompleteTitle": "هەموو بەشەکان تەواو بوون!",
+  "wordBuilderAdvancedCompleteBody": "درەوشاوە بوو! هەموو کەمپەینی Word Builderت تەواو کرد.",
   "wordBuilderHintLetter": "پیتێک لە یەکێک لە وشەکان دەردەکەوێت.",
   "wordBuilderHintRemoved": "پیتێکی زیادە لە وشەکەت لابرا.",
   "wordBuilderHintRemoveNone": "ئێستا پیتێکی زیادە نییە.",
@@ -910,5 +924,24 @@
   "sampleHighlightPickMainColor": "ڕەنگی دیاریکردن",
   "sampleHighlightTapColor": "ڕەنگێک بگرە بۆ دیاریکردن",
   "sampleHighlightRemove": "سڕینەوەی دیاریکردن",
-  "sampleHighlightDefaultColor": "دیاریکردن"
+  "sampleHighlightDefaultColor": "دیاریکردن",
+  "samplePlayFullText": "لێدانی نموونە",
+  "samplePauseFullText": "وەستان",
+  "sampleTtsNowPlaying": "خوێندنەوەی دەقی نموونە",
+  "sampleTtsStop": "وەستان",
+  "sampleTtsRewind5": "٥ چرکە دواوە",
+  "sampleTtsForward5": "٥ چرکە پێشەوە",
+  "sampleTtsHighlight": "دیاریکردنی هاوکات",
+  "sampleTtsSpeed": "خێرایی",
+  "sampleTtsSpeedLabel": "{speed}×",
+  "sampleTtsEngine": "دەنگ",
+  "sampleTtsEngineSystem": "سیستەم",
+  "sampleTtsEngineGoogle": "گووگڵ",
+  "@sampleTtsSpeedLabel": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  }
 }

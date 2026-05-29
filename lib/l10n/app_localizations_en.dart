@@ -666,6 +666,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotLoadMistakes => 'Could not load mistake list';
 
   @override
+  String get couldNotLoadLeague => 'Could not load the league';
+
+  @override
+  String get leagueErrorPullToRefresh => 'Pull down to refresh.';
+
+  @override
   String get quizNotEnoughImportant =>
       'No important words in this scope. Choose all words, change scope, or pick more units.';
 
@@ -2228,6 +2234,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordBuilderDifficultyAdvanced => 'Advanced';
 
   @override
+  String get wordBuilderTierLockedIntermediateSubtitle =>
+      'Locked • finish Beginner first';
+
+  @override
+  String get wordBuilderTierLockedAdvancedSubtitle =>
+      'Locked • finish Intermediate first';
+
+  @override
+  String get wordBuilderTierLockedIntermediateMessage =>
+      'Finish all Beginner stages to unlock Intermediate.';
+
+  @override
+  String get wordBuilderTierLockedAdvancedMessage =>
+      'Finish all Intermediate stages to unlock Advanced.';
+
+  @override
   String get wordBuilderYourWord => 'Your word';
 
   @override
@@ -2275,6 +2297,33 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wordBuilderLevelCompleteBody =>
       'Great job. You found all the words in this stage.';
+
+  @override
+  String get wordBuilderBeginnerCompleteTitle => 'Beginner complete!';
+
+  @override
+  String get wordBuilderBeginnerCompleteBody =>
+      'Amazing! Intermediate is unlocked. Ready for the next challenge?';
+
+  @override
+  String get wordBuilderStartIntermediate => 'Start Intermediate';
+
+  @override
+  String get wordBuilderIntermediateCompleteTitle => 'Intermediate complete!';
+
+  @override
+  String get wordBuilderIntermediateCompleteBody =>
+      'Fantastic work! Advanced is unlocked. Let’s raise the level.';
+
+  @override
+  String get wordBuilderStartAdvanced => 'Start Advanced';
+
+  @override
+  String get wordBuilderAdvancedCompleteTitle => 'All sections complete!';
+
+  @override
+  String get wordBuilderAdvancedCompleteBody =>
+      'You finished the full Word Builder campaign. Brilliant work!';
 
   @override
   String get wordBuilderHintLetter =>
@@ -2563,4 +2612,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sampleHighlightDefaultColor => 'Highlight';
+
+  @override
+  String get samplePlayFullText => 'Play sample';
+
+  @override
+  String get samplePauseFullText => 'Pause';
+
+  @override
+  String get sampleTtsNowPlaying => 'Reading sample text';
+
+  @override
+  String get sampleTtsStop => 'Stop';
+
+  @override
+  String get sampleTtsRewind5 => 'Back 5 seconds';
+
+  @override
+  String get sampleTtsForward5 => 'Forward 5 seconds';
+
+  @override
+  String get sampleTtsHighlight => 'Karaoke highlight';
+
+  @override
+  String get sampleTtsSpeed => 'Speed';
+
+  @override
+  String sampleTtsSpeedLabel(String speed) {
+    return '$speed×';
+  }
+
+  @override
+  String get sampleTtsEngine => 'Voice';
+
+  @override
+  String get sampleTtsEngineSystem => 'System';
+
+  @override
+  String get sampleTtsEngineGoogle => 'Google';
 }

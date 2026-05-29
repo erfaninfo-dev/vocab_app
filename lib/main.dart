@@ -15,6 +15,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 // Temporarily disabled: global TTS mini player caused layout glitches on some devices.
 // import 'core/tts/tts_player_overlay.dart';
+import 'core/tts/tts_service.dart';
 import 'features/update/forced_update_barrier.dart';
 import 'features/update/optional_update_prompt.dart';
 import 'domain/api_providers.dart';
@@ -94,7 +95,9 @@ class IeltsVocabApp extends ConsumerWidget {
             textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
             child: ForcedUpdateBarrier(
               child: OptionalUpdatePrompt(
-                child: child ?? const SizedBox.shrink(),
+                child: TtsAppLifecycleWatcher(
+                  child: child ?? const SizedBox.shrink(),
+                ),
                 // child: TtsPlayerOverlay(child: child ?? const SizedBox.shrink()),
               ),
             ),

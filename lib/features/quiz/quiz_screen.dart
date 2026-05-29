@@ -16,9 +16,11 @@ import 'book_quiz_section_filter.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 import 'widgets/slider_with_value_below.dart';
+import 'widgets/vocab_quiz_league_style.dart';
 
 /// Upper bound for deep-link `?count=` only; UI max is always the live pool size.
 const int kVocabQuizRouteCountCap = 10000;
+const int _kQuizLeaguePointsPerCorrect = 2;
 
 bool _writtenFirstLetterMismatch(String typed, String correctAnswer) {
   final left = typed.trimLeft();
@@ -599,6 +601,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
             },
           );
       ref.invalidate(myVocabQuizResultsProvider);
+      ref.invalidate(myVocabQuizTotalPointsProvider);
     } catch (_) {}
   }
 
@@ -833,15 +836,19 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final sectionFilter = parseBookQuizSectionsQuery(
       route.uri.queryParameters['sections'] ?? '',
     );
-    final singleUnitFromQuery =
-        widget.unit == null && unitFilter.length == 1 ? unitFilter.first : null;
+    final singleUnitFromQuery = widget.unit == null && unitFilter.length == 1
+        ? unitFilter.first
+        : null;
     final scopedUnit = widget.unit ?? singleUnitFromQuery;
 
-    final wordsAsync = scopedUnit != null
+    // Query-based book quizzes may target a single sectioned unit. The unit-only
+    // words endpoint intentionally returns only no-section rows, so load the book
+    // catalog here and let the local unit/section filters below define the pool.
+    final wordsAsync = widget.unit != null
         ? ref.watch(
             apiWordsProvider((
               bookId: widget.bookId,
-              unit: scopedUnit,
+              unit: widget.unit!,
               section: widget.section,
             )),
           )
@@ -852,6 +859,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     );
     final wrongs = wrongsAsync.valueOrNull ?? [];
     final importantState = ref.watch(importantWordsProvider);
+    final savedVocabPoints =
+        ref.watch(myVocabQuizTotalPointsProvider).valueOrNull ?? 0;
+    final activeQuizSession = _questions.isNotEmpty && !_sessionDone;
 
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
@@ -867,21 +877,30 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         ),
         title: Text(l10n.quizTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.emoji_events_rounded),
-            tooltip: l10n.vocabQuizHistoryTitle,
-            onPressed: () => context.push('/vocab-quiz/history'),
-          ),
-          if (_questions.isNotEmpty && !_sessionDone)
+          if (!activeQuizSession) ...[
+            IconButton(
+              icon: const Icon(
+                Icons.emoji_events_rounded,
+                color: kVocabLeagueAccent,
+              ),
+              tooltip: 'Vocabulary League',
+              onPressed: () => context.push('/league?type=vocab'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.history_rounded),
+              tooltip: l10n.vocabQuizHistoryTitle,
+              onPressed: () => context.push('/vocab-quiz/history'),
+            ),
+          ],
+          if (_questions.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsetsDirectional.only(end: 16),
               child: Center(
-                child: Text(
-                  '$_score / ${_currentIndex + (_answered ? 1 : 0)}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                child: QuizLeaguePointsChip.vocab(
+                  points: activeQuizSession
+                      ? _score * _kQuizLeaguePointsPerCorrect
+                      : savedVocabPoints +
+                          (_score * _kQuizLeaguePointsPerCorrect),
                 ),
               ),
             ),
@@ -899,211 +918,207 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => Center(child: Text(l10n.couldNotLoadWords)),
           data: (words) {
-                final wrongsForUnits = scopedUnit != null
-                    ? wrongs
-                    : (unitFilter.isEmpty
-                          ? wrongs
-                          : wrongs
-                                .where((w) => unitFilter.contains(w.unit))
-                                .toList());
-                final wrongKeys = wrongsForUnits.map((w) => w.wordKey).toSet();
-                final effectiveUnitFilter = scopedUnit != null
-                    ? {scopedUnit}
-                    : unitFilter;
-                final effectiveSectionFilter = widget.section != null
-                    ? const <int, Set<int>>{}
-                    : sectionFilter;
-                final basePool = _filterPool(
-                  words,
-                  effectiveUnitFilter,
-                  effectiveSectionFilter,
-                  _scopeWrongsOnly,
-                  wrongKeys,
-                );
-                final basePoolAllSelected = _filterPool(
-                  words,
-                  effectiveUnitFilter,
-                  effectiveSectionFilter,
-                  false,
-                  wrongKeys,
-                );
-                bool userImp(VocabEntry w) => importantState.isMarked(w);
-                final hasImportant = basePool.any(userImp);
-                final resolvedScope = _resolvedImportantScope(hasImportant);
-                if (hasImportant && resolvedScope == null) {
-                  final nImp = basePool.where(userImp).length;
-                  return _ImportantChoicePanel(
-                    l10n: l10n,
-                    allCount: basePool.length,
-                    importantCount: nImp,
-                    onAllWords: () => setState(() => _userImportantScope = 0),
-                    onImportantOnly: () =>
-                        setState(() => _userImportantScope = 1),
-                  );
-                }
+            final wrongsForUnits = scopedUnit != null
+                ? wrongs
+                : (unitFilter.isEmpty
+                      ? wrongs
+                      : wrongs
+                            .where((w) => unitFilter.contains(w.unit))
+                            .toList());
+            final wrongKeys = wrongsForUnits.map((w) => w.wordKey).toSet();
+            final effectiveUnitFilter = scopedUnit != null
+                ? {scopedUnit}
+                : unitFilter;
+            final effectiveSectionFilter = widget.section != null
+                ? const <int, Set<int>>{}
+                : sectionFilter;
+            final basePool = _filterPool(
+              words,
+              effectiveUnitFilter,
+              effectiveSectionFilter,
+              _scopeWrongsOnly,
+              wrongKeys,
+            );
+            final basePoolAllSelected = _filterPool(
+              words,
+              effectiveUnitFilter,
+              effectiveSectionFilter,
+              false,
+              wrongKeys,
+            );
+            bool userImp(VocabEntry w) => importantState.isMarked(w);
+            final hasImportant = basePool.any(userImp);
+            final resolvedScope = _resolvedImportantScope(hasImportant);
+            if (hasImportant && resolvedScope == null) {
+              final nImp = basePool.where(userImp).length;
+              return _ImportantChoicePanel(
+                l10n: l10n,
+                allCount: basePool.length,
+                importantCount: nImp,
+                onAllWords: () => setState(() => _userImportantScope = 0),
+                onImportantOnly: () => setState(() => _userImportantScope = 1),
+              );
+            }
 
-                final pool = _applyImportantFilter(
-                  basePool,
-                  resolvedScope!,
-                  userImp,
-                );
-                final distractorPool = _applyImportantFilter(
-                  basePoolAllSelected,
-                  resolvedScope,
-                  userImp,
-                );
+            final pool = _applyImportantFilter(
+              basePool,
+              resolvedScope!,
+              userImp,
+            );
+            final distractorPool = _applyImportantFilter(
+              basePoolAllSelected,
+              resolvedScope,
+              userImp,
+            );
 
-                final selectedModes = _effectiveModes();
-                final needsMcq = selectedModes.any((m) => m.isMcq);
-                final canMcq =
-                    !needsMcq ||
-                    (_scopeWrongsOnly
-                        ? pool.isNotEmpty && distractorPool.length >= 4
-                        : pool.length >= 4);
-                final canStart = needsMcq ? canMcq : pool.isNotEmpty;
+            final selectedModes = _effectiveModes();
+            final needsMcq = selectedModes.any((m) => m.isMcq);
+            final canMcq =
+                !needsMcq ||
+                (_scopeWrongsOnly
+                    ? pool.isNotEmpty && distractorPool.length >= 4
+                    : pool.length >= 4);
+            final canStart = needsMcq ? canMcq : pool.isNotEmpty;
 
-                if (!canStart) {
-                  final importantTooSmall =
-                      resolvedScope == 1 &&
-                      hasImportant &&
-                      basePool.length >= 4;
-                  final message = importantTooSmall
-                      ? l10n.quizNotEnoughImportant
-                      : _scopeWrongsOnly && pool.isEmpty
-                          ? l10n.quizNotEnoughWrongs
-                          : needsMcq
-                              ? l10n.quizNeedFourWords
-                              : l10n.quizNeedOneWord;
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              message,
-                              textAlign: TextAlign.center,
+            if (!canStart) {
+              final importantTooSmall =
+                  resolvedScope == 1 && hasImportant && basePool.length >= 4;
+              final message = importantTooSmall
+                  ? l10n.quizNotEnoughImportant
+                  : _scopeWrongsOnly && pool.isEmpty
+                  ? l10n.quizNotEnoughWrongs
+                  : needsMcq
+                  ? l10n.quizNeedFourWords
+                  : l10n.quizNeedOneWord;
+              return Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(message, textAlign: TextAlign.center),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _backToVocabQuizSetup(context),
+                            icon: const Icon(Icons.quiz_outlined),
+                            label: Text(l10n.backToQuiz),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () =>
-                                    _backToVocabQuizSetup(context),
-                                icon: const Icon(Icons.quiz_outlined),
-                                label: Text(l10n.backToQuiz),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextButton.icon(
-                              onPressed: () => _openWordsList(context),
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              label: Text(l10n.backToWords),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        TextButton.icon(
+                          onPressed: () => _openWordsList(context),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          label: Text(l10n.backToWords),
+                        ),
+                      ],
                     ),
-                  );
-                }
-
-                final loggedIn = ref.watch(authProvider).valueOrNull != null;
-                final maxQ = pool.length;
-                final minPick = _scopeWrongsOnly
-                    ? (maxQ > 0 ? 1 : 0)
-                    : (pool.length >= 10 ? 10 : pool.length);
-
-                if (_questions.isEmpty) {
-                  if (autoStartFromRoute) {
-                    if (!_autoStartScheduled) {
-                      _autoStartScheduled = true;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
-                        final b = _questionBudget.clamp(minPick, maxQ);
-                        _startQuiz(
-                          pool,
-                          lang,
-                          b,
-                          distractors: _scopeWrongsOnly ? distractorPool : null,
-                        );
-                      });
-                    }
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return _ModeSelector(
-                    selectedModes: selectedModes,
-                    poolSize: pool.length,
-                    scopeWrongsOnly: _scopeWrongsOnly,
-                    wrongOnServer: wrongsForUnits.length,
-                    questionBudget: _questionBudget.clamp(minPick, maxQ),
-                    minQuestionPick: minPick,
-                    maxQuestionPick: maxQ,
-                    loggedIn: loggedIn,
-                    onModesChanged: (modes) =>
-                        setState(() => _questionModes = modes),
-                    onScopeChanged: (v) => setState(() => _scopeWrongsOnly = v),
-                    onQuestionBudgetChanged: (n) =>
-                        setState(() => _questionBudget = n),
-                    onStart: () {
-                      final b = _questionBudget.clamp(minPick, maxQ);
-                      _startQuiz(
-                        pool,
-                        lang,
-                        b,
-                        distractors: _scopeWrongsOnly ? distractorPool : null,
-                      );
-                    },
-                  );
-                }
-
-                if (_sessionDone) {
-                  return _ResultScreen(
-                    l10n: l10n,
-                    score: _score,
-                    total: _questions.length,
-                    onRetry: () {
-                      final b = _questionBudget.clamp(minPick, maxQ);
-                      _startQuiz(pool, lang, b);
-                    },
-                    onBackToQuiz: () => _backToVocabQuizSetup(context),
-                    onBackToWords: () => _openWordsList(context),
-                  );
-                }
-
-                final q = _questions[_currentIndex];
-                final showLearned =
-                    _scopeWrongsOnly &&
-                    loggedIn &&
-                    _answered &&
-                    _selectedAnswer == q.correctAnswer;
-
-                return SingleChildScrollView(
-                  child: _QuizBody(
-                    l10n: l10n,
-                    question: q,
-                    questionNumber: _currentIndex + 1,
-                    total: _questions.length,
-                    score: _score,
-                    mode: _mode,
-                    selectedAnswer: _selectedAnswer,
-                    answered: _answered,
-                    shakeAnimation: _shakeAnim,
-                    onSelect: _selectAnswer,
-                    writtenController: _writtenCtrl,
-                    onSubmitWritten: _submitWritten,
-                    onNext: _next,
-                    showLearnedButton: showLearned,
-                    learnedBusy: _removingLearned,
-                    onLearned: _onLearnedCurrent,
                   ),
-                );
+                ),
+              );
+            }
+
+            final loggedIn = ref.watch(authProvider).valueOrNull != null;
+            final maxQ = pool.length;
+            final minPick = _scopeWrongsOnly
+                ? (maxQ > 0 ? 1 : 0)
+                : (pool.length >= 10 ? 10 : pool.length);
+
+            if (_questions.isEmpty) {
+              if (autoStartFromRoute) {
+                if (!_autoStartScheduled) {
+                  _autoStartScheduled = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    final b = _questionBudget.clamp(minPick, maxQ);
+                    _startQuiz(
+                      pool,
+                      lang,
+                      b,
+                      distractors: _scopeWrongsOnly ? distractorPool : null,
+                    );
+                  });
+                }
+                return const Center(child: CircularProgressIndicator());
+              }
+              return _ModeSelector(
+                selectedModes: selectedModes,
+                poolSize: pool.length,
+                scopeWrongsOnly: _scopeWrongsOnly,
+                wrongOnServer: wrongsForUnits.length,
+                questionBudget: _questionBudget.clamp(minPick, maxQ),
+                minQuestionPick: minPick,
+                maxQuestionPick: maxQ,
+                loggedIn: loggedIn,
+                onModesChanged: (modes) =>
+                    setState(() => _questionModes = modes),
+                onScopeChanged: (v) => setState(() => _scopeWrongsOnly = v),
+                onQuestionBudgetChanged: (n) =>
+                    setState(() => _questionBudget = n),
+                onStart: () {
+                  final b = _questionBudget.clamp(minPick, maxQ);
+                  _startQuiz(
+                    pool,
+                    lang,
+                    b,
+                    distractors: _scopeWrongsOnly ? distractorPool : null,
+                  );
+                },
+              );
+            }
+
+            if (_sessionDone) {
+              return _ResultScreen(
+                l10n: l10n,
+                score: _score,
+                total: _questions.length,
+                onRetry: () {
+                  final b = _questionBudget.clamp(minPick, maxQ);
+                  _startQuiz(
+                    pool,
+                    lang,
+                    b,
+                    distractors: _scopeWrongsOnly ? distractorPool : null,
+                  );
+                },
+                onBackToQuiz: () => _backToVocabQuizSetup(context),
+                onBackToWords: () => _openWordsList(context),
+              );
+            }
+
+            final q = _questions[_currentIndex];
+            final showLearned =
+                _scopeWrongsOnly &&
+                loggedIn &&
+                _answered &&
+                _selectedAnswer == q.correctAnswer;
+
+            return SingleChildScrollView(
+              child: _QuizBody(
+                l10n: l10n,
+                question: q,
+                questionNumber: _currentIndex + 1,
+                total: _questions.length,
+                score: _score,
+                mode: _mode,
+                selectedAnswer: _selectedAnswer,
+                answered: _answered,
+                shakeAnimation: _shakeAnim,
+                onSelect: _selectAnswer,
+                writtenController: _writtenCtrl,
+                onSubmitWritten: _submitWritten,
+                onNext: _next,
+                showLearnedButton: showLearned,
+                learnedBusy: _removingLearned,
+                onLearned: _onLearnedCurrent,
+              ),
+            );
           },
         ),
       ),
@@ -1169,7 +1184,7 @@ class _ImportantChoicePanel extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: onImportantOnly,
-                style: FilledButton.styleFrom(
+                style: vocabLeagueFilledButtonStyle(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(l10n.importantWordsOnlyCount(importantCount)),
@@ -1292,8 +1307,10 @@ class _ModeSelector extends StatelessWidget {
               min: low,
               max: high,
               divisions: divisions,
-              displayValue:
-                  questionBudget.clamp(minQuestionPick, maxQuestionPick),
+              displayValue: questionBudget.clamp(
+                minQuestionPick,
+                maxQuestionPick,
+              ),
               sliderValue: questionBudget
                   .clamp(minQuestionPick, maxQuestionPick)
                   .toDouble(),
@@ -1357,7 +1374,7 @@ class _ModeSelector extends StatelessWidget {
                 onPressed: onStart,
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: Text(l10n.startQuiz),
-                style: FilledButton.styleFrom(
+                style: vocabLeagueFilledButtonStyle(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
@@ -1653,7 +1670,6 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
             l10n: l10n,
             current: widget.questionNumber,
             total: widget.total,
-            score: widget.score,
           ),
           const SizedBox(height: 14),
 
@@ -1793,6 +1809,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: widget.answered ? null : widget.onSubmitWritten,
+                style: vocabLeagueFilledButtonStyle(),
                 child: Text(l10n.submit),
               ),
             ),
@@ -1858,7 +1875,7 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                             : Icons.arrow_forward_rounded,
                       ),
                       label: Text(isLast ? l10n.seeResults : l10n.nextQuestion),
-                      style: FilledButton.styleFrom(
+                      style: vocabLeagueFilledButtonStyle(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -1993,50 +2010,30 @@ class _QuizProgress extends StatelessWidget {
     required this.l10n,
     required this.current,
     required this.total,
-    required this.score,
   });
 
   final AppLocalizations l10n;
   final int current;
   final int total;
-  final int score;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              l10n.questionProgress(current, total),
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                Icon(
-                  Icons.star_rounded,
-                  size: 16,
-                  color: Colors.amber.shade600,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  l10n.scoreCorrect(score),
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
+        Text(
+          l10n.questionProgress(current, total),
+          style: Theme.of(context).textTheme.labelLarge,
         ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(value: current / total, minHeight: 6),
+          child: LinearProgressIndicator(
+            value: current / total,
+            minHeight: 6,
+            backgroundColor: kVocabLeagueAccent.withValues(alpha: 0.18),
+            color: kVocabLeagueAccent,
+          ),
         ),
       ],
     );
@@ -2137,7 +2134,7 @@ class _ResultScreen extends StatelessWidget {
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(l10n.tryAgain),
-                style: FilledButton.styleFrom(
+                style: vocabLeagueFilledButtonStyle(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),

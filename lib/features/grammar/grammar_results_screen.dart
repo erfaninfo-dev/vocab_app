@@ -324,6 +324,26 @@ class _PublicResultsTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _showLegacyLinkSheet(
+    BuildContext context,
+    WidgetRef ref,
+    GrammarResult result,
+  ) async {
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) =>
+          _LegacyGrammarLinkSheet(legacyName: (result.userName ?? '').trim()),
+    );
+    if (changed == true && context.mounted) {
+      ref.invalidate(publicGrammarCommunityProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Legacy grammar results linked.')),
+      );
+    }
+  }
+
   void _maybeLoadMore(ScrollMetrics m, WidgetRef ref) {
     if (!m.hasViewportDimension) return;
     if (m.maxScrollExtent <= 0) return;
@@ -337,6 +357,8 @@ class _PublicResultsTab extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(publicGrammarCommunityProvider);
     final sort = ref.watch(grammarResultsListSortProvider);
+    final session = ref.watch(authProvider).valueOrNull;
+    final isAdmin = session?.user.isAdmin == true;
     final practiceMode = sort == GrammarResultsListSort.mostPractice;
     return async.when(
       loading: () =>
@@ -426,15 +448,18 @@ class _PublicResultsTab extends ConsumerWidget {
                   final totalsLabel = practiceMode && r.grammarQuizTotal != null
                       ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
                       : null;
+                  final legacyName = (r.userName ?? '').trim();
                   return GrammarPracticeResultCard(
                     r: r,
                     style: GrammarPracticeResultCardStyle.community,
                     rank: rank,
                     leaderboardMedal: medal,
                     practiceTotalsLabel: totalsLabel,
-                    onUserTap: r.userId == null
-                        ? null
-                        : () => _showCommunityProfile(context, r, totalsLabel),
+                    onUserTap: r.userId != null
+                        ? () => _showCommunityProfile(context, r, totalsLabel)
+                        : isAdmin && legacyName.isNotEmpty
+                        ? () => _showLegacyLinkSheet(context, ref, r)
+                        : null,
                   );
                 },
               ),
@@ -442,6 +467,440 @@ class _PublicResultsTab extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LegacyGrammarLinkSheet extends ConsumerStatefulWidget {
+  const _LegacyGrammarLinkSheet({required this.legacyName});
+
+  final String legacyName;
+
+  @override
+  ConsumerState<_LegacyGrammarLinkSheet> createState() =>
+      _LegacyGrammarLinkSheetState();
+}
+
+class _LegacyGrammarLinkSheetState
+    extends ConsumerState<_LegacyGrammarLinkSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _emailController;
+  late final TextEditingController _displayNameController;
+  LegacyGrammarResultLinkPreview? _preview;
+  Object? _error;
+  bool _isPreviewing = false;
+  bool _isLinking = false;
+
+  String get _legacyName => widget.legacyName.trim();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _displayNameController = TextEditingController(text: _legacyName);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _displayNameController.dispose();
+    super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    final v = (value ?? '').trim();
+    if (v.isEmpty) return 'Email is required';
+    if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+    return null;
+  }
+
+  Future<void> _previewMatches() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _isPreviewing = true;
+      _error = null;
+      _preview = null;
+    });
+    try {
+      final preview = await ref
+          .read(apiServiceProvider)
+          .linkLegacyGrammarResults(
+            legacyName: _legacyName,
+            email: _emailController.text,
+            displayName: _displayNameController.text,
+          );
+      if (!mounted) return;
+      setState(() => _preview = preview);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _isPreviewing = false);
+    }
+  }
+
+  Future<void> _linkMatches() async {
+    if (!_formKey.currentState!.validate()) return;
+    final preview = _preview;
+    if (preview == null) {
+      await _previewMatches();
+      return;
+    }
+    if (preview.matchedResultCount < 1) {
+      setState(() => _error = 'No unlinked results found for this full name.');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm link'),
+        content: Text(
+          'Link ${preview.matchedResultCount} grammar result(s) for "$_legacyName" to ${_emailController.text.trim()}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Link'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() {
+      _isLinking = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(apiServiceProvider)
+          .linkLegacyGrammarResults(
+            legacyName: _legacyName,
+            email: _emailController.text,
+            displayName: _displayNameController.text,
+            confirm: true,
+          );
+      await refreshAllRemoteApiData(ref);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _isLinking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final preview = _preview;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottom),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.manage_accounts_rounded,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Link legacy grammar results',
+                          style: tt.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Exact full-name match only',
+                          style: tt.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.secondaryContainer.withValues(alpha: 0.52),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.45),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.badge_rounded, color: scheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _legacyName,
+                        style: tt.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Only rows with user_id = NULL and this exact full name will be linked. A first-name-only match is never used here.',
+                style: tt.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_rounded),
+                  border: OutlineInputBorder(),
+                ),
+                validator: _validateEmail,
+                onChanged: (_) => setState(() => _preview = null),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _displayNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Display name',
+                  prefixIcon: Icon(Icons.person_rounded),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? 'Display name is required'
+                    : null,
+                onChanged: (_) => setState(() => _preview = null),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                _LegacyLinkNotice(
+                  icon: Icons.error_outline_rounded,
+                  color: scheme.error,
+                  text: _error.toString().replaceFirst('Exception: ', ''),
+                ),
+              ],
+              if (preview != null) ...[
+                const SizedBox(height: 16),
+                _LegacyLinkPreviewCard(preview: preview),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isPreviewing || _isLinking
+                          ? null
+                          : _previewMatches,
+                      icon: _isPreviewing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.search_rounded),
+                      label: const Text('Preview'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _isPreviewing || _isLinking || preview == null
+                          ? null
+                          : _linkMatches,
+                      icon: _isLinking
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.link_rounded),
+                      label: const Text('Link results'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegacyLinkNotice extends StatelessWidget {
+  const _LegacyLinkNotice({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegacyLinkPreviewCard extends StatelessWidget {
+  const _LegacyLinkPreviewCard({required this.preview});
+
+  final LegacyGrammarResultLinkPreview preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final shownCount = preview.samples.length;
+    final totalCount = preview.matchedResultCount;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fact_check_rounded, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$totalCount matching result(s)',
+                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (preview.samples.isEmpty)
+            Text(
+              'No unlinked result was found for this exact full name.',
+              style: tt.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            )
+          else ...[
+            Text(
+              shownCount == totalCount
+                  ? 'Showing all matched results.'
+                  : 'Showing $shownCount sample(s) of $totalCount. All $totalCount will be linked after confirmation.',
+              style: tt.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            ...preview.samples.map((sample) {
+              final score =
+                  sample.score != null && sample.totalQuestions != null
+                  ? '${sample.score}/${sample.totalQuestions}'
+                  : '-';
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        score,
+                        style: tt.labelSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        sample.quizName.isEmpty
+                            ? 'Grammar quiz'
+                            : sample.quizName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tt.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
     );
   }
 }

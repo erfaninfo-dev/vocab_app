@@ -16,6 +16,7 @@ import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
 import '../models/grammar_result.dart';
 import '../models/grammar_result_detail.dart';
+import '../models/league.dart';
 import '../models/unit_model.dart';
 import '../models/app_update_manifest.dart';
 import '../models/vocab_entry.dart';
@@ -27,7 +28,7 @@ import '../models/temporary_class_schedule_slot.dart';
 
 // ─── Change this to your server's base URL ───────────────────────────────────
 // Example: 'https://yourdomain.com/api'
-const String kApiBaseUrl = 'http://erfaninfo.com/wordsapi';
+const String kApiBaseUrl = 'https://erfaninfo.com/wordsapi';
 const Duration _storyUploadTimeout = Duration(seconds: 45);
 const Duration _storyCreateTimeout = Duration(seconds: 20);
 
@@ -239,20 +240,48 @@ class ApiService {
   // ── GET /grammar_topics.php ───────────────────────────────────────────────
   Future<List<GrammarTopicSummary>> fetchGrammarTopics() async {
     final uri = Uri.parse('$baseUrl/grammar_topics.php');
-    final cached = await _readGetCache(uri);
-    if (cached != null) {
-      final data = jsonDecode(cached) as List<dynamic>;
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'grammar topics');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
       return data
           .map((e) => GrammarTopicSummary.fromJson(e as Map<String, dynamic>))
           .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => GrammarTopicSummary.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      rethrow;
     }
-    final response = await http.get(uri, headers: _mergeHeaders());
-    _assertOk(response, 'grammar topics');
-    await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
-    final data = jsonDecode(response.body) as List<dynamic>;
-    return data
-        .map((e) => GrammarTopicSummary.fromJson(e as Map<String, dynamic>))
-        .toList();
+  }
+
+  /// POST /admin_grammar_topic_new.php — admin manual New badge for a topic.
+  Future<void> setGrammarTopicNew({
+    required String topic,
+    required bool isNew,
+  }) async {
+    final uri = Uri.parse('$baseUrl/admin_grammar_topic_new.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'topic': topic,
+        'is_new': isNew,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Could not update grammar topic');
+    }
+    await bustGrammarTopicsCache();
   }
 
   // ── GET /grammar_questions.php?topic=... (never disk-cached — live question bank)
@@ -428,6 +457,37 @@ class ApiService {
     );
   }
 
+  /// POST /legacy_grammar_result_link.php — admin only.
+  ///
+  /// [confirm] false previews exact full-name matches. [confirm] true creates
+  /// or reuses the email user, then links all unlinked rows for that full name.
+  Future<LegacyGrammarResultLinkPreview> linkLegacyGrammarResults({
+    required String legacyName,
+    required String email,
+    required String displayName,
+    bool confirm = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl/legacy_grammar_result_link.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'legacy_name': legacyName.trim(),
+        'email': email.trim(),
+        'display_name': displayName.trim(),
+        'confirm': confirm,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (confirm) {
+      await bustGrammarResultsListCaches();
+    }
+    return LegacyGrammarResultLinkPreview.fromJson(map);
+  }
+
   /// GET /vocab_quiz_wrongs.php?book_id=&unit= (optional unit)
   Future<List<({int unit, String wordKey})>> fetchVocabQuizWrongs(
     int bookId, {
@@ -550,6 +610,52 @@ class ApiService {
         .toList();
   }
 
+  /// GET /vocab_quiz_results_my.php?summary=1 — requires auth.
+  /// Returns the user's lifetime vocabulary quiz points, independent of league
+  /// visibility. Admin users still keep points; league.php decides visibility.
+  Future<int> fetchMyVocabQuizTotalPoints({
+    int? bookId,
+    int pointsPerCorrect = 2,
+  }) async {
+    final q = <String, String>{'summary': '1', 'limit': '1'};
+    if (bookId != null) {
+      q['book_id'] = '$bookId';
+    }
+    final uri = Uri.parse(
+      '$baseUrl/vocab_quiz_results_my.php',
+    ).replace(queryParameters: q);
+
+    int? pointsFromBody(String body) {
+      final map = jsonDecode(body) as Map<String, dynamic>;
+      final summary = map['summary'];
+      if (summary is Map<String, dynamic>) {
+        final points = (summary['total_points'] as num?)?.toInt();
+        if (points != null) return points;
+        final correct = (summary['total_correct'] as num?)?.toInt();
+        if (correct != null) return correct * pointsPerCorrect;
+      }
+      return null;
+    }
+
+    final cached = await _readGetCache(uri);
+    if (cached != null) {
+      final points = pointsFromBody(cached);
+      if (points != null) return points;
+    }
+
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    await _writeGetCache(uri, response.body, _ttlVocabQuizResultsList);
+    final points = pointsFromBody(response.body);
+    if (points != null) return points;
+
+    final results = await fetchMyVocabQuizResults(bookId: bookId, limit: 200);
+    return results.fold<int>(
+      0,
+      (sum, result) => sum + (result.correct * pointsPerCorrect),
+    );
+  }
+
   /// GET /vocab_quiz_result_detail.php?id= — requires auth.
   /// Not cached: response includes per-word session data (same policy as words.php).
   Future<VocabQuizResultDetail> fetchVocabQuizResultDetail(int id) async {
@@ -564,6 +670,75 @@ class ApiService {
       throw Exception('Invalid response');
     }
     return VocabQuizResultDetail.fromApiJson(r);
+  }
+
+  /// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=... — requires auth.
+  Future<LeagueResponse> fetchLeague(
+    LeagueType type, {
+    LeaguePeriod period = LeaguePeriod.weekly,
+    LeagueSort sort = LeagueSort.points,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final uri = Uri.parse('$baseUrl/league.php').replace(
+      queryParameters: {
+        'type': type.apiValue,
+        'period': period.apiValue,
+        'sort': sort.apiValue,
+        'limit': '$limit',
+        'offset': '$offset',
+      },
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return LeagueResponse.fromJson(map);
+  }
+
+  /// POST /word_builder_league_progress.php — syncs local Word Builder progress.
+  Future<void> syncWordBuilderLeagueProgress({
+    required int beginnerStagesCleared,
+    required int intermediateStagesCleared,
+    required int advancedStagesCleared,
+    required int coins,
+  }) async {
+    final uri = Uri.parse('$baseUrl/word_builder_league_progress.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({'Content-Type': 'application/json'}),
+      body: jsonEncode({
+        'beginner_stages_cleared': beginnerStagesCleared,
+        'intermediate_stages_cleared': intermediateStagesCleared,
+        'advanced_stages_cleared': advancedStagesCleared,
+        'coins': coins,
+      }),
+    );
+    _assertAuthResponse(response);
+  }
+
+  /// POST /league_event.php — records local-only learning events such as SRS.
+  Future<void> recordLeagueEvent({
+    required String eventType,
+    required String clientRequestId,
+    String? sourceType,
+    String? sourceId,
+    int answeredCount = 1,
+  }) async {
+    final uri = Uri.parse('$baseUrl/league_event.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'event_type': eventType,
+        'client_request_id': clientRequestId,
+        'source_type': sourceType,
+        'source_id': sourceId,
+        'answered_count': answeredCount,
+      }),
+    );
+    _assertAuthResponse(response);
   }
 
   /// POST /word_important.php
@@ -970,6 +1145,7 @@ class ApiService {
     StoryTextStyle? textStyle,
     required String targetMode,
     required List<int> targetUserIds,
+    int visibilityHours = 24,
   }) async {
     final uri = Uri.parse('$baseUrl/admin_stories.php');
     final payload = <String, dynamic>{
@@ -977,6 +1153,7 @@ class ApiService {
       'content_type': contentType,
       'target_mode': targetMode,
       'target_user_ids': targetUserIds,
+      'visibility_hours': visibilityHours,
     };
     if (imagePath != null) payload['image_path'] = imagePath;
     if (textContent != null) payload['text_content'] = textContent;
@@ -1001,6 +1178,43 @@ class ApiService {
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     if (map['ok'] != true) {
       throw Exception(map['error']?.toString() ?? 'Story creation failed');
+    }
+    return (map['id'] as num?)?.toInt() ?? 0;
+  }
+
+  /// POST /admin_story_grammar_create.php — creates a Story game from a grammar question id.
+  Future<int> createGrammarStoryFromQuestion({
+    required String clientRequestId,
+    required int questionId,
+    String targetMode = 'all',
+    List<int> targetUserIds = const [],
+  }) async {
+    final uri = Uri.parse('$baseUrl/admin_story_grammar_create.php');
+    final response = await http
+        .post(
+          uri,
+          headers: _mergeHeaders({
+            'Content-Type': 'application/json; charset=utf-8',
+          }),
+          body: jsonEncode({
+            'client_request_id': clientRequestId,
+            'question_id': questionId,
+            'target_mode': targetMode,
+            'target_user_ids': targetUserIds,
+          }),
+        )
+        .timeout(
+          _storyCreateTimeout,
+          onTimeout: () {
+            throw TimeoutException(
+              'The server took too long to create the grammar story. Please try again.',
+            );
+          },
+        );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Grammar story failed');
     }
     return (map['id'] as num?)?.toInt() ?? 0;
   }
@@ -1073,6 +1287,33 @@ class ApiService {
       throw Exception(map['error']?.toString() ?? 'Poll vote failed');
     }
     return StoryPoll.fromJson(poll);
+  }
+
+  /// POST /admin_story_grammar_answer.php — answer one interactive grammar story.
+  Future<StoryGrammarGame> answerStoryGrammarGame({
+    required int storyId,
+    required int gameId,
+    required String optionId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/admin_story_grammar_answer.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'story_id': storyId,
+        'game_id': gameId,
+        'option_id': optionId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final game = map['grammar_game'] as Map<String, dynamic>?;
+    if (game == null) {
+      throw Exception(map['error']?.toString() ?? 'Grammar answer failed');
+    }
+    return StoryGrammarGame.fromJson(game);
   }
 
   /// GET /admin_story_audience.php?story_id= — admin viewers/likers.
@@ -1753,11 +1994,18 @@ class ApiService {
     String text, {
     int? studentId,
     int? peerTeacherId,
+    int? storyReplyStoryId,
+    bool savedMessages = false,
   }) async {
     final uri = Uri.parse('$baseUrl/teacher_student_messages.php');
     final body = <String, dynamic>{'body': text.trim()};
     if (studentId != null) body['student_id'] = studentId;
     if (peerTeacherId != null) body['peer_teacher_id'] = peerTeacherId;
+    if (savedMessages) body['saved_messages'] = true;
+    if (storyReplyStoryId != null) {
+      body['story_reply'] = true;
+      body['story_id'] = storyReplyStoryId;
+    }
     final response = await http.post(
       uri,
       headers: _mergeHeaders({
@@ -1965,6 +2213,15 @@ class ApiService {
       Uri.parse(
         '$baseUrl/vocab_quiz_results_my.php',
       ).replace(queryParameters: q),
+    );
+    final summaryQ = <String, String>{'summary': '1', 'limit': '1'};
+    if (bookId != null) {
+      summaryQ['book_id'] = '$bookId';
+    }
+    await bustHttpCacheForUri(
+      Uri.parse(
+        '$baseUrl/vocab_quiz_results_my.php',
+      ).replace(queryParameters: summaryQ),
     );
   }
 

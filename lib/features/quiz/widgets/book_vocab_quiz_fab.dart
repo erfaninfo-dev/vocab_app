@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'vocab_quiz_league_style.dart';
 
-/// Distinct accent for quiz FAB (separate from theme primary and home FAB blue).
-const Color kBookVocabQuizFabColor = Color(0xFFE65100);
 const Color kBookVocabQuizFabForeground = Colors.white;
 
 /// FAB for book/unit vocabulary quiz ([FloatingActionButtonLocation.endFloat]).
 class BookVocabQuizFab extends StatelessWidget {
-  const BookVocabQuizFab({
-    super.key,
-    required this.bookId,
-    this.unit,
-  });
+  const BookVocabQuizFab({super.key, required this.bookId, this.unit});
 
   final int bookId;
 
@@ -49,7 +44,7 @@ class BookVocabQuizFab extends StatelessWidget {
     return FloatingActionButton.extended(
       heroTag: heroTag,
       onPressed: () => _open(context),
-      backgroundColor: kBookVocabQuizFabColor,
+      backgroundColor: kVocabLeagueAccent,
       foregroundColor: kBookVocabQuizFabForeground,
       elevation: 5,
       highlightElevation: 8,

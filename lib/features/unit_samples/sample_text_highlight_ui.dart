@@ -165,9 +165,7 @@ class _HighlightColorCardShell extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.22),
-              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.22)),
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -237,7 +235,9 @@ class SampleDefaultColorPickerBar extends ConsumerWidget {
       child: _HighlightColorPickerRow(
         selectedArgb: defaultColor.toARGB32(),
         onColorTap: (c) async {
-          await ref.read(sampleTextHighlightsProvider.notifier).setDefaultColor(c);
+          await ref
+              .read(sampleTextHighlightsProvider.notifier)
+              .setDefaultColor(c);
           HapticFeedback.selectionClick();
         },
       ),
@@ -398,20 +398,26 @@ class _ToolbarIconChip extends StatelessWidget {
   }
 }
 
-/// Compact tool strip: highlight color + text size for sample paragraphs.
+/// Compact tool strip for the sample highlight color and full-text TTS play.
 class SampleParagraphToolStrip extends ConsumerWidget {
   const SampleParagraphToolStrip({
     super.key,
-    required this.onTextSizeTap,
     required this.onHighlightTap,
     this.showHighlight = true,
     this.highlightPickerOpen = false,
+    this.showPlay = false,
+    this.playActive = false,
+    this.playPaused = false,
+    this.onPlayTap,
   });
 
-  final VoidCallback onTextSizeTap;
   final VoidCallback onHighlightTap;
   final bool showHighlight;
   final bool highlightPickerOpen;
+  final bool showPlay;
+  final bool playActive;
+  final bool playPaused;
+  final VoidCallback? onPlayTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -421,9 +427,11 @@ class SampleParagraphToolStrip extends ConsumerWidget {
       sampleTextHighlightsProvider.select((s) => s.defaultColor),
     );
 
+    if (!showHighlight && !showPlay) return const SizedBox.shrink();
+
     return Material(
       elevation: 0,
-      color: highlightPickerOpen
+      color: highlightPickerOpen || playActive
           ? scheme.primaryContainer.withValues(alpha: 0.45)
           : scheme.surfaceContainerHigh.withValues(alpha: 0.85),
       borderRadius: BorderRadius.circular(999),
@@ -432,7 +440,7 @@ class SampleParagraphToolStrip extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showHighlight) ...[
+            if (showHighlight)
               _ToolStripButton(
                 tooltip: l10n.sampleHighlightDefaultColor,
                 onPressed: onHighlightTap,
@@ -462,22 +470,34 @@ class SampleParagraphToolStrip extends ConsumerWidget {
                   ],
                 ),
               ),
-              Container(
-                width: 1,
-                height: 22,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                color: scheme.outlineVariant.withValues(alpha: 0.5),
+            if (showPlay && onPlayTap != null) ...[
+              if (showHighlight) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: SizedBox(
+                    height: 28,
+                    child: VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              ],
+              _ToolStripButton(
+                tooltip: playActive && !playPaused
+                    ? l10n.samplePauseFullText
+                    : l10n.samplePlayFullText,
+                onPressed: onPlayTap!,
+                child: Icon(
+                  playActive && !playPaused
+                      ? Icons.pause_rounded
+                      : Icons.headphones_rounded,
+                  size: 22,
+                  color: playActive ? scheme.primary : scheme.onSurfaceVariant,
+                ),
               ),
             ],
-            _ToolStripButton(
-              tooltip: l10n.unitSamplesTextSize,
-              onPressed: onTextSizeTap,
-              child: Icon(
-                Icons.text_fields_rounded,
-                size: 20,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
           ],
         ),
       ),

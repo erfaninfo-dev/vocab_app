@@ -48,25 +48,45 @@ final langProvider = StateNotifierProvider<LangNotifier, TranslationLang>(
   (_) => LangNotifier(),
 );
 
+bool _looksCorruptLocalText(String value) {
+  final compact = value.replaceAll(
+    RegExp(r'[\s\p{P}\p{S}]+', unicode: true),
+    '',
+  );
+  if (compact.isEmpty) return false;
+  if (compact.contains('\uFFFD')) return true;
+  final questionMarks = '?'.allMatches(compact).length;
+  return compact.length >= 3 && questionMarks / compact.length >= 0.6;
+}
+
+String _cleanLocalFallback(List<String> values) {
+  for (final raw in values) {
+    final value = raw.trim();
+    if (value.isNotEmpty && !_looksCorruptLocalText(value)) return value;
+  }
+  return '';
+}
+
 // ─── Convenience extension on VocabEntry ─────────────────────────────────────
 
 extension VocabLang on VocabEntry {
   /// Returns the meaning for the selected language.
-  /// Falls back to meaningFa if meaningKur is empty, and vice versa.
+  /// Falls back to the other local language, then English, when a local value is
+  /// empty or already arrived from the server as replacement/question marks.
   String meaningFor(TranslationLang lang) {
     if (lang == TranslationLang.kur) {
-      return meaningKur.isNotEmpty ? meaningKur : meaningFa;
+      return _cleanLocalFallback([meaningKur, meaningFa, meaningEn]);
     }
-    return meaningFa.isNotEmpty ? meaningFa : meaningKur;
+    return _cleanLocalFallback([meaningFa, meaningKur, meaningEn]);
   }
 
   /// Returns the example sentence for the selected language.
-  /// Falls back to the other language if the selected one is empty.
+  /// Falls back to the other local language, then English, when needed.
   String exampleLocalFor(TranslationLang lang) {
     if (lang == TranslationLang.kur) {
-      return exampleKur.isNotEmpty ? exampleKur : exampleFa;
+      return _cleanLocalFallback([exampleKur, exampleFa, exampleEn]);
     }
-    return exampleFa.isNotEmpty ? exampleFa : exampleKur;
+    return _cleanLocalFallback([exampleFa, exampleKur, exampleEn]);
   }
 
   /// True when the selected language uses RTL text direction.

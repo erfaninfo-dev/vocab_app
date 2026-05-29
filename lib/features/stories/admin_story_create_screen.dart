@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +14,11 @@ import '../../data/models/admin_story.dart';
 import '../../data/models/admin_user_row.dart';
 import '../../domain/api_providers.dart';
 import '../admin/admin_users_provider.dart';
+import 'story_fonts.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
 
-enum _TextStyleTool { size, font, color, background, alignment }
+enum _TextStyleTool { lineHeight, font, color, alignment }
 
 const int _targetStoryImageUploadBytes = 1536 * 1024;
 const int _storyImageMaxDimension = 1440;
@@ -90,12 +92,15 @@ class _AdminStoryCreateScreenState
   StoryPoll? _poll;
 
   var _fontSize = 36.0;
+  var _lineHeight = 1.25;
   var _fontFamily = 'Default';
   var _textColor = 0xFFFFFFFF;
   var _bgStart = 0xFF833AB4;
   var _bgEnd = 0xFFF77737;
   var _alignment = 'center';
+  var _visibilityDuration = StoryVisibilityDuration.hours24;
   _TextStyleTool? _activeTextTool;
+  var _showCanvasBackgroundPicker = false;
 
   int? _editingIndex;
   StoryTextLayer? _editingDraft;
@@ -162,8 +167,15 @@ class _AdminStoryCreateScreenState
     setState(() {
       _imageBytes = compressed;
       _mode = 'image';
-      _imageTransform = const StoryImageTransform();
+      _imageTransform = StoryImageTransform(
+        aspectRatio: _storyImageAspectRatio(compressed),
+      );
     });
+  }
+
+  void _cycleVisibilityDuration() {
+    if (_submitting) return;
+    setState(() => _visibilityDuration = _visibilityDuration.next);
   }
 
   Future<Uint8List> _compressStoryImage(Uint8List bytes) async {
@@ -191,6 +203,12 @@ class _AdminStoryCreateScreenState
     return best;
   }
 
+  double _storyImageAspectRatio(Uint8List bytes) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null || decoded.height == 0) return 0;
+    return decoded.width / decoded.height;
+  }
+
   void _startNewText(Offset localPosition, Size canvasSize) {
     if (_isEditingText || _submitting) return;
     final x = (localPosition.dx / canvasSize.width).clamp(0.08, 0.92);
@@ -201,6 +219,7 @@ class _AdminStoryCreateScreenState
       x: x.toDouble(),
       y: y.toDouble(),
       fontSize: _fontSize,
+      lineHeight: _lineHeight,
       fontFamily: _fontFamily,
       textColor: _textColor,
       alignment: _alignment,
@@ -210,6 +229,7 @@ class _AdminStoryCreateScreenState
       _editingDraft = layer;
       _editingCtrl.text = '';
       _activeTextTool = null;
+      _showCanvasBackgroundPicker = false;
     });
     _requestTextFocus();
   }
@@ -222,10 +242,12 @@ class _AdminStoryCreateScreenState
       _editingDraft = layer;
       _editingCtrl.text = layer.text;
       _fontSize = layer.fontSize;
+      _lineHeight = layer.lineHeight;
       _fontFamily = layer.fontFamily;
       _textColor = layer.textColor;
       _alignment = layer.alignment;
       _activeTextTool = null;
+      _showCanvasBackgroundPicker = false;
     });
     _requestTextFocus();
   }
@@ -244,6 +266,7 @@ class _AdminStoryCreateScreenState
 
   void _updateEditingStyle({
     double? fontSize,
+    double? lineHeight,
     String? fontFamily,
     int? textColor,
     String? alignment,
@@ -251,12 +274,14 @@ class _AdminStoryCreateScreenState
     final draft = _editingDraft;
     setState(() {
       if (fontSize != null) _fontSize = fontSize;
+      if (lineHeight != null) _lineHeight = lineHeight;
       if (fontFamily != null) _fontFamily = fontFamily;
       if (textColor != null) _textColor = textColor;
       if (alignment != null) _alignment = alignment;
       if (draft != null) {
         _editingDraft = draft.copyWith(
           fontSize: fontSize ?? draft.fontSize,
+          lineHeight: lineHeight ?? draft.lineHeight,
           fontFamily: fontFamily ?? draft.fontFamily,
           textColor: textColor ?? draft.textColor,
           alignment: alignment ?? draft.alignment,
@@ -268,6 +293,13 @@ class _AdminStoryCreateScreenState
   void _toggleTextTool(_TextStyleTool tool) {
     setState(() {
       _activeTextTool = _activeTextTool == tool ? null : tool;
+      _showCanvasBackgroundPicker = false;
+    });
+  }
+
+  void _toggleCanvasBackgroundPicker() {
+    setState(() {
+      _showCanvasBackgroundPicker = !_showCanvasBackgroundPicker;
     });
   }
 
@@ -373,6 +405,19 @@ class _AdminStoryCreateScreenState
     return (layerCenter - targetCenter).distance <= 72;
   }
 
+  bool _isImageOverDeleteTarget({
+    required double x,
+    required double y,
+    required Size canvasSize,
+  }) {
+    final imageCenter = Offset(
+      canvasSize.width / 2 + (x * canvasSize.width),
+      canvasSize.height / 2 + (y * canvasSize.height),
+    );
+    final targetCenter = Offset(canvasSize.width / 2, canvasSize.height - 70);
+    return (imageCenter - targetCenter).distance <= 96;
+  }
+
   Future<void> _openPollEditor() async {
     if (_submitting || _isEditingText) return;
     final result = await showModalBottomSheet<_PollEditorResult>(
@@ -418,8 +463,11 @@ class _AdminStoryCreateScreenState
 
   void _startImageTransform(ScaleStartDetails details) {
     if (_mode != 'image' || _imageBytes == null || _isEditingText) return;
-    _imageStartFocal = details.focalPoint;
-    _imageStartTransform = _imageTransform;
+    setState(() {
+      _imageStartFocal = details.focalPoint;
+      _imageStartTransform = _imageTransform;
+      _deleteTargetActive = false;
+    });
   }
 
   void _updateImageTransform(ScaleUpdateDetails details, Size canvasSize) {
@@ -433,12 +481,34 @@ class _AdminStoryCreateScreenState
       return;
     }
     final delta = details.focalPoint - focal;
+    final nextX = start.x + delta.dx / canvasSize.width;
+    final nextY = start.y + delta.dy / canvasSize.height;
     setState(() {
       _imageTransform = StoryImageTransform(
-        x: start.x + delta.dx / canvasSize.width,
-        y: start.y + delta.dy / canvasSize.height,
+        x: nextX,
+        y: nextY,
         scale: (start.scale * details.scale).clamp(0.45, 4.0),
+        aspectRatio: start.aspectRatio,
       );
+      _deleteTargetActive = _isImageOverDeleteTarget(
+        x: nextX,
+        y: nextY,
+        canvasSize: canvasSize,
+      );
+    });
+  }
+
+  void _endImageTransform() {
+    if (_imageStartTransform == null) return;
+    setState(() {
+      if (_deleteTargetActive) {
+        _imageBytes = null;
+        _mode = 'text';
+        _imageTransform = const StoryImageTransform();
+      }
+      _imageStartFocal = null;
+      _imageStartTransform = null;
+      _deleteTargetActive = false;
     });
   }
 
@@ -523,6 +593,7 @@ class _AdminStoryCreateScreenState
         textStyle: _style,
         targetMode: targetMode,
         targetUserIds: targetUserIds,
+        visibilityHours: _visibilityDuration.hours,
       );
     } else {
       await api.createAdminStory(
@@ -532,6 +603,7 @@ class _AdminStoryCreateScreenState
         textStyle: _style,
         targetMode: targetMode,
         targetUserIds: targetUserIds,
+        visibilityHours: _visibilityDuration.hours,
       );
     }
     if (!mounted) return;
@@ -635,56 +707,66 @@ class _AdminStoryCreateScreenState
       body: Column(
         children: [
           Expanded(
-            child: _StoryEditorCanvas(
-              mode: _mode,
-              imageBytes: _imageBytes,
-              imageTransform: _imageTransform,
-              layers: _layers,
-              poll: _poll,
-              editingIndex: _editingIndex,
-              editingDraft: _editingDraft,
-              editingController: _editingCtrl,
-              editingFocus: _editingFocus,
-              style: _style,
-              submitting: _submitting,
-              submittingCanChoose: _shareCanChoose,
-              onSubmittingOverlayTap: _showShareLoadingChoices,
-              onBack: () => context.pop(),
-              onModeChanged: (mode) => setState(() => _mode = mode),
-              onPickImage: _pickImage,
-              onCanvasTap: _startNewText,
-              onTextChanged: _updateEditingText,
-              onDoneText: _doneEditingText,
-              onCancelText: _cancelEditingText,
-              onEditLayer: _editLayer,
-              onLayerScaleStart: _startLayerTransform,
-              onLayerScaleUpdate: _transformLayer,
-              onLayerScaleEnd: _endLayerTransform,
-              onPollTap: _openPollEditor,
-              onPollScaleStart: _startPollTransform,
-              onPollScaleUpdate: _transformPoll,
-              onImageScaleStart: _startImageTransform,
-              onImageScaleUpdate: _updateImageTransform,
-              fontSize: _fontSize,
-              fontFamily: _fontFamily,
-              textColor: _textColor,
-              bgStart: _bgStart,
-              bgEnd: _bgEnd,
-              alignment: _alignment,
-              activeTextTool: _activeTextTool,
-              showLayerDeleteTarget:
-                  _activeLayerGestureIndex != null && !_isEditingText,
-              layerDeleteTargetActive: _deleteTargetActive,
-              onTextToolTap: _toggleTextTool,
-              onAddPoll: _openPollEditor,
-              onFontSize: (value) => _updateEditingStyle(fontSize: value),
-              onFontFamily: (value) => _updateEditingStyle(fontFamily: value),
-              onTextColor: (value) => _updateEditingStyle(textColor: value),
-              onBackground: (start, end) => setState(() {
-                _bgStart = start;
-                _bgEnd = end;
-              }),
-              onAlignment: (value) => _updateEditingStyle(alignment: value),
+            child: _EditorStoryFrame(
+              child: _StoryEditorCanvas(
+                mode: _mode,
+                imageBytes: _imageBytes,
+                imageTransform: _imageTransform,
+                layers: _layers,
+                poll: _poll,
+                editingIndex: _editingIndex,
+                editingDraft: _editingDraft,
+                editingController: _editingCtrl,
+                editingFocus: _editingFocus,
+                style: _style,
+                submitting: _submitting,
+                submittingCanChoose: _shareCanChoose,
+                onSubmittingOverlayTap: _showShareLoadingChoices,
+                onBack: () => context.pop(),
+                onPickImage: _pickImage,
+                visibilityDurationLabel: _visibilityDuration.label,
+                onCycleVisibilityDuration: _cycleVisibilityDuration,
+                onCanvasTap: _startNewText,
+                onTextChanged: _updateEditingText,
+                onDoneText: _doneEditingText,
+                onCancelText: _cancelEditingText,
+                onEditLayer: _editLayer,
+                onLayerScaleStart: _startLayerTransform,
+                onLayerScaleUpdate: _transformLayer,
+                onLayerScaleEnd: _endLayerTransform,
+                onPollTap: _openPollEditor,
+                onPollScaleStart: _startPollTransform,
+                onPollScaleUpdate: _transformPoll,
+                onImageScaleStart: _startImageTransform,
+                onImageScaleUpdate: _updateImageTransform,
+                onImageScaleEnd: _endImageTransform,
+                fontSize: _fontSize,
+                lineHeight: _lineHeight,
+                fontFamily: _fontFamily,
+                textColor: _textColor,
+                bgStart: _bgStart,
+                bgEnd: _bgEnd,
+                alignment: _alignment,
+                activeTextTool: _activeTextTool,
+                showCanvasBackgroundPicker: _showCanvasBackgroundPicker,
+                showLayerDeleteTarget:
+                    ((_activeLayerGestureIndex != null) ||
+                        (_imageStartTransform != null)) &&
+                    !_isEditingText,
+                layerDeleteTargetActive: _deleteTargetActive,
+                onTextToolTap: _toggleTextTool,
+                onAddPoll: _openPollEditor,
+                onToggleCanvasBackground: _toggleCanvasBackgroundPicker,
+                onFontSize: (value) => _updateEditingStyle(fontSize: value),
+                onLineHeight: (value) => _updateEditingStyle(lineHeight: value),
+                onFontFamily: (value) => _updateEditingStyle(fontFamily: value),
+                onTextColor: (value) => _updateEditingStyle(textColor: value),
+                onBackground: (start, end) => setState(() {
+                  _bgStart = start;
+                  _bgEnd = end;
+                }),
+                onAlignment: (value) => _updateEditingStyle(alignment: value),
+              ),
             ),
           ),
           SafeArea(
@@ -710,6 +792,17 @@ class _AdminStoryCreateScreenState
   }
 }
 
+class _EditorStoryFrame extends StatelessWidget {
+  const _EditorStoryFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(child: ClipRect(child: child));
+  }
+}
+
 class _StoryEditorCanvas extends StatelessWidget {
   const _StoryEditorCanvas({
     required this.mode,
@@ -726,8 +819,9 @@ class _StoryEditorCanvas extends StatelessWidget {
     required this.submittingCanChoose,
     required this.onSubmittingOverlayTap,
     required this.onBack,
-    required this.onModeChanged,
     required this.onPickImage,
+    required this.visibilityDurationLabel,
+    required this.onCycleVisibilityDuration,
     required this.onCanvasTap,
     required this.onTextChanged,
     required this.onDoneText,
@@ -741,18 +835,23 @@ class _StoryEditorCanvas extends StatelessWidget {
     required this.onPollScaleUpdate,
     required this.onImageScaleStart,
     required this.onImageScaleUpdate,
+    required this.onImageScaleEnd,
     required this.fontSize,
+    required this.lineHeight,
     required this.fontFamily,
     required this.textColor,
     required this.bgStart,
     required this.bgEnd,
     required this.alignment,
     required this.activeTextTool,
+    required this.showCanvasBackgroundPicker,
     required this.showLayerDeleteTarget,
     required this.layerDeleteTargetActive,
     required this.onTextToolTap,
     required this.onAddPoll,
+    required this.onToggleCanvasBackground,
     required this.onFontSize,
+    required this.onLineHeight,
     required this.onFontFamily,
     required this.onTextColor,
     required this.onBackground,
@@ -773,8 +872,9 @@ class _StoryEditorCanvas extends StatelessWidget {
   final bool submittingCanChoose;
   final VoidCallback onSubmittingOverlayTap;
   final VoidCallback onBack;
-  final ValueChanged<String> onModeChanged;
   final VoidCallback onPickImage;
+  final String visibilityDurationLabel;
+  final VoidCallback onCycleVisibilityDuration;
   final void Function(Offset localPosition, Size canvasSize) onCanvasTap;
   final ValueChanged<String> onTextChanged;
   final VoidCallback onDoneText;
@@ -791,18 +891,23 @@ class _StoryEditorCanvas extends StatelessWidget {
   final ValueChanged<ScaleStartDetails> onImageScaleStart;
   final void Function(ScaleUpdateDetails details, Size canvasSize)
   onImageScaleUpdate;
+  final VoidCallback onImageScaleEnd;
   final double fontSize;
+  final double lineHeight;
   final String fontFamily;
   final int textColor;
   final int bgStart;
   final int bgEnd;
   final String alignment;
   final _TextStyleTool? activeTextTool;
+  final bool showCanvasBackgroundPicker;
   final bool showLayerDeleteTarget;
   final bool layerDeleteTargetActive;
   final ValueChanged<_TextStyleTool> onTextToolTap;
   final VoidCallback onAddPoll;
+  final VoidCallback onToggleCanvasBackground;
   final ValueChanged<double> onFontSize;
+  final ValueChanged<double> onLineHeight;
   final ValueChanged<String> onFontFamily;
   final ValueChanged<int> onTextColor;
   final void Function(int start, int end) onBackground;
@@ -831,6 +936,7 @@ class _StoryEditorCanvas extends StatelessWidget {
                 onScaleStart: onImageScaleStart,
                 onScaleUpdate: (details) =>
                     onImageScaleUpdate(details, canvasSize),
+                onScaleEnd: (_) => onImageScaleEnd(),
                 child: _StoryBackground(
                   mode: mode,
                   imageBytes: imageBytes,
@@ -856,8 +962,8 @@ class _StoryEditorCanvas extends StatelessWidget {
                   ),
                 ),
               ),
-              for (var i = 0; i < layers.length; i++)
-                if (!(isEditing && editingIndex == i))
+              if (!isEditing)
+                for (var i = 0; i < layers.length; i++)
                   _PositionedTextLayer(
                     layer: layers[i],
                     canvasSize: canvasSize,
@@ -874,6 +980,18 @@ class _StoryEditorCanvas extends StatelessWidget {
                   controller: editingController,
                   focusNode: editingFocus,
                   onChanged: onTextChanged,
+                ),
+              if (isEditing)
+                Positioned(
+                  left: 0,
+                  top: safeTop + 108,
+                  bottom: 112,
+                  child: Center(
+                    child: _StoryTextSizeScrubber(
+                      value: fontSize,
+                      onChanged: onFontSize,
+                    ),
+                  ),
                 ),
               if (poll != null && !isEditing)
                 _PositionedPollSticker(
@@ -900,20 +1018,37 @@ class _StoryEditorCanvas extends StatelessWidget {
                         onCancel: onCancelText,
                         onDone: onDoneText,
                       )
-                    : _NormalTopBar(
-                        mode: mode,
-                        onBack: onBack,
-                        onModeChanged: onModeChanged,
-                      ),
+                    : _NormalTopBar(onBack: onBack),
               ),
               if (!isEditing)
                 Positioned(
                   top: safeTop + 70,
                   right: 14,
-                  child: _IdleToolRail(
-                    mode: mode,
-                    onPickImage: onPickImage,
-                    onAddPoll: onAddPoll,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (showCanvasBackgroundPicker) ...[
+                        _GlassPanel(
+                          child: _BackgroundPicker(
+                            start: bgStart,
+                            end: bgEnd,
+                            onChanged: onBackground,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      _IdleToolRail(
+                        bgStart: bgStart,
+                        bgEnd: bgEnd,
+                        backgroundSelected: showCanvasBackgroundPicker,
+                        onPickImage: onPickImage,
+                        visibilityDurationLabel: visibilityDurationLabel,
+                        onCycleVisibilityDuration: onCycleVisibilityDuration,
+                        onAddPoll: onAddPoll,
+                        onToggleBackground: onToggleCanvasBackground,
+                      ),
+                    ],
                   ),
                 ),
               if (isEditing)
@@ -923,7 +1058,7 @@ class _StoryEditorCanvas extends StatelessWidget {
                   right: 14,
                   child: _TextStyleBar(
                     mode: mode,
-                    fontSize: fontSize,
+                    lineHeight: lineHeight,
                     fontFamily: fontFamily,
                     textColor: textColor,
                     bgStart: bgStart,
@@ -931,7 +1066,7 @@ class _StoryEditorCanvas extends StatelessWidget {
                     alignment: alignment,
                     activeTool: activeTextTool,
                     onToolTap: onTextToolTap,
-                    onFontSize: onFontSize,
+                    onLineHeight: onLineHeight,
                     onFontFamily: onFontFamily,
                     onTextColor: onTextColor,
                     onBackground: onBackground,
@@ -1038,18 +1173,43 @@ class _StoryBackground extends StatelessWidget {
       }
       return LayoutBuilder(
         builder: (context, constraints) {
-          return Transform.translate(
-            offset: Offset(
-              imageTransform.x * constraints.maxWidth,
-              imageTransform.y * constraints.maxHeight,
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(style.backgroundStart),
+                  Color(style.backgroundEnd),
+                ],
+              ),
             ),
-            child: Transform.scale(
-              scale: imageTransform.scale,
-              child: Image.memory(
-                imageBytes!,
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                fit: BoxFit.cover,
+            child: ClipRect(
+              child: Transform.translate(
+                offset: Offset(
+                  imageTransform.x * constraints.maxWidth,
+                  imageTransform.y * constraints.maxHeight,
+                ),
+                child: Transform.scale(
+                  scale: _storyImageEffectiveScale(
+                    canvasSize: Size(
+                      constraints.maxWidth,
+                      constraints.maxHeight,
+                    ),
+                    imageScale: imageTransform.scale,
+                    aspectRatio: imageTransform.aspectRatio,
+                  ),
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
+                    child: FittedBox(
+                      fit: imageTransform.aspectRatio > 0
+                          ? BoxFit.contain
+                          : _storyImageFitForScale(imageTransform.scale),
+                      child: Image.memory(imageBytes!),
+                    ),
+                  ),
+                ),
               ),
             ),
           );
@@ -1065,6 +1225,147 @@ class _StoryBackground extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+BoxFit _storyImageFitForScale(double scale) {
+  return scale < 0.995 ? BoxFit.contain : BoxFit.cover;
+}
+
+double _storyImageEffectiveScale({
+  required Size canvasSize,
+  required double imageScale,
+  required double aspectRatio,
+}) {
+  if (aspectRatio <= 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
+    return imageScale;
+  }
+  final canvasAspectRatio = canvasSize.width / canvasSize.height;
+  final coverScale = math.max(
+    aspectRatio / canvasAspectRatio,
+    canvasAspectRatio / aspectRatio,
+  );
+  if (imageScale >= 1) return coverScale * imageScale;
+  const minImageScale = 0.45;
+  final t = ((imageScale - minImageScale) / (1 - minImageScale))
+      .clamp(0.0, 1.0)
+      .toDouble();
+  return 1 + ((coverScale - 1) * t);
+}
+
+class _StoryTextSizeScrubber extends StatefulWidget {
+  const _StoryTextSizeScrubber({required this.value, required this.onChanged});
+
+  static const minSize = 22.0;
+  static const maxSize = 54.0;
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  State<_StoryTextSizeScrubber> createState() => _StoryTextSizeScrubberState();
+}
+
+class _StoryTextSizeScrubberState extends State<_StoryTextSizeScrubber> {
+  var _active = false;
+
+  void _setFromLocalY(double y, double height) {
+    final t = (1 - (y / height)).clamp(0.0, 1.0).toDouble();
+    final next =
+        _StoryTextSizeScrubber.minSize +
+        (_StoryTextSizeScrubber.maxSize - _StoryTextSizeScrubber.minSize) * t;
+    widget.onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 52,
+      height: 220,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onPanStart: (details) {
+              setState(() => _active = true);
+              _setFromLocalY(details.localPosition.dy, height);
+            },
+            onPanUpdate: (details) =>
+                _setFromLocalY(details.localPosition.dy, height),
+            onPanEnd: (_) => setState(() => _active = false),
+            onPanCancel: () => setState(() => _active = false),
+            onTapDown: (details) {
+              setState(() => _active = true);
+              _setFromLocalY(details.localPosition.dy, height);
+            },
+            onTapUp: (_) => setState(() => _active = false),
+            onTapCancel: () => setState(() => _active = false),
+            child: CustomPaint(
+              painter: _StoryTextSizeScrubberPainter(
+                value: widget.value,
+                active: _active,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StoryTextSizeScrubberPainter extends CustomPainter {
+  const _StoryTextSizeScrubberPainter({
+    required this.value,
+    required this.active,
+  });
+
+  final double value;
+  final bool active;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final progress =
+        ((value - _StoryTextSizeScrubber.minSize) /
+                (_StoryTextSizeScrubber.maxSize -
+                    _StoryTextSizeScrubber.minSize))
+            .clamp(0.0, 1.0)
+            .toDouble();
+    final knobY = size.height * (1 - progress);
+    final centerX = active ? 20.0 : 17.0;
+
+    if (active) {
+      final path = Path()
+        ..moveTo(centerX - 10, 0)
+        ..quadraticBezierTo(centerX - 2.5, knobY, centerX - 2.5, size.height)
+        ..lineTo(centerX + 2.5, size.height)
+        ..quadraticBezierTo(centerX + 10, knobY, centerX + 10, 0)
+        ..close();
+      canvas.drawPath(
+        path,
+        Paint()..color = Colors.white.withValues(alpha: 0.56),
+      );
+    } else {
+      canvas.drawLine(
+        Offset(centerX, 0),
+        Offset(centerX, size.height),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.78)
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    canvas.drawCircle(
+      Offset(centerX, knobY),
+      10,
+      Paint()..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _StoryTextSizeScrubberPainter oldDelegate) {
+    return oldDelegate.value != value || oldDelegate.active != active;
   }
 }
 
@@ -1088,10 +1389,18 @@ class _PositionedTextLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = canvasSize.width * 0.78;
-    const height = 170.0;
+    final height = _storyTextLayerHeight(
+      context: context,
+      layer: layer,
+      width: width,
+    );
     return Positioned(
       left: (layer.x * canvasSize.width) - width / 2,
-      top: (layer.y * canvasSize.height) - height / 2,
+      top: _storyTextLayerTop(
+        centerY: layer.y * canvasSize.height,
+        height: height,
+        canvasHeight: canvasSize.height,
+      ),
       width: width,
       height: height,
       child: GestureDetector(
@@ -1209,26 +1518,58 @@ class _EditingTextLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = canvasSize.width * 0.82;
-    const height = 180.0;
+    final height = _storyTextLayerHeight(
+      context: context,
+      layer: layer,
+      width: width,
+    );
     return Positioned(
       left: (layer.x * canvasSize.width) - width / 2,
-      top: (layer.y * canvasSize.height) - height / 2,
+      top: _storyTextLayerTop(
+        centerY: layer.y * canvasSize.height,
+        height: height,
+        canvasHeight: canvasSize.height,
+      ),
       width: width,
       height: height,
       child: Center(
         child: Transform.scale(
           scale: layer.scale,
-          child: EditableText(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            textAlign: _textAlign(layer.alignment),
-            onChanged: onChanged,
-            cursorColor: Color(layer.textColor),
-            backgroundCursorColor: Colors.white24,
-            style: StoryLayerText.textStyle(layer),
-            maxLines: null,
-            selectionColor: Colors.transparent,
+          child: TextSelectionTheme(
+            data: TextSelectionThemeData(
+              cursorColor: Color(layer.textColor),
+              selectionColor: _storyTextSelectionColor(layer.textColor),
+              selectionHandleColor: _storyTextHandleColor(layer.textColor),
+            ),
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              autofocus: true,
+              textAlign: _textAlign(layer.alignment),
+              onChanged: onChanged,
+              cursorColor: Color(layer.textColor),
+              style: StoryLayerText.textStyle(layer),
+              maxLines: null,
+              minLines: 1,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              enableInteractiveSelection: true,
+              selectionControls: materialTextSelectionControls,
+              selectionHeightStyle: ui.BoxHeightStyle.tight,
+              selectionWidthStyle: ui.BoxWidthStyle.tight,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                filled: false,
+                fillColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                isCollapsed: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
           ),
         ),
       ),
@@ -1245,9 +1586,9 @@ class StoryLayerText extends StatelessWidget {
     return TextStyle(
       color: Color(layer.textColor),
       fontSize: layer.fontSize,
-      fontFamily: layer.fontFamily == 'Default' ? null : layer.fontFamily,
+      fontFamily: storyFontFamily(layer.fontFamily),
       fontWeight: FontWeight.w900,
-      height: 1.12,
+      height: layer.lineHeight,
       shadows: const [
         Shadow(color: Colors.black45, blurRadius: 12, offset: Offset(0, 2)),
       ],
@@ -1270,6 +1611,45 @@ class StoryLayerText extends StatelessWidget {
   }
 }
 
+Color _storyTextSelectionColor(int textColor) {
+  final color = Color(textColor);
+  final alpha = color.computeLuminance() > 0.55 ? 0.34 : 0.30;
+  return const Color(0xFF5B8DFF).withValues(alpha: alpha);
+}
+
+Color _storyTextHandleColor(int textColor) {
+  final color = Color(textColor);
+  return color.computeLuminance() > 0.55
+      ? const Color(0xFF5B8DFF)
+      : Colors.white;
+}
+
+double _storyTextLayerHeight({
+  required BuildContext context,
+  required StoryTextLayer layer,
+  required double width,
+}) {
+  final text = layer.text.isEmpty ? ' ' : layer.text;
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: StoryLayerText.textStyle(layer)),
+    textAlign: _textAlign(layer.alignment),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout(maxWidth: width);
+  final verticalPadding = layer.fontSize * 0.55 + 24;
+  final layoutHeight = painter.height + verticalPadding;
+  return math.max(72.0, layoutHeight * math.max(1.0, layer.scale));
+}
+
+double _storyTextLayerTop({
+  required double centerY,
+  required double height,
+  required double canvasHeight,
+}) {
+  if (height >= canvasHeight) return 0;
+  return (centerY - height / 2).clamp(0, canvasHeight - height).toDouble();
+}
+
 TextAlign _textAlign(String alignment) {
   return switch (alignment) {
     'left' => TextAlign.left,
@@ -1279,41 +1659,15 @@ TextAlign _textAlign(String alignment) {
 }
 
 class _NormalTopBar extends StatelessWidget {
-  const _NormalTopBar({
-    required this.mode,
-    required this.onBack,
-    required this.onModeChanged,
-  });
+  const _NormalTopBar({required this.onBack});
 
-  final String mode;
   final VoidCallback onBack;
-  final ValueChanged<String> onModeChanged;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         _RoundToolButton(icon: Icons.arrow_back_rounded, onTap: onBack),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _GlassPanel(
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'text', label: Text('Text')),
-                ButtonSegment(value: 'image', label: Text('Image')),
-              ],
-              selected: {mode},
-              onSelectionChanged: (v) => onModeChanged(v.first),
-              style: ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                foregroundColor: WidgetStateProperty.all(Colors.white),
-                side: WidgetStateProperty.all(
-                  BorderSide(color: Colors.white.withValues(alpha: 0.28)),
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -1339,14 +1693,24 @@ class _TextEditingTopBar extends StatelessWidget {
 
 class _IdleToolRail extends StatelessWidget {
   const _IdleToolRail({
-    required this.mode,
+    required this.bgStart,
+    required this.bgEnd,
+    required this.backgroundSelected,
     required this.onPickImage,
+    required this.visibilityDurationLabel,
+    required this.onCycleVisibilityDuration,
     required this.onAddPoll,
+    required this.onToggleBackground,
   });
 
-  final String mode;
+  final int bgStart;
+  final int bgEnd;
+  final bool backgroundSelected;
   final VoidCallback onPickImage;
+  final String visibilityDurationLabel;
+  final VoidCallback onCycleVisibilityDuration;
   final VoidCallback onAddPoll;
+  final VoidCallback onToggleBackground;
 
   @override
   Widget build(BuildContext context) {
@@ -1354,13 +1718,23 @@ class _IdleToolRail extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _RoundToolButton(icon: Icons.poll_rounded, onTap: onAddPoll),
-        if (mode == 'image') ...[
-          const SizedBox(height: 10),
-          _RoundToolButton(
-            icon: Icons.photo_library_rounded,
-            onTap: onPickImage,
-          ),
-        ],
+        const SizedBox(height: 10),
+        _RoundToolButton(
+          icon: Icons.photo_library_rounded,
+          onTap: onPickImage,
+        ),
+        const SizedBox(height: 10),
+        _GradientToolButton(
+          start: bgStart,
+          end: bgEnd,
+          selected: backgroundSelected,
+          onTap: onToggleBackground,
+        ),
+        const SizedBox(height: 10),
+        _StoryDurationBadge(
+          label: visibilityDurationLabel,
+          onTap: onCycleVisibilityDuration,
+        ),
       ],
     );
   }
@@ -1369,7 +1743,7 @@ class _IdleToolRail extends StatelessWidget {
 class _TextStyleBar extends StatelessWidget {
   const _TextStyleBar({
     required this.mode,
-    required this.fontSize,
+    required this.lineHeight,
     required this.fontFamily,
     required this.textColor,
     required this.bgStart,
@@ -1377,7 +1751,7 @@ class _TextStyleBar extends StatelessWidget {
     required this.alignment,
     required this.activeTool,
     required this.onToolTap,
-    required this.onFontSize,
+    required this.onLineHeight,
     required this.onFontFamily,
     required this.onTextColor,
     required this.onBackground,
@@ -1385,7 +1759,7 @@ class _TextStyleBar extends StatelessWidget {
   });
 
   final String mode;
-  final double fontSize;
+  final double lineHeight;
   final String fontFamily;
   final int textColor;
   final int bgStart;
@@ -1393,7 +1767,7 @@ class _TextStyleBar extends StatelessWidget {
   final String alignment;
   final _TextStyleTool? activeTool;
   final ValueChanged<_TextStyleTool> onToolTap;
-  final ValueChanged<double> onFontSize;
+  final ValueChanged<double> onLineHeight;
   final ValueChanged<String> onFontFamily;
   final ValueChanged<int> onTextColor;
   final void Function(int start, int end) onBackground;
@@ -1414,13 +1788,13 @@ class _TextStyleBar extends StatelessWidget {
                     child: _TextToolDetails(
                       activeTool: activeTool!,
                       mode: mode,
-                      fontSize: fontSize,
+                      lineHeight: lineHeight,
                       fontFamily: fontFamily,
                       textColor: textColor,
                       bgStart: bgStart,
                       bgEnd: bgEnd,
                       alignment: alignment,
-                      onFontSize: onFontSize,
+                      onLineHeight: onLineHeight,
                       onFontFamily: onFontFamily,
                       onTextColor: onTextColor,
                       onBackground: onBackground,
@@ -1470,9 +1844,9 @@ class _VerticalTextToolRail extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _TextToolButton(
-            icon: Icons.format_size_rounded,
-            selected: activeTool == _TextStyleTool.size,
-            onTap: () => onToolTap(_TextStyleTool.size),
+            icon: Icons.format_line_spacing_rounded,
+            selected: activeTool == _TextStyleTool.lineHeight,
+            onTap: () => onToolTap(_TextStyleTool.lineHeight),
           ),
           const SizedBox(height: 8),
           _TextToolButton(
@@ -1486,15 +1860,6 @@ class _VerticalTextToolRail extends StatelessWidget {
             selected: activeTool == _TextStyleTool.color,
             onTap: () => onToolTap(_TextStyleTool.color),
           ),
-          if (mode == 'text') ...[
-            const SizedBox(height: 8),
-            _GradientToolButton(
-              start: bgStart,
-              end: bgEnd,
-              selected: activeTool == _TextStyleTool.background,
-              onTap: () => onToolTap(_TextStyleTool.background),
-            ),
-          ],
           const SizedBox(height: 8),
           _TextToolButton(
             icon: switch (alignment) {
@@ -1515,13 +1880,13 @@ class _TextToolDetails extends StatelessWidget {
   const _TextToolDetails({
     required this.activeTool,
     required this.mode,
-    required this.fontSize,
+    required this.lineHeight,
     required this.fontFamily,
     required this.textColor,
     required this.bgStart,
     required this.bgEnd,
     required this.alignment,
-    required this.onFontSize,
+    required this.onLineHeight,
     required this.onFontFamily,
     required this.onTextColor,
     required this.onBackground,
@@ -1530,13 +1895,13 @@ class _TextToolDetails extends StatelessWidget {
 
   final _TextStyleTool activeTool;
   final String mode;
-  final double fontSize;
+  final double lineHeight;
   final String fontFamily;
   final int textColor;
   final int bgStart;
   final int bgEnd;
   final String alignment;
-  final ValueChanged<double> onFontSize;
+  final ValueChanged<double> onLineHeight;
   final ValueChanged<String> onFontFamily;
   final ValueChanged<int> onTextColor;
   final void Function(int start, int end) onBackground;
@@ -1545,9 +1910,9 @@ class _TextToolDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (activeTool) {
-      _TextStyleTool.size => _SmallSizeSlider(
-        value: fontSize,
-        onChanged: onFontSize,
+      _TextStyleTool.lineHeight => _LineHeightSlider(
+        value: lineHeight,
+        onChanged: onLineHeight,
       ),
       _TextStyleTool.font => _FontPicker(
         value: fontFamily,
@@ -1557,14 +1922,6 @@ class _TextToolDetails extends StatelessWidget {
         value: textColor,
         onChanged: onTextColor,
       ),
-      _TextStyleTool.background =>
-        mode == 'text'
-            ? _BackgroundPicker(
-                start: bgStart,
-                end: bgEnd,
-                onChanged: onBackground,
-              )
-            : const SizedBox.shrink(),
       _TextStyleTool.alignment => _AlignmentPicker(
         value: alignment,
         onChanged: onAlignment,
@@ -1573,8 +1930,8 @@ class _TextToolDetails extends StatelessWidget {
   }
 }
 
-class _SmallSizeSlider extends StatelessWidget {
-  const _SmallSizeSlider({required this.value, required this.onChanged});
+class _LineHeightSlider extends StatelessWidget {
+  const _LineHeightSlider({required this.value, required this.onChanged});
 
   final double value;
   final ValueChanged<double> onChanged;
@@ -1582,16 +1939,21 @@ class _SmallSizeSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 140,
+      width: 150,
       child: Row(
         children: [
-          const Icon(Icons.format_size_rounded, color: Colors.white, size: 20),
+          const Icon(
+            Icons.format_line_spacing_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           Expanded(
             child: Slider(
-              value: value,
-              min: 22,
-              max: 54,
-              divisions: 16,
+              value: value.clamp(1.05, 3.0).toDouble(),
+              min: 1.05,
+              max: 3.0,
+              divisions: 39,
+              label: value.toStringAsFixed(2),
               onChanged: onChanged,
             ),
           ),
@@ -1687,14 +2049,14 @@ class _GradientToolButton extends StatelessWidget {
       customBorder: const CircleBorder(),
       onTap: onTap,
       child: Container(
-        width: 38,
-        height: 38,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: LinearGradient(colors: [Color(start), Color(end)]),
           border: Border.all(
             color: selected ? Colors.white : Colors.white54,
-            width: selected ? 3 : 1,
+            width: selected ? 3 : 1.5,
           ),
         ),
       ),
@@ -1710,17 +2072,20 @@ class _FontPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const fonts = ['Default', 'Roboto', 'Serif', 'Monospace'];
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         dropdownColor: const Color(0xFF24242C),
-        value: value,
+        value: storyFontPickerValue(value),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
         items: [
-          for (final f in fonts) DropdownMenuItem(value: f, child: Text(f)),
+          for (final option in kStoryFontOptions)
+            DropdownMenuItem(
+              value: option.value,
+              child: Text(option.sample, style: storyFontPreviewStyle(option)),
+            ),
         ],
         onChanged: (v) {
           if (v != null) onChanged(v);
@@ -1854,6 +2219,48 @@ class _RoundToolButton extends StatelessWidget {
           width: 42,
           height: 42,
           child: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryDurationBadge extends StatelessWidget {
+  const _StoryDurationBadge({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Story duration $label',
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.42),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: label.length > 2 ? 10 : 12,
+                fontWeight: FontWeight.w700,
+                height: 1,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -2018,10 +2425,6 @@ class _PollEditorSheetState extends State<_PollEditorSheet> {
     final question = _question.text.trim();
     final optionTexts = _options.map((c) => c.text.trim()).toList();
     final seen = <String>{};
-    if (question.isEmpty) {
-      setState(() => _error = 'Question is required');
-      return;
-    }
     if (question.length > 80) {
       setState(() => _error = 'Question is too long');
       return;
@@ -2106,7 +2509,7 @@ class _PollEditorSheetState extends State<_PollEditorSheet> {
                 controller: _question,
                 maxLength: 80,
                 decoration: const InputDecoration(
-                  labelText: 'Question',
+                  labelText: 'Question (optional)',
                   hintText: 'Ask a question...',
                   border: OutlineInputBorder(),
                 ),

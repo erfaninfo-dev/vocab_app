@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,20 @@ enum TtsStatus { idle, speaking, paused }
 
 /// Extra bottom inset when the global [TtsPlayerOverlay] is visible (FAB dialogs use it).
 const double kTtsMiniPlayerBottomReserve = 88;
+
+/// Engine speech-rate baseline (multiplied by [kTtsSpeedPresets]).
+const double kTtsBaseSpeechRate = 0.45;
+
+const String kTtsSpeechRateMultiplierPrefsKey = 'tts_speech_rate_multiplier_v1';
+
+/// User-facing speed presets (multipliers on [kTtsBaseSpeechRate]).
+const List<double> kTtsSpeedPresets = [0.75, 1.0, 1.25, 1.5];
+
+const int kTtsSkipSeconds = 5;
+
+const String kTtsEngineChoicePrefsKey = 'tts_engine_choice_v1';
+
+enum TtsEngineChoice { system, google }
 
 class TtsState {
   const TtsState({
@@ -22,6 +37,9 @@ class TtsState {
     this.progressWord = '',
     this.lingeringReadText,
     this.showMiniPlayer = true,
+    this.speechRateMultiplier = 1.0,
+    this.engineChoice = TtsEngineChoice.system,
+    this.googleEngineAvailable = false,
   });
   final TtsStatus status;
   final String activeText;
@@ -33,6 +51,12 @@ class TtsState {
 
   /// When false, [TtsPlayerOverlay] stays hidden (e.g. word/example taps on cards).
   final bool showMiniPlayer;
+
+  /// User-facing speed preset multiplier (0.75…1.5 × [kTtsBaseSpeechRate]).
+  final double speechRateMultiplier;
+
+  final TtsEngineChoice engineChoice;
+  final bool googleEngineAvailable;
 
   bool get isSpeaking => status == TtsStatus.speaking;
   bool get isPaused => status == TtsStatus.paused;
@@ -46,6 +70,12 @@ class TtsState {
       lingeringReadText != null &&
       lingeringReadText == text;
 
+  int get currentCharIndex {
+    if (activeText.isEmpty) return 0;
+    if (progressEnd >= 0) return progressEnd.clamp(0, activeText.length);
+    return spokenTextOffset.clamp(0, activeText.length);
+  }
+
   TtsState copyWith({
     TtsStatus? status,
     String? activeText,
@@ -56,6 +86,9 @@ class TtsState {
     String? lingeringReadText,
     bool clearLingeringReadText = false,
     bool? showMiniPlayer,
+    double? speechRateMultiplier,
+    TtsEngineChoice? engineChoice,
+    bool? googleEngineAvailable,
   }) => TtsState(
     status: status ?? this.status,
     activeText: activeText ?? this.activeText,
@@ -67,6 +100,10 @@ class TtsState {
         ? null
         : (lingeringReadText ?? this.lingeringReadText),
     showMiniPlayer: showMiniPlayer ?? this.showMiniPlayer,
+    speechRateMultiplier: speechRateMultiplier ?? this.speechRateMultiplier,
+    engineChoice: engineChoice ?? this.engineChoice,
+    googleEngineAvailable:
+        googleEngineAvailable ?? this.googleEngineAvailable,
   );
 }
 
@@ -86,7 +123,10 @@ class TtsNotifier extends StateNotifier<TtsState> {
   DateTime? _lastPlatformProgressAt;
   DateTime? _progressSimAnchorTime;
   int _progressSimAnchorChar = 0;
-  double _speechRate = 0.45;
+  double _speechRate = kTtsBaseSpeechRate;
+  double _speechRateMultiplier = 1.0;
+  String? _googleEnginePackage;
+  String? _defaultEnginePackage;
 
   /// True after at least one [speak.onProgress] for the current utterance — word-aware.
   bool _platformReportsProgress = false;
@@ -97,6 +137,13 @@ class TtsNotifier extends StateNotifier<TtsState> {
   /// When [speak.onProgress] is missing or sparse (Web, older Android, some engines),
   /// drive the seek bar from elapsed time; when the platform reports ranges, we resync.
   double get _estimatedCharsPerSecond => 14.0 * (0.25 + 0.75 * _speechRate);
+
+  TtsState _preservedIdle({String? lingeringReadText}) => TtsState(
+    lingeringReadText: lingeringReadText,
+    speechRateMultiplier: state.speechRateMultiplier,
+    engineChoice: state.engineChoice,
+    googleEngineAvailable: state.googleEngineAvailable,
+  );
 
   void _cancelProgressTicker() {
     _progressTimer?.cancel();
@@ -203,7 +250,7 @@ class TtsNotifier extends StateNotifier<TtsState> {
       _cancelFallbackGrace();
       _cancelStallFiller();
       _cancelProgressTicker();
-      state = const TtsState();
+      state = _preservedIdle();
     });
   }
 
@@ -218,17 +265,68 @@ class TtsNotifier extends StateNotifier<TtsState> {
       _cancelStallFiller();
       _cancelProgressTicker();
       final read = state.activeText;
-      state = TtsState(
-        status: TtsStatus.idle,
+      state = _preservedIdle(
         lingeringReadText: read.isEmpty ? null : read,
       );
     });
   }
 
+  Future<void> _discoverEngines() async {
+    try {
+      final def = await _tts.getDefaultEngine;
+      if (def is String && def.trim().isNotEmpty) {
+        _defaultEnginePackage = def.trim();
+      }
+      final raw = await _tts.getEngines;
+      if (raw is List) {
+        for (final entry in raw) {
+          if (entry is! Map) continue;
+          final name = entry['name']?.toString().trim() ?? '';
+          if (name.isEmpty) continue;
+          if (name.toLowerCase().contains('google')) {
+            _googleEnginePackage = name;
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      state = state.copyWith(
+        googleEngineAvailable: _googleEnginePackage != null,
+      );
+    }
+  }
+
+  Future<void> _applyEngineChoice() async {
+    try {
+      if (state.engineChoice == TtsEngineChoice.google &&
+          _googleEnginePackage != null) {
+        await _tts.setEngine(_googleEnginePackage!);
+        return;
+      }
+      if (_defaultEnginePackage != null) {
+        await _tts.setEngine(_defaultEnginePackage!);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _init() async {
     await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.45);
-    _speechRate = 0.45;
+    await _discoverEngines();
+    final prefs = await SharedPreferences.getInstance();
+    final savedRate = prefs.getDouble(kTtsSpeechRateMultiplierPrefsKey);
+    if (savedRate != null && savedRate > 0) {
+      _speechRateMultiplier = savedRate;
+      state = state.copyWith(speechRateMultiplier: savedRate);
+    }
+    final savedEngine = prefs.getString(kTtsEngineChoicePrefsKey);
+    if (savedEngine == TtsEngineChoice.google.name &&
+        _googleEnginePackage != null) {
+      state = state.copyWith(engineChoice: TtsEngineChoice.google);
+    }
+    await _applyEngineChoice();
+    await _applyEngineSpeechRate();
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
 
@@ -301,6 +399,7 @@ class TtsNotifier extends StateNotifier<TtsState> {
     String fullText,
     int startIndex, {
     bool showMiniPlayer = true,
+    bool allowToggleStop = true,
   }) async {
     final t = fullText;
     if (t.trim().isEmpty) return;
@@ -309,7 +408,8 @@ class TtsNotifier extends StateNotifier<TtsState> {
     final chunk = t.substring(safeStart);
     if (chunk.trim().isEmpty) return;
 
-    if (state.status != TtsStatus.paused &&
+    if (allowToggleStop &&
+        state.status != TtsStatus.paused &&
         state.isSpeakingText(t) &&
         state.spokenTextOffset == safeStart) {
       await stop();
@@ -326,6 +426,7 @@ class TtsNotifier extends StateNotifier<TtsState> {
     _cancelStallFiller();
     _cancelProgressTicker();
     await _tts.stop();
+    await _applyEngineSpeechRate();
     state = state.copyWith(
       clearLingeringReadText: true,
       status: TtsStatus.speaking,
@@ -356,13 +457,68 @@ class TtsNotifier extends StateNotifier<TtsState> {
   Future<void> resume() async {
     if (state.status != TtsStatus.paused) return;
     if (state.activeText.isEmpty) return;
-    _platformReportsProgress = false;
-    _lastPlatformProgressAt = null;
-    state = state.copyWith(status: TtsStatus.speaking);
-    await _tts.speak(state.activeText);
-    if (!mounted) return;
-    if (!state.isSpeaking) return;
-    _scheduleFallbackSimulationIfNeeded();
+    final at = state.currentCharIndex;
+    await speakFrom(
+      state.activeText,
+      at,
+      showMiniPlayer: state.showMiniPlayer,
+    );
+  }
+
+  Future<void> setSpeechRateMultiplier(double multiplier) async {
+    if (multiplier <= 0) return;
+    final wasPlaying = state.hasActivePlayback;
+    final text = state.activeText;
+    final at = state.currentCharIndex;
+    final showMini = state.showMiniPlayer;
+
+    _speechRateMultiplier = multiplier;
+    state = state.copyWith(speechRateMultiplier: multiplier);
+    await _applyEngineSpeechRate();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(kTtsSpeechRateMultiplierPrefsKey, multiplier);
+
+    if (wasPlaying && text.isNotEmpty) {
+      await speakFrom(text, at, showMiniPlayer: showMini);
+    }
+  }
+
+  Future<void> setEngineChoice(TtsEngineChoice choice) async {
+    if (choice == TtsEngineChoice.google && _googleEnginePackage == null) {
+      return;
+    }
+    final wasPlaying = state.hasActivePlayback;
+    final text = state.activeText;
+    final at = state.currentCharIndex;
+    final showMini = state.showMiniPlayer;
+
+    state = state.copyWith(engineChoice: choice);
+    await _applyEngineChoice();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kTtsEngineChoicePrefsKey, choice.name);
+
+    if (wasPlaying && text.isNotEmpty) {
+      await speakFrom(text, at, showMiniPlayer: showMini);
+    }
+  }
+
+  Future<void> _applyEngineSpeechRate() async {
+    _speechRate = kTtsBaseSpeechRate * _speechRateMultiplier;
+    await _tts.setSpeechRate(_speechRate);
+  }
+
+  Future<void> skipSeconds(int seconds) async {
+    final t = state.activeText.isNotEmpty
+        ? state.activeText
+        : (state.lingeringReadText ?? '');
+    if (t.trim().isEmpty) return;
+
+    final current = state.hasActivePlayback
+        ? state.currentCharIndex
+        : (state.lingeringReadText != null ? t.length : 0);
+    final delta = (seconds * _estimatedCharsPerSecond).round();
+    final next = (current + delta).clamp(0, t.length);
+    await speakFrom(t, next, showMiniPlayer: state.showMiniPlayer);
   }
 
   Future<void> stop() async {
@@ -373,7 +529,7 @@ class TtsNotifier extends StateNotifier<TtsState> {
     _cancelStallFiller();
     _cancelProgressTicker();
     await _tts.stop();
-    state = const TtsState();
+    state = _preservedIdle();
   }
 
   @override
@@ -414,15 +570,63 @@ class TtsNavigatorSilencer extends NavigatorObserver {
     unawaited(_stopTts());
   }
 
+  bool _shouldSilenceForRoute(Route<dynamic> route) {
+    // Modal bottom sheets / dialogs must not stop sample TTS when dismissed.
+    if (route is PopupRoute) return false;
+    return true;
+  }
+
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _fire();
+    if (_shouldSilenceForRoute(route)) {
+      _fire();
+    }
     super.didPop(route, previousRoute);
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _fire();
+    if (_shouldSilenceForRoute(route)) {
+      _fire();
+    }
     super.didRemove(route, previousRoute);
   }
+}
+
+/// Stops TTS when the app goes to background (Home, task switcher).
+class TtsAppLifecycleWatcher extends ConsumerStatefulWidget {
+  const TtsAppLifecycleWatcher({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<TtsAppLifecycleWatcher> createState() =>
+      _TtsAppLifecycleWatcherState();
+}
+
+class _TtsAppLifecycleWatcherState extends ConsumerState<TtsAppLifecycleWatcher>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Only true background — not `inactive` (bottom sheets / overlays).
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(ref.read(ttsProvider.notifier).stop());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../domain/api_providers.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../l10n/app_localizations.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -45,12 +45,8 @@ class _AuthHubScreenState extends ConsumerState<AuthHubScreen>
   }
 
   Future<void> _prefetchBooksList() async {
-    try {
-      await ref.read(apiSearchBooksProvider.future);
-    } catch (_) {
-      if (!mounted) return;
-      ref.invalidate(apiSearchBooksProvider);
-    }
+    if (!mounted) return;
+    await prefetchBooksCatalogForHome(ref);
   }
 
   @override

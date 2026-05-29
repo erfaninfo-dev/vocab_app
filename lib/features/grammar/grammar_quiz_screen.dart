@@ -1,31 +1,40 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../data/models/grammar_question.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../quiz/widgets/vocab_quiz_league_style.dart';
+import '../stories/story_providers.dart';
 
 enum _ExplanationTab { fa, kur }
 
 String _explanationForTab(GrammarQuestion q, _ExplanationTab tab) {
   switch (tab) {
     case _ExplanationTab.fa:
-      if ((q.faExplanation ?? '').trim().isNotEmpty)
+      if ((q.faExplanation ?? '').trim().isNotEmpty) {
         return q.faExplanation!.trim();
-      if ((q.kurExplanation ?? '').trim().isNotEmpty)
+      }
+      if ((q.kurExplanation ?? '').trim().isNotEmpty) {
         return q.kurExplanation!.trim();
+      }
       return (q.engExplanation ?? '').trim();
     case _ExplanationTab.kur:
-      if ((q.kurExplanation ?? '').trim().isNotEmpty)
+      if ((q.kurExplanation ?? '').trim().isNotEmpty) {
         return q.kurExplanation!.trim();
-      if ((q.faExplanation ?? '').trim().isNotEmpty)
+      }
+      if ((q.faExplanation ?? '').trim().isNotEmpty) {
         return q.faExplanation!.trim();
+      }
       return (q.engExplanation ?? '').trim();
   }
 }
 
-const _optionKeys = ['option1', 'option2', 'option3', 'option4'];
+const int _kQuizLeaguePointsPerCorrect = 2;
 
 /// LTR for Latin (e.g. English); RTL for Arabic/Persian script. Keeps [TextAlign.center]
 /// visually centered while punctuation and word order follow the right direction.
@@ -45,9 +54,7 @@ TextDirection _grammarQuestionTextDirection(String? raw) {
   if (arabicScript == 0 && latinLetters == 0) {
     return TextDirection.ltr;
   }
-  return arabicScript >= latinLetters
-      ? TextDirection.rtl
-      : TextDirection.ltr;
+  return arabicScript >= latinLetters ? TextDirection.rtl : TextDirection.ltr;
 }
 
 bool _isArabicScriptRune(int r) {
@@ -59,8 +66,7 @@ bool _isArabicScriptRune(int r) {
 }
 
 bool _isLatinLetterRune(int r) {
-  return (r >= 0x0041 && r <= 0x005A) ||
-      (r >= 0x0061 && r <= 0x007A);
+  return (r >= 0x0041 && r <= 0x005A) || (r >= 0x0061 && r <= 0x007A);
 }
 
 class _GrammarReportKindOption {
@@ -72,31 +78,28 @@ class _GrammarReportKindOption {
 
 /// Labels from [AppLocalizations]; ids must match `api/grammar_report_question.php`.
 List<_GrammarReportKindOption> _grammarReportKinds(AppLocalizations l10n) => [
-      _GrammarReportKindOption(
-        id: 'wrong_correct_answer',
-        label: l10n.grammarReportKindWrongAnswer,
-      ),
-      _GrammarReportKindOption(
-        id: 'typo_question',
-        label: l10n.grammarReportKindTypoQuestion,
-      ),
-      _GrammarReportKindOption(
-        id: 'typo_options',
-        label: l10n.grammarReportKindTypoOptions,
-      ),
-      _GrammarReportKindOption(
-        id: 'bad_explanation',
-        label: l10n.grammarReportKindBadExplanation,
-      ),
-      _GrammarReportKindOption(
-        id: 'unclear_question',
-        label: l10n.grammarReportKindUnclear,
-      ),
-      _GrammarReportKindOption(
-        id: 'other',
-        label: l10n.grammarReportKindOther,
-      ),
-    ];
+  _GrammarReportKindOption(
+    id: 'wrong_correct_answer',
+    label: l10n.grammarReportKindWrongAnswer,
+  ),
+  _GrammarReportKindOption(
+    id: 'typo_question',
+    label: l10n.grammarReportKindTypoQuestion,
+  ),
+  _GrammarReportKindOption(
+    id: 'typo_options',
+    label: l10n.grammarReportKindTypoOptions,
+  ),
+  _GrammarReportKindOption(
+    id: 'bad_explanation',
+    label: l10n.grammarReportKindBadExplanation,
+  ),
+  _GrammarReportKindOption(
+    id: 'unclear_question',
+    label: l10n.grammarReportKindUnclear,
+  ),
+  _GrammarReportKindOption(id: 'other', label: l10n.grammarReportKindOther),
+];
 
 class _GrammarReportBottomSheet extends ConsumerStatefulWidget {
   const _GrammarReportBottomSheet({
@@ -140,7 +143,9 @@ class _GrammarReportBottomSheetState
     final l10n = widget.l10n;
     setState(() => _submitting = true);
     try {
-      await ref.read(apiServiceProvider).reportGrammarQuestion(
+      await ref
+          .read(apiServiceProvider)
+          .reportGrammarQuestion(
             questionId: widget.question.id,
             reportType: _selectedId,
             detail: _detailCtrl.text,
@@ -158,11 +163,9 @@ class _GrammarReportBottomSheetState
         return;
       }
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.reportFailed),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportFailed)));
     }
   }
 
@@ -171,9 +174,7 @@ class _GrammarReportBottomSheetState
     final l10n = widget.l10n;
     final kinds = _grammarReportKinds(l10n);
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -184,16 +185,16 @@ class _GrammarReportBottomSheetState
               Text(
                 l10n.grammarReportProblemTitle,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.grammarReportWhatWrong,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               ...kinds.map((k) {
@@ -288,10 +289,140 @@ Future<bool> _confirmExitQuiz(BuildContext context) async {
   return result ?? false;
 }
 
+int? _grammarTopicNumber(String topic) {
+  final buffer = StringBuffer();
+  for (final codeUnit in topic.codeUnits) {
+    if (codeUnit >= 0x0660 && codeUnit <= 0x0669) {
+      buffer.writeCharCode(0x30 + codeUnit - 0x0660);
+    } else if (codeUnit >= 0x06F0 && codeUnit <= 0x06F9) {
+      buffer.writeCharCode(0x30 + codeUnit - 0x06F0);
+    } else {
+      buffer.writeCharCode(codeUnit);
+    }
+  }
+  final match = RegExp(r'^\s*(\d+)').firstMatch(buffer.toString());
+  if (match == null) return null;
+  return int.tryParse(match.group(1)!);
+}
+
+String? _currentGrammarTopicTitle(
+  List<String> topics,
+  GrammarQuestion? currentQuestion,
+) {
+  if (topics.length == 1) {
+    final topic = topics.first.trim();
+    return topic.isEmpty ? null : topic;
+  }
+  if (currentQuestion == null) return null;
+  final currentTopic = currentQuestion.topic.trim();
+  if (currentTopic.isEmpty) return null;
+  final currentOrder =
+      currentQuestion.orderNum ?? _grammarTopicNumber(currentTopic);
+  return currentOrder == 1 || currentOrder == 3 ? currentTopic : null;
+}
+
 String _grammarAppBarTitle(AppLocalizations l10n, List<String> topics) {
   if (topics.isEmpty) return l10n.grammarAppBar;
   if (topics.length == 1) return topics.first;
   return l10n.grammarTopicsCountAppBar(topics.length);
+}
+
+class _GrammarStoryAddTitleButton extends StatelessWidget {
+  const _GrammarStoryAddTitleButton({
+    required this.topicCount,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final int topicCount;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'Create $topicCount grammar stories',
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: loading ? null : onTap,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFF58529),
+                      Color(0xFFDD2A7B),
+                      Color(0xFF8134AF),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFDD2A7B).withValues(alpha: 0.28),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: loading
+                          ? const SizedBox(
+                              width: 17,
+                              height: 17,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              Icons.auto_stories_rounded,
+                              color: scheme.onSurface,
+                              size: 22,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+              if (!loading)
+                Positioned(
+                  right: 1,
+                  bottom: 1,
+                  child: Container(
+                    width: 19,
+                    height: 19,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE1306C),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.surface, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class GrammarQuizScreen extends ConsumerStatefulWidget {
@@ -321,10 +452,21 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   bool _sessionDone = false;
   bool _resultSubmitting = false;
   bool _resultSubmitted = false;
+  bool _creatingGrammarStory = false;
   _ExplanationTab _explanationTab = _ExplanationTab.fa;
 
   /// Question IDs successfully reported this session (disables duplicate submits).
   final Set<int> _reportedQuestionIds = {};
+
+  /// Stable shuffled option order per question for this session (Back/forward).
+  final Map<int, List<String>> _optionOrderByQuestionId = {};
+
+  List<String> _optionOrderFor(GrammarQuestion q) {
+    return _optionOrderByQuestionId.putIfAbsent(
+      q.id,
+      () => q.shuffledOptionKeys(Object.hash(_sessionSeed, q.id)),
+    );
+  }
 
   int _scoreFromAnswers(List<GrammarQuestion> questions) {
     var n = 0;
@@ -356,6 +498,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       _resultSubmitted = false;
       _explanationTab = _ExplanationTab.fa;
       _reportedQuestionIds.clear();
+      _optionOrderByQuestionId.clear();
     });
   }
 
@@ -383,6 +526,71 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     );
   }
 
+  bool _canCreateStoryFromQuestion(GrammarQuestion q) {
+    final question = (q.questionText ?? '').trim();
+    final correct = (q.correctAnswer ?? '').trim();
+    final options = q.nonEmptyOptionKeys().length;
+    return question.isNotEmpty &&
+        options >= 2 &&
+        correct.isNotEmpty &&
+        (q.optionByKey(correct)?.trim().isNotEmpty ?? false);
+  }
+
+  Future<void> _createGrammarStoriesFromTopics() async {
+    if (_creatingGrammarStory) return;
+    final topics = widget.topics
+        .map((topic) => topic.trim())
+        .where((topic) => topic.isNotEmpty)
+        .toList();
+    if (topics.isEmpty) return;
+    setState(() => _creatingGrammarStory = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final random = math.Random();
+      final shuffledTopics = [...topics]..shuffle(random);
+      var createdCount = 0;
+      for (final topic in shuffledTopics) {
+        final questions = await api.fetchGrammarQuestions(topic);
+        final validQuestions = questions
+            .where(_canCreateStoryFromQuestion)
+            .toList();
+        if (validQuestions.isEmpty) {
+          continue;
+        }
+        final q = validQuestions[random.nextInt(validQuestions.length)];
+        final clientRequestId =
+            'grammar-topic-${q.id}-${DateTime.now().microsecondsSinceEpoch}';
+        await api.createGrammarStoryFromQuestion(
+          clientRequestId: clientRequestId,
+          questionId: q.id,
+        );
+        createdCount++;
+      }
+      if (createdCount < 1) {
+        throw Exception('No valid grammar questions found for story');
+      }
+      ref.invalidate(visibleStoriesProvider);
+      ref.invalidate(adminStoriesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$createdCount grammar stories created')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _creatingGrammarStory = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -401,7 +609,20 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
         seed: _sessionSeed,
       )),
     );
+    final session = ref.watch(authProvider).valueOrNull;
+    final canCreateGrammarStory = session?.user.isAdmin == true;
     final scheme = Theme.of(context).colorScheme;
+    final currentQuestions = async.valueOrNull;
+    final currentQuestion =
+        currentQuestions != null &&
+            !_sessionDone &&
+            _index < currentQuestions.length
+        ? currentQuestions[_index]
+        : null;
+    final currentTopicTitle = _currentGrammarTopicTitle(
+      widget.topics,
+      currentQuestion,
+    );
 
     final needsExitConfirmation = async.maybeWhen(
       data: (q) => q.isNotEmpty && !_sessionDone,
@@ -419,18 +640,41 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
+          leadingWidth: canCreateGrammarStory ? 104 : null,
+          leading: canCreateGrammarStory
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BackButton(),
+                    _GrammarStoryAddTitleButton(
+                      topicCount: widget.topics.length,
+                      loading: _creatingGrammarStory,
+                      onTap: _createGrammarStoriesFromTopics,
+                    ),
+                  ],
+                )
+              : null,
           title: Text(
-            _grammarAppBarTitle(l10n, widget.topics),
+            currentTopicTitle ?? _grammarAppBarTitle(l10n, widget.topics),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           centerTitle: true,
           elevation: 0,
           scrolledUnderElevation: 0,
-          backgroundColor: Theme.of(context).colorScheme.surface.withValues(
-            alpha: 0.88,
-          ),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surface.withValues(alpha: 0.88),
           actions: [
+            if (async.hasValue && async.value!.isNotEmpty && !_sessionDone)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: Center(
+                  child: QuizLeaguePointsChip.grammar(
+                    points: _score * _kQuizLeaguePointsPerCorrect,
+                  ),
+                ),
+              ),
             if (async.hasValue &&
                 async.value!.isNotEmpty &&
                 !_sessionDone &&
@@ -442,14 +686,13 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                       ? Icons.flag_rounded
                       : Icons.outlined_flag_rounded,
                 ),
-                onPressed: _reportedQuestionIds.contains(
-                  async.value![_index].id,
-                )
+                onPressed:
+                    _reportedQuestionIds.contains(async.value![_index].id)
                     ? null
                     : () => _showGrammarReportSheet(
-                          context,
-                          async.value![_index],
-                        ),
+                        context,
+                        async.value![_index],
+                      ),
               ),
           ],
         ),
@@ -485,10 +728,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                 total: questions.length,
                 submitting: _resultSubmitting,
                 submitted: _resultSubmitted,
-                onSavePrivate: () =>
-                    _submitResult(questions, isPublic: false),
+                onSavePrivate: () => _submitResult(questions, isPublic: false),
                 onSavePublic: () => _submitResult(questions, isPublic: true),
-                onAgain: _resetForNewQuestions,
+                onAgain: () => _practiceAgain(questions),
                 onBack: () => context.pop(),
               );
             }
@@ -530,166 +772,177 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(22),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                scheme.surface.withValues(alpha: 0.95),
-                                scheme.surfaceContainerHighest.withValues(
-                                  alpha: 0.45,
-                                ),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: scheme.primary.withValues(alpha: 0.85),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: scheme.shadow.withValues(alpha: 0.06),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Directionality(
-                            textDirection: _grammarQuestionTextDirection(
-                              q.questionText,
-                            ),
-                            child: Text(
-                              q.questionText ?? '',
-                              textAlign: TextAlign.center,
-                              style: textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                height: 1.4,
-                                fontSize:
-                                    (textTheme.titleLarge?.fontSize ?? 22) * 0.9,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        ..._optionKeys.map((key) {
-                          final label = q.optionByKey(key) ?? '';
-                          if (label.isEmpty) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _OptionTile(
-                              label: label,
-                              optionKey: key,
-                              selectedKey: selectedKey,
-                              answered: answered,
-                              correctKey: (q.correctAnswer ?? '')
-                                  .trim()
-                                  .toLowerCase(),
-                              onTap: answered ? null : () => _onSelect(q, key),
-                            ),
-                          );
-                        }),
-                        if (answered) ...[
-                          const SizedBox(height: 8),
-                          DecoratedBox(
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                             decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
+                                  scheme.surface.withValues(alpha: 0.95),
                                   scheme.surfaceContainerHighest.withValues(
-                                    alpha: 0.55,
+                                    alpha: 0.45,
                                   ),
-                                  scheme.surface.withValues(alpha: 0.85),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: scheme.outlineVariant.withValues(
-                                  alpha: 0.45,
-                                ),
+                                color: scheme.primary.withValues(alpha: 0.85),
+                                width: 1.5,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: scheme.shadow.withValues(alpha: 0.04),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
+                                  color: scheme.shadow.withValues(alpha: 0.06),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.lightbulb_outline_rounded,
-                                        color: scheme.primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        l10n.grammarExplanationHeading,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Directionality(
-                                    textDirection: TextDirection.rtl,
-                                    child: SegmentedButton<_ExplanationTab>(
-                                      segments: [
-                                        ButtonSegment<_ExplanationTab>(
-                                          value: _ExplanationTab.fa,
-                                          label: Text(l10n.grammarExplanationTabFa),
-                                        ),
-                                        ButtonSegment<_ExplanationTab>(
-                                          value: _ExplanationTab.kur,
-                                          label:
-                                              Text(l10n.grammarExplanationTabCkb),
-                                        ),
-                                      ],
-                                      selected: {_explanationTab},
-                                      onSelectionChanged:
-                                          (Set<_ExplanationTab> next) {
-                                            setState(() {
-                                              _explanationTab = next.first;
-                                            });
-                                          },
-                                      showSelectedIcon: false,
-                                      style: SegmentedButton.styleFrom(
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Directionality(
-                                    textDirection: TextDirection.rtl,
-                                    child: SelectableText(
-                                      explanation.isEmpty ? '—' : explanation,
-                                      textAlign: TextAlign.right,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge,
-                                    ),
-                                  ),
-                                ],
+                            child: Directionality(
+                              textDirection: _grammarQuestionTextDirection(
+                                q.questionText,
+                              ),
+                              child: Text(
+                                q.questionText ?? '',
+                                textAlign: TextAlign.center,
+                                style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.4,
+                                  fontSize:
+                                      (textTheme.titleLarge?.fontSize ?? 22) *
+                                      0.9,
+                                ),
                               ),
                             ),
                           ),
+                          const SizedBox(height: 18),
+                          ..._optionOrderFor(q).asMap().entries.map((entry) {
+                            final displayNumber = entry.key + 1;
+                            final key = entry.value;
+                            final label = q.optionByKey(key) ?? '';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _OptionTile(
+                                label: label,
+                                displayNumber: displayNumber,
+                                optionKey: key,
+                                selectedKey: selectedKey,
+                                answered: answered,
+                                correctKey: (q.correctAnswer ?? '')
+                                    .trim()
+                                    .toLowerCase(),
+                                onTap: answered
+                                    ? null
+                                    : () => _onSelect(q, key),
+                              ),
+                            );
+                          }),
+                          if (answered) ...[
+                            const SizedBox(height: 8),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    scheme.surfaceContainerHighest.withValues(
+                                      alpha: 0.55,
+                                    ),
+                                    scheme.surface.withValues(alpha: 0.85),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: scheme.outlineVariant.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: scheme.shadow.withValues(
+                                      alpha: 0.04,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.lightbulb_outline_rounded,
+                                          color: scheme.primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          l10n.grammarExplanationHeading,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Directionality(
+                                      textDirection: TextDirection.rtl,
+                                      child: SegmentedButton<_ExplanationTab>(
+                                        segments: [
+                                          ButtonSegment<_ExplanationTab>(
+                                            value: _ExplanationTab.fa,
+                                            label: Text(
+                                              l10n.grammarExplanationTabFa,
+                                            ),
+                                          ),
+                                          ButtonSegment<_ExplanationTab>(
+                                            value: _ExplanationTab.kur,
+                                            label: Text(
+                                              l10n.grammarExplanationTabCkb,
+                                            ),
+                                          ),
+                                        ],
+                                        selected: {_explanationTab},
+                                        onSelectionChanged:
+                                            (Set<_ExplanationTab> next) {
+                                              setState(() {
+                                                _explanationTab = next.first;
+                                              });
+                                            },
+                                        showSelectedIcon: false,
+                                        style: SegmentedButton.styleFrom(
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Directionality(
+                                      textDirection: TextDirection.rtl,
+                                      child: SelectableText(
+                                        explanation.isEmpty ? '—' : explanation,
+                                        textAlign: TextAlign.right,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
                 ),
                 _QuizBottomBar(
                   scheme: scheme,
@@ -727,6 +980,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     if (_answers.containsKey(_index)) return;
     setState(() {
       _answers[_index] = key;
+      if (q.isCorrectKey(key)) {
+        _score++;
+      }
     });
   }
 
@@ -764,9 +1020,12 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
-      final quizName =
-          topics.isEmpty ? l10n.grammarPracticeAppBar : topics.join(' + ');
-      await ref.read(apiServiceProvider).submitGrammarResult(
+      final quizName = topics.isEmpty
+          ? l10n.grammarPracticeAppBar
+          : topics.join(' + ');
+      await ref
+          .read(apiServiceProvider)
+          .submitGrammarResult(
             quizName: quizName,
             score: _score,
             totalQuestions: questions.length,
@@ -784,12 +1043,19 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _resultSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.couldNotSaveResult),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.couldNotSaveResult)));
     }
+  }
+
+  Future<void> _practiceAgain(List<GrammarQuestion> questions) async {
+    if (_resultSubmitting) return;
+    if (!_resultSubmitted) {
+      await _submitResult(questions, isPublic: false);
+      if (!mounted || !_resultSubmitted) return;
+    }
+    _resetForNewQuestions();
   }
 }
 
@@ -912,10 +1178,7 @@ class _QuizBottomBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        l10n.questionProgress(
-                          questionIndex + 1,
-                          questionTotal,
-                        ),
+                        l10n.questionProgress(questionIndex + 1, questionTotal),
                         style: tt.labelLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: scheme.onSurface,
@@ -1003,6 +1266,7 @@ class _QuizBottomBar extends StatelessWidget {
 class _OptionTile extends StatelessWidget {
   const _OptionTile({
     required this.label,
+    required this.displayNumber,
     required this.optionKey,
     required this.selectedKey,
     required this.answered,
@@ -1011,6 +1275,7 @@ class _OptionTile extends StatelessWidget {
   });
 
   final String label;
+  final int displayNumber;
   final String optionKey;
   final String? selectedKey;
   final bool answered;
@@ -1058,7 +1323,7 @@ class _OptionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${_optionKeys.indexOf(optionKey) + 1}.',
+                  '$displayNumber.',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: fg ?? scheme.onSurface,
@@ -1170,23 +1435,27 @@ class _SessionDoneBody extends StatelessWidget {
               else ...[
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.tonal(
+                  child: FilledButton.tonalIcon(
                     onPressed: onSavePrivate,
+                    icon: const Icon(Icons.lock_outline_rounded),
+                    label: Text(l.keepPrivate),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
+                      alignment: Alignment.center,
                     ),
-                    child: Text(l.keepPrivate),
                   ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
+                  child: FilledButton.icon(
                     onPressed: onSavePublic,
+                    icon: const Icon(Icons.groups_rounded),
+                    label: Text(l.showCommunity),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
+                      alignment: Alignment.center,
                     ),
-                    child: Text(l.showCommunity),
                   ),
                 ),
               ],
@@ -1222,10 +1491,7 @@ class _SessionDoneBody extends StatelessWidget {
               child: Text(l.practiseAgain),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: onBack,
-              child: Text(l.backToTopics),
-            ),
+            TextButton(onPressed: onBack, child: Text(l.backToTopics)),
           ],
         ),
       ),

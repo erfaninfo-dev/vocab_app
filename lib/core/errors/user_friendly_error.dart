@@ -4,6 +4,13 @@ import 'package:http/http.dart' show ClientException;
 
 import '../../l10n/app_localizations.dart';
 
+bool isNetworkFailureError(Object error) {
+  if (error is SocketException || error is ClientException) {
+    return true;
+  }
+  return _looksLikeNetworkFailure(error.toString());
+}
+
 bool _looksLikeNetworkFailure(String text) {
   final t = text.toLowerCase();
   return text.contains('SocketException') ||
