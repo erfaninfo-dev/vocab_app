@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/tts/tts_service.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
@@ -153,6 +154,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
 
     final appBar = AppBar(
       title: Text(appBarTitle),
+      systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
       actions: [
         IconButton(
           tooltip: l10n.tooltipQuiz,

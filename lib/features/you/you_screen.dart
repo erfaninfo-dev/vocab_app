@@ -7,6 +7,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/srs/srs_provider.dart';
 import '../../data/models/teacher_message.dart';
 import '../../domain/api_providers.dart';
+import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import 'student_class_sessions_screen.dart';
 import 'you_account_section.dart';
@@ -126,8 +127,14 @@ class YouScreen extends ConsumerWidget {
     final showLearnerMessages =
         !isTeacherPanel && session != null && (hasTeacher || studentAccess);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.youPageTitle)),
+    final appBar = styledAppGradientAppBar(
+      context: context,
+      title: Text(l10n.youPageTitle),
+    );
+    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 12);
+
+    return AppGradientScaffold(
+      appBar: appBar,
       floatingActionButton: session?.user.isAdmin == true
           ? FloatingActionButton.extended(
               heroTag: 'you_add_story_fab',
@@ -141,17 +148,9 @@ class YouScreen extends ConsumerWidget {
               ),
             )
           : null,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.06), scheme.surface],
-          ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          children: [
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(16, topInset, 16, 24),
+        children: [
             const YouAccountSection(),
             if (showLearnerMessages) ...[
               const SizedBox(height: 20),
@@ -211,7 +210,6 @@ class YouScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

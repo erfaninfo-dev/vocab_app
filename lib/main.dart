@@ -76,18 +76,7 @@ class IeltsVocabApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
-        final scheme = Theme.of(context).colorScheme;
-        final isDark =
-            Theme.of(context).brightness == Brightness.dark;
-
-        final overlay = SystemUiOverlayStyle(
-          statusBarColor: scheme.surface,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-          systemNavigationBarColor: scheme.surface,
-          systemNavigationBarIconBrightness:
-              isDark ? Brightness.light : Brightness.dark,
-        );
+        final overlay = AppTheme.systemOverlayStyleFor(context);
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: overlay,

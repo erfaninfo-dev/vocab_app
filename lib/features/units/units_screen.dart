@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../data/models/unit_model.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
@@ -61,107 +62,101 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
       orElse: () => false,
     );
 
-    return Scaffold(
+    final appBar = styledAppGradientAppBar(
+      context: context,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_rounded),
+        tooltip: l10n.backToBooks,
+        onPressed: () =>
+            context.canPop() ? context.pop() : context.go('/home'),
+      ),
+      title: Text(
+        l10n.unitsTitle,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      centerTitle: false,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.bookmarks_rounded),
+          tooltip: l10n.favorites,
+          onPressed: () => context.push('/favorites'),
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 2);
+
+    return AppGradientScaffold(
       floatingActionButtonLocation:
           BookVocabQuizFab.floatingActionButtonLocation,
       floatingActionButton: showQuizFab
           ? BookVocabQuizFab(bookId: widget.bookId)
           : null,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: l10n.backToBooks,
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/home'),
-        ),
-        title: Text(
-          l10n.unitsTitle,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmarks_rounded),
-            tooltip: l10n.favorites,
-            onPressed: () => context.push('/favorites'),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              scheme.primary.withValues(alpha: 0.08),
-              scheme.secondary.withValues(alpha: 0.04),
-              scheme.surface,
+      appBar: appBar,
+      body: RefreshIndicator(
+        onRefresh: _onRefreshUnits,
+        child: unitsValue.when(
+          loading: () => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(top: topInset),
+            children: const [
+              SizedBox(
+                height: 320,
+                child: Center(child: CircularProgressIndicator()),
+              ),
             ],
           ),
-        ),
-        child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _onRefreshUnits,
-            child: unitsValue.when(
-              loading: () => ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(
-                    height: 320,
-                    child: Center(child: CircularProgressIndicator()),
+          error: (error, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(top: topInset),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Text(
+                    l10n.couldNotLoadUnitsWithError('$error'),
+                    textAlign: TextAlign.center,
                   ),
-                ],
+                ),
               ),
-              error: (error, _) => ListView(
+            ],
+          ),
+          data: (units) {
+            if (units.isEmpty) {
+              return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(top: topInset),
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Text(
-                        l10n.couldNotLoadUnitsWithError('$error'),
-                        textAlign: TextAlign.center,
-                      ),
+                  const SizedBox(height: 120),
+                  Center(child: Text(l10n.noUnitsFound)),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: _onRefreshUnits,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: Text(l10n.retry),
                     ),
                   ),
+                  const SizedBox(height: 24),
                 ],
+              );
+            }
+
+            final width = MediaQuery.sizeOf(context).width;
+            final crossAxisCount = width >= 1000
+                ? 4
+                : width >= 760
+                ? 3
+                : 2;
+
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-              data: (units) {
-                if (units.isEmpty) {
-                  return ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      const SizedBox(height: 120),
-                      Center(child: Text(l10n.noUnitsFound)),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: OutlinedButton.icon(
-                          onPressed: _onRefreshUnits,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: Text(l10n.retry),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  );
-                }
-
-                final width = MediaQuery.sizeOf(context).width;
-                final crossAxisCount = width >= 1000
-                    ? 4
-                    : width >= 760
-                    ? 3
-                    : 2;
-
-                return CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, topInset, 20, 10),
                         child: Text(
                           l10n.unitsGridHint(units.length),
                           style: Theme.of(context).textTheme.bodyMedium
@@ -208,8 +203,6 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
               },
             ),
           ),
-        ),
-      ),
     );
   }
 }

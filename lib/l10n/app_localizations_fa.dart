@@ -1275,6 +1275,128 @@ class AppLocalizationsFa extends AppLocalizations {
   String get classTermPaymentUpdated => 'وضعیت پرداخت به‌روز شد';
 
   @override
+  String get teacherPanelTabFinance => 'مالی';
+
+  @override
+  String get teacherSessionPriceTitle => 'هزینه پیش‌فرض ترم';
+
+  @override
+  String get teacherSessionPriceHint => 'تعیین نشده';
+
+  @override
+  String get teacherSessionPriceEdit => 'ویرایش پیش‌فرض';
+
+  @override
+  String get teacherSessionPriceFieldLabel => 'هزینه این ترم';
+
+  @override
+  String get teacherSessionPriceUpdated => 'هزینه ترم به‌روز شد';
+
+  @override
+  String get teacherTermFeeEdit => 'ویرایش هزینه ترم';
+
+  @override
+  String get teacherTermFeeUpdated => 'هزینه ترم ذخیره شد';
+
+  @override
+  String get teacherTotalReceived => 'جمع دریافتی';
+
+  @override
+  String get teacherTotalUnpaid => 'جمع بدهی';
+
+  @override
+  String get teacherFinancePeriodToday => 'امروز';
+
+  @override
+  String get teacherFinancePeriodWeek => '۷ روز';
+
+  @override
+  String get teacherFinancePeriodMonth => 'این ماه';
+
+  @override
+  String get teacherFinancePeriodAll => 'کل دوره';
+
+  @override
+  String get teacherFinancePeriodCustom => 'بازه دلخواه';
+
+  @override
+  String get teacherFinanceFilterAll => 'همه';
+
+  @override
+  String get teacherFinanceFilterPaid => 'پرداخت‌شده';
+
+  @override
+  String get teacherFinanceFilterUnpaid => 'بدهکار';
+
+  @override
+  String get teacherFinanceEmpty => 'در این بازه فعالیت مالی نیست';
+
+  @override
+  String get teacherFinanceBreakdownStudents => 'به تفکیک شاگرد';
+
+  @override
+  String get teacherTermAmountLabel => 'مبلغ ترم';
+
+  @override
+  String teacherTermSessionsAndAmount(String sessions, String amount) {
+    return '$sessions · $amount';
+  }
+
+  @override
+  String get teacherFinanceStudentUnpaidBadge => 'بدهی';
+
+  @override
+  String get teacherFinancePriceNotSet => 'قیمت تنظیم نشده';
+
+  @override
+  String get teacherFinanceTermMarkedUnpaid =>
+      'جلسه اضافه شد — این ترم اکنون پرداخت‌نشده است';
+
+  @override
+  String get financialCurrencyIrr => 'تومان';
+
+  @override
+  String get financialCurrencyUsd => 'دلار';
+
+  @override
+  String get teacherFinanceSelectDates => 'انتخاب بازه زمانی';
+
+  @override
+  String get teacherFinanceFromDate => 'از';
+
+  @override
+  String get teacherFinanceToDate => 'تا';
+
+  @override
+  String get teacherFinanceApplyRange => 'اعمال';
+
+  @override
+  String get teacherFinancePricingSetupTitle => 'قیمت جلسه را اینجا تعیین کنید';
+
+  @override
+  String get teacherFinancePricingSetupBody =>
+      'روی «ویرایش قیمت» بزنید و هزینه هر جلسه را وارد کنید. مبلغ ترم = تعداد جلسات × قیمت. اگر خطا داد، migration مالی را روی سرور اجرا کنید.';
+
+  @override
+  String get teacherFinancePricingSetupShort =>
+      'پیش‌فرض را بگذارید، بعد هزینه هر ترم را ویرایش کنید';
+
+  @override
+  String get teacherFinanceServerSetupTitle => 'سیستم مالی روی سرور فعال نیست';
+
+  @override
+  String get teacherFinanceServerSetupBody =>
+      'مدیر باید یک‌بار teacher_student_pricing_migration.sql را اجرا و فایل‌های PHP جدید را دیپلوی کند. تا آن زمان قیمت جلسه ذخیره نمی‌شود.';
+
+  @override
+  String get teacherSessionPriceSetupHint =>
+      'قیمت هر جلسه را بگذارید تا مبلغ ترم‌ها و گزارش مالی محاسبه شود.';
+
+  @override
+  String get teacherFinanceAllZeroHint =>
+      'همه مبالغ ۰ هستند چون هنوز قیمت جلسه تنظیم نشده. بروید: شاگرد → Class sessions → ویرایش قیمت.';
+
+  @override
   String get teacherSessionCountLabel => 'تعداد جلسات ثبت‌شده';
 
   @override
@@ -2595,6 +2717,23 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'نمونه';
+
+  @override
+  String get sampleBookMode => 'حالت کتاب';
+
+  @override
+  String sampleBookPageOf(int current, int total) {
+    return 'صفحه $current از $total';
+  }
+
+  @override
+  String get sampleBookTurnHint => 'برای ورق زدن بکشید یا لبه‌ها را لمس کنید';
+
+  @override
+  String get sampleBookPageSoundOn => 'صدای ورق‌زدن روشن';
+
+  @override
+  String get sampleBookPageSoundOff => 'صدای ورق‌زدن خاموش';
 
   @override
   String get sampleHighlightPickMainColor => 'رنگ هایلایت';

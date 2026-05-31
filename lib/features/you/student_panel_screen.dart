@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../review/review_screen.dart';
 import '../stats/stats_screen.dart';
@@ -69,6 +70,7 @@ class _StudentPanelScreenState extends ConsumerState<StudentPanelScreen>
       appBar: AppBar(
         backgroundColor: scheme.surface.withValues(alpha: 0.88),
         surfaceTintColor: scheme.primary.withValues(alpha: 0.12),
+        systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),

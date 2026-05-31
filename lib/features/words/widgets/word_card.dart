@@ -16,11 +16,15 @@ class WordCard extends ConsumerWidget {
     required this.entry,
     this.showUnitBadge = true,
     this.number,
+    this.translationLang,
   });
 
   final VocabEntry entry;
   final bool showUnitBadge;
   final int? number;
+
+  /// When set (e.g. unit sample Text/Book tab), overrides [langProvider].
+  final TranslationLang? translationLang;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +33,9 @@ class WordCard extends ConsumerWidget {
     final prefsNotifier = ref.read(wordPreferencesProvider.notifier);
     final importantNotifier = ref.read(importantWordsProvider.notifier);
     final api = ref.read(apiServiceProvider);
-    final lang = ref.watch(langProvider);
+    final overrideLang = translationLang;
+    final TranslationLang resolvedLang =
+        overrideLang ?? ref.watch(langProvider);
     final isFav = prefs.isFavorite(entry);
     final isImp = important.isMarked(entry);
     final scheme = Theme.of(context).colorScheme;
@@ -37,8 +43,8 @@ class WordCard extends ConsumerWidget {
     final cardNumber = number;
     const localMeaningColor = Colors.blue;
 
-    final localMeaning = entry.meaningFor(lang);
-    final localExample = entry.exampleLocalFor(lang);
+    final localMeaning = entry.meaningFor(resolvedLang);
+    final localExample = entry.exampleLocalFor(resolvedLang);
 
     final booksAsync = ref.watch(apiBooksProvider);
     final bookTitle = booksAsync.maybeWhen(

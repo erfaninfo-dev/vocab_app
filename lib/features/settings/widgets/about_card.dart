@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/app_info/package_info_provider.dart';
+import '../../../core/branding/app_brand_logo.dart';
 import '../../../core/network/resolve_update_url.dart';
 import '../../../core/update/apk_download_dialog.dart';
 import '../../../domain/app_update_provider.dart';
@@ -331,7 +332,6 @@ class AboutSharpLogo extends StatelessWidget {
   final double size;
 
   static const _logoPath = 'assets/branding/logo.png';
-  static const _fallbackPath = 'assets/app_icon.png';
 
   @override
   Widget build(BuildContext context) {
@@ -372,13 +372,7 @@ class AboutSharpLogo extends StatelessWidget {
           cacheHeight: cachePx,
           gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) {
-            return Image.asset(
-              _fallbackPath,
-              width: size,
-              height: size,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.none,
-            );
+            return AppBrandLogoFallback(size: size, borderRadius: 20);
           },
         ),
       ),

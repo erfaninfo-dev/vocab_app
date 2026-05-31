@@ -11,6 +11,7 @@ import '../../data/models/unit_model.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 import 'book_quiz_section_filter.dart';
@@ -54,6 +55,7 @@ class _BookVocabQuizSetupScreenState
   bool _seededUnits = false;
 
   Set<VocabQuestionMode> _questionModes = {VocabQuestionMode.mcqWordToMeaning};
+  bool _launchingQuiz = false;
 
   bool get _isUnitScope => widget.lockedUnit != null;
 
@@ -288,28 +290,23 @@ class _BookVocabQuizSetupScreenState
         : l10n.bookQuizPoolTooSmall;
 
     void startQuiz() {
-      final u = _selectedUnits.toList()..sort();
-      final scope = wrongsOnly ? 'wrongs' : 'all';
-      var path =
-          '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${quizImportantOnly ? 1 : 0}';
-      if (_isUnitScope) {
-        final sectionQuery = encodeBookQuizSectionsQuery(
-          compactSectionSelectionForQuery(
-            unitsWithSections: unitsWithSections,
-            selectedSectionsByUnit: _selectedSectionsByUnit,
-            selectedUnits: _selectedUnits,
-          ),
-        );
-        if (sectionQuery.isNotEmpty) {
-          path += '&sections=${Uri.encodeQueryComponent(sectionQuery)}';
-        }
-      }
-      final csv = _questionModes.map((m) => m.name).toList()..sort();
-      path += '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
-      context.push(path);
+      if (_launchingQuiz || !canStart) return;
+      final path = _quizLaunchPath(
+        wrongsOnly: wrongsOnly,
+        quizImportantOnly: quizImportantOnly,
+        unitsWithSections: unitsWithSections,
+      );
+      setState(() => _launchingQuiz = true);
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.push(path).whenComplete(() {
+          if (mounted) setState(() => _launchingQuiz = false);
+        });
+      });
     }
 
-    const bottomCtaSpace = 120.0;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     if (_wordPool == _WordPoolChoice.importantOnly &&
         !hasImportantInSelection) {
@@ -327,9 +324,13 @@ class _BookVocabQuizSetupScreenState
     }
 
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, bottomCtaSpace),
-        children: [
+      appBar: _setupAppBar(l10n),
+      resizeToAvoidBottomInset: false,
+      body: MediaQuery.removeViewInsets(
+        context: context,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
+          children: [
           if (_isUnitScope)
             _buildSectionsSlot(
               l10n: l10n,
@@ -496,51 +497,69 @@ class _BookVocabQuizSetupScreenState
                 ? null
                 : (v) => setState(() => _questionCount = v.round()),
           ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.98),
-            border: Border(
-              top: BorderSide(
-                color: scheme.outlineVariant.withValues(alpha: 0.45),
+          const SizedBox(height: 20),
+          if (disabledReason != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                disabledReason,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.error,
+                  height: 1.3,
+                ),
               ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (disabledReason != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(
-                    disabledReason,
-                    textAlign: TextAlign.start,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.error,
-                      height: 1.3,
+          FilledButton.icon(
+            onPressed: canStart && !_launchingQuiz ? startQuiz : null,
+            icon: _launchingQuiz
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.onPrimary,
                     ),
-                  ),
-                ),
-              FilledButton.icon(
-                onPressed: canStart ? startQuiz : null,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: Text(l10n.startQuiz),
-                style: vocabLeagueFilledButtonStyle(),
-              ),
-            ],
+                  )
+                : const Icon(Icons.play_arrow_rounded),
+            label: Text(l10n.startQuiz),
+            style: vocabLeagueFilledButtonStyle(),
           ),
+        ],
         ),
       ),
     );
   }
 
+  String _quizLaunchPath({
+    required bool wrongsOnly,
+    required bool quizImportantOnly,
+    required Map<int, List<int>> unitsWithSections,
+  }) {
+    final u = _selectedUnits.toList()..sort();
+    final scope = wrongsOnly ? 'wrongs' : 'all';
+    var path =
+        '/books/${widget.bookId}/quiz?units=${u.join(',')}&count=$_questionCount&scope=$scope&important=${quizImportantOnly ? 1 : 0}';
+    if (_isUnitScope) {
+      final sectionQuery = encodeBookQuizSectionsQuery(
+        compactSectionSelectionForQuery(
+          unitsWithSections: unitsWithSections,
+          selectedSectionsByUnit: _selectedSectionsByUnit,
+          selectedUnits: _selectedUnits,
+        ),
+      );
+      if (sectionQuery.isNotEmpty) {
+        path += '&sections=${Uri.encodeQueryComponent(sectionQuery)}';
+      }
+    }
+    final csv = _questionModes.map((m) => m.name).toList()..sort();
+    path += '&modes=${Uri.encodeQueryComponent(csv.join(','))}';
+    return path;
+  }
+
   PreferredSizeWidget _setupAppBar(AppLocalizations l10n) {
     return AppBar(
+      systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
       title: Text(l10n.vocabularyQuizTitle),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded),
@@ -606,12 +625,66 @@ class _BookVocabQuizSetupScreenState
         _listenSectionsSync(sectionsKey);
       }
 
-      return Scaffold(
+      return allWordsAsync.when(
+        loading: () => Scaffold(
+          appBar: _setupAppBar(l10n),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+        error: (e, _) => Scaffold(
+          appBar: _setupAppBar(l10n),
+          body: Center(child: Text(userFriendlyErrorMessage(e, l10n))),
+        ),
+        data: (allWords) => _buildSetupContent(
+          context: context,
+          l10n: l10n,
+          l10nEn: l10nEn,
+          scheme: scheme,
+          allWords: allWords,
+          wrongs: wrongs,
+          units: const [],
+          apiSections: apiSections,
+        ),
+      );
+    }
+
+    final unitsAsync = ref.watch(apiUnitsProvider(widget.bookId));
+    return unitsAsync.when(
+      loading: () => Scaffold(
         appBar: _setupAppBar(l10n),
-        body: allWordsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) =>
-              Center(child: Text(userFriendlyErrorMessage(e, l10n))),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        appBar: _setupAppBar(l10n),
+        body: Center(child: Text(userFriendlyErrorMessage(e, l10n))),
+      ),
+      data: (units) {
+        if (!_seededUnits && units.isNotEmpty) {
+          _seededUnits = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              final available = units.map((e) => e.unit).toSet();
+              final seed =
+                  widget.initialSelectedUnits
+                      ?.where((u) => available.contains(u))
+                      .toSet() ??
+                  <int>{};
+              _selectedUnits
+                ..clear()
+                ..addAll(seed.isNotEmpty ? seed : available);
+            });
+          });
+        }
+
+        return allWordsAsync.when(
+          loading: () => Scaffold(
+            appBar: _setupAppBar(l10n),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => Scaffold(
+            appBar: _setupAppBar(l10n),
+            body: Center(child: Text(userFriendlyErrorMessage(e, l10n))),
+          ),
           data: (allWords) => _buildSetupContent(
             context: context,
             l10n: l10n,
@@ -619,55 +692,11 @@ class _BookVocabQuizSetupScreenState
             scheme: scheme,
             allWords: allWords,
             wrongs: wrongs,
-            units: const [],
-            apiSections: apiSections,
+            units: units,
+            apiSections: const {},
           ),
-        ),
-      );
-    }
-
-    final unitsAsync = ref.watch(apiUnitsProvider(widget.bookId));
-    return Scaffold(
-      appBar: _setupAppBar(l10n),
-      body: unitsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(userFriendlyErrorMessage(e, l10n))),
-        data: (units) {
-          if (!_seededUnits && units.isNotEmpty) {
-            _seededUnits = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              setState(() {
-                final available = units.map((e) => e.unit).toSet();
-                final seed =
-                    widget.initialSelectedUnits
-                        ?.where((u) => available.contains(u))
-                        .toSet() ??
-                    <int>{};
-                _selectedUnits
-                  ..clear()
-                  ..addAll(seed.isNotEmpty ? seed : available);
-              });
-            });
-          }
-
-          return allWordsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) =>
-                Center(child: Text(userFriendlyErrorMessage(e, l10n))),
-            data: (allWords) => _buildSetupContent(
-              context: context,
-              l10n: l10n,
-              l10nEn: l10nEn,
-              scheme: scheme,
-              allWords: allWords,
-              wrongs: wrongs,
-              units: units,
-              apiSections: const {},
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 }

@@ -46,6 +46,58 @@ Future<void> reloadBooksCatalogFromNetwork(WidgetRef ref) async {
   invalidateBooksCatalogProviders(ref);
 }
 
+/// Clears persisted `units.php` / `sections.php` cache for home catalog books.
+Future<void> bustCatalogStructureCacheForHomeBooks(WidgetRef ref) async {
+  final api = ref.read(apiServiceProvider);
+  final bookIds = <int>{};
+
+  try {
+    final public = ref.read(apiPublicBooksForHomeProvider).valueOrNull;
+    if (public != null) {
+      bookIds.addAll(public.map((b) => b.id));
+    }
+  } catch (_) {}
+
+  try {
+    final student = ref.read(apiStudentBooksForHomeProvider).valueOrNull;
+    if (student != null) {
+      bookIds.addAll(student.map((b) => b.id));
+    }
+  } catch (_) {}
+
+  for (final id in bookIds) {
+    await api.bustUnitsCache(id);
+  }
+  invalidateUnitsProvidersForBooks(ref, bookIds);
+
+  for (final bookId in bookIds) {
+    try {
+      final units = await api.fetchUnits(bookId);
+      for (final unitInfo in units) {
+        await api.bustSectionsCache(bookId, unitInfo.unit);
+      }
+    } catch (_) {}
+  }
+}
+
+void invalidateUnitsProvidersForBooks(WidgetRef ref, Iterable<int> bookIds) {
+  for (final id in bookIds) {
+    ref.invalidate(apiUnitsProvider(id));
+  }
+}
+
+/// Fresh sections list for one unit after clearing persisted `sections.php` cache.
+Future<void> reloadSectionsFromNetwork(
+  WidgetRef ref, {
+  required int bookId,
+  required int unit,
+}) async {
+  await ref.read(apiServiceProvider).bustSectionsCache(bookId, unit);
+  final key = (bookId: bookId, unit: unit);
+  ref.invalidate(apiSectionsProvider(key));
+  await ref.read(apiSectionsProvider(key).future);
+}
+
 /// Splash / onboarding: bust stale disk cache, then warm Home providers.
 Future<void> prefetchBooksCatalogForHome(WidgetRef ref) async {
   await ref.read(authProvider.future);
@@ -57,6 +109,7 @@ Future<void> prefetchBooksCatalogForHome(WidgetRef ref) async {
         (user.studentAccess || user.isTeacher || user.isAdmin)) {
       await ref.read(apiStudentBooksForHomeProvider.future);
     }
+    await bustCatalogStructureCacheForHomeBooks(ref);
   } catch (_) {
     invalidateBooksCatalogProviders(ref);
   }

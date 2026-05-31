@@ -2284,6 +2284,234 @@ abstract class AppLocalizations {
   /// **'Payment status updated'**
   String get classTermPaymentUpdated;
 
+  /// No description provided for @teacherPanelTabFinance.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get teacherPanelTabFinance;
+
+  /// No description provided for @teacherSessionPriceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default term fee'**
+  String get teacherSessionPriceTitle;
+
+  /// No description provided for @teacherSessionPriceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get teacherSessionPriceHint;
+
+  /// No description provided for @teacherSessionPriceEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit default'**
+  String get teacherSessionPriceEdit;
+
+  /// No description provided for @teacherSessionPriceFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee for this term'**
+  String get teacherSessionPriceFieldLabel;
+
+  /// No description provided for @teacherSessionPriceUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Term fee updated'**
+  String get teacherSessionPriceUpdated;
+
+  /// No description provided for @teacherTermFeeEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit term fee'**
+  String get teacherTermFeeEdit;
+
+  /// No description provided for @teacherTermFeeUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Term fee saved'**
+  String get teacherTermFeeUpdated;
+
+  /// No description provided for @teacherTotalReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Total received'**
+  String get teacherTotalReceived;
+
+  /// No description provided for @teacherTotalUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Total unpaid'**
+  String get teacherTotalUnpaid;
+
+  /// No description provided for @teacherFinancePeriodToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get teacherFinancePeriodToday;
+
+  /// No description provided for @teacherFinancePeriodWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get teacherFinancePeriodWeek;
+
+  /// No description provided for @teacherFinancePeriodMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get teacherFinancePeriodMonth;
+
+  /// No description provided for @teacherFinancePeriodAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get teacherFinancePeriodAll;
+
+  /// No description provided for @teacherFinancePeriodCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get teacherFinancePeriodCustom;
+
+  /// No description provided for @teacherFinanceFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get teacherFinanceFilterAll;
+
+  /// No description provided for @teacherFinanceFilterPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get teacherFinanceFilterPaid;
+
+  /// No description provided for @teacherFinanceFilterUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get teacherFinanceFilterUnpaid;
+
+  /// No description provided for @teacherFinanceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No financial activity in this period'**
+  String get teacherFinanceEmpty;
+
+  /// No description provided for @teacherFinanceBreakdownStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'By student'**
+  String get teacherFinanceBreakdownStudents;
+
+  /// No description provided for @teacherTermAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Term amount'**
+  String get teacherTermAmountLabel;
+
+  /// No description provided for @teacherTermSessionsAndAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{sessions} · {amount}'**
+  String teacherTermSessionsAndAmount(String sessions, String amount);
+
+  /// No description provided for @teacherFinanceStudentUnpaidBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get teacherFinanceStudentUnpaidBadge;
+
+  /// No description provided for @teacherFinancePriceNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Price not set'**
+  String get teacherFinancePriceNotSet;
+
+  /// No description provided for @teacherFinanceTermMarkedUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'A session was added — this term is now unpaid'**
+  String get teacherFinanceTermMarkedUnpaid;
+
+  /// No description provided for @financialCurrencyIrr.
+  ///
+  /// In en, this message translates to:
+  /// **'Toman'**
+  String get financialCurrencyIrr;
+
+  /// No description provided for @financialCurrencyUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'USD'**
+  String get financialCurrencyUsd;
+
+  /// No description provided for @teacherFinanceSelectDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date range'**
+  String get teacherFinanceSelectDates;
+
+  /// No description provided for @teacherFinanceFromDate.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get teacherFinanceFromDate;
+
+  /// No description provided for @teacherFinanceToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get teacherFinanceToDate;
+
+  /// No description provided for @teacherFinanceApplyRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get teacherFinanceApplyRange;
+
+  /// No description provided for @teacherFinancePricingSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set session price here'**
+  String get teacherFinancePricingSetupTitle;
+
+  /// No description provided for @teacherFinancePricingSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Edit price and enter the cost per class session. Term totals = sessions × price. If Edit fails, run teacher_student_pricing_migration.sql on the server.'**
+  String get teacherFinancePricingSetupBody;
+
+  /// No description provided for @teacherFinancePricingSetupShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a default fee below, then set each term\'s fee'**
+  String get teacherFinancePricingSetupShort;
+
+  /// No description provided for @teacherFinanceServerSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Financial tracking not active on server'**
+  String get teacherFinanceServerSetupTitle;
+
+  /// No description provided for @teacherFinanceServerSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your admin to run teacher_student_pricing_migration.sql and deploy the latest API files. Until then, session prices cannot be saved.'**
+  String get teacherFinanceServerSetupBody;
+
+  /// No description provided for @teacherSessionPriceSetupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a price per session to calculate term totals and finance reports.'**
+  String get teacherSessionPriceSetupHint;
+
+  /// No description provided for @teacherFinanceAllZeroHint.
+  ///
+  /// In en, this message translates to:
+  /// **'All amounts are 0 because no session price is set yet. Open a student → Class sessions → Edit price.'**
+  String get teacherFinanceAllZeroHint;
+
   /// No description provided for @teacherSessionCountLabel.
   ///
   /// In en, this message translates to:
@@ -4569,6 +4797,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sample'**
   String get unitSampleUntitled;
+
+  /// No description provided for @sampleBookMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Book mode'**
+  String get sampleBookMode;
+
+  /// No description provided for @sampleBookPageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String sampleBookPageOf(int current, int total);
+
+  /// No description provided for @sampleBookTurnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe or tap the sides to turn pages'**
+  String get sampleBookTurnHint;
+
+  /// No description provided for @sampleBookPageSoundOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Page turn sound on'**
+  String get sampleBookPageSoundOn;
+
+  /// No description provided for @sampleBookPageSoundOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Page turn sound off'**
+  String get sampleBookPageSoundOff;
 
   /// No description provided for @sampleHighlightPickMainColor.
   ///

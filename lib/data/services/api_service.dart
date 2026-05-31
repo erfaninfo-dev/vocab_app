@@ -1403,6 +1403,11 @@ class ApiService {
     final count = sessions.isNotEmpty ? sessions.length : fallbackCount;
     final u = map['updated_at']?.toString();
     final rawNote = map['note']?.toString();
+    StudentFinancialSummary? financialSummary;
+    final rawSummary = map['financial_summary'];
+    if (rawSummary is Map<String, dynamic>) {
+      financialSummary = StudentFinancialSummary.fromJson(rawSummary);
+    }
     return TeacherSessionInfo(
       sessionCount: count,
       updatedAt: (u != null && u.isNotEmpty) ? u : null,
@@ -1410,7 +1415,133 @@ class ApiService {
       sessions: sessions,
       terms: terms,
       usesTermsTable: usesTermsTable,
+      sessionPrice: (map['session_price'] as num?)?.toDouble() ??
+          (map['default_term_fee'] as num?)?.toDouble(),
+      defaultTermFee: (map['default_term_fee'] as num?)?.toDouble() ??
+          (map['session_price'] as num?)?.toDouble(),
+      currencyCode: (map['currency_code']?.toString().isNotEmpty ?? false)
+          ? map['currency_code'].toString()
+          : 'IRR',
+      pricingAvailable: map['pricing_available'] == true ||
+          map.containsKey('default_term_fee') ||
+          map.containsKey('session_price'),
+      financialSummary: financialSummary,
+      financialNotice: map['financial_notice']?.toString(),
     );
+  }
+
+  /// POST /teacher_student_pricing.php — default fee for new terms.
+  Future<TeacherStudentPricing> updateTeacherDefaultTermFee({
+    required int studentId,
+    required double defaultTermFee,
+    String currencyCode = 'IRR',
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_pricing.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'default_term_fee': defaultTermFee,
+        'currency_code': currencyCode,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherStudentPricing.fromJson(map);
+  }
+
+  /// POST /teacher_student_sessions.php — update fixed fee for one term.
+  Future<TeacherSessionInfo> updateTeacherStudentTermFee({
+    required int studentId,
+    required int termId,
+    required double termFee,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'student_id': studentId,
+        'update_term_fee': true,
+        'term_id': termId,
+        'term_fee': termFee,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseTeacherSessionInfo(map);
+  }
+
+  /// GET /teacher_student_pricing.php?student_id=
+  Future<TeacherStudentPricing> fetchTeacherStudentPricing(int studentId) async {
+    final uri = Uri.parse(
+      '$baseUrl/teacher_student_pricing.php',
+    ).replace(queryParameters: {'student_id': '$studentId'});
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherStudentPricing.fromJson(map);
+  }
+
+  /// POST /teacher_student_pricing.php
+  Future<TeacherStudentPricing> updateTeacherStudentPricing({
+    required int studentId,
+    required double sessionPrice,
+    String currencyCode = 'IRR',
+  }) =>
+      updateTeacherDefaultTermFee(
+        studentId: studentId,
+        defaultTermFee: sessionPrice,
+        currencyCode: currencyCode,
+      );
+
+  /// GET /teacher_financial_summary.php
+  Future<TeacherFinancialSummaryResponse> fetchTeacherFinancialSummary({
+    int? studentId,
+    TeacherFinancePeriod period = TeacherFinancePeriod.lifetime,
+    DateTime? from,
+    DateTime? to,
+    TeacherFinancePaymentFilter paymentStatus =
+        TeacherFinancePaymentFilter.all,
+    bool groupByStudent = true,
+  }) async {
+    final params = <String, String>{
+      'period': switch (period) {
+        TeacherFinancePeriod.today => 'today',
+        TeacherFinancePeriod.week => 'week',
+        TeacherFinancePeriod.month => 'month',
+        TeacherFinancePeriod.custom => 'custom',
+        TeacherFinancePeriod.lifetime => 'lifetime',
+      },
+      'payment_status': switch (paymentStatus) {
+        TeacherFinancePaymentFilter.paid => 'paid',
+        TeacherFinancePaymentFilter.unpaid => 'unpaid',
+        TeacherFinancePaymentFilter.all => 'all',
+      },
+      'group_by': groupByStudent ? 'student' : 'term',
+    };
+    if (studentId != null) {
+      params['student_id'] = '$studentId';
+    }
+    if (period == TeacherFinancePeriod.custom) {
+      if (from != null) {
+        params['from'] = from.toIso8601String().substring(0, 10);
+      }
+      if (to != null) {
+        params['to'] = to.toIso8601String().substring(0, 10);
+      }
+    }
+    final uri = Uri.parse('$baseUrl/teacher_financial_summary.php')
+        .replace(queryParameters: params);
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherFinancialSummaryResponse.fromJson(map);
   }
 
   /// POST — append one class session (`add_session` on server).
@@ -1443,18 +1574,23 @@ class ApiService {
   Future<TeacherSessionInfo> addTeacherStudentTerm({
     required int studentId,
     required int sessionCap,
+    double? termFee,
   }) async {
     final uri = Uri.parse('$baseUrl/teacher_student_sessions.php');
+    final body = <String, dynamic>{
+      'student_id': studentId,
+      'add_term': true,
+      'session_cap': sessionCap,
+    };
+    if (termFee != null) {
+      body['term_fee'] = termFee;
+    }
     final response = await http.post(
       uri,
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'student_id': studentId,
-        'add_term': true,
-        'session_cap': sessionCap,
-      }),
+      body: jsonEncode(body),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -2166,6 +2302,12 @@ class ApiService {
 
   Future<void> bustUnitsCache(int bookId) async {
     await bustHttpCacheForUri(Uri.parse('$baseUrl/units.php?book_id=$bookId'));
+  }
+
+  Future<void> bustSectionsCache(int bookId, int unit) async {
+    await bustHttpCacheForUri(
+      Uri.parse('$baseUrl/sections.php?book_id=$bookId&unit=$unit'),
+    );
   }
 
   Future<void> bustGrammarTopicsCache() async {

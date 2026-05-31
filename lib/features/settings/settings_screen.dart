@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import 'theme_mode_controller.dart';
 import 'widgets/about_card.dart';
@@ -49,32 +50,28 @@ class SettingsScreen extends ConsumerWidget {
     final uiLoc = ref.watch(uiLocaleProvider);
     final uiLocN = ref.read(uiLocaleProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(l10n.settingsTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.sectionAbout,
-            icon: const Icon(Icons.info_outline_rounded),
-            onPressed: () => _showAboutSheet(context),
-          ),
-        ],
+    final appBar = styledAppGradientAppBar(
+      context: context,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_rounded),
+        onPressed: () => context.pop(),
       ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withOpacity(0.06), scheme.surface],
-          ),
+      title: Text(l10n.settingsTitle),
+      actions: [
+        IconButton(
+          tooltip: l10n.sectionAbout,
+          icon: const Icon(Icons.info_outline_rounded),
+          onPressed: () => _showAboutSheet(context),
         ),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          children: [
+      ],
+    );
+    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 12);
+
+    return AppGradientScaffold(
+      appBar: appBar,
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(16, topInset, 16, 16),
+        children: [
             _SectionLabel(label: l10n.sectionAppLanguage),
             Card(
               child: Column(
@@ -229,7 +226,6 @@ class SettingsScreen extends ConsumerWidget {
             const AboutCard(),
           ],
         ),
-      ),
     );
   }
 }

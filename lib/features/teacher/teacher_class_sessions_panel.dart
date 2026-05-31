@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/datetime/class_session_chronological_index.dart';
 import '../../core/datetime/class_session_recorded_at.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/financial/financial_format.dart';
 import '../../core/widgets/term_payment_status_chip.dart';
 import '../../core/widgets/term_title_card.dart';
 import '../../data/models/teacher_student.dart';
@@ -62,8 +63,17 @@ class _TeacherClassSessionsPanelState
 
   Future<void> _invalidate() async {
     ref.invalidate(teacherStudentSessionsProvider(widget.studentId));
+    ref.invalidate(teacherStudentPricingProvider(widget.studentId));
     ref.invalidate(teacherStudentsProvider);
     ref.invalidate(teacherWeekUpcomingProvider);
+    const filters = [
+      TeacherFinancialFilters(),
+      TeacherFinancialFilters(period: TeacherFinancePeriod.week),
+      TeacherFinancialFilters(period: TeacherFinancePeriod.month),
+    ];
+    for (final f in filters) {
+      ref.invalidate(teacherFinancialSummaryProvider(f));
+    }
   }
 
   Future<void> _addLegacy(AppLocalizations l10n) async {
@@ -90,15 +100,21 @@ class _TeacherClassSessionsPanelState
   Future<void> _addSessionForTerm(int termId, AppLocalizations l10n) async {
     setState(() => _addingForTermId = termId);
     try {
-      await ref.read(apiServiceProvider).addTeacherClassSession(
+      final info = await ref.read(apiServiceProvider).addTeacherClassSession(
             studentId: widget.studentId,
             termId: termId,
           );
       await _invalidate();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.teacherClassSessionAdded)));
+      if (info.financialNotice == 'term_marked_unpaid') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.teacherFinanceTermMarkedUnpaid)),
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.teacherClassSessionAdded)));
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -110,19 +126,38 @@ class _TeacherClassSessionsPanelState
   }
 
   Future<void> _showAddTermDialog(AppLocalizations l10n) async {
-    final controller = TextEditingController(text: '12');
+    final info = ref.read(teacherStudentSessionsProvider(widget.studentId)).valueOrNull;
+    final defaultFee = info?.effectiveDefaultTermFee ?? 0;
+    final capController = TextEditingController(text: '12');
+    final feeController = TextEditingController(
+      text: defaultFee > 0 ? '${defaultFee.round()}' : '',
+    );
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           title: Text(l10n.teacherClassTermsAddButton),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: l10n.teacherClassTermCapFieldLabel,
-            ),
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: capController,
+                decoration: InputDecoration(
+                  labelText: l10n.teacherClassTermCapFieldLabel,
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: feeController,
+                decoration: InputDecoration(
+                  labelText: l10n.teacherSessionPriceFieldLabel,
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -138,18 +173,30 @@ class _TeacherClassSessionsPanelState
       },
     );
     if (ok != true || !mounted) return;
-    final cap = int.tryParse(controller.text.trim()) ?? 0;
+    final cap = int.tryParse(capController.text.trim()) ?? 0;
     if (cap < 1 || cap > 500) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.teacherSessionInvalid)),
       );
       return;
     }
+    final feeText = feeController.text.trim();
+    double? termFee;
+    if (feeText.isNotEmpty) {
+      termFee = double.tryParse(feeText);
+      if (termFee == null || termFee < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.teacherSessionInvalid)),
+        );
+        return;
+      }
+    }
     setState(() => _addingTerm = true);
     try {
       await ref.read(apiServiceProvider).addTeacherStudentTerm(
             studentId: widget.studentId,
             sessionCap: cap,
+            termFee: termFee,
           );
       await _invalidate();
       if (!mounted) return;
@@ -240,6 +287,90 @@ class _TeacherClassSessionsPanelState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.classTermPaymentUpdated)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyErrorMessage(e, l10n))),
+      );
+    } finally {
+      if (mounted) setState(() => _busyTermIds.remove(term.id));
+    }
+  }
+
+  Future<void> _editTermFee(
+    ClassSessionTerm term,
+    TeacherSessionInfo info,
+    AppLocalizations l10n,
+  ) async {
+    final initial = term.effectiveTermFee > 0
+        ? '${term.effectiveTermFee.round()}'
+        : (info.effectiveDefaultTermFee > 0
+            ? '${info.effectiveDefaultTermFee.round()}'
+            : '');
+    final controller = TextEditingController(text: initial);
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final pad = MediaQuery.viewInsetsOf(ctx).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + pad),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.teacherTermFeeEdit,
+                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: l10n.teacherSessionPriceFieldLabel,
+                  suffixText: FinancialFormat.currencyLabel(
+                    info.currencyCode,
+                    l10n,
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l10n.teacherSessionSave),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    final fee = double.tryParse(controller.text.trim());
+    if (fee == null || fee < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.teacherSessionInvalid)),
+      );
+      return;
+    }
+    setState(() => _busyTermIds.add(term.id));
+    try {
+      await ref.read(apiServiceProvider).updateTeacherStudentTermFee(
+            studentId: widget.studentId,
+            termId: term.id,
+            termFee: fee,
+          );
+      await _invalidate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.teacherTermFeeUpdated)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -542,6 +673,62 @@ class _TeacherClassSessionsPanelState
             : l10n.teacherClassSessionsTabSubtitle;
 
         final children = <Widget>[
+          if (!info.pricingAvailable) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: scheme.errorContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: scheme.error.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Text(
+                l10n.teacherFinancePricingSetupBody,
+                style: tt.bodySmall?.copyWith(
+                  color: scheme.onErrorContainer,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+          if (info.financialSummary != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniFinanceChip(
+                    label: l10n.teacherTotalReceived,
+                    value: FinancialFormat.formatAmount(
+                      info.financialSummary!.totalReceived,
+                      info.currencyCode,
+                      loc,
+                      l10n,
+                    ),
+                    fg: FinancialColors.receivedFg,
+                    bg: FinancialColors.receivedBg,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _MiniFinanceChip(
+                    label: l10n.teacherTotalUnpaid,
+                    value: FinancialFormat.formatAmount(
+                      info.financialSummary!.totalUnpaid,
+                      info.currencyCode,
+                      loc,
+                      l10n,
+                    ),
+                    fg: FinancialColors.unpaidFg,
+                    bg: FinancialColors.unpaidBg,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 14),
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -720,16 +907,54 @@ class _TeacherClassSessionsPanelState
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  l10n.teacherClassTermSessionsProgress(
-                                    term.sessionCount,
-                                    term.sessionCap,
-                                  ),
-                                  style: tt.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
+                                    Builder(
+                                  builder: (context) {
+                                    final termAmount = term.effectiveTermFee;
+                                    final showAmount = termAmount > 0;
+                                    final amountText = FinancialFormat.formatAmount(
+                                      term.isPaid
+                                          ? (term.termReceived ?? termAmount)
+                                          : (term.termUnpaid ?? termAmount),
+                                      info.currencyCode,
+                                      loc,
+                                      l10n,
+                                    );
+                                    return Text(
+                                      showAmount
+                                          ? l10n.teacherTermSessionsAndAmount(
+                                              l10n.teacherClassTermSessionsProgress(
+                                                term.sessionCount,
+                                                term.sessionCap,
+                                              ),
+                                              amountText,
+                                            )
+                                          : l10n.teacherClassTermSessionsProgress(
+                                              term.sessionCount,
+                                              term.sessionCap,
+                                            ),
+                                      style: tt.bodySmall?.copyWith(
+                                        color: term.isPaid
+                                            ? FinancialColors.receivedFg
+                                            : showAmount && !term.isPaid
+                                                ? FinancialColors.unpaidFg
+                                                : scheme.onSurfaceVariant,
+                                        fontWeight:
+                                            showAmount ? FontWeight.w700 : FontWeight.normal,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: l10n.teacherTermFeeEdit,
+                            onPressed: termBusy
+                                ? null
+                                : () => _editTermFee(term, info, l10n),
+                            icon: Icon(
+                              Icons.payments_outlined,
+                              color: scheme.primary,
                             ),
                           ),
                           IconButton(
@@ -828,6 +1053,54 @@ class _TeacherClassSessionsPanelState
           children: children,
         );
       },
+    );
+  }
+}
+
+class _MiniFinanceChip extends StatelessWidget {
+  const _MiniFinanceChip({
+    required this.label,
+    required this.value,
+    required this.fg,
+    required this.bg,
+  });
+
+  final String label;
+  final String value;
+  final Color fg;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: fg.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: fg,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: fg,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

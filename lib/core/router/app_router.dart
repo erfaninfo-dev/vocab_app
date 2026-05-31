@@ -143,6 +143,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             initialTab: switch (tab) {
               'messages' => TeacherPanelTab.messages,
               'schedule' => TeacherPanelTab.schedule,
+              'finance' => TeacherPanelTab.finance,
               _ => TeacherPanelTab.students,
             },
           );

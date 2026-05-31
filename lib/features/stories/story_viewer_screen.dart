@@ -45,6 +45,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   String? _votingOptionId;
   int? _answeringGrammarGameId;
   String? _answeringGrammarOptionId;
+  List<StoryItem>? _sessionStories;
 
   @override
   void initState() {
@@ -71,16 +72,24 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   void _handleReplyFocusChanged() {
     if (_replyFocusNode.hasFocus) {
-      _activateReplyComposer();
-    } else {
-      _replyComposerActive = false;
+      if (!_replyComposerActive) {
+        setState(() => _replyComposerActive = true);
+      }
+      _pauseProgress();
+    } else if (_replyComposerActive) {
+      setState(() => _replyComposerActive = false);
       _resumeProgress();
     }
   }
 
   void _activateReplyComposer() {
-    _replyComposerActive = true;
+    if (!_replyComposerActive) {
+      setState(() => _replyComposerActive = true);
+    }
     _pauseProgress();
+    if (!_replyFocusNode.hasFocus) {
+      _replyFocusNode.requestFocus();
+    }
   }
 
   bool _dismissReplyComposerIfOpen() {
@@ -104,15 +113,38 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     return true;
   }
 
-  List<StoryItem> _playbackStoriesFrom(List<StoryItem> stories) {
-    final filtered = _filterStories(stories);
-    if (!_unseenOnlyPlayback) return filtered;
-    return filtered.where((story) => !story.seen).toList(growable: false);
+  List<StoryItem> _resolveSessionStories(List<StoryItem> allStories) {
+    final filtered = _filterStories(allStories);
+    if (_sessionStories == null) {
+      _sessionStories = List<StoryItem>.from(filtered);
+      return _sessionStories!;
+    }
+    final freshById = {for (final story in filtered) story.id: story};
+    _sessionStories = [
+      for (final story in _sessionStories!)
+        if (freshById.containsKey(story.id)) freshById[story.id]!,
+    ];
+    return _sessionStories!;
+  }
+
+  int _initialStoryIndex(List<StoryItem> stories) {
+    final initialStoryId = widget.initialStoryId;
+    if (initialStoryId != null) {
+      final requestedIndex = stories.indexWhere(
+        (story) => story.id == initialStoryId,
+      );
+      if (requestedIndex >= 0) return requestedIndex;
+    }
+    if (_unseenOnlyPlayback) {
+      final firstUnseenIndex = stories.indexWhere((story) => !story.seen);
+      if (firstUnseenIndex >= 0) return firstUnseenIndex;
+    }
+    return 0;
   }
 
   List<StoryItem> get _stories {
     final stories = ref.read(visibleStoriesProvider).valueOrNull ?? const [];
-    return _playbackStoriesFrom(stories);
+    return _resolveSessionStories(stories);
   }
 
   void _applyInitialStoryIndex(List<StoryItem> stories) {
@@ -128,14 +160,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     final requestedIndex = initialStoryId == null
         ? -1
         : stories.indexWhere((story) => story.id == initialStoryId);
-    final firstUnseenIndex = stories.indexWhere((story) => !story.seen);
     final targetIndex = requestedIndex >= 0
         ? requestedIndex
-        : _unseenOnlyPlayback
-        ? 0
-        : firstUnseenIndex >= 0
-        ? firstUnseenIndex
-        : 0;
+        : _initialStoryIndex(stories);
     _index = targetIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -488,11 +515,12 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     final session = ref.watch(authProvider).valueOrNull;
     return Scaffold(
       backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false,
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _StoryError(onClose: () => context.pop()),
         data: (allStories) {
-          final stories = _playbackStoriesFrom(allStories);
+          final stories = _resolveSessionStories(allStories);
           if (stories.isEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) context.pop();
@@ -507,14 +535,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
               session?.user.id == story.adminUserId;
           final imageReady = _isStoryImageReady(story);
           final expectsImage = _storyExpectsImage(story);
-          final isOwnStory =
-              session != null && session.user.id == story.adminUserId;
-          final canReply =
-              session != null &&
-              story.adminUserId > 0 &&
-              (!session.user.isTeacher && !session.user.isAdmin || isOwnStory);
+          final canReply = session != null && story.adminUserId > 0;
           _syncProgressForStory(story, imageReady: imageReady);
           final replyPanelHeight = 70.0 + MediaQuery.paddingOf(context).bottom;
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           return GestureDetector(
             onVerticalDragEnd: (details) {
               final velocity = details.primaryVelocity ?? 0;
@@ -634,7 +658,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: 0,
+                  bottom: keyboardInset,
                   child: _StoryReplyPanel(
                     controller: _replyController,
                     focusNode: _replyFocusNode,
@@ -735,6 +759,8 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardOpen = keyboardInset > 0;
     final focused = widget.focusNode.hasFocus;
     final hasText = widget.controller.text.trim().isNotEmpty;
     final showInlineSend = focused && (hasText || widget.sending);
@@ -749,7 +775,7 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
           focused ? 12 : 9,
           focused ? 8 : 8,
           focused ? 12 : 9,
-          (focused ? 10 : 14) + bottom,
+          (focused ? 10 : 14) + (keyboardOpen ? 0 : bottom),
         ),
         child: Row(
           textDirection: TextDirection.ltr,
@@ -779,65 +805,61 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
                 padding: EdgeInsets.symmetric(horizontal: focused ? 10 : 8),
                 child: SizedBox(
                   height: focused ? 44 : 38,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTapDown: (_) => widget.onComposerActivate(),
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: widget.focusNode,
-                      readOnly: !widget.enabled,
-                      enableInteractiveSelection: widget.enabled,
-                      cursorColor: Colors.white,
-                      textInputAction: TextInputAction.send,
-                      minLines: 1,
-                      maxLines: 1,
-                      onTap: widget.onComposerActivate,
-                      onSubmitted: (_) => _submit(),
-                      style: const TextStyle(
-                        color: Colors.white,
+                  child: TextField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    readOnly: !widget.enabled,
+                    enableInteractiveSelection: widget.enabled,
+                    cursorColor: Colors.white,
+                    textInputAction: TextInputAction.send,
+                    minLines: 1,
+                    maxLines: 1,
+                    onTap: widget.onComposerActivate,
+                    onSubmitted: (_) => _submit(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Send message',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.88),
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Send message',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        filled: true,
-                        fillColor: focused
-                            ? Colors.black.withValues(alpha: 0.18)
-                            : Colors.transparent,
-                        suffixIcon: showInlineSend
-                            ? Padding(
-                                padding: const EdgeInsetsDirectional.only(
-                                  end: 4,
-                                ),
-                                child: _InlineReplySendButton(
-                                  enabled:
-                                      widget.enabled &&
-                                      hasText &&
-                                      !widget.sending,
-                                  sending: widget.sending,
-                                  onPressed: _submit,
-                                ),
-                              )
-                            : null,
-                        suffixIconConstraints: const BoxConstraints.tightFor(
-                          width: 42,
-                          height: 42,
-                        ),
-                        disabledBorder: _replyInputBorder(alpha: 0.42),
-                        enabledBorder: _replyInputBorder(
-                          alpha: focused ? 0.42 : 0.48,
-                        ),
-                        focusedBorder: _replyInputBorder(alpha: 0.72),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
+                      filled: true,
+                      fillColor: focused
+                          ? Colors.black.withValues(alpha: 0.18)
+                          : Colors.transparent,
+                      suffixIcon: showInlineSend
+                          ? Padding(
+                              padding: const EdgeInsetsDirectional.only(
+                                end: 4,
+                              ),
+                              child: _InlineReplySendButton(
+                                enabled:
+                                    widget.enabled &&
+                                    hasText &&
+                                    !widget.sending,
+                                sending: widget.sending,
+                                onPressed: _submit,
+                              ),
+                            )
+                          : null,
+                      suffixIconConstraints: const BoxConstraints.tightFor(
+                        width: 42,
+                        height: 42,
+                      ),
+                      disabledBorder: _replyInputBorder(alpha: 0.42),
+                      enabledBorder: _replyInputBorder(
+                        alpha: focused ? 0.42 : 0.48,
+                      ),
+                      focusedBorder: _replyInputBorder(alpha: 0.72),
                     ),
                   ),
                 ),

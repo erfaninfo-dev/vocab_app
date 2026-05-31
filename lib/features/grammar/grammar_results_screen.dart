@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
+import '../../data/models/auth_user.dart';
 import '../../data/models/grammar_result.dart';
 import 'grammar_practice_result_card.dart';
 import '../../domain/api_full_refresh.dart';
@@ -359,6 +360,14 @@ class _PublicResultsTab extends ConsumerWidget {
     final sort = ref.watch(grammarResultsListSortProvider);
     final session = ref.watch(authProvider).valueOrNull;
     final isAdmin = session?.user.isAdmin == true;
+    final isTeacher = session?.user.isTeacher == true;
+    final canManageResults = session != null && (isAdmin || isTeacher);
+    final studentsAsync =
+        canManageResults ? ref.watch(teacherStudentsProvider) : null;
+    final teacherStudentIds = studentsAsync?.valueOrNull
+            ?.map((s) => s.id)
+            .toSet() ??
+        const <int>{};
     final practiceMode = sort == GrammarResultsListSort.mostPractice;
     return async.when(
       loading: () =>
@@ -449,7 +458,14 @@ class _PublicResultsTab extends ConsumerWidget {
                       ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
                       : null;
                   final legacyName = (r.userName ?? '').trim();
-                  return GrammarPracticeResultCard(
+                  final canOpenDetail = session != null &&
+                      _canOpenPublicGrammarResultDetail(
+                        session: session,
+                        result: r,
+                        teacherStudentIds: teacherStudentIds,
+                        practiceMode: practiceMode,
+                      );
+                  final card = GrammarPracticeResultCard(
                     r: r,
                     style: GrammarPracticeResultCardStyle.community,
                     rank: rank,
@@ -461,6 +477,12 @@ class _PublicResultsTab extends ConsumerWidget {
                         ? () => _showLegacyLinkSheet(context, ref, r)
                         : null,
                   );
+                  if (!canOpenDetail) return card;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => context.push('/grammar/result/${r.id}'),
+                    child: card,
+                  );
                 },
               ),
             ),
@@ -469,6 +491,20 @@ class _PublicResultsTab extends ConsumerWidget {
       },
     );
   }
+}
+
+bool _canOpenPublicGrammarResultDetail({
+  required AuthSession session,
+  required GrammarResult result,
+  required Set<int> teacherStudentIds,
+  required bool practiceMode,
+}) {
+  if (practiceMode) return false;
+  if (result.id < 1) return false;
+  if (session.user.isAdmin) return true;
+  if (!session.user.isTeacher) return false;
+  final uid = result.userId;
+  return uid != null && uid > 0 && teacherStudentIds.contains(uid);
 }
 
 class _LegacyGrammarLinkSheet extends ConsumerStatefulWidget {

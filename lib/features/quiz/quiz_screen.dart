@@ -13,6 +13,7 @@ import '../../data/models/vocab_entry.dart';
 import '../../domain/api_providers.dart';
 import '../../domain/vocab_quiz_providers.dart';
 import 'book_quiz_section_filter.dart';
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../words/important_words_controller.dart';
 import 'widgets/slider_with_value_below.dart';
@@ -866,6 +867,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
+        systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () async {
@@ -1034,7 +1036,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
               if (autoStartFromRoute) {
                 if (!_autoStartScheduled) {
                   _autoStartScheduled = true;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Future.microtask(() {
                     if (!mounted) return;
                     final b = _questionBudget.clamp(minPick, maxQ);
                     _startQuiz(

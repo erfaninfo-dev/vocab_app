@@ -361,6 +361,27 @@ final teacherStudentSessionsProvider =
           .fetchTeacherStudentSessions(studentId);
     });
 
+final teacherStudentPricingProvider =
+    FutureProvider.family<TeacherStudentPricing, int>((ref, studentId) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchTeacherStudentPricing(studentId);
+    });
+
+final teacherFinancialSummaryProvider =
+    FutureProvider.family<TeacherFinancialSummaryResponse, TeacherFinancialFilters>(
+  (ref, filters) {
+    ref.watch(apiRemoteDataEpochProvider);
+    return ref.read(apiServiceProvider).fetchTeacherFinancialSummary(
+          studentId: filters.studentId,
+          period: filters.period,
+          from: filters.from,
+          to: filters.to,
+          paymentStatus: filters.paymentStatus,
+          groupByStudent: filters.groupByStudent,
+        );
+  },
+);
+
 /// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
 final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
   ref.watch(apiRemoteDataEpochProvider);

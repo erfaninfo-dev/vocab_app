@@ -319,3 +319,6 @@ class SampleTextHighlightsController extends Notifier<SampleTextHighlightsState>
 
 String sampleTextLangKey(TranslationLang lang) =>
     lang == TranslationLang.fa ? 'fa' : 'kur';
+
+TranslationLang sampleTranslationLangFromKey(String langKey) =>
+    langKey == 'kur' ? TranslationLang.kur : TranslationLang.fa;

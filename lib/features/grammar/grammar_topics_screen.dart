@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter/services.dart';
+
 import '../../core/auth/auth_provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/admin_story.dart';
 import '../../data/models/grammar_question.dart';
 import '../../data/models/grammar_topic_summary.dart';
@@ -246,7 +249,9 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
           setState(_selected.clear);
         }
       },
-      child: Scaffold(
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: AppTheme.systemOverlayStyleFor(context),
+        child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           leading: IconButton(
@@ -283,6 +288,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
           backgroundColor: scheme.surface.withValues(alpha: 0.85),
           elevation: 0,
           scrolledUnderElevation: 0,
+          systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
           actions: [
             if (_selected.isNotEmpty)
               IconButton(
@@ -459,6 +465,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

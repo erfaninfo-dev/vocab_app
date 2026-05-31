@@ -1283,6 +1283,129 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get classTermPaymentUpdated => 'دۆخی پارەدان نوێکرایەوە';
 
   @override
+  String get teacherPanelTabFinance => 'دارایی';
+
+  @override
+  String get teacherSessionPriceTitle => 'نرخی بنەری ترم';
+
+  @override
+  String get teacherSessionPriceHint => 'دیاری نەکراوە';
+
+  @override
+  String get teacherSessionPriceEdit => 'دەستکاری بنەری';
+
+  @override
+  String get teacherSessionPriceFieldLabel => 'تێچووی ئەم ترمە';
+
+  @override
+  String get teacherSessionPriceUpdated => 'تێچووی ترم نوێکرایەوە';
+
+  @override
+  String get teacherTermFeeEdit => 'دەستکاری تێچووی ترم';
+
+  @override
+  String get teacherTermFeeUpdated => 'تێچووی ترم پاشەکەوت کرا';
+
+  @override
+  String get teacherTotalReceived => 'کۆی وەرگیراو';
+
+  @override
+  String get teacherTotalUnpaid => 'کۆی قەرز';
+
+  @override
+  String get teacherFinancePeriodToday => 'ئەمڕۆ';
+
+  @override
+  String get teacherFinancePeriodWeek => '٧ ڕۆژ';
+
+  @override
+  String get teacherFinancePeriodMonth => 'ئەم مانگە';
+
+  @override
+  String get teacherFinancePeriodAll => 'هەموو کات';
+
+  @override
+  String get teacherFinancePeriodCustom => 'مەودای تایبەت';
+
+  @override
+  String get teacherFinanceFilterAll => 'هەموو';
+
+  @override
+  String get teacherFinanceFilterPaid => 'پارەدراو';
+
+  @override
+  String get teacherFinanceFilterUnpaid => 'قەرزدار';
+
+  @override
+  String get teacherFinanceEmpty => 'لەم مەودایەدا چالاکی دارایی نییە';
+
+  @override
+  String get teacherFinanceBreakdownStudents => 'بەپێی قوتابی';
+
+  @override
+  String get teacherTermAmountLabel => 'بڕی ترم';
+
+  @override
+  String teacherTermSessionsAndAmount(String sessions, String amount) {
+    return '$sessions · $amount';
+  }
+
+  @override
+  String get teacherFinanceStudentUnpaidBadge => 'قەرز';
+
+  @override
+  String get teacherFinancePriceNotSet => 'نرخ دیاری نەکراوە';
+
+  @override
+  String get teacherFinanceTermMarkedUnpaid =>
+      'وانەیەک زیادکرا — ئەم ترمە ئێستا پارە نەدراوە';
+
+  @override
+  String get financialCurrencyIrr => 'تومەن';
+
+  @override
+  String get financialCurrencyUsd => 'USD';
+
+  @override
+  String get teacherFinanceSelectDates => 'هەڵبژاردنی مەودا';
+
+  @override
+  String get teacherFinanceFromDate => 'لە';
+
+  @override
+  String get teacherFinanceToDate => 'بۆ';
+
+  @override
+  String get teacherFinanceApplyRange => 'جێبەجێکردن';
+
+  @override
+  String get teacherFinancePricingSetupTitle => 'نرخی وانە لێرە دیاری بکە';
+
+  @override
+  String get teacherFinancePricingSetupBody =>
+      'لە «دەستکاری نرخ» بگرە و نرخی هەر وانەیەک بنووسە. بڕی ترم = ژمارەی وانەکان × نرخ.';
+
+  @override
+  String get teacherFinancePricingSetupShort =>
+      'نرخی هەر وانەیەک لە خوارەوە دابنێ';
+
+  @override
+  String get teacherFinanceServerSetupTitle =>
+      'سیستەمی دارایی لە سێرڤەر چالاک نییە';
+
+  @override
+  String get teacherFinanceServerSetupBody =>
+      'بەڕێوەبەر دەبێت teacher_student_pricing_migration.sql جێبەجێ بکات و فایلە PHP نوێکان دیپلۆی بکات.';
+
+  @override
+  String get teacherSessionPriceSetupHint =>
+      'نرخی هەر وانەیەک دابنێ بۆ حیسابکردنی بڕی ترم و ڕاپۆرت.';
+
+  @override
+  String get teacherFinanceAllZeroHint =>
+      'هەموو بڕەکان ٠ن چونکە نرخی وانە دیاری نەکراوە. بچۆ: قوتابی → Class sessions → دەستکاری نرخ.';
+
+  @override
   String get teacherSessionCountLabel => 'ژمارەی وانە تۆمارکراوەکان';
 
   @override
@@ -2609,6 +2732,23 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'نموونە';
+
+  @override
+  String get sampleBookMode => 'دۆخی کتێب';
+
+  @override
+  String sampleBookPageOf(int current, int total) {
+    return 'لاپەڕە $current لە $total';
+  }
+
+  @override
+  String get sampleBookTurnHint => 'بۆ گۆڕینی لاپەڕە بکێشە یان لایەکان بدە';
+
+  @override
+  String get sampleBookPageSoundOn => 'دەنگی گۆڕینی لاپەڕە داگیرساوە';
+
+  @override
+  String get sampleBookPageSoundOff => 'دەنگی گۆڕینی لاپەڕە کوژاوە';
 
   @override
   String get sampleHighlightPickMainColor => 'ڕەنگی دیاریکردن';

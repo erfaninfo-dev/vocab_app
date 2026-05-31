@@ -1,5 +1,39 @@
 import 'package:flutter/material.dart';
 
+/// Placeholder when [assets/branding/logo.png] is unavailable (e.g. stale build).
+class AppBrandLogoFallback extends StatelessWidget {
+  const AppBrandLogoFallback({super.key, required this.size, this.borderRadius = 18});
+
+  final double size;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        gradient: LinearGradient(
+          colors: [
+            scheme.primary.withValues(alpha: 0.9),
+            scheme.tertiary.withValues(alpha: 0.78),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Icon(
+        Icons.auto_stories_rounded,
+        size: size * 0.55,
+        color: Colors.white,
+      ),
+    );
+  }
+}
+
 /// Full-resolution logo for in-app UI.
 ///
 /// Do not use [assets/app_icon.png] for on-screen display — it is a tiny
@@ -17,7 +51,6 @@ class AppBrandLogo extends StatelessWidget {
   final List<BoxShadow>? boxShadow;
 
   static const _logoPath = 'assets/branding/logo.png';
-  static const _fallbackPath = 'assets/app_icon.png';
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +75,7 @@ class AppBrandLogo extends StatelessWidget {
           cacheHeight: cachePx,
           gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) {
-            return Image.asset(
-              _fallbackPath,
-              width: size,
-              height: size,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.none,
-            );
+            return AppBrandLogoFallback(size: size, borderRadius: borderRadius);
           },
         ),
       ),

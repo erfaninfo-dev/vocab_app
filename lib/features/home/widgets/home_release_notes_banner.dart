@@ -182,9 +182,10 @@ class _ReleaseNotesCard extends ConsumerWidget {
                   color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 12, 22),
-                child: Column(
+              Positioned.fill(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 12, 22),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -327,6 +328,7 @@ class _ReleaseNotesCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
               ),
             ],
           ),

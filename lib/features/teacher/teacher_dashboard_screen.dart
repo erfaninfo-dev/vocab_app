@@ -6,19 +6,22 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/financial/financial_format.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'messages_updating.dart';
 import 'teacher_chat_open_args.dart';
 import 'teacher_chat_ui.dart';
+import 'teacher_finance_tab.dart';
 import 'teacher_schedule_tab.dart';
 
 /// Tabs exposed by the teacher panel. Stored as an enum so deep links like
 /// `/teacher?tab=messages` can preselect the right tab without magic ints.
-enum TeacherPanelTab { students, schedule, messages }
+enum TeacherPanelTab { students, schedule, finance, messages }
 
 /// Unified teacher panel: student roster, week schedule, and a Telegram-style
 /// message inbox. Messages tab polls in the background so the
@@ -50,20 +53,19 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   void initState() {
     super.initState();
     _tabs = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
       initialIndex: switch (widget.initialTab) {
-        TeacherPanelTab.messages => 2,
+        TeacherPanelTab.messages => 3,
         TeacherPanelTab.schedule => 1,
+        TeacherPanelTab.finance => 2,
         TeacherPanelTab.students => 0,
       },
     )..addListener(_onTabChanged);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeStartInboxPoll();
-      // If we launched directly into Messages, fetch immediately instead of
-      // waiting a full poll interval.
-      if (_tabs.index == 2) _refreshInbox();
+      if (_tabs.index == 3) _refreshInbox();
     });
   }
 
@@ -90,10 +92,8 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   /// Students tab doesn't need the network traffic.
   void _onTabChanged() {
     if (_tabs.indexIsChanging) return;
-    if (_tabs.index == 2) {
+    if (_tabs.index == 3) {
       _maybeStartInboxPoll();
-      // Trigger one immediate refresh when the user switches onto Messages so
-      // they don't wait up to 15 s to see the latest state.
       _refreshInbox();
     } else {
       _stopInboxPoll();
@@ -101,7 +101,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
   }
 
   void _maybeStartInboxPoll() {
-    if (_tabs.index != 2) return;
+    if (_tabs.index != 3) return;
     _inboxPollTimer?.cancel();
     _inboxPollTimer = startMessagesPolling(
       interval: _kInboxPollInterval,
@@ -171,6 +171,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
       appBar: AppBar(
         backgroundColor: scheme.surface.withValues(alpha: 0.88),
         surfaceTintColor: scheme.primary.withValues(alpha: 0.12),
+        systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -182,7 +183,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
             Text(l10n.teacherPanelTitle),
             // Surface the live "Updating…" hint right next to the title while
             // the Messages tab is fetching so teachers know data is in motion.
-            if (_tabs.index == 2 && updating)
+            if (_tabs.index == 3 && updating)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: MessagesUpdatingLabel(
@@ -196,6 +197,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         bottom: TabBar(
           controller: _tabs,
           isScrollable: false,
+          tabAlignment: TabAlignment.fill,
           labelColor: scheme.primary,
           unselectedLabelColor: scheme.onSurfaceVariant,
           indicatorColor: scheme.primary,
@@ -210,6 +212,10 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
               text: l10n.teacherPanelTabSchedule,
             ),
             Tab(
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+              text: l10n.teacherPanelTabFinance,
+            ),
+            Tab(
               icon: const Icon(Icons.chat_rounded),
               text: l10n.teacherPanelTabMessages,
             ),
@@ -221,6 +227,7 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
         children: [
           _StudentsTab(l10n: l10n, scheme: scheme),
           TeacherScheduleTab(l10n: l10n, scheme: scheme),
+          TeacherFinanceTab(l10n: l10n, scheme: scheme),
           _MessagesTab(l10n: l10n, scheme: scheme, onRefresh: _refreshInbox),
         ],
       ),
@@ -336,28 +343,84 @@ class _StudentsTab extends ConsumerWidget {
                                         color: scheme.onSurfaceVariant,
                                       ),
                                 ),
+                                if (s.pricingAvailable) ...[
+                                  const SizedBox(height: 6),
+                                  if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0)
+                                    Text(
+                                      FinancialFormat.formatAmount(
+                                        s.totalUnpaid!,
+                                        s.currencyCode,
+                                        Localizations.localeOf(context)
+                                            .toString(),
+                                        l10n,
+                                      ),
+                                      style: const TextStyle(
+                                        color: FinancialColors.unpaidFg,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
+                                    )
+                                  else if (!s.hasDefaultTermFeeSet)
+                                    Text(
+                                      l10n.teacherFinancePriceNotSet,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                ],
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: scheme.primaryContainer.withValues(
-                                alpha: 0.9,
-                              ),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              '${s.sessionCount}',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: scheme.onPrimaryContainer,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.primaryContainer.withValues(
+                                    alpha: 0.9,
                                   ),
-                            ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${s.sessionCount}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: scheme.onPrimaryContainer,
+                                      ),
+                                ),
+                              ),
+                              if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: FinancialColors.unpaidBg,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    l10n.teacherFinanceStudentUnpaidBadge,
+                                    style: const TextStyle(
+                                      color: FinancialColors.unpaidFg,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           const SizedBox(width: 4),
                           Icon(

@@ -59,6 +59,7 @@ final homeDisplayedBooksForTrackProvider =
         }
         return AsyncData(list);
       },
+      skipLoadingOnReload: true,
     );
   }
 
@@ -79,6 +80,7 @@ final homeDisplayedBooksForTrackProvider =
       }
       return AsyncData(list);
     },
+    skipLoadingOnReload: true,
   );
 });
 

@@ -2,6 +2,14 @@
 
 Place MP3 (or WAV/OGG) files in this folder. If a file is missing, playback is skipped — the app will not crash.
 
+## Unit sample book mode
+
+| File | Purpose | Suggested length |
+|------|---------|------------------|
+| `page_flip.mp3` | Paper page-turn when swiping in book reader | ~0.2–0.5 s |
+
+Toggle in book mode footer (speaker icon, bottom-left). Preference key: `sample_book_page_sound_enabled_v1` (default on).
+
 ## Splash
 
 | File | Purpose |

@@ -1274,6 +1274,129 @@ class AppLocalizationsEn extends AppLocalizations {
   String get classTermPaymentUpdated => 'Payment status updated';
 
   @override
+  String get teacherPanelTabFinance => 'Finance';
+
+  @override
+  String get teacherSessionPriceTitle => 'Default term fee';
+
+  @override
+  String get teacherSessionPriceHint => 'Not set';
+
+  @override
+  String get teacherSessionPriceEdit => 'Edit default';
+
+  @override
+  String get teacherSessionPriceFieldLabel => 'Fee for this term';
+
+  @override
+  String get teacherSessionPriceUpdated => 'Term fee updated';
+
+  @override
+  String get teacherTermFeeEdit => 'Edit term fee';
+
+  @override
+  String get teacherTermFeeUpdated => 'Term fee saved';
+
+  @override
+  String get teacherTotalReceived => 'Total received';
+
+  @override
+  String get teacherTotalUnpaid => 'Total unpaid';
+
+  @override
+  String get teacherFinancePeriodToday => 'Today';
+
+  @override
+  String get teacherFinancePeriodWeek => '7 days';
+
+  @override
+  String get teacherFinancePeriodMonth => 'Month';
+
+  @override
+  String get teacherFinancePeriodAll => 'All time';
+
+  @override
+  String get teacherFinancePeriodCustom => 'Custom';
+
+  @override
+  String get teacherFinanceFilterAll => 'All';
+
+  @override
+  String get teacherFinanceFilterPaid => 'Paid';
+
+  @override
+  String get teacherFinanceFilterUnpaid => 'Unpaid';
+
+  @override
+  String get teacherFinanceEmpty => 'No financial activity in this period';
+
+  @override
+  String get teacherFinanceBreakdownStudents => 'By student';
+
+  @override
+  String get teacherTermAmountLabel => 'Term amount';
+
+  @override
+  String teacherTermSessionsAndAmount(String sessions, String amount) {
+    return '$sessions · $amount';
+  }
+
+  @override
+  String get teacherFinanceStudentUnpaidBadge => 'Unpaid';
+
+  @override
+  String get teacherFinancePriceNotSet => 'Price not set';
+
+  @override
+  String get teacherFinanceTermMarkedUnpaid =>
+      'A session was added — this term is now unpaid';
+
+  @override
+  String get financialCurrencyIrr => 'Toman';
+
+  @override
+  String get financialCurrencyUsd => 'USD';
+
+  @override
+  String get teacherFinanceSelectDates => 'Select date range';
+
+  @override
+  String get teacherFinanceFromDate => 'From';
+
+  @override
+  String get teacherFinanceToDate => 'To';
+
+  @override
+  String get teacherFinanceApplyRange => 'Apply';
+
+  @override
+  String get teacherFinancePricingSetupTitle => 'Set session price here';
+
+  @override
+  String get teacherFinancePricingSetupBody =>
+      'Tap Edit price and enter the cost per class session. Term totals = sessions × price. If Edit fails, run teacher_student_pricing_migration.sql on the server.';
+
+  @override
+  String get teacherFinancePricingSetupShort =>
+      'Set a default fee below, then set each term\'s fee';
+
+  @override
+  String get teacherFinanceServerSetupTitle =>
+      'Financial tracking not active on server';
+
+  @override
+  String get teacherFinanceServerSetupBody =>
+      'Ask your admin to run teacher_student_pricing_migration.sql and deploy the latest API files. Until then, session prices cannot be saved.';
+
+  @override
+  String get teacherSessionPriceSetupHint =>
+      'Set a price per session to calculate term totals and finance reports.';
+
+  @override
+  String get teacherFinanceAllZeroHint =>
+      'All amounts are 0 because no session price is set yet. Open a student → Class sessions → Edit price.';
+
+  @override
   String get teacherSessionCountLabel => 'Recorded class sessions';
 
   @override
@@ -2600,6 +2723,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unitSampleUntitled => 'Sample';
+
+  @override
+  String get sampleBookMode => 'Book mode';
+
+  @override
+  String sampleBookPageOf(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get sampleBookTurnHint => 'Swipe or tap the sides to turn pages';
+
+  @override
+  String get sampleBookPageSoundOn => 'Page turn sound on';
+
+  @override
+  String get sampleBookPageSoundOff => 'Page turn sound off';
 
   @override
   String get sampleHighlightPickMainColor => 'Highlight color';

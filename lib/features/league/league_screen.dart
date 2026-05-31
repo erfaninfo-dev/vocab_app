@@ -9,6 +9,12 @@ import '../../data/models/league.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 
+const _kVisibleLeagueTypes = <LeagueType>[
+  LeagueType.all,
+  LeagueType.grammar,
+  LeagueType.vocab,
+];
+
 class LeagueScreen extends ConsumerStatefulWidget {
   const LeagueScreen({super.key, this.initialType = LeagueType.all});
 
@@ -20,29 +26,69 @@ class LeagueScreen extends ConsumerStatefulWidget {
 
 class _LeagueScreenState extends ConsumerState<LeagueScreen> {
   late LeagueType _type;
+  late final PageController _pageController;
   LeaguePeriod _period = LeaguePeriod.monthly;
   LeagueSort _sort = LeagueSort.points;
 
   LeagueQuery get _query => (type: _type, period: _period, sort: _sort);
 
+  int get _typePageIndex {
+    final index = _kVisibleLeagueTypes.indexOf(_type);
+    return index >= 0 ? index : 0;
+  }
+
   @override
   void initState() {
     super.initState();
     _type = widget.initialType;
+    _pageController = PageController(initialPage: _typePageIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _refresh();
     });
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(LeagueScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialType != widget.initialType) {
+      final index = _kVisibleLeagueTypes.indexOf(widget.initialType);
       setState(() => _type = widget.initialType);
+      if (index >= 0 && _pageController.hasClients) {
+        _pageController.jumpToPage(index);
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _refresh();
       });
     }
+  }
+
+  void _onLeagueTypeSelected(LeagueType type) {
+    final index = _kVisibleLeagueTypes.indexOf(type);
+    if (index < 0) return;
+    if (type != _type) {
+      setState(() => _type = type);
+    }
+    if (_pageController.hasClients &&
+        (_pageController.page?.round() ?? _typePageIndex) != index) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _onLeaguePageChanged(int index) {
+    if (index < 0 || index >= _kVisibleLeagueTypes.length) return;
+    final nextType = _kVisibleLeagueTypes[index];
+    if (nextType == _type) return;
+    setState(() => _type = nextType);
   }
 
   Future<void> _refresh() async {
@@ -117,18 +163,13 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final session = ref.watch(authProvider).valueOrNull;
-    final async = session == null
-        ? const AsyncValue<LeagueResponse>.loading()
-        : ref.watch(leagueProvider(_query));
 
     return Scaffold(
-      backgroundColor: scheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: _leagueScreenBackground(_type, scheme),
+          gradient: _leagueScreenBackground(_type, Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Column(
@@ -138,7 +179,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _LeagueTypeTabs(
                   selected: _type,
-                  onChanged: (type) => setState(() => _type = type),
+                  onChanged: _onLeagueTypeSelected,
                 ),
               ),
               Padding(
@@ -151,31 +192,77 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
               Expanded(
                 child: session == null
                     ? const _LeagueSignedOutState()
-                    : async.when(
-                        loading: () => _LeagueSkeleton(type: _type),
-                        error: (error, _) => RefreshIndicator(
-                          onRefresh: _refresh,
-                          child: _LeagueErrorState(
-                            message: userFriendlyErrorMessage(error, l10n),
-                            isOffline: isNetworkFailureError(error),
-                            onRetry: _refresh,
-                          ),
-                        ),
-                        data: (league) => RefreshIndicator(
-                          onRefresh: _refresh,
-                          child: _LeagueContent(
-                            response: league,
+                    : PageView.builder(
+                        controller: _pageController,
+                        onPageChanged: _onLeaguePageChanged,
+                        itemCount: _kVisibleLeagueTypes.length,
+                        itemBuilder: (context, index) {
+                          final type = _kVisibleLeagueTypes[index];
+                          return _LeagueTypePage(
+                            type: type,
+                            period: _period,
                             sort: _sort,
+                            onRefresh: _refresh,
                             onSortChanged: (sort) =>
                                 setState(() => _sort = sort),
                             onSortInfo: _showSortInfo,
                             onProfileTap: _showLeagueProfile,
-                          ),
-                        ),
+                          );
+                        },
                       ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LeagueTypePage extends ConsumerWidget {
+  const _LeagueTypePage({
+    required this.type,
+    required this.period,
+    required this.sort,
+    required this.onRefresh,
+    required this.onSortChanged,
+    required this.onSortInfo,
+    required this.onProfileTap,
+  });
+
+  final LeagueType type;
+  final LeaguePeriod period;
+  final LeagueSort sort;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<LeagueSort> onSortChanged;
+  final VoidCallback onSortInfo;
+  final ValueChanged<LeagueEntry> onProfileTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final async = ref.watch(
+      leagueProvider((type: type, period: period, sort: sort)),
+    );
+
+    return async.when(
+      loading: () => _LeagueSkeleton(type: type),
+      error: (error, _) => RefreshIndicator(
+        onRefresh: onRefresh,
+        child: _LeagueErrorState(
+          message: userFriendlyErrorMessage(error, l10n),
+          isOffline: isNetworkFailureError(error),
+          onRetry: onRefresh,
+        ),
+      ),
+      data: (league) => RefreshIndicator(
+        onRefresh: onRefresh,
+        child: _LeagueContent(
+          response: league,
+          sort: sort,
+          onSortChanged: onSortChanged,
+          onSortInfo: onSortInfo,
+          onProfileTap: onProfileTap,
         ),
       ),
     );
@@ -296,12 +383,7 @@ class _LeagueTypeTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    const visibleTypes = [
-      LeagueType.all,
-      LeagueType.grammar,
-      LeagueType.vocab,
-      // LeagueType.challenge, // Hidden until Grammar Challenge League is complete.
-    ];
+    const visibleTypes = _kVisibleLeagueTypes;
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
@@ -397,38 +479,94 @@ class _LeagueContent extends StatelessWidget {
             onProfileTap: onProfileTap,
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Leaderboard',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              _LeaderboardSortControl(
-                selected: sort,
-                onChanged: onSortChanged,
-                onInfo: onSortInfo,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ...entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _LeagueRankTile(
-                entry: entry,
-                type: response.type,
-                sort: sort,
-                minimumAnswered: response.minimumAnswered,
-                onProfileTap: onProfileTap,
-              ),
-            ),
+          _LeagueLeaderboardCard(
+            type: response.type,
+            sort: sort,
+            minimumAnswered: response.minimumAnswered,
+            entries: entries,
+            onSortChanged: onSortChanged,
+            onSortInfo: onSortInfo,
+            onProfileTap: onProfileTap,
           ),
         ],
       ],
+    );
+  }
+}
+
+class _LeagueLeaderboardCard extends StatelessWidget {
+  const _LeagueLeaderboardCard({
+    required this.type,
+    required this.sort,
+    required this.minimumAnswered,
+    required this.entries,
+    required this.onSortChanged,
+    required this.onSortInfo,
+    required this.onProfileTap,
+  });
+
+  final LeagueType type;
+  final LeagueSort sort;
+  final int minimumAnswered;
+  final List<LeagueEntry> entries;
+  final ValueChanged<LeagueSort> onSortChanged;
+  final VoidCallback onSortInfo;
+  final ValueChanged<LeagueEntry> onProfileTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.55),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Leaderboard',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                _LeaderboardSortControl(
+                  selected: sort,
+                  onChanged: onSortChanged,
+                  onInfo: onSortInfo,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Column(
+              children: [
+                for (var i = 0; i < entries.length; i++) ...[
+                  _LeagueRankTile(
+                    entry: entries[i],
+                    type: type,
+                    sort: sort,
+                    minimumAnswered: minimumAnswered,
+                    onProfileTap: onProfileTap,
+                  ),
+                  if (i != entries.length - 1) const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -851,7 +989,7 @@ class _PodiumSlot extends StatelessWidget {
                         fontSize: compact ? 12 : null,
                       ),
                     ),
-                    SizedBox(height: compact ? 1 : 2),
+                    SizedBox(height: compact ? 7 : 9),
                     _LeagueScoreCard(
                       entry: e,
                       type: type,
@@ -887,7 +1025,7 @@ class _LeagueRankTile extends StatelessWidget {
     final needs = entry.neededAnswers(minimumAnswered);
     final reportHint = entry.grammarReportCount > 0 &&
             (type == LeagueType.grammar || type == LeagueType.all)
-        ? ' • ${entry.grammarReportCount} reports'
+        ? ' • helped ${entry.grammarReportCount}'
         : '';
     final subtitle = type == LeagueType.grammar
         ? entry.eligible
@@ -898,96 +1036,128 @@ class _LeagueRankTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => onProfileTap(entry),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
           decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(20),
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
-          child: Row(
-            children: [
-              _LeagueListRankBadge(rank: entry.rank, type: type),
-              ProfileAvatar(
-                avatarId: entry.avatar,
-                userId: entry.userId,
-                size: 48,
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: _LeagueListRankBadge(rank: entry.rank, type: type),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _LeagueScoreCard(entry: entry, type: type, sort: sort),
-                  const SizedBox(height: 5),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 104),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            _leagueGradient(type).colors.first.withValues(
-                              alpha: 0.72,
-                            ),
-                            _leagueAccent(type).withValues(alpha: 0.82),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        child: Text(
-                          _compactBadgeLabel(entry, type),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                Align(
+                  alignment: Alignment.center,
+                  child: ProfileAvatar(
+                    avatarId: entry.avatar,
+                    userId: entry.userId,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      entry.displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        height: 1.45,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 6),
+                _LeagueRankMetricsBlock(
+                  entry: entry,
+                  type: type,
+                  sort: sort,
+                  subtitle: subtitle,
+                  subtitleStyle: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LeagueRankMetricsBlock extends StatelessWidget {
+  const _LeagueRankMetricsBlock({
+    required this.entry,
+    required this.type,
+    required this.sort,
+    required this.subtitle,
+    required this.subtitleStyle,
+  });
+
+  final LeagueEntry entry;
+  final LeagueType type;
+  final LeagueSort sort;
+  final String subtitle;
+  final TextStyle subtitleStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicWidth(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _LeagueScoreCard(
+                  entry: entry,
+                  type: type,
+                  sort: sort,
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: _leagueScorePillDecoration(type),
+                  child: Text(
+                    _compactBadgeLabel(entry, type),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 11),
+          Text(
+            subtitle,
+            maxLines: 3,
+            textAlign: TextAlign.center,
+            style: subtitleStyle,
+          ),
+        ],
       ),
     );
   }
@@ -1016,6 +1186,7 @@ class _LeagueScoreCard extends StatelessWidget {
       decoration: _leagueScorePillDecoration(type),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             _scoreIcon(type, sort),
@@ -1287,12 +1458,13 @@ class _LeagueProfileDialog extends StatelessWidget {
                           value: '${entry.sessionCount}',
                           color: accent,
                         ),
-                        _LeagueDetailMetric(
-                          icon: Icons.outlined_flag_rounded,
-                          label: 'Reports',
-                          value: '${entry.grammarReportCount}',
-                          color: const Color(0xFFEA580C),
-                        ),
+                        if (type != LeagueType.vocab)
+                          _LeagueDetailMetric(
+                            icon: Icons.outlined_flag_rounded,
+                            label: 'Grammar help',
+                            value: '${entry.grammarReportCount}',
+                            color: const Color(0xFFEA580C),
+                          ),
                         if (showCompleted)
                           _LeagueDetailMetric(
                             icon: Icons.flag_rounded,
@@ -1493,7 +1665,7 @@ class _LeagueListRankBadge extends StatelessWidget {
             value,
             style: TextStyle(
               color: _rankBadgeForeground(rank),
-              fontSize: size >= 38 ? 16 : 14,
+              fontSize: size >= 38 ? 16 : 13,
               fontWeight: FontWeight.w900,
               height: 1,
             ),

@@ -348,6 +348,7 @@ class _HomeTrackBookPage extends ConsumerWidget {
                 ),
               );
             },
+            skipLoadingOnReload: true,
           ),
         ],
       ),
@@ -1086,44 +1087,58 @@ class _HomeLeagueFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        onTap: () => context.push('/league'),
-        child: Ink(
-          height: 52,
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 18, 0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF58529), Color(0xFFE1306C), Color(0xFF8134AF)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFE1306C).withValues(alpha: 0.26),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE1306C).withValues(alpha: 0.26),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.emoji_events_rounded, color: Colors.white, size: 24),
-              SizedBox(width: 8),
-              Text(
-                'League',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => context.push('/league'),
+            child: Ink(
+              height: 52,
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 18, 0),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFF58529),
+                    Color(0xFFE1306C),
+                    Color(0xFF8134AF),
+                  ],
                 ),
               ),
-            ],
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.emoji_events_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'League',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

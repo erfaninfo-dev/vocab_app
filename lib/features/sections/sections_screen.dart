@@ -2,23 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../data/models/section_info.dart';
+import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../quiz/widgets/book_vocab_quiz_fab.dart';
 
-class SectionsScreen extends ConsumerWidget {
+class SectionsScreen extends ConsumerStatefulWidget {
   const SectionsScreen({super.key, required this.bookId, required this.unit});
 
   final int bookId;
   final int unit;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SectionsScreen> createState() => _SectionsScreenState();
+}
+
+class _SectionsScreenState extends ConsumerState<SectionsScreen> {
+  Future<void> _onRefreshSections() async {
+    await reloadSectionsFromNetwork(
+      ref,
+      bookId: widget.bookId,
+      unit: widget.unit,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final sectionsValue = ref.watch(
-      apiSectionsProvider((bookId: bookId, unit: unit)),
+      apiSectionsProvider((bookId: widget.bookId, unit: widget.unit)),
     );
 
     final showQuizFab = sectionsValue.maybeWhen(
@@ -26,54 +41,86 @@ class SectionsScreen extends ConsumerWidget {
       orElse: () => false,
     );
 
-    return Scaffold(
+    final appBar = styledAppGradientAppBar(
+      context: context,
+      title: Text(l10n.unitLabel(widget.unit)),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_rounded),
+        tooltip: l10n.backToUnits,
+        onPressed: () =>
+            context.canPop() ? context.pop() : context.go('/home'),
+      ),
+    );
+    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 2);
+
+    return AppGradientScaffold(
       floatingActionButtonLocation:
           BookVocabQuizFab.floatingActionButtonLocation,
       floatingActionButton: showQuizFab
-          ? BookVocabQuizFab(bookId: bookId, unit: unit)
+          ? BookVocabQuizFab(bookId: widget.bookId, unit: widget.unit)
           : null,
-      appBar: AppBar(
-        title: Text(l10n.unitLabel(unit)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: l10n.backToUnits,
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/home'),
-        ),
-      ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [scheme.primary.withValues(alpha: 0.08), scheme.surface],
-          ),
-        ),
+      appBar: appBar,
+      body: RefreshIndicator(
+        onRefresh: _onRefreshSections,
         child: sectionsValue.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                l10n.couldNotLoadSectionsWithError('$error'),
-                textAlign: TextAlign.center,
+          loading: () => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(top: topInset),
+            children: const [
+              SizedBox(
+                height: 320,
+                child: Center(child: CircularProgressIndicator()),
               ),
-            ),
+            ],
+          ),
+          error: (error, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(top: topInset),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Text(
+                    l10n.couldNotLoadSectionsWithError('$error'),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: OutlinedButton.icon(
+                  onPressed: _onRefreshSections,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(l10n.retry),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
           data: (sections) {
             if (sections.isEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!context.mounted) return;
-                context.go('/books/$bookId/units/$unit/words');
+                context.go('/books/${widget.bookId}/units/${widget.unit}/words');
               });
-              return const Center(child: CircularProgressIndicator());
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(top: topInset),
+                children: const [
+                  SizedBox(
+                    height: 320,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ],
+              );
             }
             return _SectionList(
               l10n: l10n,
               sections: sections,
-              bookId: bookId,
-              unit: unit,
+              bookId: widget.bookId,
+              unit: widget.unit,
               showQuizFab: showQuizFab,
+              topInset: topInset,
             );
           },
         ),
@@ -89,6 +136,7 @@ class _SectionList extends StatelessWidget {
     required this.bookId,
     required this.unit,
     required this.showQuizFab,
+    required this.topInset,
   });
 
   final AppLocalizations l10n;
@@ -96,15 +144,19 @@ class _SectionList extends StatelessWidget {
   final int bookId;
   final int unit;
   final bool showQuizFab;
+  final double topInset;
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         padding: EdgeInsets.fromLTRB(
           16,
-          12,
+          topInset,
           16,
           showQuizFab ? BookVocabQuizFab.scrollBottomPadding(context) : 18,
         ),
