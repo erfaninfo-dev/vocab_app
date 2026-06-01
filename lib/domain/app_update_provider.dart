@@ -36,6 +36,7 @@ final appUpdateCheckProvider = FutureProvider<AppUpdateCheck>((ref) async {
 
   final manifest = await api.fetchAppUpdateManifest(
     installedVersion: local > 0 ? local : null,
+    installedVersionName: pkg.version,
   );
   if (manifest == null) {
     return AppUpdateCheck(

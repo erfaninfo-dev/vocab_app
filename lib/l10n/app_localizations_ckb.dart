@@ -2301,6 +2301,19 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get adminTeacherInvalid => 'هەژماری مامۆستایەکی دروست هەڵبژێرە.';
 
   @override
+  String adminUserAppInstalled(String version) {
+    return 'دامەزراو: $version';
+  }
+
+  @override
+  String adminUserAppActive(String version) {
+    return 'وەشانی چالاکی سێرڤەر: $version';
+  }
+
+  @override
+  String get adminUserAppVersionUnknown => 'هێشتا ڕاپۆرت نەکراوە';
+
+  @override
   String get adminNoUsers => 'هیچ بەکارهێنەرێک لە سێرڤەر نەهاتەوە.';
 
   @override

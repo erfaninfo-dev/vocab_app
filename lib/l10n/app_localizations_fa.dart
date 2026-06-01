@@ -2288,6 +2288,19 @@ class AppLocalizationsFa extends AppLocalizations {
   String get adminTeacherInvalid => 'یک حساب معلم معتبر انتخاب کنید.';
 
   @override
+  String adminUserAppInstalled(String version) {
+    return 'نصب‌شده: $version';
+  }
+
+  @override
+  String adminUserAppActive(String version) {
+    return 'نسخهٔ فعال سرور: $version';
+  }
+
+  @override
+  String get adminUserAppVersionUnknown => 'هنوز گزارش نشده';
+
+  @override
   String get adminNoUsers => 'کاربری از سرور برنگشت.';
 
   @override

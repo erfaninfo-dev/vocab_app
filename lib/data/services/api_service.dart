@@ -142,12 +142,18 @@ class ApiService {
   ///
   /// Pass [installedVersion] (buildNumber / versionCode) to receive
   /// `release_notes` for the Home banner for that installed build.
+  /// When logged in, Bearer + version fields report the user's installed build.
   Future<AppUpdateManifest?> fetchAppUpdateManifest({
     int? installedVersion,
+    String? installedVersionName,
   }) async {
     final query = <String, String>{};
     if (installedVersion != null && installedVersion > 0) {
       query['installed_version'] = '$installedVersion';
+      final name = installedVersionName?.trim();
+      if (name != null && name.isNotEmpty) {
+        query['installed_version_name'] = name;
+      }
     }
     final uri = Uri.parse(
       '$baseUrl/app_update.php',
@@ -1023,7 +1029,7 @@ class ApiService {
   }
 
   /// GET /admin_users.php — requires [authToken] and server `is_admin`.
-  Future<List<AdminUserRow>> fetchAdminUsers({String? q}) async {
+  Future<AdminUsersListResult> fetchAdminUsers({String? q}) async {
     final uri = Uri.parse('$baseUrl/admin_users.php').replace(
       queryParameters: (q != null && q.trim().isNotEmpty)
           ? {'q': q.trim()}
@@ -1033,9 +1039,15 @@ class ApiService {
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['users'] as List<dynamic>? ?? const [];
-    return list
+    final users = list
         .map((e) => AdminUserRow.fromJson(e as Map<String, dynamic>))
         .toList();
+    ActiveAppVersion? active;
+    final activeRaw = map['active_app_version'];
+    if (activeRaw is Map<String, dynamic>) {
+      active = ActiveAppVersion.fromJson(activeRaw);
+    }
+    return AdminUsersListResult(users: users, activeAppVersion: active);
   }
 
   /// POST /admin_user_student.php — requires admin. Student and/or teacher flags.

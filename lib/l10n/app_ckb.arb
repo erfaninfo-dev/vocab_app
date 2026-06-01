@@ -740,6 +740,19 @@
   "adminUpdated": "پاشەکەوت کرا",
   "adminAccessDenied": "دەستپێگەیشتنی بەڕێوەبەرت نییە.",
   "adminTeacherInvalid": "هەژماری مامۆستایەکی دروست هەڵبژێرە.",
+  "adminUserAppInstalled": "دامەزراو: {version}",
+  "@adminUserAppInstalled": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppActive": "وەشانی چالاکی سێرڤەر: {version}",
+  "@adminUserAppActive": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppVersionUnknown": "هێشتا ڕاپۆرت نەکراوە",
   "adminNoUsers": "هیچ بەکارهێنەرێک لە سێرڤەر نەهاتەوە.",
   "adminNoSearchResults": "بەکارهێنەر بەم گەڕانەوە نییە.",
   "adminRoleTeacher": "مامۆستا",

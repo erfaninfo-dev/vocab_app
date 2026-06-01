@@ -576,6 +576,122 @@ class _WordBuilderLeagueCard extends StatelessWidget {
         final iconBoxPadding = compact ? 9.0 : 11.0;
         final iconSize = compact ? 26.0 : 30.0;
         final gap = compact ? 9.0 : 12.0;
+        const cardRadius = 26.0;
+        final cardContent = Padding(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 13 : 16,
+            16,
+            compact ? 13 : 16,
+            14,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFB300), Color(0xFFE1306C)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFFE1306C,
+                          ).withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(iconBoxPadding),
+                      child: Icon(
+                        Icons.emoji_events_rounded,
+                        color: Colors.white,
+                        size: iconSize,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: gap),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Word Builder League',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.fredoka(
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w900,
+                            color: titleColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          compact
+                              ? 'Lifetime players and progress'
+                              : 'Lifetime players, coins, and level progress',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.fredoka(
+                            fontSize: subtitleSize,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: subColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _LeagueOpenArrow(color: titleColor),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _LeagueMetricPill(
+                      icon: Icons.monetization_on_rounded,
+                      label: 'Your coins',
+                      value: coins == null ? '-' : '$coins',
+                      isDark: isDark,
+                      compact: compact,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _LeagueMetricPill(
+                      icon: Icons.flag_rounded,
+                      label: 'Your level',
+                      value: _wordBuilderLeagueLevelLabel(_currentStage),
+                      isDark: isDark,
+                      compact: compact,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 360),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 14),
+                  child: _LeaguePreviewBody(
+                    leagueAsync: leagueAsync,
+                    signedIn: signedIn,
+                    isDark: isDark,
+                    scheme: scheme,
+                    expanded: false,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
         return GestureDetector(
           onVerticalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0;
@@ -583,157 +699,48 @@ class _WordBuilderLeagueCard extends StatelessWidget {
               _showWordBuilderLeagueOverlay(context);
             }
           },
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(26),
-              onTap: () => _showWordBuilderLeagueOverlay(context),
-              child: Ink(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(26),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: cardColors,
-                  ),
-                  border: Border.all(
-                    color: const Color(
-                      0xFFFFB300,
-                    ).withValues(alpha: isDark ? 0.7 : 0.95),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFFE1306C,
-                      ).withValues(alpha: isDark ? 0.28 : 0.18),
-                      blurRadius: 22,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 9),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.28 : 0.06,
-                      ),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(cardRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0xFFE1306C,
+                  ).withValues(alpha: isDark ? 0.28 : 0.18),
+                  blurRadius: 22,
+                  offset: const Offset(0, 9),
                 ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 13 : 16,
-                    16,
-                    compact ? 13 : 16,
-                    14,
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDark ? 0.28 : 0.06,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFB300), Color(0xFFE1306C)],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFE1306C,
-                                  ).withValues(alpha: 0.35),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(iconBoxPadding),
-                              child: Icon(
-                                Icons.emoji_events_rounded,
-                                color: Colors.white,
-                                size: iconSize,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Word Builder League',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: titleSize,
-                                    fontWeight: FontWeight.w900,
-                                    color: titleColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  compact
-                                      ? 'Lifetime players and progress'
-                                      : 'Lifetime players, coins, and level progress',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: subtitleSize,
-                                    height: 1.2,
-                          fontWeight: FontWeight.w700,
-                                    color: subColor,
-                        ),
-                      ),
-                    ],
-                  ),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
                 ),
-                          _LeagueOpenArrow(color: titleColor),
-                        ],
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(cardRadius),
+              child: Material(
+                color: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => _showWordBuilderLeagueOverlay(context),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: cardColors,
                       ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _LeagueMetricPill(
-                              icon: Icons.monetization_on_rounded,
-                              label: 'Your coins',
-                              value: coins == null ? '-' : '$coins',
-                              isDark: isDark,
-                              compact: compact,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _LeagueMetricPill(
-                              icon: Icons.flag_rounded,
-                              label: 'Your level',
-                              value: _wordBuilderLeagueLevelLabel(
-                                _currentStage,
-                              ),
-                              isDark: isDark,
-                              compact: compact,
-                            ),
-                          ),
-                        ],
+                      border: Border.all(
+                        color: const Color(
+                          0xFFFFB300,
+                        ).withValues(alpha: isDark ? 0.7 : 0.95),
+                        width: 2,
                       ),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 360),
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment.topCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: _LeaguePreviewBody(
-                            leagueAsync: leagueAsync,
-                            signedIn: signedIn,
-                            isDark: isDark,
-                            scheme: scheme,
-                            expanded: false,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    child: cardContent,
                   ),
                 ),
               ),

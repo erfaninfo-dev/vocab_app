@@ -8,7 +8,7 @@ Place MP3 (or WAV/OGG) files in this folder. If a file is missing, playback is s
 |------|---------|------------------|
 | `page_flip.mp3` | Paper page-turn when swiping in book reader | ~0.2–0.5 s |
 
-Toggle in book mode footer (speaker icon, bottom-left). Preference key: `sample_book_page_sound_enabled_v1` (default on).
+Toggle in book mode header (speaker icon, top-left beside title). Preference key: `sample_book_page_sound_enabled_v1` (default on).
 
 ## Splash
 

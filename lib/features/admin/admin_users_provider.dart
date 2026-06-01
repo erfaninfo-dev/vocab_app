@@ -6,7 +6,7 @@ import '../../data/services/api_service.dart';
 import '../../domain/api_remote_data_epoch.dart';
 
 final adminUsersListProvider =
-    FutureProvider.autoDispose<List<AdminUserRow>>((ref) async {
+    FutureProvider.autoDispose<AdminUsersListResult>((ref) async {
   ref.watch(apiRemoteDataEpochProvider);
   final session = ref.watch(authProvider).valueOrNull;
   if (session == null) {

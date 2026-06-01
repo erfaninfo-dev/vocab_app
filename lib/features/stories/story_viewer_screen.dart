@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +11,7 @@ import '../../data/models/admin_story.dart';
 import '../../data/services/api_service.dart';
 import '../../domain/api_providers.dart';
 import 'story_fonts.dart';
+import 'story_image_scale.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
 
@@ -30,26 +30,33 @@ class StoryViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _progress;
+  AnimationController? _zoomSnapController;
   final TextEditingController _replyController = TextEditingController();
   final FocusNode _replyFocusNode = FocusNode();
   var _index = 0;
   var _markedStoryId = -1;
   var _initialStoryApplied = false;
   final _loadedImageStoryIds = <int>{};
+  final _imageLoadFailedStoryIds = <int>{};
+  final _imageLoadRetryTokenByStoryId = <int, int>{};
   final _imageLoadProgressByStoryId = <int, double>{};
   var _sendingReply = false;
-  var _replyComposerActive = false;
   int? _votingPollId;
   String? _votingOptionId;
   int? _answeringGrammarGameId;
   String? _answeringGrammarOptionId;
   List<StoryItem>? _sessionStories;
+  final TransformationController _storyZoomController = TransformationController();
+  var _storyZoomInteracting = false;
+
+  static const _storyMaxZoom = 4.0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _progress =
         AnimationController(vsync: this, duration: const Duration(seconds: 6))
           ..addStatusListener((status) {
@@ -63,7 +70,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _replyFocusNode.removeListener(_handleReplyFocusChanged);
+    _cancelZoomSnap();
+    _storyZoomController.dispose();
     _replyController.dispose();
     _replyFocusNode.dispose();
     _progress.dispose();
@@ -71,32 +81,110 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   void _handleReplyFocusChanged() {
+    if (!mounted) return;
     if (_replyFocusNode.hasFocus) {
-      if (!_replyComposerActive) {
-        setState(() => _replyComposerActive = true);
-      }
       _pauseProgress();
-    } else if (_replyComposerActive) {
-      setState(() => _replyComposerActive = false);
+    } else {
       _resumeProgress();
     }
+    setState(() {});
   }
 
-  void _activateReplyComposer() {
-    if (!_replyComposerActive) {
-      setState(() => _replyComposerActive = true);
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted) return;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (keyboardOpen) {
+      _pauseProgress();
+    } else if (!_replyFocusNode.hasFocus) {
+      _resumeProgress();
     }
-    _pauseProgress();
-    if (!_replyFocusNode.hasFocus) {
-      _replyFocusNode.requestFocus();
-    }
+    setState(() {});
   }
+
+  bool _isReplyComposerOpen(BuildContext context) {
+    return _replyFocusNode.hasFocus ||
+        MediaQuery.viewInsetsOf(context).bottom > 0;
+  }
+
+  void _handleStoryZoomInteractionStart() {
+    _cancelZoomSnap();
+    _storyZoomInteracting = true;
+    _pauseProgress();
+    setState(() {});
+  }
+
+  void _handleStoryZoomInteractionEnd() {
+    if (!_storyZoomInteracting &&
+        _storyZoomController.value.getMaxScaleOnAxis() <= 1.01) {
+      if (!_replyFocusNode.hasFocus) _resumeProgress();
+      return;
+    }
+    _startZoomSnapBack();
+  }
+
+  void _cancelZoomSnap() {
+    _zoomSnapController?.stop();
+    _zoomSnapController?.dispose();
+    _zoomSnapController = null;
+  }
+
+  void _startZoomSnapBack() {
+    _cancelZoomSnap();
+    final begin = Matrix4.copy(_storyZoomController.value);
+    if (begin.getMaxScaleOnAxis() <= 1.01 &&
+        begin.getTranslation().length2 <= 0.5) {
+      _finishZoomInteraction();
+      return;
+    }
+    _zoomSnapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    );
+    final animation = Matrix4Tween(begin: begin, end: Matrix4.identity())
+        .animate(
+          CurvedAnimation(
+            parent: _zoomSnapController!,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+    void listener() {
+      if (!mounted) return;
+      _storyZoomController.value = animation.value;
+    }
+
+    animation.addListener(listener);
+    _zoomSnapController!.addStatusListener((status) {
+      if (status != AnimationStatus.completed) return;
+      animation.removeListener(listener);
+      _finishZoomInteraction();
+    });
+    _zoomSnapController!.forward();
+  }
+
+  void _finishZoomInteraction() {
+    _cancelZoomSnap();
+    _storyZoomController.value = Matrix4.identity();
+    if (!_storyZoomInteracting) return;
+    _storyZoomInteracting = false;
+    if (!mounted) return;
+    setState(() {});
+    if (!_replyFocusNode.hasFocus) _resumeProgress();
+  }
+
+  void _resetStoryZoom() {
+    _cancelZoomSnap();
+    _storyZoomController.value = Matrix4.identity();
+    _storyZoomInteracting = false;
+  }
+
+  bool get _isStoryZoomActive =>
+      _storyZoomInteracting || (_zoomSnapController?.isAnimating ?? false);
 
   bool _dismissReplyComposerIfOpen() {
-    if (!_replyComposerActive && !_replyFocusNode.hasFocus) return false;
-    _replyComposerActive = false;
+    if (!_replyFocusNode.hasFocus) return false;
     _replyFocusNode.unfocus();
-    _resumeProgress();
     return true;
   }
 
@@ -188,6 +276,11 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   void _next() {
+    if (_isStoryZoomActive) {
+      _resetStoryZoom();
+      setState(() {});
+      return;
+    }
     if (_dismissReplyComposerIfOpen()) return;
     final stories = _stories;
     if (stories.isEmpty) return;
@@ -196,14 +289,19 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       return;
     }
     _replyController.clear();
-    _replyComposerActive = false;
     _replyFocusNode.unfocus();
+    _resetStoryZoom();
     setState(() => _index++);
     _markCurrentViewed();
     _startStoryProgress(stories[_index]);
   }
 
   void _previous() {
+    if (_isStoryZoomActive) {
+      _resetStoryZoom();
+      setState(() {});
+      return;
+    }
     if (_dismissReplyComposerIfOpen()) return;
     final stories = _stories;
     if (stories.isEmpty) return;
@@ -213,8 +311,8 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       return;
     }
     _replyController.clear();
-    _replyComposerActive = false;
     _replyFocusNode.unfocus();
+    _resetStoryZoom();
     setState(() => _index--);
     _markCurrentViewed();
     _startStoryProgress(stories[_index]);
@@ -359,6 +457,24 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     return _loadedImageStoryIds.contains(story.id);
   }
 
+  void _markImageLoadFailed(StoryItem story) {
+    if (_imageLoadFailedStoryIds.contains(story.id)) return;
+    setState(() {
+      _imageLoadFailedStoryIds.add(story.id);
+      _imageLoadProgressByStoryId.remove(story.id);
+    });
+  }
+
+  void _retryStoryImageLoad(StoryItem story) {
+    setState(() {
+      _imageLoadFailedStoryIds.remove(story.id);
+      _loadedImageStoryIds.remove(story.id);
+      _imageLoadProgressByStoryId.remove(story.id);
+      _imageLoadRetryTokenByStoryId[story.id] =
+          (_imageLoadRetryTokenByStoryId[story.id] ?? 0) + 1;
+    });
+  }
+
   void _setStoryImageLoadProgress(StoryItem story, double? progress) {
     if (!_storyHasLoadableImage(story) ||
         _loadedImageStoryIds.contains(story.id)) {
@@ -416,7 +532,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   bool _shouldKeepProgressPaused({StoryItem? story, bool? imageReady}) {
-    if (_replyComposerActive || _replyFocusNode.hasFocus || _sendingReply) {
+    if (!mounted) return false;
+    if (_isReplyComposerOpen(context) ||
+        _sendingReply ||
+        _isStoryZoomActive) {
       return true;
     }
     if (_votingPollId != null || _answeringGrammarGameId != null) return true;
@@ -536,6 +655,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
           final imageReady = _isStoryImageReady(story);
           final expectsImage = _storyExpectsImage(story);
           final canReply = session != null && story.adminUserId > 0;
+          final zoomEnabled = story.textStyle.grammarGame == null;
           _syncProgressForStory(story, imageReady: imageReady);
           final replyPanelHeight = 70.0 + MediaQuery.paddingOf(context).bottom;
           final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -553,68 +673,92 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
               children: [
                 Positioned.fill(
                   bottom: replyPanelHeight,
-                  child: _StoryBody(
-                    story: story,
-                    imageReady: imageReady,
-                    imageLoadProgress: _imageLoadProgressByStoryId[story.id],
-                    onImageLoadProgress: (progress) =>
-                        _setStoryImageLoadProgress(story, progress),
-                    onImageLoadComplete: () => _completeStoryImageLoad(story),
+                  child: _StoryZoomableCanvas(
+                    controller: _storyZoomController,
+                    enabled: zoomEnabled,
+                    maxScale: _storyMaxZoom,
+                    onInteractionStart: _handleStoryZoomInteractionStart,
+                    onInteractionEnd: _handleStoryZoomInteractionEnd,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _StoryBody(
+                          story: story,
+                          imageReady: imageReady,
+                          imageLoadProgress:
+                              _imageLoadProgressByStoryId[story.id],
+                          onImageLoadProgress: (progress) =>
+                              _setStoryImageLoadProgress(story, progress),
+                          onImageLoadComplete: () =>
+                              _completeStoryImageLoad(story),
+                          onImageLoadFailed: () => _markImageLoadFailed(story),
+                          imageLoadRetryToken:
+                              _imageLoadRetryTokenByStoryId[story.id] ?? 0,
+                        ),
+                        if (imageReady && story.textStyle.poll != null)
+                          _ViewerPollOverlay(
+                            story: story,
+                            poll: story.textStyle.poll!,
+                            isOwnAdminStory: isOwnAdminStory,
+                            votingPollId: _votingPollId,
+                            votingOptionId: _votingOptionId,
+                            onVote: (optionId) => _votePoll(
+                              story,
+                              story.textStyle.poll!,
+                              optionId,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-                Positioned.fill(
-                  bottom: replyPanelHeight,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onTapDown: (_) => _pauseProgress(),
-                          onTapUp: (_) => _resumeProgress(),
-                          onTapCancel: _resumeProgress,
-                          onTap: _previous,
-                          onLongPressStart: (_) => _pauseProgress(),
-                          onLongPressEnd: (_) => _resumeProgress(),
-                          onLongPressCancel: _resumeProgress,
-                          child: const SizedBox.expand(),
+                if (!_isStoryZoomActive)
+                  Positioned.fill(
+                    bottom: replyPanelHeight,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTapDown: (_) => _pauseProgress(),
+                            onTapUp: (_) => _resumeProgress(),
+                            onTapCancel: _resumeProgress,
+                            onTap: _previous,
+                            onLongPressStart: (_) => _pauseProgress(),
+                            onLongPressEnd: (_) => _resumeProgress(),
+                            onLongPressCancel: _resumeProgress,
+                            child: const SizedBox.expand(),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onTapDown: (_) => _pauseProgress(),
-                          onTapUp: (_) => _resumeProgress(),
-                          onTapCancel: _resumeProgress,
-                          onTap: _next,
-                          onLongPressStart: (_) => _pauseProgress(),
-                          onLongPressEnd: (_) => _resumeProgress(),
-                          onLongPressCancel: _resumeProgress,
-                          child: const SizedBox.expand(),
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTapDown: (_) => _pauseProgress(),
+                            onTapUp: (_) => _resumeProgress(),
+                            onTapCancel: _resumeProgress,
+                            onTap: _next,
+                            onLongPressStart: (_) => _pauseProgress(),
+                            onLongPressEnd: (_) => _resumeProgress(),
+                            onLongPressCancel: _resumeProgress,
+                            child: const SizedBox.expand(),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
                 if (expectsImage && !imageReady)
                   Positioned.fill(
                     bottom: replyPanelHeight,
-                    child: _StoryImageBlockingLoadingOverlay(
-                      style: story.textStyle,
-                      progress: _imageLoadProgressByStoryId[story.id],
-                    ),
-                  ),
-                if (imageReady && story.textStyle.poll != null)
-                  Positioned.fill(
-                    bottom: replyPanelHeight,
-                    child: _ViewerPollOverlay(
-                      story: story,
-                      poll: story.textStyle.poll!,
-                      isOwnAdminStory: isOwnAdminStory,
-                      votingPollId: _votingPollId,
-                      votingOptionId: _votingOptionId,
-                      onVote: (optionId) =>
-                          _votePoll(story, story.textStyle.poll!, optionId),
-                    ),
+                    child: _imageLoadFailedStoryIds.contains(story.id)
+                        ? Center(
+                            child: _StoryImageErrorFrame(
+                              style: story.textStyle,
+                              onRetry: () => _retryStoryImageLoad(story),
+                            ),
+                          )
+                        : _StoryImageBlockingLoadingOverlay(
+                            progress: _imageLoadProgressByStoryId[story.id],
+                          ),
                   ),
                 if (imageReady && story.textStyle.grammarGame != null)
                   Positioned.fill(
@@ -666,7 +810,6 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                     sending: _sendingReply,
                     liked: story.liked,
                     isOwnAdminStory: isOwnAdminStory,
-                    onComposerActivate: _activateReplyComposer,
                     onSubmitted: (_) => _sendStoryReply(story),
                     onLike: () => _toggleLike(story),
                     onAudience: isOwnAdminStory
@@ -694,7 +837,6 @@ class _StoryReplyPanel extends StatefulWidget {
     required this.sending,
     required this.liked,
     required this.isOwnAdminStory,
-    required this.onComposerActivate,
     required this.onSubmitted,
     required this.onLike,
     required this.onAudience,
@@ -707,7 +849,6 @@ class _StoryReplyPanel extends StatefulWidget {
   final bool sending;
   final bool liked;
   final bool isOwnAdminStory;
-  final VoidCallback onComposerActivate;
   final ValueChanged<String> onSubmitted;
   final VoidCallback onLike;
   final VoidCallback? onAudience;
@@ -761,7 +902,7 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = keyboardInset > 0;
-    final focused = widget.focusNode.hasFocus;
+    final focused = widget.focusNode.hasFocus || keyboardOpen;
     final hasText = widget.controller.text.trim().isNotEmpty;
     final showInlineSend = focused && (hasText || widget.sending);
     return AnimatedContainer(
@@ -773,7 +914,7 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           focused ? 12 : 9,
-          focused ? 8 : 8,
+          8,
           focused ? 12 : 9,
           (focused ? 10 : 14) + (keyboardOpen ? 0 : bottom),
         ),
@@ -812,9 +953,9 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
                     enableInteractiveSelection: widget.enabled,
                     cursorColor: Colors.white,
                     textInputAction: TextInputAction.send,
+                    scrollPadding: EdgeInsets.zero,
                     minLines: 1,
                     maxLines: 1,
-                    onTap: widget.onComposerActivate,
                     onSubmitted: (_) => _submit(),
                     style: const TextStyle(
                       color: Colors.white,
@@ -973,6 +1114,40 @@ class _InlineReplySendButton extends StatelessWidget {
   }
 }
 
+class _StoryZoomableCanvas extends StatelessWidget {
+  const _StoryZoomableCanvas({
+    required this.controller,
+    required this.enabled,
+    required this.maxScale,
+    required this.onInteractionStart,
+    required this.onInteractionEnd,
+    required this.child,
+  });
+
+  final TransformationController controller;
+  final bool enabled;
+  final double maxScale;
+  final VoidCallback onInteractionStart;
+  final VoidCallback onInteractionEnd;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    return InteractiveViewer(
+      transformationController: controller,
+      clipBehavior: Clip.hardEdge,
+      panEnabled: true,
+      scaleEnabled: true,
+      minScale: 1,
+      maxScale: maxScale,
+      onInteractionStart: (_) => onInteractionStart(),
+      onInteractionEnd: (_) => onInteractionEnd(),
+      child: child,
+    );
+  }
+}
+
 class _StoryBody extends StatelessWidget {
   const _StoryBody({
     required this.story,
@@ -980,6 +1155,8 @@ class _StoryBody extends StatelessWidget {
     required this.imageLoadProgress,
     required this.onImageLoadProgress,
     required this.onImageLoadComplete,
+    required this.onImageLoadFailed,
+    required this.imageLoadRetryToken,
   });
 
   final StoryItem story;
@@ -987,6 +1164,8 @@ class _StoryBody extends StatelessWidget {
   final double? imageLoadProgress;
   final ValueChanged<double?> onImageLoadProgress;
   final VoidCallback onImageLoadComplete;
+  final VoidCallback onImageLoadFailed;
+  final int imageLoadRetryToken;
 
   @override
   Widget build(BuildContext context) {
@@ -998,18 +1177,25 @@ class _StoryBody extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            if (imagePath.isNotEmpty)
-              _StoryImage(
+            _StoryTextBackground(style: story.textStyle),
+            if (imagePath.isNotEmpty && !imageReady)
+              Offstage(
+                child: _StoryImagePrefetch(
+                  key: ValueKey(
+                    'prefetch_${story.id}_${story.imagePath}_$imageLoadRetryToken',
+                  ),
+                  imagePath: imagePath,
+                  onProgress: onImageLoadProgress,
+                  onComplete: onImageLoadComplete,
+                  onFailed: onImageLoadFailed,
+                ),
+              ),
+            if (imagePath.isNotEmpty && imageReady)
+              _StoryImageDisplay(
                 imagePath: imagePath,
                 transform: story.textStyle.imageTransform,
                 style: story.textStyle,
-                ready: imageReady,
-                progress: imageLoadProgress,
-                onProgress: onImageLoadProgress,
-                onComplete: onImageLoadComplete,
-              )
-            else
-              _StoryTextBackground(style: story.textStyle),
+              ),
             if (imageReady && layers.isNotEmpty)
               for (final layer in layers)
                 _StoryLayerView(layer: layer, canvasSize: size)
@@ -1378,35 +1564,74 @@ class _GrammarGameOptionButton extends StatelessWidget {
   }
 }
 
-class _StoryImage extends StatefulWidget {
-  const _StoryImage({
+class _StoryImagePrefetch extends StatefulWidget {
+  const _StoryImagePrefetch({
+    super.key,
+    required this.imagePath,
+    required this.onProgress,
+    required this.onComplete,
+    required this.onFailed,
+  });
+
+  final String imagePath;
+  final ValueChanged<double?> onProgress;
+  final VoidCallback onComplete;
+  final VoidCallback onFailed;
+
+  @override
+  State<_StoryImagePrefetch> createState() => _StoryImagePrefetchState();
+}
+
+class _StoryImagePrefetchState extends State<_StoryImagePrefetch> {
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = apiAbsoluteMediaUrl(widget.imagePath);
+    return Image.network(
+      imageUrl,
+      headers: const {'Connection': 'close'},
+      gaplessPlayback: true,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) {
+          widget.onComplete();
+        }
+        return const SizedBox.shrink();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        final currentProgress = _imageChunkProgress(loadingProgress);
+        if (loadingProgress != null) {
+          widget.onProgress(currentProgress);
+        }
+        return const SizedBox.shrink();
+      },
+      errorBuilder: (_, __, ___) {
+        widget.onProgress(null);
+        widget.onFailed();
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class _StoryImageDisplay extends StatefulWidget {
+  const _StoryImageDisplay({
     required this.imagePath,
     required this.transform,
     required this.style,
-    required this.ready,
-    required this.progress,
-    required this.onProgress,
-    required this.onComplete,
   });
 
   final String imagePath;
   final StoryImageTransform transform;
   final StoryTextStyle style;
-  final bool ready;
-  final double? progress;
-  final ValueChanged<double?> onProgress;
-  final VoidCallback onComplete;
 
   @override
-  State<_StoryImage> createState() => _StoryImageState();
+  State<_StoryImageDisplay> createState() => _StoryImageDisplayState();
 }
 
-class _StoryImageState extends State<_StoryImage> {
+class _StoryImageDisplayState extends State<_StoryImageDisplay> {
   var _retryToken = 0;
 
   void _retry() {
     setState(() => _retryToken++);
-    widget.onProgress(null);
   }
 
   @override
@@ -1414,71 +1639,38 @@ class _StoryImageState extends State<_StoryImage> {
     final imageUrl = apiAbsoluteMediaUrl(widget.imagePath);
     return LayoutBuilder(
       builder: (context, constraints) {
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(widget.style.backgroundStart),
-                Color(widget.style.backgroundEnd),
-              ],
+        return ClipRect(
+          child: Transform.translate(
+            offset: Offset(
+              widget.transform.x * constraints.maxWidth,
+              widget.transform.y * constraints.maxHeight,
             ),
-          ),
-          child: ClipRect(
-            child: Transform.translate(
-              offset: Offset(
-                widget.transform.x * constraints.maxWidth,
-                widget.transform.y * constraints.maxHeight,
+            child: Transform.scale(
+              scale: storyImageEffectiveScale(
+                canvasSize: Size(constraints.maxWidth, constraints.maxHeight),
+                imageScale: widget.transform.scale,
+                aspectRatio: widget.transform.aspectRatio,
               ),
-              child: Transform.scale(
-                scale: _storyImageEffectiveScale(
-                  canvasSize: Size(constraints.maxWidth, constraints.maxHeight),
-                  imageScale: widget.transform.scale,
-                  aspectRatio: widget.transform.aspectRatio,
-                ),
-                child: SizedBox(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  child: _StoryImageLoadingFrame(
-                    ready: widget.ready,
-                    progress: widget.progress,
-                    style: widget.style,
-                    child: FittedBox(
-                      fit: widget.transform.aspectRatio > 0
-                          ? BoxFit.contain
-                          : _storyImageFitForScale(widget.transform.scale),
-                      child: Image.network(
-                        imageUrl,
-                        key: ValueKey(
-                          'story_image_${widget.imagePath}_$_retryToken',
-                        ),
-                        headers: const {'Connection': 'close'},
-                        frameBuilder:
-                            (context, child, frame, wasSynchronouslyLoaded) {
-                              if (wasSynchronouslyLoaded || frame != null) {
-                                widget.onComplete();
-                              }
-                              return child;
-                            },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          final currentProgress = _imageChunkProgress(
-                            loadingProgress,
-                          );
-                          if (loadingProgress != null) {
-                            widget.onProgress(currentProgress);
-                          }
-                          return child;
-                        },
-                        errorBuilder: (_, __, ___) {
-                          widget.onProgress(null);
-                          return _StoryImageErrorFrame(
-                            style: widget.style,
-                            onRetry: _retry,
-                          );
-                        },
-                      ),
+              child: SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: FittedBox(
+                  fit: widget.transform.aspectRatio > 0
+                      ? BoxFit.contain
+                      : storyImageFitForScale(widget.transform.scale),
+                  child: Image.network(
+                    imageUrl,
+                    key: ValueKey(
+                      'story_image_${widget.imagePath}_$_retryToken',
                     ),
+                    headers: const {'Connection': 'close'},
+                    gaplessPlayback: true,
+                    errorBuilder: (_, __, ___) {
+                      return _StoryImageErrorFrame(
+                        style: widget.style,
+                        onRetry: _retry,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1488,31 +1680,6 @@ class _StoryImageState extends State<_StoryImage> {
       },
     );
   }
-}
-
-BoxFit _storyImageFitForScale(double scale) {
-  return scale < 0.995 ? BoxFit.contain : BoxFit.cover;
-}
-
-double _storyImageEffectiveScale({
-  required Size canvasSize,
-  required double imageScale,
-  required double aspectRatio,
-}) {
-  if (aspectRatio <= 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
-    return imageScale;
-  }
-  final canvasAspectRatio = canvasSize.width / canvasSize.height;
-  final coverScale = math.max(
-    aspectRatio / canvasAspectRatio,
-    canvasAspectRatio / aspectRatio,
-  );
-  if (imageScale >= 1) return coverScale * imageScale;
-  const minImageScale = 0.45;
-  final t = ((imageScale - minImageScale) / (1 - minImageScale))
-      .clamp(0.0, 1.0)
-      .toDouble();
-  return 1 + ((coverScale - 1) * t);
 }
 
 class _StoryImageErrorFrame extends StatelessWidget {
@@ -1564,37 +1731,14 @@ class _StoryImageErrorFrame extends StatelessWidget {
 }
 
 class _StoryImageBlockingLoadingOverlay extends StatelessWidget {
-  const _StoryImageBlockingLoadingOverlay({
-    required this.style,
-    required this.progress,
-  });
+  const _StoryImageBlockingLoadingOverlay({required this.progress});
 
-  final StoryTextStyle style;
   final double? progress;
 
   @override
   Widget build(BuildContext context) {
-    final p = progress?.clamp(0.0, 1.0).toDouble() ?? 0.0;
-    final blurSigma = math.max(2.0, 22.0 * (1 - p));
     return IgnorePointer(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(
-              sigmaX: blurSigma,
-              sigmaY: blurSigma,
-            ),
-            child: _StoryImageLoadingBackdrop(style: style),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.34 - (0.14 * p)),
-            ),
-            child: Center(child: _StoryImageCircularLoader(progress: progress)),
-          ),
-        ],
-      ),
+      child: Center(child: _StoryImageCircularLoader(progress: progress)),
     );
   }
 }
@@ -1604,96 +1748,6 @@ double? _imageChunkProgress(ImageChunkEvent? progress) {
   return (progress.cumulativeBytesLoaded / progress.expectedTotalBytes!)
       .clamp(0.0, 1.0)
       .toDouble();
-}
-
-class _StoryImageLoadingFrame extends StatelessWidget {
-  const _StoryImageLoadingFrame({
-    required this.ready,
-    required this.progress,
-    required this.style,
-    required this.child,
-  });
-
-  final bool ready;
-  final double? progress;
-  final StoryTextStyle style;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveProgress = ready ? 1.0 : progress;
-    final blurSigma = ready
-        ? 0.0
-        : math.max(3.0, 18.0 * (1 - (effectiveProgress ?? 0)));
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 180),
-          opacity: ready ? 1 : 0,
-          child: child,
-        ),
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 180),
-          opacity: ready ? 0 : 1,
-          child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(
-              sigmaX: blurSigma,
-              sigmaY: blurSigma,
-            ),
-            child: _StoryImageLoadingBackdrop(style: style),
-          ),
-        ),
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 180),
-          opacity: ready ? 0 : 1,
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.18),
-              ),
-              child: Center(
-                child: _StoryImageCircularLoader(progress: progress),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StoryImageLoadingBackdrop extends StatelessWidget {
-  const _StoryImageLoadingBackdrop({required this.style});
-
-  final StoryTextStyle style;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.scale(
-      scale: 1.08,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(style.backgroundStart), Color(style.backgroundEnd)],
-          ),
-        ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              radius: 0.82,
-              colors: [
-                Colors.white.withValues(alpha: 0.16),
-                Colors.black.withValues(alpha: 0.20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _StoryImageCircularLoader extends StatefulWidget {
@@ -1757,28 +1811,14 @@ class _StoryImageCircularLoaderState extends State<_StoryImageCircularLoader>
           child: Transform.scale(scale: scale, child: child),
         );
       },
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.20 + (0.10 * p)),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.10 + (0.18 * p)),
-          ),
-        ),
-        child: SizedBox.square(
-          dimension: 72,
-          child: Center(
-            child: SizedBox.square(
-              dimension: 50,
-              child: CircularProgressIndicator(
-                value: p,
-                strokeWidth: 4,
-                strokeCap: StrokeCap.round,
-                backgroundColor: Colors.white.withValues(alpha: 0.14),
-                color: Colors.white.withValues(alpha: indicatorOpacity),
-              ),
-            ),
-          ),
+      child: SizedBox.square(
+        dimension: 52,
+        child: CircularProgressIndicator(
+          value: _waitingForProgress ? null : p,
+          strokeWidth: 3.5,
+          strokeCap: StrokeCap.round,
+          backgroundColor: Colors.white.withValues(alpha: 0.18),
+          color: Colors.white.withValues(alpha: indicatorOpacity),
         ),
       ),
     );

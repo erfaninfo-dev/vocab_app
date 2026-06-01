@@ -740,6 +740,19 @@
   "adminUpdated": "ذخیره شد",
   "adminAccessDenied": "دسترسی ادمین ندارید.",
   "adminTeacherInvalid": "یک حساب معلم معتبر انتخاب کنید.",
+  "adminUserAppInstalled": "نصب‌شده: {version}",
+  "@adminUserAppInstalled": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppActive": "نسخهٔ فعال سرور: {version}",
+  "@adminUserAppActive": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppVersionUnknown": "هنوز گزارش نشده",
   "adminNoUsers": "کاربری از سرور برنگشت.",
   "adminNoSearchResults": "کاربری با این جستجو پیدا نشد.",
   "adminRoleTeacher": "معلم",

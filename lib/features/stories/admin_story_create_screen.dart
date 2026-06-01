@@ -15,6 +15,7 @@ import '../../data/models/admin_user_row.dart';
 import '../../domain/api_providers.dart';
 import '../admin/admin_users_provider.dart';
 import 'story_fonts.dart';
+import 'story_image_scale.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
 
@@ -487,7 +488,10 @@ class _AdminStoryCreateScreenState
       _imageTransform = StoryImageTransform(
         x: nextX,
         y: nextY,
-        scale: (start.scale * details.scale).clamp(0.45, 4.0),
+        scale: (start.scale * details.scale).clamp(
+          kStoryImagePinchMinScale,
+          kStoryImagePinchMaxScale,
+        ),
         aspectRatio: start.aspectRatio,
       );
       _deleteTargetActive = _isImageOverDeleteTarget(
@@ -1191,7 +1195,7 @@ class _StoryBackground extends StatelessWidget {
                   imageTransform.y * constraints.maxHeight,
                 ),
                 child: Transform.scale(
-                  scale: _storyImageEffectiveScale(
+                  scale: storyImageEffectiveScale(
                     canvasSize: Size(
                       constraints.maxWidth,
                       constraints.maxHeight,
@@ -1205,7 +1209,7 @@ class _StoryBackground extends StatelessWidget {
                     child: FittedBox(
                       fit: imageTransform.aspectRatio > 0
                           ? BoxFit.contain
-                          : _storyImageFitForScale(imageTransform.scale),
+                          : storyImageFitForScale(imageTransform.scale),
                       child: Image.memory(imageBytes!),
                     ),
                   ),
@@ -1226,31 +1230,6 @@ class _StoryBackground extends StatelessWidget {
       ),
     );
   }
-}
-
-BoxFit _storyImageFitForScale(double scale) {
-  return scale < 0.995 ? BoxFit.contain : BoxFit.cover;
-}
-
-double _storyImageEffectiveScale({
-  required Size canvasSize,
-  required double imageScale,
-  required double aspectRatio,
-}) {
-  if (aspectRatio <= 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
-    return imageScale;
-  }
-  final canvasAspectRatio = canvasSize.width / canvasSize.height;
-  final coverScale = math.max(
-    aspectRatio / canvasAspectRatio,
-    canvasAspectRatio / aspectRatio,
-  );
-  if (imageScale >= 1) return coverScale * imageScale;
-  const minImageScale = 0.45;
-  final t = ((imageScale - minImageScale) / (1 - minImageScale))
-      .clamp(0.0, 1.0)
-      .toDouble();
-  return 1 + ((coverScale - 1) * t);
 }
 
 class _StoryTextSizeScrubber extends StatefulWidget {
@@ -2860,8 +2839,8 @@ class _SpecificUsersSheetState extends ConsumerState<_SpecificUsersSheet> {
                         const Center(child: CircularProgressIndicator()),
                     error: (_, __) =>
                         const Center(child: Text('Could not load users')),
-                    data: (users) => _AudiencePicker(
-                      users: users,
+                    data: (page) => _AudiencePicker(
+                      users: page.users,
                       selected: widget.selectedUsers,
                       scrollController: scrollController,
                       query: _search.text,

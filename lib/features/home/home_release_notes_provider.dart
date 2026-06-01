@@ -29,7 +29,10 @@ final homeReleaseNotesProvider =
   }
 
   final api = ref.watch(apiServiceProvider);
-  final manifest = await api.fetchAppUpdateManifest(installedVersion: build);
+  final manifest = await api.fetchAppUpdateManifest(
+    installedVersion: build,
+    installedVersionName: pkg.version,
+  );
   if (manifest == null) return null;
 
   final locale = ref.watch(uiLocaleProvider);

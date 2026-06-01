@@ -4060,6 +4060,24 @@ abstract class AppLocalizations {
   /// **'Pick a valid teacher account.'**
   String get adminTeacherInvalid;
 
+  /// No description provided for @adminUserAppInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed: {version}'**
+  String adminUserAppInstalled(String version);
+
+  /// No description provided for @adminUserAppActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest release: {version}'**
+  String adminUserAppActive(String version);
+
+  /// No description provided for @adminUserAppVersionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Not reported yet'**
+  String get adminUserAppVersionUnknown;
+
   /// No description provided for @adminNoUsers.
   ///
   /// In en, this message translates to:

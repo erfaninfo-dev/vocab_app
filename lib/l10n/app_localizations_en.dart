@@ -2291,6 +2291,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminTeacherInvalid => 'Pick a valid teacher account.';
 
   @override
+  String adminUserAppInstalled(String version) {
+    return 'Installed: $version';
+  }
+
+  @override
+  String adminUserAppActive(String version) {
+    return 'Latest release: $version';
+  }
+
+  @override
+  String get adminUserAppVersionUnknown => 'Not reported yet';
+
+  @override
   String get adminNoUsers => 'No users returned from the server.';
 
   @override

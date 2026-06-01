@@ -53,9 +53,13 @@ class SampleBookHorizontalTextSizeSlider extends ConsumerStatefulWidget {
   const SampleBookHorizontalTextSizeSlider({
     super.key,
     this.paperColor = const Color(0xFFFAF3E8),
+    this.onInteractionStart,
+    this.onInteractionEnd,
   });
 
   final Color paperColor;
+  final VoidCallback? onInteractionStart;
+  final VoidCallback? onInteractionEnd;
 
   @override
   ConsumerState<SampleBookHorizontalTextSizeSlider> createState() =>
@@ -96,18 +100,26 @@ class _SampleBookHorizontalTextSizeSliderState
     ref.read(samplesTextScaleProvider.notifier).previewScale(next);
   }
 
-  void _commitDrag(double next) {
-    setState(() => _dragScale = next);
-    _previewScaleThrottled(next);
+  void _beginInteraction() {
+    if (!_active) {
+      widget.onInteractionStart?.call();
+    }
+    setState(() => _active = true);
   }
 
-  void _finishDrag(double next) {
+  void _endInteraction(double next) {
+    widget.onInteractionEnd?.call();
     _lastTextUpdate = null;
     setState(() {
       _active = false;
       _dragScale = null;
     });
     ref.read(samplesTextScaleProvider.notifier).persistScale(next);
+  }
+
+  void _commitDrag(double next) {
+    setState(() => _dragScale = next);
+    _previewScaleThrottled(next);
   }
 
   @override
@@ -121,82 +133,82 @@ class _SampleBookHorizontalTextSizeSliderState
     final activeFillColor = thumbColor.withValues(alpha: 0.18);
 
     return DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              widget.paperColor.withValues(alpha: 0),
-              widget.paperColor.withValues(alpha: 0.88),
-              widget.paperColor,
-            ],
-            stops: const [0, 0.35, 1],
-          ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            widget.paperColor.withValues(alpha: 0),
+            widget.paperColor.withValues(alpha: 0.88),
+            widget.paperColor,
+          ],
+          stops: const [0, 0.35, 1],
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          child: Row(
-            children: [
-              Icon(
-                Icons.text_decrease_rounded,
-                size: 16,
-                color: trackColor,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: 28,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onPanStart: (details) {
-                          setState(() => _active = true);
-                          _commitDrag(
-                            _scaleFromDx(details.localPosition.dx, width),
-                          );
-                        },
-                        onPanUpdate: (details) => _commitDrag(
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.text_decrease_rounded,
+              size: 16,
+              color: trackColor,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 28,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragStart: (details) {
+                        _beginInteraction();
+                        _commitDrag(
                           _scaleFromDx(details.localPosition.dx, width),
+                        );
+                      },
+                      onHorizontalDragUpdate: (details) => _commitDrag(
+                        _scaleFromDx(details.localPosition.dx, width),
+                      ),
+                      onHorizontalDragEnd: (_) =>
+                          _endInteraction(_dragScale ?? providerScale),
+                      onHorizontalDragCancel: () =>
+                          _endInteraction(_dragScale ?? providerScale),
+                      onTapDown: (details) {
+                        _beginInteraction();
+                        _commitDrag(
+                          _scaleFromDx(details.localPosition.dx, width),
+                        );
+                      },
+                      onTapUp: (_) =>
+                          _endInteraction(_dragScale ?? providerScale),
+                      onTapCancel: () =>
+                          _endInteraction(_dragScale ?? providerScale),
+                      child: CustomPaint(
+                        painter: _SampleHorizontalTextSizeSliderPainter(
+                          normalized: normalized,
+                          active: _active,
+                          trackColor: trackColor,
+                          activeFillColor: activeFillColor,
+                          thumbColor: thumbColor,
                         ),
-                        onPanEnd: (_) =>
-                            _finishDrag(_dragScale ?? providerScale),
-                        onPanCancel: () =>
-                            _finishDrag(_dragScale ?? providerScale),
-                        onTapDown: (details) {
-                          setState(() => _active = true);
-                          _commitDrag(
-                            _scaleFromDx(details.localPosition.dx, width),
-                          );
-                        },
-                        onTapUp: (_) =>
-                            _finishDrag(_dragScale ?? providerScale),
-                        onTapCancel: () =>
-                            _finishDrag(_dragScale ?? providerScale),
-                        child: CustomPaint(
-                          painter: _SampleHorizontalTextSizeSliderPainter(
-                            normalized: normalized,
-                            active: _active,
-                            trackColor: trackColor,
-                            activeFillColor: activeFillColor,
-                            thumbColor: thumbColor,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
-              const SizedBox(width: 10),
-              Icon(
-                Icons.text_increase_rounded,
-                size: 20,
-                color: trackColor,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 10),
+            Icon(
+              Icons.text_increase_rounded,
+              size: 20,
+              color: trackColor,
+            ),
+          ],
         ),
+      ),
     );
   }
 }

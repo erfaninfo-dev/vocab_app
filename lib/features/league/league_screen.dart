@@ -169,7 +169,10 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: _leagueScreenBackground(_type, Theme.of(context).colorScheme),
+          gradient: _leagueScreenBackground(
+            _type,
+            Theme.of(context).colorScheme,
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -1023,7 +1026,8 @@ class _LeagueRankTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final needs = entry.neededAnswers(minimumAnswered);
-    final reportHint = entry.grammarReportCount > 0 &&
+    final reportHint =
+        entry.grammarReportCount > 0 &&
             (type == LeagueType.grammar || type == LeagueType.all)
         ? ' • helped ${entry.grammarReportCount}'
         : '';
@@ -1071,6 +1075,7 @@ class _LeagueRankTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                         height: 1.45,
                       ),
@@ -1126,14 +1131,13 @@ class _LeagueRankMetricsBlock extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _LeagueScoreCard(
-                  entry: entry,
-                  type: type,
-                  sort: sort,
-                ),
+                _LeagueScoreCard(entry: entry, type: type, sort: sort),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
                   decoration: _leagueScorePillDecoration(type),
                   child: Text(
                     _compactBadgeLabel(entry, type),
@@ -1324,6 +1328,7 @@ class _LeagueProfileDialog extends StatelessWidget {
                             entry.displayName,
                             textAlign: TextAlign.center,
                             style: tt.headlineSmall?.copyWith(
+                              fontSize: 22,
                               fontWeight: FontWeight.w900,
                               color: scheme.onSurface,
                               letterSpacing: -0.4,

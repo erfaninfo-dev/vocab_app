@@ -15,6 +15,8 @@ import 'sample_text_highlights_controller.dart';
 import 'sample_text_scale.dart';
 import 'sample_tts_player.dart';
 
+const _kSampleBookBackdrop = Color(0xFF2C1810);
+
 class SampleBookPageContent {
   const SampleBookPageContent({
     required this.english,
@@ -109,12 +111,17 @@ class SampleBookReaderScreen extends ConsumerStatefulWidget {
 
 class _SampleBookReaderScreenState
     extends ConsumerState<SampleBookReaderScreen> {
+  static const _bookStackHorizontalInset = 14.0;
+  static const _bookStackBottomInset = 10.0;
+  static const _bookPageSheetVerticalInset = 6.0;
+
   late final PageController _pageController;
   late TranslationLang _bookLang;
   int _pageIndex = 0;
   bool _pageTurnSoundReady = false;
   int? _pageTurnSoundArmedFor;
   int? _programmaticTurnTarget;
+  bool _textSizeSliderActive = false;
 
   @override
   void initState() {
@@ -265,6 +272,16 @@ class _SampleBookReaderScreenState
     HapticFeedback.selectionClick();
   }
 
+  void _onTextSizeSliderInteractionStart() {
+    if (_textSizeSliderActive) return;
+    setState(() => _textSizeSliderActive = true);
+  }
+
+  void _onTextSizeSliderInteractionEnd() {
+    if (!_textSizeSliderActive) return;
+    setState(() => _textSizeSliderActive = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -294,13 +311,13 @@ class _SampleBookReaderScreenState
         if (didPop) unawaited(stopSampleTts(ref));
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF2C1810),
+        backgroundColor: _kSampleBookBackdrop,
         body: SafeArea(
           child: SampleTtsPlayerScope(
             child: Column(
               children: [
                 ColoredBox(
-                  color: scheme.surfaceContainerLow,
+                  color: _kSampleBookBackdrop,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 4, 12),
                     child: Stack(
@@ -336,6 +353,25 @@ class _SampleBookReaderScreenState
                             minimumSize: WidgetStateProperty.all(
                               const Size(0, 42),
                             ),
+                            backgroundColor:
+                                WidgetStateProperty.resolveWith((states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return scheme.primaryContainer;
+                              }
+                              return scheme.surface;
+                            }),
+                            foregroundColor:
+                                WidgetStateProperty.resolveWith((states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return scheme.onPrimaryContainer;
+                              }
+                              return scheme.onSurface;
+                            }),
+                            side: WidgetStateProperty.all(
+                              BorderSide(color: scheme.outline),
+                            ),
+                            surfaceTintColor:
+                                WidgetStateProperty.all(Colors.transparent),
                           ),
                           onSelectionChanged: _onBookLangChanged,
                         ),
@@ -355,10 +391,31 @@ class _SampleBookReaderScreenState
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                   child: Row(
                     children: [
-                      const SizedBox(width: 48),
+                      IconButton.filledTonal(
+                        tooltip: pageSoundEnabled
+                            ? l10n.sampleBookPageSoundOff
+                            : l10n.sampleBookPageSoundOn,
+                        iconSize: 20,
+                        style: IconButton.styleFrom(
+                          fixedSize: const Size(36, 36),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: pageSoundEnabled
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.06),
+                          foregroundColor: pageSoundEnabled
+                              ? Colors.white
+                              : Colors.white54,
+                        ),
+                        onPressed: _togglePageTurnSound,
+                        icon: Icon(
+                          pageSoundEnabled
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
+                        ),
+                      ),
                       Expanded(
                         child: Column(
                           children: [
@@ -409,6 +466,9 @@ class _SampleBookReaderScreenState
                               PageView.builder(
                                 key: ValueKey(_bookLang),
                                 controller: _pageController,
+                                physics: _textSizeSliderActive
+                                    ? const NeverScrollableScrollPhysics()
+                                    : const PageScrollPhysics(),
                                 itemCount: total,
                                 onPageChanged: (i) {
                                   final pages = _activePages;
@@ -498,6 +558,24 @@ class _SampleBookReaderScreenState
                                   ],
                                 ),
                               ),
+                              Positioned(
+                                left: _bookStackHorizontalInset,
+                                right: _bookStackHorizontalInset,
+                                bottom:
+                                    _bookStackBottomInset +
+                                    _bookPageSheetVerticalInset,
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(6),
+                                  ),
+                                  child: SampleBookHorizontalTextSizeSlider(
+                                    onInteractionStart:
+                                        _onTextSizeSliderInteractionStart,
+                                    onInteractionEnd:
+                                        _onTextSizeSliderInteractionEnd,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -514,13 +592,10 @@ class _SampleBookReaderScreenState
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 10),
-                      Stack(
-                        clipBehavior: Clip.none,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton.filledTonal(
+                          IconButton.filledTonal(
                                 style: IconButton.styleFrom(
                                   backgroundColor: Colors.white.withValues(
                                     alpha: 0.12,
@@ -581,10 +656,10 @@ class _SampleBookReaderScreenState
                               const SizedBox(width: 12),
                               IconButton.filledTonal(
                                 style: IconButton.styleFrom(
-                                  backgroundColor: scheme.primary.withValues(
-                                    alpha: 0.85,
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.12,
                                   ),
-                                  foregroundColor: scheme.onPrimary,
+                                  foregroundColor: Colors.white,
                                   disabledBackgroundColor: Colors.white
                                       .withValues(alpha: 0.05),
                                   disabledForegroundColor: Colors.white30,
@@ -592,31 +667,6 @@ class _SampleBookReaderScreenState
                                 onPressed: canNext ? _nextPage : null,
                                 icon: const Icon(Icons.arrow_forward_rounded),
                               ),
-                            ],
-                          ),
-                          Positioned(
-                            left: 0,
-                            bottom: 0,
-                            child: IconButton.filledTonal(
-                              tooltip: pageSoundEnabled
-                                  ? l10n.sampleBookPageSoundOff
-                                  : l10n.sampleBookPageSoundOn,
-                              style: IconButton.styleFrom(
-                                backgroundColor: pageSoundEnabled
-                                    ? Colors.white.withValues(alpha: 0.12)
-                                    : Colors.white.withValues(alpha: 0.06),
-                                foregroundColor: pageSoundEnabled
-                                    ? Colors.white
-                                    : Colors.white54,
-                              ),
-                              onPressed: _togglePageTurnSound,
-                              icon: Icon(
-                                pageSoundEnabled
-                                    ? Icons.volume_up_rounded
-                                    : Icons.volume_off_rounded,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ],
@@ -992,12 +1042,6 @@ class _BookPageSheetState extends ConsumerState<_BookPageSheet> {
                           ),
                         ),
                       ),
-                    ),
-                    const Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: SampleBookHorizontalTextSizeSlider(),
                     ),
                     if (active != null &&
                         barOffset != null &&

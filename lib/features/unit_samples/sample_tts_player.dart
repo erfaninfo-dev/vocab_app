@@ -8,9 +8,6 @@ import '../../core/tts/tts_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'sample_tts_helpers.dart';
 
-/// Bottom padding when the scoped sample player is visible.
-const double kSampleTtsPlayerBottomReserve = 168;
-
 final sampleTtsSessionProvider = StateProvider<SampleTtsSession?>((ref) => null);
 
 String _formatSpeedPreset(double preset) {
@@ -304,13 +301,6 @@ class _SampleTtsPlayerBarState extends ConsumerState<SampleTtsPlayerBar> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            Text(
-                              l10n.sampleTtsSpeed,
-                              style: tt.labelMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                             for (final preset in kTtsSpeedPresets)
                               ChoiceChip(
                                 label: Text(
@@ -458,7 +448,7 @@ class _PlayerIconButton extends StatelessWidget {
   }
 }
 
-/// Wraps the samples list and shows the scoped player above the bottom inset.
+/// Wraps the samples list and overlays the scoped player at the bottom.
 class SampleTtsPlayerScope extends ConsumerWidget {
   const SampleTtsPlayerScope({super.key, required this.child});
 
@@ -466,17 +456,9 @@ class SampleTtsPlayerScope extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(sampleTtsSessionProvider);
-    final reserve = session != null ? kSampleTtsPlayerBottomReserve : 0.0;
-
     return Stack(
       children: [
-        Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: reserve),
-            child: child,
-          ),
-        ),
+        Positioned.fill(child: child),
         const Positioned(
           left: 0,
           right: 0,

@@ -948,6 +948,19 @@
   "adminUpdated": "Saved",
   "adminAccessDenied": "You do not have admin access.",
   "adminTeacherInvalid": "Pick a valid teacher account.",
+  "adminUserAppInstalled": "Installed: {version}",
+  "@adminUserAppInstalled": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppActive": "Latest release: {version}",
+  "@adminUserAppActive": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "adminUserAppVersionUnknown": "Not reported yet",
   "adminNoUsers": "No users returned from the server.",
   "adminNoSearchResults": "No users match this search.",
   "adminRoleTeacher": "Teacher",

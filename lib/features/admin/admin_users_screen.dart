@@ -205,7 +205,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               ),
             );
           },
-          data: (users) {
+          data: (page) {
+            final users = page.users;
+            final activeApp = page.activeAppVersion;
             final list = _filtered(users);
             final emptyMessage = users.isEmpty
                 ? l10n.adminNoUsers
@@ -312,6 +314,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                               final u = list[i];
                               return _AdminUserTile(
                                 user: u,
+                                activeAppVersion: activeApp,
                                 l10n: l10n,
                                 scheme: scheme,
                                 onTap: () => _openEditor(context, u, users),
@@ -746,12 +749,14 @@ class _AdminEditUserSheetState extends ConsumerState<_AdminEditUserSheet> {
 class _AdminUserTile extends StatelessWidget {
   const _AdminUserTile({
     required this.user,
+    required this.activeAppVersion,
     required this.l10n,
     required this.scheme,
     required this.onTap,
   });
 
   final AdminUserRow user;
+  final ActiveAppVersion? activeAppVersion;
   final AppLocalizations l10n;
   final ColorScheme scheme;
   final VoidCallback onTap;
@@ -825,6 +830,60 @@ class _AdminUserTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.system_update_alt_rounded,
+                            size: 18,
+                            color: user.isBehindActive(activeAppVersion)
+                                ? scheme.tertiary
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.9,
+                                  ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.adminUserAppInstalled(
+                                    user.installedVersionLabel(
+                                      l10n.adminUserAppVersionUnknown,
+                                    ),
+                                  ),
+                                  style: tt.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.35,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (activeAppVersion != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.adminUserAppActive(
+                                      activeAppVersion!.label,
+                                    ),
+                                    style: tt.bodySmall?.copyWith(
+                                      color: user.isBehindActive(activeAppVersion)
+                                          ? scheme.tertiary
+                                          : scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.35,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       if (user.studentAccess) ...[
                         const SizedBox(height: 10),
                         Row(
