@@ -15,6 +15,9 @@ import 'story_image_scale.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
 
+/// Story message replies in the viewer (re-enable when product is ready).
+const kStoryReplyEnabled = false;
+
 class StoryViewerScreen extends ConsumerStatefulWidget {
   const StoryViewerScreen({
     super.key,
@@ -104,6 +107,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   bool _isReplyComposerOpen(BuildContext context) {
+    if (!kStoryReplyEnabled) return false;
     return _replyFocusNode.hasFocus ||
         MediaQuery.viewInsetsOf(context).bottom > 0;
   }
@@ -325,6 +329,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   Future<void> _sendStoryReply(StoryItem story) async {
+    if (!kStoryReplyEnabled) return;
     final text = _replyController.text.trim();
     if (text.isEmpty || _sendingReply || story.adminUserId < 1) return;
     final myId = ref.read(authProvider).valueOrNull?.user.id;
@@ -654,11 +659,15 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
               session?.user.id == story.adminUserId;
           final imageReady = _isStoryImageReady(story);
           final expectsImage = _storyExpectsImage(story);
-          final canReply = session != null && story.adminUserId > 0;
+          final canReply =
+              kStoryReplyEnabled && session != null && story.adminUserId > 0;
           final zoomEnabled = story.textStyle.grammarGame == null;
           _syncProgressForStory(story, imageReady: imageReady);
-          final replyPanelHeight = 70.0 + MediaQuery.paddingOf(context).bottom;
-          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          final replyPanelHeight =
+              (kStoryReplyEnabled ? 70.0 : 52.0) +
+              MediaQuery.paddingOf(context).bottom;
+          final keyboardInset =
+              kStoryReplyEnabled ? MediaQuery.viewInsetsOf(context).bottom : 0.0;
           return GestureDetector(
             onVerticalDragEnd: (details) {
               final velocity = details.primaryVelocity ?? 0;
@@ -804,6 +813,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                   right: 0,
                   bottom: keyboardInset,
                   child: _StoryReplyPanel(
+                    showReplyComposer: canReply,
                     controller: _replyController,
                     focusNode: _replyFocusNode,
                     enabled: canReply && !_sendingReply,
@@ -831,6 +841,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
 class _StoryReplyPanel extends StatefulWidget {
   const _StoryReplyPanel({
+    required this.showReplyComposer,
     required this.controller,
     required this.focusNode,
     required this.enabled,
@@ -843,6 +854,7 @@ class _StoryReplyPanel extends StatefulWidget {
     required this.onDelete,
   });
 
+  final bool showReplyComposer;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
@@ -899,6 +911,9 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showReplyComposer) {
+      return _buildActionsOnlyBar(context);
+    }
     final bottom = MediaQuery.paddingOf(context).bottom;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = keyboardInset > 0;
@@ -1052,6 +1067,74 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
                   ),
                 ),
               ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionsOnlyBar(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return ColoredBox(
+      color: const Color(0xFF070A0F),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(9, 8, 9, 14 + bottom),
+        child: Row(
+          textDirection: TextDirection.ltr,
+          children: [
+            if (widget.isOwnAdminStory && widget.onAudience != null) ...[
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 30,
+                  height: 38,
+                ),
+                onPressed: widget.onAudience,
+                icon: const Icon(
+                  Icons.visibility_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 7),
+            ],
+            const Spacer(),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: 30,
+                height: 38,
+              ),
+              onPressed: widget.onLike,
+              icon: Icon(
+                widget.liked
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: widget.liked
+                    ? const Color(0xFFFF2D55)
+                    : Colors.white,
+                size: 27,
+              ),
+            ),
+            if (widget.isOwnAdminStory && widget.onDelete != null) ...[
+              const SizedBox(width: 5),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 30,
+                  height: 38,
+                ),
+                onPressed: widget.onDelete,
+                icon: const Icon(
+                  Icons.delete_rounded,
+                  color: Color(0xFFFF453A),
+                  size: 25,
+                ),
+              ),
             ],
           ],
         ),

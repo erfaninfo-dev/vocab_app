@@ -1026,16 +1026,11 @@ class _LeagueRankTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final needs = entry.neededAnswers(minimumAnswered);
-    final reportHint =
-        entry.grammarReportCount > 0 &&
-            (type == LeagueType.grammar || type == LeagueType.all)
-        ? ' • helped ${entry.grammarReportCount}'
-        : '';
     final subtitle = type == LeagueType.grammar
         ? entry.eligible
-              ? '${entry.accuracy.toStringAsFixed(1)}% • ${entry.answeredCount} answered • ${entry.activeDays} days$reportHint'
-              : '$needs more answers needed • ${entry.accuracy.toStringAsFixed(1)}% accuracy$reportHint'
-        : '${entry.correctCount} correct • ${entry.activeDays} active days$reportHint';
+              ? '${entry.accuracy.toStringAsFixed(1)}% • ${entry.answeredCount} answered • ${entry.activeDays} days'
+              : '$needs more answers needed • ${entry.accuracy.toStringAsFixed(1)}% accuracy'
+        : '${entry.correctCount} correct • ${entry.activeDays} active days';
     return Material(
       color: Colors.transparent,
       child: InkWell(
