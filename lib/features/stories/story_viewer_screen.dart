@@ -323,6 +323,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   Future<void> _toggleLike(StoryItem story) async {
+    if (!_storyActionAllowed()) return;
     await ref
         .read(visibleStoriesProvider.notifier)
         .setLiked(story, !story.liked);
@@ -330,6 +331,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   Future<void> _sendStoryReply(StoryItem story) async {
     if (!kStoryReplyEnabled) return;
+    if (!_storyActionAllowed()) return;
     final text = _replyController.text.trim();
     if (text.isEmpty || _sendingReply || story.adminUserId < 1) return;
     final myId = ref.read(authProvider).valueOrNull?.user.id;
@@ -373,6 +375,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     String optionId,
   ) async {
     if (poll.hasVoted || _votingPollId != null) return;
+    if (!_storyActionAllowed()) return;
     _pauseProgress();
     setState(() {
       _votingPollId = poll.id;
@@ -408,6 +411,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     String optionId,
   ) async {
     if (game.hasAnswered || _answeringGrammarGameId != null) return;
+    if (!_storyActionAllowed()) return;
     _pauseProgress();
     setState(() {
       _answeringGrammarGameId = game.id;
@@ -435,6 +439,14 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
         _pauseProgress();
       }
     }
+  }
+
+  bool _storyActionAllowed() {
+    if (ref.read(authProvider).valueOrNull != null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sign in to interact with stories.')),
+    );
+    return false;
   }
 
   void _syncProgressForStory(StoryItem story, {required bool imageReady}) {

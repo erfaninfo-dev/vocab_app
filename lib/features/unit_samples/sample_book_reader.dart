@@ -122,10 +122,12 @@ class _SampleBookReaderScreenState
   int? _pageTurnSoundArmedFor;
   int? _programmaticTurnTarget;
   bool _textSizeSliderActive = false;
+  late final SampleTtsStopper _sampleTtsStopper;
 
   @override
   void initState() {
     super.initState();
+    _sampleTtsStopper = ref.read(sampleTtsStopperProvider);
     _bookLang = widget.initialLang;
     _pageController = PageController();
     _pageController.addListener(_onPageControllerScroll);
@@ -138,7 +140,7 @@ class _SampleBookReaderScreenState
   @override
   void dispose() {
     _pageController.removeListener(_onPageControllerScroll);
-    unawaited(stopSampleTts(ref));
+    unawaited(_sampleTtsStopper.stop());
     _pageController.dispose();
     super.dispose();
   }
@@ -254,11 +256,12 @@ class _SampleBookReaderScreenState
     if (!_pageTurnSoundReady) return;
     final enabled = ref.read(sampleBookPageSoundEnabledProvider);
     unawaited(
-      ref.read(sampleBookPageSoundServiceProvider).playPageTurn(
+      ref
+          .read(sampleBookPageSoundServiceProvider)
+          .playPageTurn(
             enabled: enabled,
             forward: forward,
-            isStillEnabled: () =>
-                ref.read(sampleBookPageSoundEnabledProvider),
+            isStillEnabled: () => ref.read(sampleBookPageSoundEnabledProvider),
           ),
     );
   }
@@ -353,15 +356,17 @@ class _SampleBookReaderScreenState
                             minimumSize: WidgetStateProperty.all(
                               const Size(0, 42),
                             ),
-                            backgroundColor:
-                                WidgetStateProperty.resolveWith((states) {
+                            backgroundColor: WidgetStateProperty.resolveWith((
+                              states,
+                            ) {
                               if (states.contains(WidgetState.selected)) {
                                 return scheme.primaryContainer;
                               }
                               return scheme.surface;
                             }),
-                            foregroundColor:
-                                WidgetStateProperty.resolveWith((states) {
+                            foregroundColor: WidgetStateProperty.resolveWith((
+                              states,
+                            ) {
                               if (states.contains(WidgetState.selected)) {
                                 return scheme.onPrimaryContainer;
                               }
@@ -370,8 +375,9 @@ class _SampleBookReaderScreenState
                             side: WidgetStateProperty.all(
                               BorderSide(color: scheme.outline),
                             ),
-                            surfaceTintColor:
-                                WidgetStateProperty.all(Colors.transparent),
+                            surfaceTintColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ),
                           ),
                           onSelectionChanged: _onBookLangChanged,
                         ),
@@ -596,77 +602,80 @@ class _SampleBookReaderScreenState
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton.filledTonal(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.12,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.12,
+                              ),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.white.withValues(
+                                alpha: 0.05,
+                              ),
+                              disabledForegroundColor: Colors.white30,
+                            ),
+                            onPressed: canPrev ? _previousPage : null,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.14),
+                              ),
+                            ),
+                            child: Text(
+                              '${_pageIndex + 1} / $total',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Colors.white
-                                      .withValues(alpha: 0.05),
-                                  disabledForegroundColor: Colors.white30,
-                                ),
-                                onPressed: canPrev ? _previousPage : null,
-                                icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton.filledTonal(
+                            tooltip: playSlice.active && !playSlice.paused
+                                ? l10n.samplePauseFullText
+                                : l10n.samplePlayFullText,
+                            style: IconButton.styleFrom(
+                              backgroundColor: playSlice.active
+                                  ? scheme.primary.withValues(alpha: 0.85)
+                                  : Colors.white.withValues(alpha: 0.12),
+                              foregroundColor: playSlice.active
+                                  ? scheme.onPrimary
+                                  : Colors.white,
+                              disabledBackgroundColor: Colors.white.withValues(
+                                alpha: 0.05,
                               ),
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.14),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${_pageIndex + 1} / $total',
-                                  style: Theme.of(context).textTheme.labelLarge
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
+                              disabledForegroundColor: Colors.white30,
+                            ),
+                            onPressed: canPlay ? _onPlayTap : null,
+                            icon: Icon(
+                              playSlice.active && !playSlice.paused
+                                  ? Icons.pause_rounded
+                                  : Icons.headphones_rounded,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton.filledTonal(
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.12,
                               ),
-                              const SizedBox(width: 12),
-                              IconButton.filledTonal(
-                                tooltip: playSlice.active && !playSlice.paused
-                                    ? l10n.samplePauseFullText
-                                    : l10n.samplePlayFullText,
-                                style: IconButton.styleFrom(
-                                  backgroundColor: playSlice.active
-                                      ? scheme.primary.withValues(alpha: 0.85)
-                                      : Colors.white.withValues(alpha: 0.12),
-                                  foregroundColor: playSlice.active
-                                      ? scheme.onPrimary
-                                      : Colors.white,
-                                  disabledBackgroundColor: Colors.white
-                                      .withValues(alpha: 0.05),
-                                  disabledForegroundColor: Colors.white30,
-                                ),
-                                onPressed: canPlay ? _onPlayTap : null,
-                                icon: Icon(
-                                  playSlice.active && !playSlice.paused
-                                      ? Icons.pause_rounded
-                                      : Icons.headphones_rounded,
-                                ),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.white.withValues(
+                                alpha: 0.05,
                               ),
-                              const SizedBox(width: 12),
-                              IconButton.filledTonal(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Colors.white
-                                      .withValues(alpha: 0.05),
-                                  disabledForegroundColor: Colors.white30,
-                                ),
-                                onPressed: canNext ? _nextPage : null,
-                                icon: const Icon(Icons.arrow_forward_rounded),
-                              ),
+                              disabledForegroundColor: Colors.white30,
+                            ),
+                            onPressed: canNext ? _nextPage : null,
+                            icon: const Icon(Icons.arrow_forward_rounded),
+                          ),
                         ],
                       ),
                     ],

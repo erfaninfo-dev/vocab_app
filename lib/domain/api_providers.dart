@@ -4,8 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
+import '../data/models/grammar_book.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
+import '../data/models/grammar_unit.dart';
+import '../data/models/grammar_unit_text.dart';
 import '../data/models/class_schedule_slot.dart';
 import '../data/models/schedule_attendance.dart';
 import '../data/models/teacher_upcoming_slot.dart';
@@ -119,10 +122,35 @@ final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
   return ref.read(apiServiceProvider).fetchGrammarTopics();
 });
 
+final apiGrammarBooksProvider = FutureProvider<List<GrammarBook>>((ref) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchGrammarBooks();
+});
+
+final apiGrammarUnitsProvider = FutureProvider.family<List<GrammarUnit>, int>((
+  ref,
+  bookId,
+) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchGrammarUnits(bookId);
+});
+
+final apiGrammarUnitTextsProvider =
+    FutureProvider.family<List<GrammarUnitText>, int>((ref, unitId) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchGrammarUnitTexts(unitId);
+    });
+
 final apiGrammarQuestionsProvider =
     FutureProvider.family<List<GrammarQuestion>, String>((ref, topic) {
       ref.watch(apiRemoteDataEpochProvider);
       return ref.read(apiServiceProvider).fetchGrammarQuestions(topic);
+    });
+
+final apiGrammarUnitQuestionsProvider =
+    FutureProvider.family<List<GrammarQuestion>, int>((ref, unitId) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchGrammarQuestionsForUnit(unitId);
     });
 
 /// Stable cache key for one or more grammar topic names (sorted, joined).
@@ -150,6 +178,7 @@ int grammarQuizMinQuestionsForTopics(int topicCount) {
 /// [apiGrammarQuizSessionProvider] arguments: topics key + desired session length + session seed.
 typedef GrammarQuizSessionParams = ({
   String topicsKey,
+  int? grammarUnitId,
   int questionCount,
   int seed,
 });
@@ -295,16 +324,13 @@ final vocabQuizResultDetailProvider =
       return ref.read(apiServiceProvider).fetchVocabQuizResultDetail(id);
     });
 
-/// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=... (auth).
+/// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=...
+/// Public leaderboard; signed-in users additionally receive their own rank.
 final leagueProvider = FutureProvider.family<LeagueResponse, LeagueQuery>((
   ref,
   query,
 ) {
   ref.watch(apiRemoteDataEpochProvider);
-  final session = ref.watch(authProvider).valueOrNull;
-  if (session == null) {
-    throw const UnauthorizedException('Please sign in to view the league');
-  }
   return ref
       .read(apiServiceProvider)
       .fetchLeague(query.type, period: query.period, sort: query.sort);
@@ -368,19 +394,22 @@ final teacherStudentPricingProvider =
     });
 
 final teacherFinancialSummaryProvider =
-    FutureProvider.family<TeacherFinancialSummaryResponse, TeacherFinancialFilters>(
-  (ref, filters) {
-    ref.watch(apiRemoteDataEpochProvider);
-    return ref.read(apiServiceProvider).fetchTeacherFinancialSummary(
-          studentId: filters.studentId,
-          period: filters.period,
-          from: filters.from,
-          to: filters.to,
-          paymentStatus: filters.paymentStatus,
-          groupByStudent: filters.groupByStudent,
-        );
-  },
-);
+    FutureProvider.family<
+      TeacherFinancialSummaryResponse,
+      TeacherFinancialFilters
+    >((ref, filters) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref
+          .read(apiServiceProvider)
+          .fetchTeacherFinancialSummary(
+            studentId: filters.studentId,
+            period: filters.period,
+            from: filters.from,
+            to: filters.to,
+            paymentStatus: filters.paymentStatus,
+            groupByStudent: filters.groupByStudent,
+          );
+    });
 
 /// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
 final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
@@ -675,8 +704,8 @@ final grammarStatsChartResultsProvider = FutureProvider<List<GrammarResult>>((
       .fetchMyGrammarResults(sort: 'date', order: 'desc');
 });
 
-/// Fetches questions for all topics in [params.topicsKey], merges, shuffles, returns up to
-/// `min(params.questionCount, merged.length, [kGrammarQuizSessionSize])`.
+/// Fetches questions for either one grammar unit or all topics in [params.topicsKey].
+/// Then it shuffles and returns up to `min(params.questionCount, merged.length, [kGrammarQuizSessionSize])`.
 /// One topic: random subset of that bank. Several topics: random mix from all banks (fair variety).
 final apiGrammarQuizSessionProvider =
     FutureProvider.family<List<GrammarQuestion>, GrammarQuizSessionParams>((
@@ -684,6 +713,19 @@ final apiGrammarQuizSessionProvider =
       params,
     ) async {
       ref.watch(apiRemoteDataEpochProvider);
+      final unitId = params.grammarUnitId;
+      if (unitId != null && unitId > 0) {
+        final want = params.questionCount.clamp(1, kGrammarQuizSessionSize);
+        final questions = await ref
+            .read(apiServiceProvider)
+            .fetchGrammarQuestionsForUnit(unitId);
+        if (questions.isEmpty) return [];
+        final merged = [...questions]..shuffle(Random(params.seed));
+        final poolCap = min(merged.length, kGrammarQuizSessionSize);
+        final take = min(want, poolCap);
+        return merged.sublist(0, take);
+      }
+
       final topicsKey = params.topicsKey;
       if (topicsKey.isEmpty) return [];
       final topics = topicsKey

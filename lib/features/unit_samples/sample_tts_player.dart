@@ -8,7 +8,32 @@ import '../../core/tts/tts_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'sample_tts_helpers.dart';
 
-final sampleTtsSessionProvider = StateProvider<SampleTtsSession?>((ref) => null);
+final sampleTtsSessionProvider = StateProvider<SampleTtsSession?>(
+  (ref) => null,
+);
+
+final sampleTtsStopperProvider = Provider<SampleTtsStopper>((ref) {
+  return SampleTtsStopper(
+    ref.read(ttsProvider.notifier),
+    ref.read(sampleTtsSessionProvider.notifier),
+  );
+});
+
+class SampleTtsStopper {
+  const SampleTtsStopper(this._tts, this._session);
+
+  final TtsNotifier _tts;
+  final StateController<SampleTtsSession?> _session;
+
+  Future<void> stop() async {
+    await _tts.stop();
+    _session.state = null;
+  }
+
+  void clear() {
+    _session.state = null;
+  }
+}
 
 String _formatSpeedPreset(double preset) {
   if ((preset - preset.roundToDouble()).abs() < 0.001) {
@@ -22,8 +47,7 @@ void clearSampleTtsSession(WidgetRef ref) {
 }
 
 Future<void> stopSampleTts(WidgetRef ref) async {
-  await ref.read(ttsProvider.notifier).stop();
-  clearSampleTtsSession(ref);
+  await ref.read(sampleTtsStopperProvider).stop();
 }
 
 void openSampleParagraphSession(
@@ -108,7 +132,8 @@ class _SampleTtsPlayerBarState extends ConsumerState<SampleTtsPlayerBar> {
     }
 
     final paragraphText = session.paragraphEnglishText;
-    final matchesSession = tts.activeText == paragraphText ||
+    final matchesSession =
+        tts.activeText == paragraphText ||
         tts.lingeringReadText == paragraphText;
     if (!matchesSession && !tts.hasActivePlayback) {
       return const SizedBox.shrink();
@@ -173,211 +198,218 @@ class _SampleTtsPlayerBarState extends ConsumerState<SampleTtsPlayerBar> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.headphones_rounded,
-                            size: 22,
-                            color: scheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: tt.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
+                                Icon(
+                                  Icons.headphones_rounded,
+                                  size: 22,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: tt.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      Text(
+                                        l10n.sampleTtsNowPlaying,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: tt.labelSmall?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  l10n.sampleTtsNowPlaying,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: tt.labelSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
+                                IconButton(
+                                  tooltip: l10n.sampleTtsStop,
+                                  onPressed: () => stopSampleTts(ref),
+                                  icon: const Icon(Icons.close_rounded),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 4,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 7,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 16,
+                                ),
+                              ),
+                              child: Slider(
+                                value: sliderValue.clamp(0.0, 1.0),
+                                onChanged: (v) => setState(
+                                  () => _sliderDrag = v.clamp(0.0, 1.0),
+                                ),
+                                onChangeEnd: (v) {
+                                  final next =
+                                      SampleEnglishLayout.seekIndexFromFraction(
+                                        v,
+                                        totalLen,
+                                      );
+                                  setState(() => _sliderDrag = null);
+                                  unawaited(
+                                    notifier.speakFrom(
+                                      paragraphText,
+                                      next,
+                                      showMiniPlayer: false,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _PlayerIconButton(
+                                  tooltip: l10n.sampleTtsRewind5,
+                                  icon: Icons.replay_5_rounded,
+                                  onPressed: () => unawaited(
+                                    notifier.skipSeconds(-kTtsSkipSeconds),
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size(52, 52),
+                                    shape: const CircleBorder(),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    if (tts.isPaused) {
+                                      unawaited(notifier.resume());
+                                    } else if (tts.isSpeaking) {
+                                      unawaited(notifier.pause());
+                                    } else {
+                                      unawaited(
+                                        notifier.speakFrom(
+                                          paragraphText,
+                                          current,
+                                          showMiniPlayer: false,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Icon(
+                                    tts.isPaused || !tts.isSpeaking
+                                        ? Icons.play_arrow_rounded
+                                        : Icons.pause_rounded,
+                                    size: 30,
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                _PlayerIconButton(
+                                  tooltip: l10n.sampleTtsForward5,
+                                  icon: Icons.forward_5_rounded,
+                                  onPressed: () => unawaited(
+                                    notifier.skipSeconds(kTtsSkipSeconds),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          IconButton(
-                            tooltip: l10n.sampleTtsStop,
-                            onPressed: () => stopSampleTts(ref),
-                            icon: const Icon(Icons.close_rounded),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 4,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 7,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 16,
-                          ),
-                        ),
-                        child: Slider(
-                          value: sliderValue.clamp(0.0, 1.0),
-                          onChanged: (v) =>
-                              setState(() => _sliderDrag = v.clamp(0.0, 1.0)),
-                          onChangeEnd: (v) {
-                            final next = SampleEnglishLayout.seekIndexFromFraction(
-                              v,
-                              totalLen,
-                            );
-                            setState(() => _sliderDrag = null);
-                            unawaited(
-                              notifier.speakFrom(
-                                paragraphText,
-                                next,
-                                showMiniPlayer: false,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _PlayerIconButton(
-                            tooltip: l10n.sampleTtsRewind5,
-                            icon: Icons.replay_5_rounded,
-                            onPressed: () => unawaited(
-                              notifier.skipSeconds(-kTtsSkipSeconds),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size(52, 52),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              if (tts.isPaused) {
-                                unawaited(notifier.resume());
-                              } else if (tts.isSpeaking) {
-                                unawaited(notifier.pause());
-                              } else {
-                                unawaited(
-                                  notifier.speakFrom(
-                                    paragraphText,
-                                    current,
-                                    showMiniPlayer: false,
-                                  ),
-                                );
-                              }
-                            },
-                            child: Icon(
-                              tts.isPaused || !tts.isSpeaking
-                                  ? Icons.play_arrow_rounded
-                                  : Icons.pause_rounded,
-                              size: 30,
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          _PlayerIconButton(
-                            tooltip: l10n.sampleTtsForward5,
-                            icon: Icons.forward_5_rounded,
-                            onPressed: () => unawaited(
-                              notifier.skipSeconds(kTtsSkipSeconds),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Center(
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final preset in kTtsSpeedPresets)
-                              ChoiceChip(
-                                label: Text(
-                                  l10n.sampleTtsSpeedLabel(
-                                    _formatSpeedPreset(preset),
-                                  ),
-                                ),
-                                selected: (speed - preset).abs() < 0.01,
-                                onSelected: (_) {
-                                  HapticFeedback.selectionClick();
-                                  unawaited(
-                                    notifier.setSpeechRateMultiplier(preset),
-                                  );
-                                },
-                                visualDensity: VisualDensity.compact,
-                                labelStyle: tt.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (tts.googleEngineAvailable) ...[
-                        const SizedBox(height: 8),
-                        Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              Text(
-                                l10n.sampleTtsEngine,
-                                style: tt.labelMedium?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              ChoiceChip(
-                                label: Text(l10n.sampleTtsEngineSystem),
-                                selected:
-                                    tts.engineChoice == TtsEngineChoice.system,
-                                onSelected: (_) {
-                                  HapticFeedback.selectionClick();
-                                  unawaited(
-                                    notifier.setEngineChoice(
-                                      TtsEngineChoice.system,
+                            const SizedBox(height: 10),
+                            Center(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (final preset in kTtsSpeedPresets)
+                                    ChoiceChip(
+                                      label: Text(
+                                        l10n.sampleTtsSpeedLabel(
+                                          _formatSpeedPreset(preset),
+                                        ),
+                                      ),
+                                      selected: (speed - preset).abs() < 0.01,
+                                      onSelected: (_) {
+                                        HapticFeedback.selectionClick();
+                                        unawaited(
+                                          notifier.setSpeechRateMultiplier(
+                                            preset,
+                                          ),
+                                        );
+                                      },
+                                      visualDensity: VisualDensity.compact,
+                                      labelStyle: tt.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  );
-                                },
-                                visualDensity: VisualDensity.compact,
-                                labelStyle: tt.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                ],
                               ),
-                              ChoiceChip(
-                                label: Text(l10n.sampleTtsEngineGoogle),
-                                selected:
-                                    tts.engineChoice == TtsEngineChoice.google,
-                                onSelected: (_) {
-                                  HapticFeedback.selectionClick();
-                                  unawaited(
-                                    notifier.setEngineChoice(
-                                      TtsEngineChoice.google,
+                            ),
+                            if (tts.googleEngineAvailable) ...[
+                              const SizedBox(height: 8),
+                              Center(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    Text(
+                                      l10n.sampleTtsEngine,
+                                      style: tt.labelMedium?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  );
-                                },
-                                visualDensity: VisualDensity.compact,
-                                labelStyle: tt.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
+                                    ChoiceChip(
+                                      label: Text(l10n.sampleTtsEngineSystem),
+                                      selected:
+                                          tts.engineChoice ==
+                                          TtsEngineChoice.system,
+                                      onSelected: (_) {
+                                        HapticFeedback.selectionClick();
+                                        unawaited(
+                                          notifier.setEngineChoice(
+                                            TtsEngineChoice.system,
+                                          ),
+                                        );
+                                      },
+                                      visualDensity: VisualDensity.compact,
+                                      labelStyle: tt.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    ChoiceChip(
+                                      label: Text(l10n.sampleTtsEngineGoogle),
+                                      selected:
+                                          tts.engineChoice ==
+                                          TtsEngineChoice.google,
+                                      onSelected: (_) {
+                                        HapticFeedback.selectionClick();
+                                        unawaited(
+                                          notifier.setEngineChoice(
+                                            TtsEngineChoice.google,
+                                          ),
+                                        );
+                                      },
+                                      visualDensity: VisualDensity.compact,
+                                      labelStyle: tt.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                      ],
-                    ],
+                          ],
                         ),
                       ),
                     ],
@@ -408,8 +440,7 @@ class _SampleTtsDragHandle extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onVerticalDragUpdate: (details) => onDragUpdate(details.delta.dy),
-      onVerticalDragEnd: (details) =>
-          onDragEnd(details.primaryVelocity ?? 0),
+      onVerticalDragEnd: (details) => onDragEnd(details.primaryVelocity ?? 0),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
         child: Center(

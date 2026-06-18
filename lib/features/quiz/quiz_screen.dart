@@ -244,6 +244,24 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
       return local.isNotEmpty ? local : w.meaningEn;
     }
 
+    _Question writtenRecallQuestion(VocabEntry word) {
+      final localMeaning = word.meaningFor(lang);
+      final prompt = localMeaning.isNotEmpty ? localMeaning : word.meaningEn;
+      final promptSub =
+          (localMeaning.isNotEmpty && word.meaningEn.isNotEmpty)
+          ? word.meaningEn
+          : word.type;
+      return _Question(
+        entry: word,
+        prompt: prompt,
+        promptSub: promptSub,
+        correctAnswer: word.word,
+        options: const [],
+        kind: _QuestionKind.written,
+        questionMode: VocabQuestionMode.writtenMeaningToWord,
+      );
+    }
+
     final Map<VocabQuestionMode, List<_Question>> buckets = {
       for (final m in selected) m: <_Question>[],
     };
@@ -324,7 +342,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
         ];
 
         final wrongPool = ordered.take(3).toList();
-        if (wrongPool.length < 3) continue;
+        if (!_scopeWrongsOnly && wrongPool.length < 3) continue;
+        if (_scopeWrongsOnly && wrongPool.isEmpty) {
+          buckets[m]!.add(writtenRecallQuestion(word));
+          break;
+        }
 
         if (m == VocabQuestionMode.mcqWordToMeaning) {
           final correct = meaningForQuiz(word);
@@ -920,6 +942,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => Center(child: Text(l10n.couldNotLoadWords)),
           data: (words) {
+            if (_scopeWrongsOnly && !wrongsAsync.hasValue) {
+              if (wrongsAsync.hasError) {
+                return Center(child: Text(l10n.couldNotLoadMistakes));
+              }
+              return const Center(child: CircularProgressIndicator());
+            }
             final wrongsForUnits = scopedUnit != null
                 ? wrongs
                 : (unitFilter.isEmpty
@@ -977,9 +1005,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
             final needsMcq = selectedModes.any((m) => m.isMcq);
             final canMcq =
                 !needsMcq ||
-                (_scopeWrongsOnly
-                    ? pool.isNotEmpty && distractorPool.length >= 4
-                    : pool.length >= 4);
+                (_scopeWrongsOnly ? pool.isNotEmpty : pool.length >= 4);
             final canStart = needsMcq ? canMcq : pool.isNotEmpty;
 
             if (!canStart) {
@@ -989,7 +1015,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen>
                   ? l10n.quizNotEnoughImportant
                   : _scopeWrongsOnly && pool.isEmpty
                   ? l10n.quizNotEnoughWrongs
-                  : needsMcq
+                  : !_scopeWrongsOnly && needsMcq
                   ? l10n.quizNeedFourWords
                   : l10n.quizNeedOneWord;
               return Center(

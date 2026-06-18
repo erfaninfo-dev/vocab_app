@@ -12,7 +12,7 @@ final vocabQuizWrongsProvider =
   arg,
 ) async {
   ref.watch(apiRemoteDataEpochProvider);
-  final session = ref.watch(authProvider).valueOrNull;
+  final session = await ref.watch(authProvider.future);
   if (session == null || session.token.isEmpty) return [];
   return ref.read(apiServiceProvider).fetchVocabQuizWrongs(
         arg.bookId,

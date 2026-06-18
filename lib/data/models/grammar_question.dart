@@ -1,5 +1,3 @@
-import 'dart:math';
-
 class GrammarQuestion {
   static const List<String> optionKeys = [
     'option1',
@@ -21,6 +19,8 @@ class GrammarQuestion {
     this.faExplanation,
     this.kurExplanation,
     this.engExplanation,
+    this.grammarBookId,
+    this.grammarUnitId,
   });
 
   /// Server PK.
@@ -42,6 +42,8 @@ class GrammarQuestion {
   final String? faExplanation;
   final String? kurExplanation;
   final String? engExplanation;
+  final int? grammarBookId;
+  final int? grammarUnitId;
 
   factory GrammarQuestion.fromJson(Map<String, dynamic> json) {
     return GrammarQuestion(
@@ -57,6 +59,8 @@ class GrammarQuestion {
       faExplanation: json['fa_explanation'] as String?,
       kurExplanation: json['kur_explanation'] as String?,
       engExplanation: json['eng_explanation'] as String?,
+      grammarBookId: (json['grammar_book_id'] as num?)?.toInt(),
+      grammarUnitId: (json['grammar_unit_id'] as num?)?.toInt(),
     );
   }
 
@@ -83,18 +87,10 @@ class GrammarQuestion {
     return a.isNotEmpty && a == b;
   }
 
-  /// DB option keys that have non-empty text (fixed canonical order).
+  /// DB option keys that have non-empty text (option1 … option4 order).
   List<String> nonEmptyOptionKeys() {
     return optionKeys
         .where((key) => (optionByKey(key)?.trim().isNotEmpty ?? false))
         .toList(growable: false);
-  }
-
-  /// Display order for MCQ UI. Same [shuffleSeed] always yields the same order.
-  List<String> shuffledOptionKeys(int shuffleSeed) {
-    final keys = List<String>.from(nonEmptyOptionKeys());
-    if (keys.length <= 1) return keys;
-    keys.shuffle(Random(shuffleSeed));
-    return keys;
   }
 }

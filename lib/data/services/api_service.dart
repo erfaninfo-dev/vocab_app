@@ -12,8 +12,11 @@ import '../models/teacher_student.dart';
 import '../models/book_model.dart';
 import '../models/section_info.dart';
 import '../models/unit_sample.dart';
+import '../models/grammar_book.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
+import '../models/grammar_unit.dart';
+import '../models/grammar_unit_text.dart';
 import '../models/grammar_result.dart';
 import '../models/grammar_result_detail.dart';
 import '../models/league.dart';
@@ -266,6 +269,67 @@ class ApiService {
     }
   }
 
+  // ── GET /grammar_books.php ────────────────────────────────────────────────
+  Future<List<GrammarBook>> fetchGrammarBooks() async {
+    final uri = Uri.parse('$baseUrl/grammar_books.php');
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'grammar books');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => GrammarBook.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => GrammarBook.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /grammar_units.php?book_id={id} ───────────────────────────────────
+  Future<List<GrammarUnit>> fetchGrammarUnits(int bookId) async {
+    final uri = Uri.parse(
+      '$baseUrl/grammar_units.php',
+    ).replace(queryParameters: {'book_id': '$bookId'});
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'grammar units');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => GrammarUnit.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => GrammarUnit.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /grammar_unit_texts.php?unit_id={id} ──────────────────────────────
+  Future<List<GrammarUnitText>> fetchGrammarUnitTexts(int unitId) async {
+    final uri = Uri.parse(
+      '$baseUrl/grammar_unit_texts.php',
+    ).replace(queryParameters: {'unit_id': '$unitId'});
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'grammar unit texts');
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((e) => GrammarUnitText.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// POST /admin_grammar_topic_new.php — admin manual New badge for a topic.
   Future<void> setGrammarTopicNew({
     required String topic,
@@ -277,15 +341,14 @@ class ApiService {
       headers: _mergeHeaders({
         'Content-Type': 'application/json; charset=utf-8',
       }),
-      body: jsonEncode({
-        'topic': topic,
-        'is_new': isNew,
-      }),
+      body: jsonEncode({'topic': topic, 'is_new': isNew}),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     if (map['ok'] != true) {
-      throw Exception(map['error']?.toString() ?? 'Could not update grammar topic');
+      throw Exception(
+        map['error']?.toString() ?? 'Could not update grammar topic',
+      );
     }
     await bustGrammarTopicsCache();
   }
@@ -297,6 +360,19 @@ class ApiService {
     ).replace(queryParameters: {'topic': topic});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertOk(response, 'grammar questions');
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((e) => GrammarQuestion.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ── GET /grammar_questions.php?unit_id=... ────────────────────────────────
+  Future<List<GrammarQuestion>> fetchGrammarQuestionsForUnit(int unitId) async {
+    final uri = Uri.parse(
+      '$baseUrl/grammar_questions.php',
+    ).replace(queryParameters: {'unit_id': '$unitId'});
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'grammar unit questions');
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
         .map((e) => GrammarQuestion.fromJson(e as Map<String, dynamic>))
@@ -678,7 +754,8 @@ class ApiService {
     return VocabQuizResultDetail.fromApiJson(r);
   }
 
-  /// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=... — requires auth.
+  /// GET /league.php?type=all|grammar|vocab|challenge|word_builder&period=...&sort=...
+  /// Public leaderboard; auth is optional for current-user rank.
   Future<LeagueResponse> fetchLeague(
     LeagueType type, {
     LeaguePeriod period = LeaguePeriod.weekly,
@@ -696,7 +773,7 @@ class ApiService {
       },
     );
     final response = await http.get(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
+    _assertOk(response, 'league');
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return LeagueResponse.fromJson(map);
   }
@@ -1078,13 +1155,13 @@ class ApiService {
     return AdminUserRow.fromJson(map['user'] as Map<String, dynamic>);
   }
 
-  /// GET /admin_stories.php — visible stories for current user.
+  /// GET /admin_stories.php — visible stories; auth is optional.
   Future<List<StoryItem>> fetchVisibleStories() async {
     final uri = Uri.parse('$baseUrl/admin_stories.php').replace(
       queryParameters: {'_': DateTime.now().millisecondsSinceEpoch.toString()},
     );
     final response = await http.get(uri, headers: _mergeHeaders());
-    _assertAuthResponse(response);
+    _assertOk(response, 'stories');
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     final list = map['stories'] as List<dynamic>? ?? const [];
     return list
@@ -1427,14 +1504,17 @@ class ApiService {
       sessions: sessions,
       terms: terms,
       usesTermsTable: usesTermsTable,
-      sessionPrice: (map['session_price'] as num?)?.toDouble() ??
+      sessionPrice:
+          (map['session_price'] as num?)?.toDouble() ??
           (map['default_term_fee'] as num?)?.toDouble(),
-      defaultTermFee: (map['default_term_fee'] as num?)?.toDouble() ??
+      defaultTermFee:
+          (map['default_term_fee'] as num?)?.toDouble() ??
           (map['session_price'] as num?)?.toDouble(),
       currencyCode: (map['currency_code']?.toString().isNotEmpty ?? false)
           ? map['currency_code'].toString()
           : 'IRR',
-      pricingAvailable: map['pricing_available'] == true ||
+      pricingAvailable:
+          map['pricing_available'] == true ||
           map.containsKey('default_term_fee') ||
           map.containsKey('session_price'),
       financialSummary: financialSummary,
@@ -1490,7 +1570,9 @@ class ApiService {
   }
 
   /// GET /teacher_student_pricing.php?student_id=
-  Future<TeacherStudentPricing> fetchTeacherStudentPricing(int studentId) async {
+  Future<TeacherStudentPricing> fetchTeacherStudentPricing(
+    int studentId,
+  ) async {
     final uri = Uri.parse(
       '$baseUrl/teacher_student_pricing.php',
     ).replace(queryParameters: {'student_id': '$studentId'});
@@ -1505,12 +1587,11 @@ class ApiService {
     required int studentId,
     required double sessionPrice,
     String currencyCode = 'IRR',
-  }) =>
-      updateTeacherDefaultTermFee(
-        studentId: studentId,
-        defaultTermFee: sessionPrice,
-        currencyCode: currencyCode,
-      );
+  }) => updateTeacherDefaultTermFee(
+    studentId: studentId,
+    defaultTermFee: sessionPrice,
+    currencyCode: currencyCode,
+  );
 
   /// GET /teacher_financial_summary.php
   Future<TeacherFinancialSummaryResponse> fetchTeacherFinancialSummary({
@@ -1518,8 +1599,7 @@ class ApiService {
     TeacherFinancePeriod period = TeacherFinancePeriod.lifetime,
     DateTime? from,
     DateTime? to,
-    TeacherFinancePaymentFilter paymentStatus =
-        TeacherFinancePaymentFilter.all,
+    TeacherFinancePaymentFilter paymentStatus = TeacherFinancePaymentFilter.all,
     bool groupByStudent = true,
   }) async {
     final params = <String, String>{
@@ -1548,8 +1628,9 @@ class ApiService {
         params['to'] = to.toIso8601String().substring(0, 10);
       }
     }
-    final uri = Uri.parse('$baseUrl/teacher_financial_summary.php')
-        .replace(queryParameters: params);
+    final uri = Uri.parse(
+      '$baseUrl/teacher_financial_summary.php',
+    ).replace(queryParameters: params);
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -2324,6 +2405,10 @@ class ApiService {
 
   Future<void> bustGrammarTopicsCache() async {
     await bustHttpCacheForUri(Uri.parse('$baseUrl/grammar_topics.php'));
+  }
+
+  Future<void> bustGrammarBooksCache() async {
+    await bustHttpCacheForUri(Uri.parse('$baseUrl/grammar_books.php'));
   }
 
   /// Clears GET caches for grammar result lists ([fetchPublicGrammarResultsPage] / [fetchMyGrammarResults] defaults).

@@ -41,17 +41,13 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
   Future<void> _refreshWordBuilderLobby() async {
     ref.invalidate(wordBuilderCampaignProgressProvider);
     ref.invalidate(wordBuilderCoinsProvider);
-    if (ref.read(authProvider).valueOrNull != null) {
-      ref.invalidate(wordBuilderLeagueProvider);
-    }
+    ref.invalidate(wordBuilderLeagueProvider);
 
     final futures = <Future<Object?>>[
       ref.read(wordBuilderCampaignProgressProvider.future),
       ref.read(wordBuilderCoinsProvider.future),
+      ref.read(wordBuilderLeagueProvider.future),
     ];
-    if (ref.read(authProvider).valueOrNull != null) {
-      futures.add(ref.read(wordBuilderLeagueProvider.future));
-    }
     try {
       await Future.wait(futures);
     } catch (_) {
@@ -67,9 +63,7 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
     final progAsync = ref.watch(wordBuilderCampaignProgressProvider);
     final coinsAsync = ref.watch(wordBuilderCoinsProvider);
     final auth = ref.watch(authProvider).valueOrNull;
-    final leagueAsync = auth == null
-        ? null
-        : ref.watch(wordBuilderLeagueProvider);
+    final leagueAsync = ref.watch(wordBuilderLeagueProvider);
     final canPop = context.canPop();
 
     final funTheme = Theme.of(context).copyWith(
@@ -900,16 +894,14 @@ class _WordBuilderLeagueOverlayPanelState
     final subColor = isDark
         ? const Color(0xFFFFECB3).withValues(alpha: 0.86)
         : const Color(0xFF7A4E32);
-    final leagueAsync = widget.signedIn
-        ? ref.watch(wordBuilderLeagueProvider)
-        : null;
+    final leagueAsync = ref.watch(wordBuilderLeagueProvider);
     final screenSize = MediaQuery.sizeOf(context);
     final panelWidth = math.min(screenSize.width - 36, 520.0);
     final compact = panelWidth < 390;
     final tight = panelWidth < 340;
     final titleSize = tight ? 16.5 : (compact ? 18.0 : 20.0);
     final subtitleSize = tight ? 10.8 : (compact ? 11.5 : 12.5);
-    final leagueState = leagueAsync?.valueOrNull;
+    final leagueState = leagueAsync.valueOrNull;
     final knownPlayers =
         leagueState?.response.summary.participants ??
         leagueState?.entries.length ??
@@ -1204,16 +1196,15 @@ class _LeaguePreviewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!signedIn) {
+    final async = leagueAsync;
+    if (async == null) {
       return _LeaguePreviewMessage(
-        icon: Icons.login_rounded,
-        title: 'Sign in to join the lifetime race',
-        body: 'Your coins and progress can compete with other learners.',
+        icon: signedIn ? Icons.wifi_off_rounded : Icons.groups_rounded,
+        title: 'League is unavailable',
+        body: 'Check your connection and try again later.',
         isDark: isDark,
       );
     }
-    final async = leagueAsync;
-    if (async == null) return const SizedBox.shrink();
     return async.when(
       loading: () => const _LeaguePreviewSkeleton(),
       error: (_, __) => _LeaguePreviewMessage(

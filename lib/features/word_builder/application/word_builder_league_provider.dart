@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../data/models/league.dart';
-import '../../../data/services/api_service.dart';
 import '../../../domain/api_providers.dart';
 import '../word_builder_campaign_constants.dart';
 import 'word_builder_campaign_providers.dart';
@@ -56,19 +55,17 @@ class WordBuilderLeagueNotifier
   @override
   Future<WordBuilderLeaguePagedState> build() async {
     final session = ref.watch(authProvider).valueOrNull;
-    if (session == null) {
-      throw const UnauthorizedException('Please sign in to view the league');
+    if (session != null) {
+      final progress = await ref.watch(
+        wordBuilderCampaignProgressProvider.future,
+      );
+      final coins = await ref.watch(wordBuilderCoinsProvider.future);
+      await syncWordBuilderLeagueSnapshot(
+        read: ref.read,
+        progress: progress,
+        coins: coins,
+      );
     }
-
-    final progress = await ref.watch(
-      wordBuilderCampaignProgressProvider.future,
-    );
-    final coins = await ref.watch(wordBuilderCoinsProvider.future);
-    await syncWordBuilderLeagueSnapshot(
-      read: ref.read,
-      progress: progress,
-      coins: coins,
-    );
 
     final response = await ref
         .read(apiServiceProvider)

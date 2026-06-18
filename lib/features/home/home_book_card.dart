@@ -23,6 +23,10 @@ class HomeBookCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final unitsValue = ref.watch(apiUnitsProvider(book.id));
+    final isSoon = unitsValue.maybeWhen(
+      data: (units) => units.isEmpty,
+      orElse: () => false,
+    );
     final accents = homeBookCardAccents(index);
     final locale = Localizations.localeOf(context);
     final rtlUnitLine =
@@ -31,116 +35,222 @@ class HomeBookCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: isSoon ? null : onTap,
         borderRadius: BorderRadius.circular(28),
         child: SizedBox(
           width: double.infinity,
           height: double.infinity,
           child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accents.first.withValues(alpha: 0.18),
-                accents.last.withValues(alpha: 0.08),
-              ],
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isSoon
+                    ? [
+                        accents.first.withValues(alpha: 0.18),
+                        accents.last.withValues(alpha: 0.11),
+                      ]
+                    : [
+                        accents.first.withValues(alpha: 0.18),
+                        accents.last.withValues(alpha: 0.08),
+                      ],
+              ),
+              border: isSoon
+                  ? Border.all(color: accents.first.withValues(alpha: 0.26))
+                  : null,
             ),
-          ),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: accents.first.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+            child: Stack(
+              children: [
+                if (isSoon)
+                  Positioned(
+                    right: -24,
+                    bottom: -28,
                     child: Icon(
-                      Icons.auto_stories_rounded,
-                      color: accents.first,
-                      size: 22,
+                      Icons.hourglass_empty_rounded,
+                      size: 112,
+                      color: accents.first.withValues(alpha: 0.13),
                     ),
                   ),
-                  const Spacer(),
-                  Icon(
-                    Icons.arrow_outward_rounded,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                book.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
-              ),
-
-              const Spacer(),
-
-              Align(
-                alignment: rtlUnitLine
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.surface.withValues(alpha: 0.75),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Directionality(
-                    textDirection: rtlUnitLine
-                        ? TextDirection.rtl
-                        : TextDirection.ltr,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.layers_rounded,
-                          size: 16,
-                          color: accents.first,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          unitsValue.when(
-                            loading: () => l10n.loadingEllipsis,
-                            error: (_, __) => l10n.tapToOpen,
-                            data: (units) {
-                              final n = units.length;
-                              return '$n ${n == 1 ? l10n.unitSingular : l10n.unitPlural}';
-                            },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: isSoon
+                                  ? LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        accents.first.withValues(alpha: 0.92),
+                                        accents.last.withValues(alpha: 0.82),
+                                      ],
+                                    )
+                                  : null,
+                              color: isSoon
+                                  ? null
+                                  : accents.first.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: isSoon
+                                  ? [
+                                      BoxShadow(
+                                        color: accents.first.withValues(
+                                          alpha: 0.24,
+                                        ),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              isSoon
+                                  ? Icons.hourglass_empty_rounded
+                                  : Icons.auto_stories_rounded,
+                              color: isSoon ? Colors.white : accents.first,
+                              size: 22,
+                            ),
                           ),
+                          const Spacer(),
+                          if (isSoon)
+                            const SizedBox(width: 36)
+                          else
+                            Icon(
+                              Icons.arrow_outward_rounded,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Text(
+                        book.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: isSoon
+                                  ? scheme.onSurface.withValues(alpha: 0.90)
+                                  : null,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                            ),
+                      ),
+                      if (isSoon) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          'New lessons are coming soon',
                           maxLines: 1,
-                          softWrap: false,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurfaceVariant.withValues(
+                                  alpha: 0.82,
+                                ),
+                                fontWeight: FontWeight.w700,
                               ),
                         ),
                       ],
-                    ),
+
+                      const Spacer(),
+
+                      Align(
+                        alignment: rtlUnitLine
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: isSoon
+                                ? LinearGradient(
+                                    colors: [
+                                      accents.first.withValues(alpha: 0.96),
+                                      accents.last.withValues(alpha: 0.88),
+                                    ],
+                                  )
+                                : null,
+                            color: isSoon
+                                ? null
+                                : scheme.surface.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(12),
+                            border: isSoon
+                                ? Border.all(
+                                    color: Colors.white.withValues(alpha: 0.34),
+                                  )
+                                : null,
+                            boxShadow: isSoon
+                                ? [
+                                    BoxShadow(
+                                      color: accents.first.withValues(
+                                        alpha: 0.22,
+                                      ),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Directionality(
+                            textDirection: isSoon
+                                ? TextDirection.ltr
+                                : rtlUnitLine
+                                ? TextDirection.rtl
+                                : TextDirection.ltr,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSoon
+                                      ? Icons.hourglass_empty_rounded
+                                      : Icons.layers_rounded,
+                                  size: 16,
+                                  color: isSoon ? Colors.white : accents.first,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  unitsValue.when(
+                                    loading: () => l10n.loadingEllipsis,
+                                    error: (_, __) => l10n.tapToOpen,
+                                    data: (units) {
+                                      if (units.isEmpty) return 'Soon...';
+                                      final n = units.length;
+                                      return '$n ${n == 1 ? l10n.unitSingular : l10n.unitPlural}';
+                                    },
+                                  ),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: isSoon
+                                            ? Colors.white
+                                            : scheme.onSurfaceVariant,
+                                        fontWeight: isSoon
+                                            ? FontWeight.w900
+                                            : FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );

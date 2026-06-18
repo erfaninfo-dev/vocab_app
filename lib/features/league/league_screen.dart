@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/league.dart';
@@ -163,8 +162,6 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authProvider).valueOrNull;
-
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: DecoratedBox(
@@ -193,26 +190,23 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
                 ),
               ),
               Expanded(
-                child: session == null
-                    ? const _LeagueSignedOutState()
-                    : PageView.builder(
-                        controller: _pageController,
-                        onPageChanged: _onLeaguePageChanged,
-                        itemCount: _kVisibleLeagueTypes.length,
-                        itemBuilder: (context, index) {
-                          final type = _kVisibleLeagueTypes[index];
-                          return _LeagueTypePage(
-                            type: type,
-                            period: _period,
-                            sort: _sort,
-                            onRefresh: _refresh,
-                            onSortChanged: (sort) =>
-                                setState(() => _sort = sort),
-                            onSortInfo: _showSortInfo,
-                            onProfileTap: _showLeagueProfile,
-                          );
-                        },
-                      ),
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: _onLeaguePageChanged,
+                  itemCount: _kVisibleLeagueTypes.length,
+                  itemBuilder: (context, index) {
+                    final type = _kVisibleLeagueTypes[index];
+                    return _LeagueTypePage(
+                      type: type,
+                      period: _period,
+                      sort: _sort,
+                      onRefresh: _refresh,
+                      onSortChanged: (sort) => setState(() => _sort = sort),
+                      onSortInfo: _showSortInfo,
+                      onProfileTap: _showLeagueProfile,
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -1690,7 +1684,7 @@ class _LeagueEmptyState extends StatelessWidget {
         : switch (type) {
             LeagueType.all => 'Start learning today to enter the All League.',
             LeagueType.grammar =>
-              'Answer 30 grammar questions this week to enter this league.',
+              'Answer 10 grammar questions this week to enter this league.',
             LeagueType.vocab =>
               'Take vocab quizzes to climb the Vocabulary League.',
             LeagueType.challenge =>
@@ -1899,51 +1893,6 @@ class _LeagueErrorState extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _LeagueSignedOutState extends StatelessWidget {
-  const _LeagueSignedOutState();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_rounded, color: scheme.primary, size: 44),
-              const SizedBox(height: 12),
-              const Text(
-                'Sign in to join the league',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Your rank, points and challenge results will be saved to your account.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.push('/auth'),
-                child: const Text('Sign in'),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

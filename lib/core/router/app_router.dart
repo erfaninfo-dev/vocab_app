@@ -12,9 +12,11 @@ import '../../features/word_builder/presentation/word_builder_session_screen.dar
 import '../../features/word_builder/presentation/word_builder_campaign_stages_screen.dart';
 import '../../features/word_builder/domain/word_builder_models.dart';
 import '../../features/grammar/grammar_quiz_screen.dart';
+import '../../features/grammar/grammar_book_units_screen.dart';
 import '../../features/grammar/grammar_result_review_screen.dart';
 import '../../features/grammar/grammar_results_screen.dart';
 import '../../features/grammar/grammar_topics_screen.dart';
+import '../../features/grammar/grammar_unit_lesson_screen.dart';
 import '../../features/flashcards/flashcards_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/series_books_screen.dart';
@@ -71,11 +73,14 @@ List<String> _grammarPracticeTopics(GoRouterState state) {
 
 int _grammarPracticeQuestionCount(GoRouterState state) {
   final topics = _grammarPracticeTopics(state);
+  final unitId = int.tryParse(state.uri.queryParameters['unit_id'] ?? '');
   final raw =
       state.uri.queryParameters['count'] ?? state.uri.queryParameters['n'];
   final parsed = int.tryParse(raw ?? '');
   final n = parsed ?? kGrammarQuizDefaultQuestionCount;
-  final floor = topics.isEmpty
+  final floor = unitId != null && unitId > 0
+      ? 1
+      : topics.isEmpty
       ? 1
       : grammarQuizMinQuestionsForTopics(topics.length);
   return n.clamp(floor, kGrammarQuizSessionSize);
@@ -269,6 +274,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const GrammarTopicsScreen(),
           ),
           GoRoute(
+            path: '/grammar/books/:bookId/units',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              return GrammarBookUnitsScreen(bookId: bookId);
+            },
+          ),
+          GoRoute(
+            path: '/grammar/books/:bookId/units/:unitId',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              final unitId =
+                  int.tryParse(state.pathParameters['unitId'] ?? '') ?? 0;
+              return GrammarUnitLessonScreen(bookId: bookId, unitId: unitId);
+            },
+          ),
+          GoRoute(
             path: '/league',
             builder: (_, state) => LeagueScreen(
               initialType: LeagueType.fromApi(
@@ -285,9 +308,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final topics = _grammarPracticeTopics(state);
               final count = _grammarPracticeQuestionCount(state);
+              final unitId = int.tryParse(
+                state.uri.queryParameters['unit_id'] ?? '',
+              );
+              final unitTitle = state.uri.queryParameters['title'];
               return GrammarQuizScreen(
-                key: ValueKey('${grammarTopicsCacheKey(topics)}_$count'),
+                key: ValueKey(
+                  unitId != null && unitId > 0
+                      ? 'grammar_unit_${unitId}_$count'
+                      : '${grammarTopicsCacheKey(topics)}_$count',
+                ),
                 topics: topics,
+                grammarUnitId: unitId != null && unitId > 0 ? unitId : null,
+                grammarUnitTitle: unitTitle,
                 questionCount: count,
               );
             },

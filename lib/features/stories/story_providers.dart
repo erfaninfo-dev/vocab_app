@@ -26,11 +26,7 @@ class VisibleStoriesNotifier extends AsyncNotifier<List<StoryItem>> {
       ref.onDispose(() => _pollTimer?.cancel());
     }
     ref.watch(apiRemoteDataEpochProvider);
-    final session = ref.watch(authProvider).valueOrNull;
-    if (session == null) {
-      _pollTimer?.cancel();
-      return const [];
-    }
+    ref.watch(authProvider);
     _startPolling();
     return ref.read(apiServiceProvider).fetchVisibleStories();
   }
@@ -44,11 +40,6 @@ class VisibleStoriesNotifier extends AsyncNotifier<List<StoryItem>> {
 
   Future<void> refresh({bool showLoading = true}) async {
     if (_refreshInFlight) return;
-    final session = ref.read(authProvider).valueOrNull;
-    if (session == null) {
-      state = const AsyncData([]);
-      return;
-    }
     _refreshInFlight = true;
     final previous = state.valueOrNull;
     if (showLoading) state = const AsyncLoading();
@@ -62,7 +53,10 @@ class VisibleStoriesNotifier extends AsyncNotifier<List<StoryItem>> {
 
   Future<void> markViewed(int storyId) async {
     final current = state.valueOrNull;
-    await ref.read(apiServiceProvider).markStoryViewed(storyId);
+    final session = ref.read(authProvider).valueOrNull;
+    if (session != null) {
+      await ref.read(apiServiceProvider).markStoryViewed(storyId);
+    }
     if (current != null) {
       state = AsyncData([
         for (final story in current)

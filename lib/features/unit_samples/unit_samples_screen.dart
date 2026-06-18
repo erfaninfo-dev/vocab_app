@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -50,10 +50,17 @@ class UnitSamplesScreen extends ConsumerStatefulWidget {
 }
 
 class _UnitSamplesScreenState extends ConsumerState<UnitSamplesScreen> {
+  late final SampleTtsStopper _sampleTtsStopper;
+
+  @override
+  void initState() {
+    super.initState();
+    _sampleTtsStopper = ref.read(sampleTtsStopperProvider);
+  }
+
   @override
   void dispose() {
-    ref.read(ttsProvider.notifier).stop();
-    ref.read(sampleTtsSessionProvider.notifier).state = null;
+    unawaited(_sampleTtsStopper.stop());
     super.dispose();
   }
 
@@ -208,10 +215,17 @@ class UnitSamplesEmbedded extends ConsumerStatefulWidget {
 }
 
 class _UnitSamplesEmbeddedState extends ConsumerState<UnitSamplesEmbedded> {
+  late final SampleTtsStopper _sampleTtsStopper;
+
+  @override
+  void initState() {
+    super.initState();
+    _sampleTtsStopper = ref.read(sampleTtsStopperProvider);
+  }
+
   @override
   void dispose() {
-    ref.read(ttsProvider.notifier).stop();
-    ref.read(sampleTtsSessionProvider.notifier).state = null;
+    unawaited(_sampleTtsStopper.stop());
     super.dispose();
   }
 
@@ -939,7 +953,8 @@ class _InstagramTextSizeSliderPainter extends CustomPainter {
 
     if (active) {
       final easedBody = Curves.easeOutCubic.transform(progress);
-      final topHalfWidth = size.width * 0.028 + (size.width * 0.164 * easedBody);
+      final topHalfWidth =
+          size.width * 0.028 + (size.width * 0.164 * easedBody);
       final bottomHalfWidth = size.width * 0.0125;
       final path = Path()
         ..moveTo(centerX - topHalfWidth, 0)

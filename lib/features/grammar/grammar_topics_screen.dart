@@ -9,12 +9,17 @@ import 'package:flutter/services.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/admin_story.dart';
+import '../../data/models/grammar_book.dart';
 import '../../data/models/grammar_question.dart';
 import '../../data/models/grammar_topic_summary.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
+
+/// Set to `true` to show the Grammar League banner above books again.
+const bool kGrammarShowLeagueBannerOnTopicsScreen = true;
+const bool kGrammarShowBooksOnTopicsScreen = false;
 
 class GrammarTopicsScreen extends ConsumerStatefulWidget {
   const GrammarTopicsScreen({super.key});
@@ -164,7 +169,15 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
 
   Future<void> _onRefreshTopics() async {
     await refreshAllRemoteApiData(ref);
-    await ref.read(apiGrammarTopicsProvider.future);
+    if (kGrammarShowBooksOnTopicsScreen) {
+      await ref.read(apiServiceProvider).bustGrammarBooksCache();
+      ref.invalidate(apiGrammarBooksProvider);
+    }
+    await Future.wait([
+      ref.read(apiGrammarTopicsProvider.future),
+      if (kGrammarShowBooksOnTopicsScreen)
+        ref.read(apiGrammarBooksProvider.future),
+    ]);
   }
 
   void _toggleAdminNewControl(String topic) {
@@ -229,6 +242,9 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(apiGrammarTopicsProvider);
+    final booksAsync = kGrammarShowBooksOnTopicsScreen
+        ? ref.watch(apiGrammarBooksProvider)
+        : null;
     final scheme = Theme.of(context).colorScheme;
     final session = ref.watch(authProvider).valueOrNull;
     final isAdmin = session?.user.isAdmin == true;
@@ -252,220 +268,286 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: AppTheme.systemOverlayStyleFor(context),
         child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            tooltip: l10n.back,
-            onPressed: () {
-              if (_selected.isNotEmpty) {
-                setState(_selected.clear);
-                return;
-              }
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/home');
-              }
-            },
-          ),
-          title: canCreateGrammarStories
-              ? _GrammarStoryToolbarTitle(
-                  selectedCount: _selected.length,
-                  loading: _creatingGrammarStories,
-                  grammarStories: grammarStories,
-                  onAddTap: _selected.isEmpty
-                      ? null
-                      : _createStoriesFromSelectedTopics,
-                )
-              : grammarStories.isNotEmpty
-              ? _GrammarChallengeOnlyToolbarTitle(stories: grammarStories)
-              : Text(
-                  l10n.grammarPracticeAppBar,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-          centerTitle: false,
-          backgroundColor: scheme.surface.withValues(alpha: 0.85),
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
-          actions: [
-            if (_selected.isNotEmpty)
-              IconButton(
-                tooltip: l10n.grammarTooltipUnselectAll,
-                onPressed: () => setState(_selected.clear),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            IconButton(
-              tooltip: l10n.grammarTooltipResults,
-              onPressed: () => context.push('/grammar/results'),
-              icon: const Icon(Icons.history_rounded),
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: l10n.back,
+              onPressed: () {
+                if (_selected.isNotEmpty) {
+                  setState(_selected.clear);
+                  return;
+                }
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/home');
+                }
+              },
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      scheme.primary.withValues(alpha: 0.10),
-                      scheme.secondary.withValues(alpha: 0.06),
-                      scheme.surface,
-                    ],
+            title: canCreateGrammarStories
+                ? _GrammarStoryToolbarTitle(
+                    selectedCount: _selected.length,
+                    loading: _creatingGrammarStories,
+                    grammarStories: grammarStories,
+                    onAddTap: _selected.isEmpty
+                        ? null
+                        : _createStoriesFromSelectedTopics,
+                  )
+                : grammarStories.isNotEmpty
+                ? _GrammarChallengeOnlyToolbarTitle(stories: grammarStories)
+                : Text(
+                    l10n.grammarPracticeAppBar,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
+            centerTitle: false,
+            backgroundColor: scheme.surface.withValues(alpha: 0.85),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
+            actions: [
+              if (_selected.isNotEmpty)
+                IconButton(
+                  tooltip: l10n.grammarTooltipUnselectAll,
+                  onPressed: () => setState(_selected.clear),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-                child: RefreshIndicator(
-                  onRefresh: _onRefreshTopics,
-                  child: async.when(
-                    loading: () => ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(
-                          height: 400,
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+              IconButton(
+                tooltip: l10n.grammarTooltipResults,
+                onPressed: () => context.push('/grammar/results'),
+                icon: const Icon(Icons.history_rounded),
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        scheme.primary.withValues(alpha: 0.10),
+                        scheme.secondary.withValues(alpha: 0.06),
+                        scheme.surface,
                       ],
                     ),
-                    error: (_, __) => ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Center(
-                            child: Text(
-                              l10n.grammarCouldNotLoadTopics,
-                              textAlign: TextAlign.center,
-                            ),
+                  ),
+                  child: RefreshIndicator(
+                    onRefresh: _onRefreshTopics,
+                    child: async.when(
+                      loading: () => ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(
+                            height: 400,
+                            child: Center(child: CircularProgressIndicator()),
                           ),
-                        ),
-                      ],
-                    ),
-                    data: (topics) {
-                      if (topics.isEmpty) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Center(
-                                child: Text(
-                                  l10n.grammarNoTopicsEmpty,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
+                        ],
+                      ),
+                      error: (_, __) => ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(
+                              child: Text(
+                                l10n.grammarCouldNotLoadTopics,
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          ],
-                        );
-                      }
-
-                      final topInset =
-                          MediaQuery.paddingOf(context).top +
-                          kToolbarHeight +
-                          12;
-
-                      return CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(
-                          parent: BouncingScrollPhysics(),
-                        ),
-                        slivers: [
-                          SliverPadding(
-                            padding: EdgeInsets.fromLTRB(16, topInset, 16, 0),
-                            sliver: SliverToBoxAdapter(
-                              child: _GrammarLeagueEntryCard(
-                                onTap: () =>
-                                    context.push('/league?type=grammar'),
-                              ),
-                            ),
-                          ),
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                            sliver: SliverList.separated(
-                              itemCount: topics.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final t = topics[index];
-                                final sel = _selected.contains(t.topic);
-                                final showAdminNewToggle =
-                                    isAdmin &&
-                                    (_adminNewToggleVisible.contains(t.topic) ||
-                                        _adminNewToggleFadingOut.contains(
-                                          t.topic,
-                                        ));
-                                return Directionality(
-                                  textDirection: TextDirection.ltr,
-                                  child: _TopicCard(
-                                    title: t.topic,
-                                    questionCount: t.questionCount,
-                                    index: index,
-                                    selected: sel,
-                                    showNewBadge: t.isNew,
-                                    showAdminNewToggle: showAdminNewToggle,
-                                    adminNewFadingOut: _adminNewToggleFadingOut
-                                        .contains(t.topic),
-                                    adminNewChecked: t.isNew,
-                                    adminNewSaving: _savingAdminNewTopics
-                                        .contains(t.topic),
-                                    onTap: () => _toggleTopic(t.topic),
-                                    onLongPress: isAdmin
-                                        ? () => _toggleAdminNewControl(t.topic)
-                                        : null,
-                                    onAdminNewToggle: showAdminNewToggle
-                                        ? (value) => _setTopicNewBadge(
-                                            topic: t.topic,
-                                            isNew: value,
-                                          )
-                                        : null,
-                                  ),
-                                );
-                              },
                             ),
                           ),
                         ],
-                      );
-                    },
+                      ),
+                      data: (topics) {
+                        final topInset =
+                            MediaQuery.paddingOf(context).top +
+                            kToolbarHeight +
+                            12;
+                        final practiceTopPadding =
+                            kGrammarShowBooksOnTopicsScreen
+                            ? 0.0
+                            : kGrammarShowLeagueBannerOnTopicsScreen
+                            ? 16.0
+                            : topInset;
+                        const showPracticeByTopicHeader =
+                            kGrammarShowBooksOnTopicsScreen;
+                        final topicsTopPadding = showPracticeByTopicHeader
+                            ? 0.0
+                            : practiceTopPadding;
+
+                        return CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          slivers: [
+                            if (kGrammarShowLeagueBannerOnTopicsScreen)
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  topInset,
+                                  16,
+                                  0,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: _GrammarLeagueEntryCard(
+                                    onTap: () =>
+                                        context.push('/league?type=grammar'),
+                                  ),
+                                ),
+                              ),
+                            if (kGrammarShowBooksOnTopicsScreen)
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  kGrammarShowLeagueBannerOnTopicsScreen
+                                      ? 14
+                                      : topInset,
+                                  16,
+                                  16,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: _GrammarBooksSection(
+                                    booksAsync: booksAsync!,
+                                    onBookTap: (book) => context.push(
+                                      '/grammar/books/${book.id}/units',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (showPracticeByTopicHeader)
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  practiceTopPadding,
+                                  16,
+                                  10,
+                                ),
+                                sliver: const SliverToBoxAdapter(
+                                  child: _GrammarSectionHeader(
+                                    title: 'Practice by Topic',
+                                    subtitle:
+                                        'Your original grammar topics stay here, separate from books.',
+                                  ),
+                                ),
+                              ),
+                            if (topics.isEmpty)
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    24,
+                                    topicsTopPadding + 24,
+                                    24,
+                                    24,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      l10n.grammarNoTopicsEmpty,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  topicsTopPadding,
+                                  16,
+                                  16,
+                                ),
+                                sliver: SliverList.separated(
+                                  itemCount: topics.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, index) {
+                                    final t = topics[index];
+                                    final sel = _selected.contains(t.topic);
+                                    final showAdminNewToggle =
+                                        isAdmin &&
+                                        (_adminNewToggleVisible.contains(
+                                              t.topic,
+                                            ) ||
+                                            _adminNewToggleFadingOut.contains(
+                                              t.topic,
+                                            ));
+                                    return Directionality(
+                                      textDirection: TextDirection.ltr,
+                                      child: _TopicCard(
+                                        title: t.topic,
+                                        questionCount: t.questionCount,
+                                        index: index,
+                                        selected: sel,
+                                        showNewBadge: t.isNew,
+                                        showAdminNewToggle: showAdminNewToggle,
+                                        adminNewFadingOut:
+                                            _adminNewToggleFadingOut.contains(
+                                              t.topic,
+                                            ),
+                                        adminNewChecked: t.isNew,
+                                        adminNewSaving: _savingAdminNewTopics
+                                            .contains(t.topic),
+                                        onTap: () => _toggleTopic(t.topic),
+                                        onLongPress: isAdmin
+                                            ? () => _toggleAdminNewControl(
+                                                t.topic,
+                                              )
+                                            : null,
+                                        onAdminNewToggle: showAdminNewToggle
+                                            ? (value) => _setTopicNewBadge(
+                                                topic: t.topic,
+                                                isNew: value,
+                                              )
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
-            SafeArea(
-              top: false,
-              child: Material(
-                color: scheme.surface.withValues(alpha: 0.98),
-                elevation: 6,
-                shadowColor: Colors.black26,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  child: FilledButton.icon(
-                    onPressed: _selected.isEmpty ? null : _startPractice,
-                    icon: const Icon(Icons.play_arrow_rounded, size: 26),
-                    label: Text(
-                      _selected.isEmpty
-                          ? l10n.grammarSelectTopicsCta
-                          : l10n.grammarContinueTopics(_selected.length),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+              SafeArea(
+                top: false,
+                child: Material(
+                  color: scheme.surface.withValues(alpha: 0.98),
+                  elevation: 6,
+                  shadowColor: Colors.black26,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    child: FilledButton.icon(
+                      onPressed: _selected.isEmpty ? null : _startPractice,
+                      icon: const Icon(Icons.play_arrow_rounded, size: 26),
+                      label: Text(
+                        _selected.isEmpty
+                            ? l10n.grammarSelectTopicsCta
+                            : l10n.grammarContinueTopics(_selected.length),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -558,6 +640,432 @@ class _GrammarLeagueEntryCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GrammarBooksSection extends StatelessWidget {
+  const _GrammarBooksSection({
+    required this.booksAsync,
+    required this.onBookTap,
+  });
+
+  final AsyncValue<List<GrammarBook>> booksAsync;
+  final ValueChanged<GrammarBook> onBookTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return booksAsync.when(
+      loading: () => const _GrammarBooksLoadingCard(),
+      error: (error, _) => _GrammarBooksEmptyCard(
+        message: 'Could not load grammar books. Pull down to refresh.\n$error',
+      ),
+      data: (books) {
+        if (books.isEmpty) {
+          return const _GrammarBooksEmptyCard(
+            message: 'No grammar books available yet.',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _GrammarSectionHeader(
+              title: 'Grammar Books',
+              subtitle:
+                  'Book lessons are separate from the original topic practice.',
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: books.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final book = books[index];
+                  return SizedBox(
+                    width: 280,
+                    child: _GrammarBookCard(
+                      book: book,
+                      index: index,
+                      onTap: () => onBookTap(book),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GrammarBooksLoadingCard extends StatelessWidget {
+  const _GrammarBooksLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 112,
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _GrammarBooksEmptyCard extends StatelessWidget {
+  const _GrammarBooksEmptyCard({
+    this.message = 'No grammar books available yet.',
+  });
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _GrammarSectionHeader(
+          title: 'Grammar Books',
+          subtitle:
+              'Book lessons are separate from the original topic practice.',
+        ),
+        const SizedBox(height: 12),
+        Container(
+          constraints: const BoxConstraints(minHeight: 112),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(alpha: 0.82),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Center(
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GrammarSectionHeader extends StatelessWidget {
+  const _GrammarSectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+bool _grammarBookHasContent(GrammarBook book) => book.unitCount > 0;
+
+class _GrammarBookCard extends StatelessWidget {
+  const _GrammarBookCard({
+    required this.book,
+    required this.index,
+    required this.onTap,
+  });
+
+  final GrammarBook book;
+  final int index;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accents = _cardAccents(index + 2);
+    final level = book.level?.trim();
+    final description = book.description?.trim();
+    final hasContent = _grammarBookHasContent(book);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: hasContent ? onTap : null,
+        borderRadius: BorderRadius.circular(26),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: hasContent
+                  ? [
+                      accents.first.withValues(alpha: 0.86),
+                      accents.last.withValues(alpha: 0.72),
+                    ]
+                  : [
+                      accents.first.withValues(alpha: 0.42),
+                      accents.last.withValues(alpha: 0.28),
+                    ],
+            ),
+            border: hasContent
+                ? null
+                : Border.all(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    width: 1.2,
+                  ),
+            boxShadow: [
+              BoxShadow(
+                color: accents.first.withValues(
+                  alpha: hasContent ? 0.20 : 0.10,
+                ),
+                blurRadius: hasContent ? 18 : 12,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -24,
+                top: -24,
+                child: Icon(
+                  hasContent
+                      ? Icons.auto_stories_rounded
+                      : Icons.hourglass_empty_rounded,
+                  size: 112,
+                  color: Colors.white.withValues(
+                    alpha: hasContent ? 0.12 : 0.16,
+                  ),
+                ),
+              ),
+              if (!hasContent)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(26),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.06),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.08),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.20),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            level == null || level.isEmpty
+                                ? 'Grammar Book'
+                                : level,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          hasContent
+                              ? Icons.chevron_right_rounded
+                              : Icons.hourglass_top_rounded,
+                          color: Colors.white.withValues(
+                            alpha: hasContent ? 1 : 0.82,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                    ),
+                    if (description != null && description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.86),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    if (hasContent)
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _GrammarBookStat(
+                            icon: Icons.menu_book_rounded,
+                            label: '${book.unitCount} units',
+                          ),
+                          _GrammarBookStat(
+                            icon: Icons.quiz_rounded,
+                            label: '${book.questionCount} Qs',
+                          ),
+                        ],
+                      )
+                    else
+                      const _GrammarBookSoonBadge(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GrammarBookSoonBadge extends StatefulWidget {
+  const _GrammarBookSoonBadge();
+
+  @override
+  State<_GrammarBookSoonBadge> createState() => _GrammarBookSoonBadgeState();
+}
+
+class _GrammarBookSoonBadgeState extends State<_GrammarBookSoonBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(
+      begin: 0.72,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _pulse,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.hourglass_empty_rounded,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.95),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              'Soon...',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.95),
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GrammarBookStat extends StatelessWidget {
+  const _GrammarBookStat({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1091,9 +1599,7 @@ class _AdminNewToggleChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: saving || fadingOut
-          ? null
-          : () => onToggle?.call(!checked),
+      onTap: saving || fadingOut ? null : () => onToggle?.call(!checked),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/tts/tts_service.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -35,11 +34,17 @@ class WordsScreen extends ConsumerStatefulWidget {
 
 class _WordsScreenState extends ConsumerState<WordsScreen> {
   String _query = '';
+  late final SampleTtsStopper _sampleTtsStopper;
+
+  @override
+  void initState() {
+    super.initState();
+    _sampleTtsStopper = ref.read(sampleTtsStopperProvider);
+  }
 
   @override
   void dispose() {
-    ref.read(ttsProvider.notifier).stop();
-    ref.read(sampleTtsSessionProvider.notifier).state = null;
+    unawaited(_sampleTtsStopper.stop());
     super.dispose();
   }
 
@@ -54,6 +59,13 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       await ref.read(apiAllWordsForBookProvider(widget.bookId).future);
       await ref.read(
         apiWordsProvider((
+          bookId: widget.bookId,
+          unit: widget.unit,
+          section: widget.section,
+        )).future,
+      );
+      await ref.read(
+        apiUnitSamplesProvider((
           bookId: widget.bookId,
           unit: widget.unit,
           section: widget.section,
@@ -96,7 +108,19 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         ? '/books/${widget.bookId}/units/${widget.unit}/sections/${widget.section}/quiz'
         : '/books/${widget.bookId}/units/${widget.unit}/quiz';
 
-    final hasSamples = samplesAsync.valueOrNull?.isNotEmpty ?? false;
+    final unitWords = unitAsync.valueOrNull;
+    final samples = samplesAsync.valueOrNull;
+    final unitReady = unitAsync.hasValue;
+    final samplesReady = samplesAsync.hasValue;
+    final awaitingSamplesDecision =
+        !searching &&
+        unitReady &&
+        (unitWords?.isEmpty ?? true) &&
+        !samplesReady;
+    final hasWords = searching || (unitWords?.isNotEmpty ?? false);
+    final hasSamples = samples?.isNotEmpty ?? false;
+    final showTabs = hasSamples && hasWords && !searching;
+    final samplesOnly = hasSamples && !hasWords && !searching;
 
     Widget wordsBody() {
       return RefreshIndicator(
@@ -156,18 +180,20 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       title: Text(appBarTitle),
       systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
       actions: [
-        IconButton(
-          tooltip: l10n.tooltipQuiz,
-          onPressed: () => context.push(quizRoute),
-          icon: const Icon(Icons.quiz_rounded),
-        ),
-        IconButton(
-          tooltip: l10n.tooltipFlashcards,
-          onPressed: () => context.push(flashcardsRoute),
-          icon: const Icon(Icons.style_rounded),
-        ),
+        if (hasWords) ...[
+          IconButton(
+            tooltip: l10n.tooltipQuiz,
+            onPressed: () => context.push(quizRoute),
+            icon: const Icon(Icons.quiz_rounded),
+          ),
+          IconButton(
+            tooltip: l10n.tooltipFlashcards,
+            onPressed: () => context.push(flashcardsRoute),
+            icon: const Icon(Icons.style_rounded),
+          ),
+        ],
       ],
-      bottom: !hasSamples
+      bottom: !showTabs
           ? null
           : TabBar(
               isScrollable: false,
@@ -211,6 +237,12 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
             ),
     );
 
+    final samplesBody = UnitSamplesEmbedded(
+      bookId: widget.bookId,
+      unit: widget.unit,
+      section: widget.section,
+    );
+
     final content = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -219,22 +251,25 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
         ),
       ),
-      child: hasSamples
-          ? TabBarView(
-              children: [
-                wordsBody(),
-                UnitSamplesEmbedded(
-                  bookId: widget.bookId,
-                  unit: widget.unit,
-                  section: widget.section,
-                ),
-              ],
-            )
+      child: showTabs
+          ? TabBarView(children: [wordsBody(), samplesBody])
+          : samplesOnly
+          ? samplesBody
           : wordsBody(),
     );
 
+    if (awaitingSamplesDecision) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(appBarTitle),
+          systemOverlayStyle: AppTheme.systemOverlayStyleFor(context),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final scaffold = Scaffold(appBar: appBar, body: content);
-    return hasSamples
+    return showTabs
         ? DefaultTabController(
             length: 2,
             child: _WordsTabTtsSilencer(child: scaffold),

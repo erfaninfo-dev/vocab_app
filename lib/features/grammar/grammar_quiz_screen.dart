@@ -328,6 +328,17 @@ String _grammarAppBarTitle(AppLocalizations l10n, List<String> topics) {
   return l10n.grammarTopicsCountAppBar(topics.length);
 }
 
+String _grammarUnitSessionTitle({
+  required AppLocalizations l10n,
+  required int? unitId,
+  required String? unitTitle,
+}) {
+  final title = unitTitle?.trim();
+  if (title != null && title.isNotEmpty) return title;
+  if (unitId != null && unitId > 0) return 'Grammar unit $unitId';
+  return l10n.grammarPracticeAppBar;
+}
+
 class _GrammarStoryAddTitleButton extends StatelessWidget {
   const _GrammarStoryAddTitleButton({
     required this.topicCount,
@@ -429,12 +440,18 @@ class _GrammarStoryAddTitleButton extends StatelessWidget {
 class GrammarQuizScreen extends ConsumerStatefulWidget {
   const GrammarQuizScreen({
     super.key,
-    required this.topics,
+    this.topics = const [],
+    this.grammarUnitId,
+    this.grammarUnitTitle,
     required this.questionCount,
   });
 
   /// One or more grammar topic names (DB column `content`).
   final List<String> topics;
+
+  /// Grammar book lesson mode. When set, [topics] are ignored for fetching.
+  final int? grammarUnitId;
+  final String? grammarUnitTitle;
 
   /// Target session length (actual list may be shorter if the bank is smaller).
   final int questionCount;
@@ -453,21 +470,12 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   bool _sessionDone = false;
   bool _resultSubmitting = false;
   bool _resultSubmitted = false;
+  bool _privateResultSubmitted = false;
   bool _creatingGrammarStory = false;
   _ExplanationTab _explanationTab = _ExplanationTab.fa;
 
   /// Question IDs successfully reported this session (disables duplicate submits).
   final Set<int> _reportedQuestionIds = {};
-
-  /// Stable shuffled option order per question for this session (Back/forward).
-  final Map<int, List<String>> _optionOrderByQuestionId = {};
-
-  List<String> _optionOrderFor(GrammarQuestion q) {
-    return _optionOrderByQuestionId.putIfAbsent(
-      q.id,
-      () => q.shuffledOptionKeys(Object.hash(_sessionSeed, q.id)),
-    );
-  }
 
   int _scoreFromAnswers(List<GrammarQuestion> questions) {
     var n = 0;
@@ -485,6 +493,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     ref.invalidate(
       apiGrammarQuizSessionProvider((
         topicsKey: grammarTopicsCacheKey(widget.topics),
+        grammarUnitId: widget.grammarUnitId,
         questionCount: widget.questionCount,
         seed: oldSeed,
       )),
@@ -497,9 +506,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
       _sessionDone = false;
       _resultSubmitting = false;
       _resultSubmitted = false;
+      _privateResultSubmitted = false;
       _explanationTab = _ExplanationTab.fa;
       _reportedQuestionIds.clear();
-      _optionOrderByQuestionId.clear();
     });
   }
 
@@ -596,7 +605,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final topicsKey = grammarTopicsCacheKey(widget.topics);
-    if (topicsKey.isEmpty) {
+    final unitId = widget.grammarUnitId;
+    final isUnitSession = unitId != null && unitId > 0;
+    if (topicsKey.isEmpty && !isUnitSession) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.grammarAppBar)),
         body: Center(child: Text(l10n.noTopicSelected)),
@@ -606,12 +617,14 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     final async = ref.watch(
       apiGrammarQuizSessionProvider((
         topicsKey: topicsKey,
+        grammarUnitId: unitId,
         questionCount: widget.questionCount,
         seed: _sessionSeed,
       )),
     );
     final session = ref.watch(authProvider).valueOrNull;
-    final canCreateGrammarStory = session?.user.isAdmin == true;
+    final canCreateGrammarStory =
+        session?.user.isAdmin == true && !isUnitSession;
     final scheme = Theme.of(context).colorScheme;
     final currentQuestions = async.valueOrNull;
     final currentQuestion =
@@ -621,8 +634,13 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
         ? currentQuestions[_index]
         : null;
     final currentTopicTitle = _currentGrammarTopicTitle(
-      widget.topics,
+      isUnitSession ? const [] : widget.topics,
       currentQuestion,
+    );
+    final unitTitle = _grammarUnitSessionTitle(
+      l10n: l10n,
+      unitId: unitId,
+      unitTitle: widget.grammarUnitTitle,
     );
 
     final needsExitConfirmation = async.maybeWhen(
@@ -656,7 +674,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                 )
               : null,
           title: Text(
-            currentTopicTitle ?? _grammarAppBarTitle(l10n, widget.topics),
+            isUnitSession
+                ? unitTitle
+                : currentTopicTitle ?? _grammarAppBarTitle(l10n, widget.topics),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -819,7 +839,9 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                             ),
                           ),
                           const SizedBox(height: 18),
-                          ..._optionOrderFor(q).asMap().entries.map((entry) {
+                          ...q.nonEmptyOptionKeys().asMap().entries.map((
+                            entry,
+                          ) {
                             final displayNumber = entry.key + 1;
                             final key = entry.value;
                             final label = q.optionByKey(key) ?? '';
@@ -1010,52 +1032,80 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
     });
   }
 
-  Future<void> _submitResult(
+  bool _ensureSignedInForPrivateResult(AppLocalizations l10n) {
+    if (ref.read(authProvider).valueOrNull != null) {
+      return true;
+    }
+    final from = Uri.encodeComponent(GoRouterState.of(context).uri.toString());
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.grammarSignInRequiredBody)));
+    context.push('/auth?from=$from');
+    return false;
+  }
+
+  Future<bool> _submitResult(
     List<GrammarQuestion> questions, {
     required bool isPublic,
   }) async {
-    if (!mounted) return;
+    if (!mounted) return false;
     final l10n = AppLocalizations.of(context)!;
+    if (!isPublic && !_ensureSignedInForPrivateResult(l10n)) {
+      return false;
+    }
     setState(() => _resultSubmitting = true);
     try {
       final topics = widget.topics
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
-      final quizName = topics.isEmpty
+      final unitTitle = _grammarUnitSessionTitle(
+        l10n: l10n,
+        unitId: widget.grammarUnitId,
+        unitTitle: widget.grammarUnitTitle,
+      );
+      final selectedGrammars = widget.grammarUnitId != null
+          ? [unitTitle]
+          : topics;
+      final quizName = selectedGrammars.isEmpty
           ? l10n.grammarPracticeAppBar
-          : topics.join(' + ');
+          : selectedGrammars.join(' + ');
       await ref
           .read(apiServiceProvider)
           .submitGrammarResult(
             quizName: quizName,
             score: _score,
             totalQuestions: questions.length,
-            selectedGrammars: topics,
+            selectedGrammars: selectedGrammars,
             isPublic: isPublic,
             sessionItems: _sessionPayload(questions),
           );
-      if (!mounted) return;
+      if (!mounted) return false;
       ref.invalidate(myGrammarResultsProvider);
       ref.invalidate(publicGrammarCommunityProvider);
       setState(() {
         _resultSubmitted = true;
+        if (!isPublic) {
+          _privateResultSubmitted = true;
+        }
         _resultSubmitting = false;
       });
+      return true;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _resultSubmitting = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.couldNotSaveResult)));
+      return false;
     }
   }
 
   Future<void> _practiceAgain(List<GrammarQuestion> questions) async {
     if (_resultSubmitting) return;
-    if (!_resultSubmitted) {
-      await _submitResult(questions, isPublic: false);
-      if (!mounted || !_resultSubmitted) return;
+    if (!_privateResultSubmitted) {
+      final saved = await _submitResult(questions, isPublic: false);
+      if (!mounted || !saved || !_privateResultSubmitted) return;
     }
     _resetForNewQuestions();
   }
@@ -1489,7 +1539,7 @@ class _SessionDoneBody extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: (submitting && !submitted) ? null : onAgain,
+              onPressed: submitting ? null : onAgain,
               child: Text(l.practiseAgain),
             ),
             const SizedBox(height: 12),
