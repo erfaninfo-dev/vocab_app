@@ -163,6 +163,7 @@ class SampleHighlightBarMetrics {
     required this.cardPaddingH,
     required this.cardPaddingV,
     required this.borderRadius,
+    required this.removeGap,
   });
 
   final double scale;
@@ -174,25 +175,32 @@ class SampleHighlightBarMetrics {
   final double cardPaddingH;
   final double cardPaddingV;
   final double borderRadius;
+  final double removeGap;
 
   static const _paletteCount = 6;
 
-  static SampleHighlightBarMetrics forWidth(double width) {
+  static SampleHighlightBarMetrics forWidth(
+    double width, {
+    bool bookMode = false,
+  }) {
     const referenceWidth = 390.0;
-    const compactFactor = 0.9;
-    final responsive = (width / referenceWidth).clamp(0.72, 1.0);
-    final s = (compactFactor * responsive).clamp(0.68, 0.92);
+    final responsive = (width / referenceWidth).clamp(0.78, 1.08);
+    var s = responsive.clamp(0.82, 1.05);
+    if (bookMode) {
+      s *= 0.93;
+    }
 
     return SampleHighlightBarMetrics._(
       scale: s,
-      swatchOuter: 22 * s,
-      swatchInner: 16 * s,
-      swatchGap: 3.5 * s,
-      chipSize: 22 * s,
-      iconSize: 13 * s,
-      cardPaddingH: 5 * s,
-      cardPaddingV: 4 * s,
-      borderRadius: 10 * s,
+      swatchOuter: 30 * s,
+      swatchInner: 22 * s,
+      swatchGap: 6 * s,
+      chipSize: 34 * s,
+      iconSize: 18 * s,
+      cardPaddingH: 10 * s,
+      cardPaddingV: 8 * s,
+      borderRadius: 14 * s,
+      removeGap: 10 * s,
     );
   }
 
@@ -205,7 +213,7 @@ class SampleHighlightBarMetrics {
         _paletteCount * swatchOuter +
         (_paletteCount - 1) * swatchGap;
     if (hasTrailing) {
-      w += swatchGap + chipSize;
+      w += removeGap + chipSize;
     }
     return w;
   }
@@ -281,13 +289,11 @@ class _HighlightColorPickerRow extends StatelessWidget {
     required this.selectedArgb,
     required this.onColorTap,
     required this.metrics,
-    this.trailing,
   });
 
   final int selectedArgb;
   final ValueChanged<Color> onColorTap;
   final SampleHighlightBarMetrics metrics;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +306,6 @@ class _HighlightColorPickerRow extends StatelessWidget {
           onTap: () => onColorTap(c),
           metrics: metrics,
         ),
-      if (trailing != null) trailing!,
     ];
 
     return Row(
@@ -352,6 +357,7 @@ class SampleHighlightSelectionBar extends ConsumerWidget {
     required this.selection,
     required this.onClearSelection,
     this.floating = false,
+    this.bookMode = false,
   });
 
   final int sampleId;
@@ -361,6 +367,7 @@ class SampleHighlightSelectionBar extends ConsumerWidget {
   final TextSelection selection;
   final VoidCallback onClearSelection;
   final bool floating;
+  final bool bookMode;
 
   Color _activeHighlightColor(
     SampleTextHighlightsController notifier,
@@ -385,7 +392,6 @@ class SampleHighlightSelectionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final defaultColor = ref.watch(
       sampleTextHighlightsProvider.select((s) => s.defaultColor),
     );
@@ -422,79 +428,92 @@ class SampleHighlightSelectionBar extends ConsumerWidget {
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
-        final metrics = SampleHighlightBarMetrics.forWidth(maxW);
+        final metrics = SampleHighlightBarMetrics.forWidth(
+          maxW,
+          bookMode: bookMode,
+        );
 
-        return _HighlightColorCardShell(
-          floating: floating,
-          metrics: metrics,
-          child: _HighlightColorPickerRow(
-            metrics: metrics,
-            selectedArgb: activeColor.toARGB32(),
-            onColorTap: (c) => applySampleHighlight(
-              ref: ref,
-              color: c,
-              sampleId: sampleId,
-              langKey: langKey,
-              paragraphIndex: paragraphIndex,
-              selection: selection,
-              plainText: plainText,
+        final removeButton = hasOverlap
+            ? _HighlightRemoveButton(
+                metrics: metrics,
+                tooltip: l10n.sampleHighlightRemove,
+                onPressed: () async {
+                  await ref
+                      .read(sampleTextHighlightsProvider.notifier)
+                      .removeIntersecting(
+                        sampleId: sampleId,
+                        langKey: langKey,
+                        paragraphIndex: paragraphIndex,
+                        start: selection.start,
+                        end: selection.end,
+                        plainText: plainText,
+                      );
+                  HapticFeedback.lightImpact();
+                  onClearSelection();
+                },
+              )
+            : null;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _HighlightColorCardShell(
+              floating: floating,
+              metrics: metrics,
+              child: _HighlightColorPickerRow(
+                metrics: metrics,
+                selectedArgb: activeColor.toARGB32(),
+                onColorTap: (c) => applySampleHighlight(
+                  ref: ref,
+                  color: c,
+                  sampleId: sampleId,
+                  langKey: langKey,
+                  paragraphIndex: paragraphIndex,
+                  selection: selection,
+                  plainText: plainText,
+                ),
+              ),
             ),
-            trailing: hasOverlap
-                ? _ToolbarIconChip(
-                    metrics: metrics,
-                    tooltip: l10n.sampleHighlightRemove,
-                    icon: Icons.delete_sweep_rounded,
-                    foreground: scheme.error,
-                    background: scheme.errorContainer.withValues(alpha: 0.55),
-                    onPressed: () async {
-                      await ref
-                          .read(sampleTextHighlightsProvider.notifier)
-                          .removeIntersecting(
-                            sampleId: sampleId,
-                            langKey: langKey,
-                            paragraphIndex: paragraphIndex,
-                            start: selection.start,
-                            end: selection.end,
-                            plainText: plainText,
-                          );
-                      HapticFeedback.lightImpact();
-                      onClearSelection();
-                    },
-                  )
-                : null,
-          ),
+            if (removeButton != null) ...[
+              SizedBox(width: metrics.removeGap),
+              removeButton,
+            ],
+          ],
         );
       },
     );
   }
 }
 
-class _ToolbarIconChip extends StatelessWidget {
-  const _ToolbarIconChip({
+class _HighlightRemoveButton extends StatelessWidget {
+  const _HighlightRemoveButton({
     required this.metrics,
     required this.tooltip,
-    required this.icon,
     required this.onPressed,
-    this.foreground,
-    this.background,
   });
 
   final SampleHighlightBarMetrics metrics;
   final String tooltip;
-  final IconData icon;
   final VoidCallback onPressed;
-  final Color? foreground;
-  final Color? background;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final size = metrics.chipSize;
+
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: background ?? scheme.surfaceContainerHigh,
-        shape: const CircleBorder(),
+        elevation: 3 * metrics.scale,
+        shadowColor: scheme.error.withValues(alpha: 0.28),
+        color: scheme.errorContainer.withValues(alpha: 0.72),
+        shape: CircleBorder(
+          side: BorderSide(
+            color: scheme.error.withValues(alpha: 0.45),
+            width: 1.25,
+          ),
+        ),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onPressed,
@@ -502,9 +521,9 @@ class _ToolbarIconChip extends StatelessWidget {
             width: size,
             height: size,
             child: Icon(
-              icon,
+              Icons.delete_sweep_rounded,
               size: metrics.iconSize,
-              color: foreground ?? scheme.onSurfaceVariant,
+              color: scheme.error,
             ),
           ),
         ),

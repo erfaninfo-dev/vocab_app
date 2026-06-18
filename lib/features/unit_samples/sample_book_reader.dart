@@ -16,6 +16,7 @@ import 'sample_text_scale.dart';
 import 'sample_tts_player.dart';
 
 const _kSampleBookBackdrop = Color(0xFF2C1810);
+const _kSampleBookStraw = Color(0xFFFAF3E8);
 
 class SampleBookPageContent {
   const SampleBookPageContent({
@@ -388,7 +389,7 @@ class _SampleBookReaderScreenState
                             onPressed: () => Navigator.of(context).pop(),
                             icon: Icon(
                               Icons.close_rounded,
-                              color: scheme.onSurfaceVariant,
+                              color: _kSampleBookStraw,
                             ),
                           ),
                         ),
@@ -889,7 +890,10 @@ class _BookPageSheetState extends ConsumerState<_BookPageSheet> {
       textBox.localToGlobal(Offset.zero),
     );
     final barTop = textTopLeft.dy + anchor.bottom + 6;
-    final metrics = SampleHighlightBarMetrics.forWidth(stackBox.size.width);
+    final metrics = SampleHighlightBarMetrics.forWidth(
+      stackBox.size.width,
+      bookMode: true,
+    );
     final barWidthEstimate = metrics.estimatedBarWidth(hasTrailing: true);
     final maxLeft = (stackBox.size.width - barWidthEstimate - 8).clamp(
       8.0,
@@ -1062,6 +1066,7 @@ class _BookPageSheetState extends ConsumerState<_BookPageSheet> {
                           groupId: sampleHighlightTapRegionGroup,
                           child: SampleHighlightSelectionBar(
                             floating: true,
+                            bookMode: true,
                             sampleId: widget.sampleId,
                             langKey: active.langKey,
                             paragraphIndex: active.paragraphIndex,

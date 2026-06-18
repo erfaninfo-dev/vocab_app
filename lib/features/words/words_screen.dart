@@ -209,9 +209,13 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.menu_book_rounded),
+                        const Icon(Icons.article_rounded),
                         const SizedBox(width: 8),
-                        Text(l10n.wordsTabLabel, maxLines: 1, softWrap: false),
+                        Text(
+                          l10n.samplesTabLabel,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
                       ],
                     ),
                   ),
@@ -222,13 +226,9 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.article_rounded),
+                        const Icon(Icons.menu_book_rounded),
                         const SizedBox(width: 8),
-                        Text(
-                          l10n.samplesTabLabel,
-                          maxLines: 1,
-                          softWrap: false,
-                        ),
+                        Text(l10n.wordsTabLabel, maxLines: 1, softWrap: false),
                       ],
                     ),
                   ),
@@ -252,7 +252,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
         ),
       ),
       child: showTabs
-          ? TabBarView(children: [wordsBody(), samplesBody])
+          ? TabBarView(children: [samplesBody, wordsBody()])
           : samplesOnly
           ? samplesBody
           : wordsBody(),
@@ -272,6 +272,7 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
     return showTabs
         ? DefaultTabController(
             length: 2,
+            initialIndex: 0,
             child: _WordsTabTtsSilencer(child: scaffold),
           )
         : scaffold;
@@ -308,8 +309,8 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                 } catch (_) {
                   tabs = null;
                 }
-                if (tabs != null && tabs.index != 0) {
-                  tabs.animateTo(0);
+                if (tabs != null && tabs.index != 1) {
+                  tabs.animateTo(1);
                 }
               },
             ),
@@ -363,7 +364,7 @@ class _WordsTabTtsSilencerState extends ConsumerState<_WordsTabTtsSilencer> {
 
   void _onTabChanged() {
     if (_tabs == null || _tabs!.indexIsChanging) return;
-    if (_tabs!.index == 0) {
+    if (_tabs!.index == 1) {
       unawaited(stopSampleTts(ref));
     }
   }
