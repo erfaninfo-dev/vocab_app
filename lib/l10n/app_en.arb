@@ -1043,6 +1043,15 @@
   "wordBuilderSessionSfxSubtitle": "Correct answers, mistakes, and level complete.",
   "wordBuilderSessionWaterSfxSwitch": "Water sounds",
   "wordBuilderSessionWaterSfxSubtitle": "Pouring water, drowning tension, and tray effects when you make mistakes.",
+  "wordBuilderTrayVisualModeTitle": "Tray style",
+  "wordBuilderTrayVisualModeSubtitle": "Pick how the center tray reacts to mistakes.",
+  "wordBuilderTrayModeWater": "Water tray",
+  "wordBuilderTrayModeWaterSubtitle": "Classic tub with water, pipes, and a face that reacts.",
+  "wordBuilderTrayModeGlass": "Glass crack",
+  "wordBuilderTrayModeGlassSubtitle": "Realistic glass — each mistake adds a crack until it shatters.",
+  "wordBuilderSessionGlassSfxSwitch": "Glass crack effects",
+  "wordBuilderSessionGlassSfxSubtitle": "Impact haptics and crack/shatter sounds in glass mode.",
+  "wordBuilderGlassGameOverTitle": "The glass shattered!",
   "wordBuilderHintMeaningLine": "Hint: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -1108,6 +1117,84 @@
   "flashcardMeaningLabel": "Meaning",
   "flashcardWordLabel": "Word",
   "allCardsReviewed": "All cards reviewed!",
+  "flashcardBadgeImportant": "Important",
+  "flashcardBadgeFavorite": "Favorite",
+  "flashcardResumedHint": "Resumed session",
+  "flashcardRatingAgain": "Again",
+  "flashcardRatingHard": "Hard",
+  "flashcardRatingGood": "Good",
+  "flashcardRatingEasy": "Easy",
+  "flashcardSetupTitle": "Flashcards",
+  "flashcardSetupDeck": "Deck",
+  "flashcardSetupPoolAll": "All words",
+  "flashcardSetupPoolImportant": "Important only",
+  "flashcardSetupPoolFavorites": "Favorites",
+  "flashcardSetupOrder": "Order",
+  "flashcardSetupShuffle": "Shuffle cards",
+  "flashcardSetupDirection": "Card direction",
+  "flashcardSetupDirectionWordToMeaning": "Word → Meaning",
+  "flashcardSetupDirectionMeaningToWord": "Meaning → Word",
+  "flashcardSetupOptions": "Study options",
+  "flashcardSetupSrs": "Ratings feed your daily review queue.",
+  "flashcardSetupSrsToggle": "Ratings affect daily review",
+  "flashcardSetupSwipeRatings": "Swipe to rate",
+  "flashcardSetupStart": "Start",
+  "flashcardSetupUnitTitle": "Unit {unit}",
+  "@flashcardSetupUnitTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "flashcardSetupUnitSectionTitle": "Unit {unit} · Section {section}",
+  "@flashcardSetupUnitSectionTitle": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeTitle": "Resume session",
+  "flashcardSetupResumeBody": "You were on card {current} of {total}. Continue where you left off, or start fresh.",
+  "@flashcardSetupResumeBody": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeContinue": "Continue",
+  "flashcardSetupResumeFresh": "Start fresh",
+  "flashcardImportantEmptyTitle": "No important words yet",
+  "flashcardImportantEmptyBody": "Mark words as important on word cards to study them here.",
+  "flashcardImportantEmptyAction": "Go to words",
+  "flashcardFavoritesEmptyTitle": "No favorite words yet",
+  "flashcardFavoritesEmptyBody": "Mark words as favorite on word cards to study them here.",
+  "flashcardFavoritesEmptyAction": "Go to words",
+  "flashcardNoWordsTitle": "No words to study",
+  "flashcardNoWordsBody": "There are no words for this unit or section.",
+  "flashcardSessionComplete": "Session complete",
+  "flashcardSessionCardsReviewed": "{count} cards reviewed",
+  "@flashcardSessionCardsReviewed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionDuration": "{minutes}m {seconds}s",
+  "@flashcardSessionDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "flashcardSessionReviewAgain": "Review again ({count})",
+  "@flashcardSessionReviewAgain": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionRestart": "Study again",
+  "flashcardSessionBackToWords": "Back to words",
+  "flashcardSummaryReviewed": "Reviewed",
+  "flashcardSummaryMastered": "Mastered",
+  "flashcardSummaryToReview": "To review",
   "couldNotLoadSectionsWithError": "Could not load sections.\n{error}",
   "@couldNotLoadSectionsWithError": {
     "placeholders": {

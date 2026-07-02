@@ -836,6 +836,15 @@
   "wordBuilderSessionSfxSubtitle": "پاسخ درست، اشتباه و پایان مرحله.",
   "wordBuilderSessionWaterSfxSwitch": "صداهای آب",
   "wordBuilderSessionWaterSfxSubtitle": "ریختن آب، فشار غرق‌شدن و جلوه‌های سینی هنگام اشتباه.",
+  "wordBuilderTrayVisualModeTitle": "سبک سینی",
+  "wordBuilderTrayVisualModeSubtitle": "نحوهٔ واکنش مرکز سینی به اشتباه را انتخاب کن.",
+  "wordBuilderTrayModeWater": "سینی آب",
+  "wordBuilderTrayModeWaterSubtitle": "حالت کلاسیک با آب، لوله و شکلک واکنش‌دار.",
+  "wordBuilderTrayModeGlass": "شیشه ترک‌خورده",
+  "wordBuilderTrayModeGlassSubtitle": "شیشه واقع‌گرایانه — هر اشتباه یک ترک تا شکستن کامل.",
+  "wordBuilderSessionGlassSfxSwitch": "جلوه‌های شیشه",
+  "wordBuilderSessionGlassSfxSubtitle": "لرزش و صدای ترک/شکستن در مود شیشه.",
+  "wordBuilderGlassGameOverTitle": "شیشه شکست!",
   "wordBuilderHintMeaningLine": "راهنما: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -900,6 +909,84 @@
   "flashcardMeaningLabel": "معنی",
   "flashcardWordLabel": "واژه",
   "allCardsReviewed": "همهٔ کارت‌ها مرور شد!",
+  "flashcardBadgeImportant": "مهم",
+  "flashcardBadgeFavorite": "علاقه‌مندی",
+  "flashcardResumedHint": "ادامهٔ جلسه",
+  "flashcardRatingAgain": "دوباره",
+  "flashcardRatingHard": "سخت",
+  "flashcardRatingGood": "خوب",
+  "flashcardRatingEasy": "آسان",
+  "flashcardSetupTitle": "فلش‌کارت",
+  "flashcardSetupDeck": "مجموعه",
+  "flashcardSetupPoolAll": "همهٔ واژه‌ها",
+  "flashcardSetupPoolImportant": "فقط واژه‌های مهم",
+  "flashcardSetupPoolFavorites": "علاقه‌مندی‌ها",
+  "flashcardSetupOrder": "ترتیب",
+  "flashcardSetupShuffle": "بُر زدن کارت‌ها",
+  "flashcardSetupDirection": "جهت کارت",
+  "flashcardSetupDirectionWordToMeaning": "واژه ← معنی",
+  "flashcardSetupDirectionMeaningToWord": "معنی ← واژه",
+  "flashcardSetupOptions": "گزینه‌های مطالعه",
+  "flashcardSetupSrs": "امتیازدهی‌ها به صف مرور روزانهٔ شما می‌روند.",
+  "flashcardSetupSrsToggle": "امتیازدهی روی مرور روزانه اثر بگذارد",
+  "flashcardSetupSwipeRatings": "امتیازدهی با کشیدن",
+  "flashcardSetupStart": "شروع",
+  "flashcardSetupUnitTitle": "یونیت {unit}",
+  "@flashcardSetupUnitTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "flashcardSetupUnitSectionTitle": "یونیت {unit} · بخش {section}",
+  "@flashcardSetupUnitSectionTitle": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeTitle": "ادامهٔ جلسه",
+  "flashcardSetupResumeBody": "روی کارت {current} از {total} بودید. از همان‌جا ادامه دهید یا از نو شروع کنید.",
+  "@flashcardSetupResumeBody": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeContinue": "ادامه",
+  "flashcardSetupResumeFresh": "شروع تازه",
+  "flashcardImportantEmptyTitle": "هنوز واژهٔ مهمی نیست",
+  "flashcardImportantEmptyBody": "روی کارت واژه‌ها، واژه‌ها را به‌عنوان مهم علامت بزنید تا اینجا تمرین کنید.",
+  "flashcardImportantEmptyAction": "رفتن به واژه‌ها",
+  "flashcardFavoritesEmptyTitle": "هنوز واژهٔ علاقه‌مندی‌ای نیست",
+  "flashcardFavoritesEmptyBody": "روی کارت واژه‌ها، واژه‌ها را به علاقه‌مندی‌ها اضافه کنید تا اینجا تمرین کنید.",
+  "flashcardFavoritesEmptyAction": "رفتن به واژه‌ها",
+  "flashcardNoWordsTitle": "واژه‌ای برای تمرین نیست",
+  "flashcardNoWordsBody": "برای این یونیت/بخش واژه‌ای وجود ندارد.",
+  "flashcardSessionComplete": "جلسه تمام شد",
+  "flashcardSessionCardsReviewed": "{count} کارت مرور شد",
+  "@flashcardSessionCardsReviewed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionDuration": "{minutes}د {seconds}ث",
+  "@flashcardSessionDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "flashcardSessionReviewAgain": "مرور دوباره ({count})",
+  "@flashcardSessionReviewAgain": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionRestart": "مطالعه دوباره",
+  "flashcardSessionBackToWords": "بازگشت به واژه‌ها",
+  "flashcardSummaryReviewed": "مرور شده",
+  "flashcardSummaryMastered": "تسلط یافته",
+  "flashcardSummaryToReview": "برای مرور",
   "couldNotLoadSectionsWithError": "بارگذاری بخش‌ها ناموفق بود.\n{error}",
   "@couldNotLoadSectionsWithError": {
     "placeholders": {

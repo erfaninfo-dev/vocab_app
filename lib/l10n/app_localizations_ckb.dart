@@ -2521,6 +2521,37 @@ class AppLocalizationsCkb extends AppLocalizations {
       'ڕژانی ئاو، فشار و کاریگەری سینی کاتێک هەڵە دەکەیت.';
 
   @override
+  String get wordBuilderTrayVisualModeTitle => 'شێوازی سینی';
+
+  @override
+  String get wordBuilderTrayVisualModeSubtitle =>
+      'هەڵبژێرە ناوەندی سینی چۆن وەڵامی هەڵەکان بدات.';
+
+  @override
+  String get wordBuilderTrayModeWater => 'سینی ئاو';
+
+  @override
+  String get wordBuilderTrayModeWaterSubtitle =>
+      'کلاسیک بە ئاو، بۆری و دەموچاوێکی کاریگەر.';
+
+  @override
+  String get wordBuilderTrayModeGlass => 'شیشەی ترک‌خوراو';
+
+  @override
+  String get wordBuilderTrayModeGlassSubtitle =>
+      'شیشەی ڕاستەقینە — هەر هەڵەیەک ترکێک تا شکان.';
+
+  @override
+  String get wordBuilderSessionGlassSfxSwitch => 'کاریگەری شیشە';
+
+  @override
+  String get wordBuilderSessionGlassSfxSubtitle =>
+      'لەرزین و دەنگی ترک/شکان لە مۆدی شیشە.';
+
+  @override
+  String get wordBuilderGlassGameOverTitle => 'شیشە شکا!';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'یارمەتی: $meaning';
   }
@@ -2635,6 +2666,156 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get allCardsReviewed => 'هەموو کارتەکان پێداچوونەوە کران!';
+
+  @override
+  String get flashcardBadgeImportant => 'گرنگ';
+
+  @override
+  String get flashcardBadgeFavorite => 'دڵخواز';
+
+  @override
+  String get flashcardResumedHint => 'بەردەوامبوونی دانیشتن';
+
+  @override
+  String get flashcardRatingAgain => 'دووبارە';
+
+  @override
+  String get flashcardRatingHard => 'قورس';
+
+  @override
+  String get flashcardRatingGood => 'باش';
+
+  @override
+  String get flashcardRatingEasy => 'ئاسان';
+
+  @override
+  String get flashcardSetupTitle => 'کارتی فلاش';
+
+  @override
+  String get flashcardSetupDeck => 'کۆمەڵە';
+
+  @override
+  String get flashcardSetupPoolAll => 'هەموو وشەکان';
+
+  @override
+  String get flashcardSetupPoolImportant => 'تەنها وشە گرنگەکان';
+
+  @override
+  String get flashcardSetupPoolFavorites => 'دڵخوازەکان';
+
+  @override
+  String get flashcardSetupOrder => 'ڕیز';
+
+  @override
+  String get flashcardSetupShuffle => 'تێکەڵاندنی کارتەکان';
+
+  @override
+  String get flashcardSetupDirection => 'ئاراستەی کارت';
+
+  @override
+  String get flashcardSetupDirectionWordToMeaning => 'وشە ← واتا';
+
+  @override
+  String get flashcardSetupDirectionMeaningToWord => 'واتا ← وشە';
+
+  @override
+  String get flashcardSetupOptions => 'هەڵبژاردنەکانی خوێندن';
+
+  @override
+  String get flashcardSetupSrs => 'نمرەدان دەچێتە ڕیزی پێداچوونەوەی ڕۆژانە.';
+
+  @override
+  String get flashcardSetupSrsToggle =>
+      'نمرەدان کاریگەری لەسەر پێداچوونەوەی ڕۆژانە هەبێت';
+
+  @override
+  String get flashcardSetupSwipeRatings => 'نمرەدان بە کشاندن';
+
+  @override
+  String get flashcardSetupStart => 'دەستپێبکە';
+
+  @override
+  String flashcardSetupUnitTitle(int unit) {
+    return 'یەکە $unit';
+  }
+
+  @override
+  String flashcardSetupUnitSectionTitle(int unit, int section) {
+    return 'یەکە $unit · بەش $section';
+  }
+
+  @override
+  String get flashcardSetupResumeTitle => 'بەردەوامبوون لە دانیشتن';
+
+  @override
+  String flashcardSetupResumeBody(int current, int total) {
+    return 'لەسەر کارتی $current لە $total بوویت. لەوێ بەردەوام بە یان لە سەرەوە دەستپێبکە.';
+  }
+
+  @override
+  String get flashcardSetupResumeContinue => 'بەردەوام';
+
+  @override
+  String get flashcardSetupResumeFresh => 'لە سەرەوە دەستپێبکە';
+
+  @override
+  String get flashcardImportantEmptyTitle => 'هێشتا وشەی گرنگ نییە';
+
+  @override
+  String get flashcardImportantEmptyBody =>
+      'لەسەر کارتی وشەکان، وشەکان وەک گرنگ نیشانە بکە بۆ ئەم لێرە مەشق بکەی.';
+
+  @override
+  String get flashcardImportantEmptyAction => 'بڕۆ بۆ وشەکان';
+
+  @override
+  String get flashcardFavoritesEmptyTitle => 'هێشتا وشەی دڵخواز نییە';
+
+  @override
+  String get flashcardFavoritesEmptyBody =>
+      'لەسەر کارتی وشەکان، وشەکان بۆ دڵخوازەکان زیاد بکە بۆ ئەم لێرە مەشق بکەی.';
+
+  @override
+  String get flashcardFavoritesEmptyAction => 'بڕۆ بۆ وشەکان';
+
+  @override
+  String get flashcardNoWordsTitle => 'وشە بۆ مەشق نییە';
+
+  @override
+  String get flashcardNoWordsBody => 'بۆ ئەم یەکە/بەشە وشە نییە.';
+
+  @override
+  String get flashcardSessionComplete => 'دانیشتن تەواو بوو';
+
+  @override
+  String flashcardSessionCardsReviewed(int count) {
+    return '$count کارت پێداچوونەوە کران';
+  }
+
+  @override
+  String flashcardSessionDuration(int minutes, int seconds) {
+    return '$minutesخ $secondsچ';
+  }
+
+  @override
+  String flashcardSessionReviewAgain(int count) {
+    return 'پێداچوونەوەی دووبارە ($count)';
+  }
+
+  @override
+  String get flashcardSessionRestart => 'دووبارە خوێندن';
+
+  @override
+  String get flashcardSessionBackToWords => 'گەڕانەوە بۆ وشەکان';
+
+  @override
+  String get flashcardSummaryReviewed => 'پێداچوونەوە کرا';
+
+  @override
+  String get flashcardSummaryMastered => 'گەیشتووە بە دەسەڵات';
+
+  @override
+  String get flashcardSummaryToReview => 'بۆ پێداچوونەوە';
 
   @override
   String couldNotLoadSectionsWithError(String error) {

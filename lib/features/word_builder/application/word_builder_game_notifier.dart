@@ -13,13 +13,16 @@ import '../data/word_builder_vocab.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_campaign_constants.dart';
 import 'word_builder_campaign_providers.dart';
+import '../domain/tray_glass_constants.dart';
 import '../domain/tray_water_constants.dart';
 import '../domain/word_builder_game_logic.dart';
 import '../domain/word_builder_models.dart';
+import '../domain/word_builder_tray_visual_mode.dart';
 import '../word_builder_coin_constants.dart';
 import '../word_builder_constants.dart';
 import 'word_builder_coins_provider.dart';
 import 'word_builder_session_audio.dart';
+import 'word_builder_tray_visual_mode_provider.dart';
 import 'word_builder_tray_water_audio.dart';
 
 final wordBuilderProgressRepoProvider = Provider<WordBuilderProgressRepository>(
@@ -53,6 +56,7 @@ class WordBuilderViewState {
     this.faceMood = TrayFaceMood.neutral,
     this.wrongAnswerCount = 0,
     this.isTrayGameOver = false,
+    this.glassCrackSeeds = const [],
   });
 
   final WordBuilderPersistedProgress persisted;
@@ -72,6 +76,7 @@ class WordBuilderViewState {
   final TrayFaceMood faceMood;
   final int wrongAnswerCount;
   final bool isTrayGameOver;
+  final List<int> glassCrackSeeds;
 
   bool get trayInputBlocked => pathWrongHighlight || isTrayGameOver;
 
@@ -105,6 +110,7 @@ class WordBuilderViewState {
     TrayFaceMood? faceMood,
     int? wrongAnswerCount,
     bool? isTrayGameOver,
+    List<int>? glassCrackSeeds,
   }) {
     return WordBuilderViewState(
       persisted: persisted ?? this.persisted,
@@ -128,6 +134,7 @@ class WordBuilderViewState {
       faceMood: faceMood ?? this.faceMood,
       wrongAnswerCount: wrongAnswerCount ?? this.wrongAnswerCount,
       isTrayGameOver: isTrayGameOver ?? this.isTrayGameOver,
+      glassCrackSeeds: glassCrackSeeds ?? this.glassCrackSeeds,
     );
   }
 
@@ -175,6 +182,12 @@ class WordBuilderGameNotifier
   final Random _random = Random();
   Timer? _passiveWaterTimer;
   Map<String, WordBuilderTargetWord> _globalTargetsByLemma = const {};
+
+  WordBuilderTrayVisualMode get _trayVisualMode =>
+      ref.read(wordBuilderTrayVisualModeProvider);
+
+  bool get _isWaterTrayMode =>
+      _trayVisualMode == WordBuilderTrayVisualMode.water;
 
   WordBuilderProgressRepository get _repo =>
       ref.read(wordBuilderProgressRepoProvider);
@@ -403,6 +416,7 @@ class WordBuilderGameNotifier
   }
 
   void _startPassiveWaterTimer() {
+    if (!_isWaterTrayMode) return;
     _passiveWaterTimer?.cancel();
     _passiveWaterTimer = Timer.periodic(
       TrayWaterConstants.passiveWaterTickInterval,
@@ -411,6 +425,7 @@ class WordBuilderGameNotifier
   }
 
   Future<void> _tickPassiveWater() async {
+    if (!_isWaterTrayMode) return;
     final s = state.valueOrNull;
     if (s == null ||
         s.isTrayGameOver ||
@@ -505,6 +520,14 @@ class WordBuilderGameNotifier
   }
 
   Future<void> _commitWrongWithTray(WordBuilderViewState s) async {
+    if (_isWaterTrayMode) {
+      await _commitWrongWithWaterTray(s);
+    } else {
+      await _commitWrongWithGlassTray(s);
+    }
+  }
+
+  Future<void> _commitWrongWithWaterTray(WordBuilderViewState s) async {
     if (s.isTrayGameOver) return;
     final nextLevel = (s.trayWaterLevel + TrayWaterConstants.waterPerWrong)
         .clamp(0.0, 1.0);
@@ -531,7 +554,37 @@ class WordBuilderGameNotifier
     );
   }
 
+  Future<void> _commitWrongWithGlassTray(WordBuilderViewState s) async {
+    if (s.isTrayGameOver) return;
+    final nextLevel = (s.trayWaterLevel + TrayGlassConstants.crackPerWrong)
+        .clamp(0.0, 1.0);
+    final nextCount = s.wrongAnswerCount + 1;
+    final overflow = nextCount >= TrayGlassConstants.maxWrongBeforeShatter;
+    final newSeeds = [...s.glassCrackSeeds, _random.nextInt(1 << 30)];
+    await _commit(
+      s.copyWith(
+        pathWrongHighlight: true,
+        clearFeedback: true,
+        trayWaterLevel: nextLevel,
+        wrongAnswerCount: nextCount,
+        glassCrackSeeds: newSeeds,
+        isTrayGameOver: overflow,
+      ),
+    );
+    _playSound(WordBuilderSound.wrong);
+  }
+
   Future<void> _commitCorrectWithTrayDrain(WordBuilderViewState next) async {
+    if (_isWaterTrayMode) {
+      await _commitCorrectWithWaterTrayDrain(next);
+    } else {
+      await _commitCorrectWithGlassTrayHeal(next);
+    }
+  }
+
+  Future<void> _commitCorrectWithWaterTrayDrain(
+    WordBuilderViewState next,
+  ) async {
     final s = state.valueOrNull;
     final prevLevel = s?.trayWaterLevel ?? 0.0;
     final prevWrong = s?.wrongAnswerCount ?? 0;
@@ -561,6 +614,31 @@ class WordBuilderGameNotifier
       Future<void>.delayed(TrayWaterConstants.happyMoodDuration, () {
         if (state.valueOrNull != null) unawaited(_setFaceMoodAfterHappy());
       }),
+    );
+  }
+
+  Future<void> _commitCorrectWithGlassTrayHeal(
+    WordBuilderViewState next,
+  ) async {
+    final s = state.valueOrNull;
+    final prevLevel = s?.trayWaterLevel ?? 0.0;
+    final prevSeeds = s?.glassCrackSeeds ?? const <int>[];
+    final healedLevel = (prevLevel - TrayGlassConstants.crackPerWrong).clamp(
+      0.0,
+      1.0,
+    );
+    final nextWrong = max(0, (s?.wrongAnswerCount ?? 0) - 1);
+    final nextSeeds = prevSeeds.isEmpty
+        ? prevSeeds
+        : prevSeeds.sublist(0, prevSeeds.length - 1);
+
+    await _commit(
+      next.copyWith(
+        trayWaterLevel: healedLevel,
+        wrongAnswerCount: nextWrong,
+        glassCrackSeeds: nextSeeds,
+        pathWrongHighlight: false,
+      ),
     );
   }
 

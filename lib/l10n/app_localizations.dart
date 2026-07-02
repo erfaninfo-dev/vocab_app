@@ -4444,6 +4444,60 @@ abstract class AppLocalizations {
   /// **'Pouring water, drowning tension, and tray effects when you make mistakes.'**
   String get wordBuilderSessionWaterSfxSubtitle;
 
+  /// No description provided for @wordBuilderTrayVisualModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tray style'**
+  String get wordBuilderTrayVisualModeTitle;
+
+  /// No description provided for @wordBuilderTrayVisualModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick how the center tray reacts to mistakes.'**
+  String get wordBuilderTrayVisualModeSubtitle;
+
+  /// No description provided for @wordBuilderTrayModeWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Water tray'**
+  String get wordBuilderTrayModeWater;
+
+  /// No description provided for @wordBuilderTrayModeWaterSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic tub with water, pipes, and a face that reacts.'**
+  String get wordBuilderTrayModeWaterSubtitle;
+
+  /// No description provided for @wordBuilderTrayModeGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass crack'**
+  String get wordBuilderTrayModeGlass;
+
+  /// No description provided for @wordBuilderTrayModeGlassSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Realistic glass — each mistake adds a crack until it shatters.'**
+  String get wordBuilderTrayModeGlassSubtitle;
+
+  /// No description provided for @wordBuilderSessionGlassSfxSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass crack effects'**
+  String get wordBuilderSessionGlassSfxSwitch;
+
+  /// No description provided for @wordBuilderSessionGlassSfxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Impact haptics and crack/shatter sounds in glass mode.'**
+  String get wordBuilderSessionGlassSfxSubtitle;
+
+  /// No description provided for @wordBuilderGlassGameOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The glass shattered!'**
+  String get wordBuilderGlassGameOverTitle;
+
   /// No description provided for @wordBuilderHintMeaningLine.
   ///
   /// In en, this message translates to:
@@ -4641,6 +4695,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All cards reviewed!'**
   String get allCardsReviewed;
+
+  /// No description provided for @flashcardBadgeImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important'**
+  String get flashcardBadgeImportant;
+
+  /// No description provided for @flashcardBadgeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get flashcardBadgeFavorite;
+
+  /// No description provided for @flashcardResumedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Resumed session'**
+  String get flashcardResumedHint;
+
+  /// No description provided for @flashcardRatingAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Again'**
+  String get flashcardRatingAgain;
+
+  /// No description provided for @flashcardRatingHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get flashcardRatingHard;
+
+  /// No description provided for @flashcardRatingGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get flashcardRatingGood;
+
+  /// No description provided for @flashcardRatingEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get flashcardRatingEasy;
+
+  /// No description provided for @flashcardSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flashcards'**
+  String get flashcardSetupTitle;
+
+  /// No description provided for @flashcardSetupDeck.
+  ///
+  /// In en, this message translates to:
+  /// **'Deck'**
+  String get flashcardSetupDeck;
+
+  /// No description provided for @flashcardSetupPoolAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All words'**
+  String get flashcardSetupPoolAll;
+
+  /// No description provided for @flashcardSetupPoolImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important only'**
+  String get flashcardSetupPoolImportant;
+
+  /// No description provided for @flashcardSetupPoolFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get flashcardSetupPoolFavorites;
+
+  /// No description provided for @flashcardSetupOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get flashcardSetupOrder;
+
+  /// No description provided for @flashcardSetupShuffle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle cards'**
+  String get flashcardSetupShuffle;
+
+  /// No description provided for @flashcardSetupDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Card direction'**
+  String get flashcardSetupDirection;
+
+  /// No description provided for @flashcardSetupDirectionWordToMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Word → Meaning'**
+  String get flashcardSetupDirectionWordToMeaning;
+
+  /// No description provided for @flashcardSetupDirectionMeaningToWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Meaning → Word'**
+  String get flashcardSetupDirectionMeaningToWord;
+
+  /// No description provided for @flashcardSetupOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Study options'**
+  String get flashcardSetupOptions;
+
+  /// No description provided for @flashcardSetupSrs.
+  ///
+  /// In en, this message translates to:
+  /// **'Ratings feed your daily review queue.'**
+  String get flashcardSetupSrs;
+
+  /// No description provided for @flashcardSetupSrsToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ratings affect daily review'**
+  String get flashcardSetupSrsToggle;
+
+  /// No description provided for @flashcardSetupSwipeRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to rate'**
+  String get flashcardSetupSwipeRatings;
+
+  /// No description provided for @flashcardSetupStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get flashcardSetupStart;
+
+  /// No description provided for @flashcardSetupUnitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit {unit}'**
+  String flashcardSetupUnitTitle(int unit);
+
+  /// No description provided for @flashcardSetupUnitSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit {unit} · Section {section}'**
+  String flashcardSetupUnitSectionTitle(int unit, int section);
+
+  /// No description provided for @flashcardSetupResumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume session'**
+  String get flashcardSetupResumeTitle;
+
+  /// No description provided for @flashcardSetupResumeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You were on card {current} of {total}. Continue where you left off, or start fresh.'**
+  String flashcardSetupResumeBody(int current, int total);
+
+  /// No description provided for @flashcardSetupResumeContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get flashcardSetupResumeContinue;
+
+  /// No description provided for @flashcardSetupResumeFresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh'**
+  String get flashcardSetupResumeFresh;
+
+  /// No description provided for @flashcardImportantEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No important words yet'**
+  String get flashcardImportantEmptyTitle;
+
+  /// No description provided for @flashcardImportantEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark words as important on word cards to study them here.'**
+  String get flashcardImportantEmptyBody;
+
+  /// No description provided for @flashcardImportantEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to words'**
+  String get flashcardImportantEmptyAction;
+
+  /// No description provided for @flashcardFavoritesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite words yet'**
+  String get flashcardFavoritesEmptyTitle;
+
+  /// No description provided for @flashcardFavoritesEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark words as favorite on word cards to study them here.'**
+  String get flashcardFavoritesEmptyBody;
+
+  /// No description provided for @flashcardFavoritesEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to words'**
+  String get flashcardFavoritesEmptyAction;
+
+  /// No description provided for @flashcardNoWordsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No words to study'**
+  String get flashcardNoWordsTitle;
+
+  /// No description provided for @flashcardNoWordsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no words for this unit or section.'**
+  String get flashcardNoWordsBody;
+
+  /// No description provided for @flashcardSessionComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Session complete'**
+  String get flashcardSessionComplete;
+
+  /// No description provided for @flashcardSessionCardsReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} cards reviewed'**
+  String flashcardSessionCardsReviewed(int count);
+
+  /// No description provided for @flashcardSessionDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m {seconds}s'**
+  String flashcardSessionDuration(int minutes, int seconds);
+
+  /// No description provided for @flashcardSessionReviewAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Review again ({count})'**
+  String flashcardSessionReviewAgain(int count);
+
+  /// No description provided for @flashcardSessionRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Study again'**
+  String get flashcardSessionRestart;
+
+  /// No description provided for @flashcardSessionBackToWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to words'**
+  String get flashcardSessionBackToWords;
+
+  /// No description provided for @flashcardSummaryReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewed'**
+  String get flashcardSummaryReviewed;
+
+  /// No description provided for @flashcardSummaryMastered.
+  ///
+  /// In en, this message translates to:
+  /// **'Mastered'**
+  String get flashcardSummaryMastered;
+
+  /// No description provided for @flashcardSummaryToReview.
+  ///
+  /// In en, this message translates to:
+  /// **'To review'**
+  String get flashcardSummaryToReview;
 
   /// No description provided for @couldNotLoadSectionsWithError.
   ///

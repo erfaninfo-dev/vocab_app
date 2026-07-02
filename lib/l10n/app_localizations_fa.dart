@@ -2506,6 +2506,37 @@ class AppLocalizationsFa extends AppLocalizations {
       'ریختن آب، فشار غرق‌شدن و جلوه‌های سینی هنگام اشتباه.';
 
   @override
+  String get wordBuilderTrayVisualModeTitle => 'سبک سینی';
+
+  @override
+  String get wordBuilderTrayVisualModeSubtitle =>
+      'نحوهٔ واکنش مرکز سینی به اشتباه را انتخاب کن.';
+
+  @override
+  String get wordBuilderTrayModeWater => 'سینی آب';
+
+  @override
+  String get wordBuilderTrayModeWaterSubtitle =>
+      'حالت کلاسیک با آب، لوله و شکلک واکنش‌دار.';
+
+  @override
+  String get wordBuilderTrayModeGlass => 'شیشه ترک‌خورده';
+
+  @override
+  String get wordBuilderTrayModeGlassSubtitle =>
+      'شیشه واقع‌گرایانه — هر اشتباه یک ترک تا شکستن کامل.';
+
+  @override
+  String get wordBuilderSessionGlassSfxSwitch => 'جلوه‌های شیشه';
+
+  @override
+  String get wordBuilderSessionGlassSfxSubtitle =>
+      'لرزش و صدای ترک/شکستن در مود شیشه.';
+
+  @override
+  String get wordBuilderGlassGameOverTitle => 'شیشه شکست!';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'راهنما: $meaning';
   }
@@ -2620,6 +2651,156 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get allCardsReviewed => 'همهٔ کارت‌ها مرور شد!';
+
+  @override
+  String get flashcardBadgeImportant => 'مهم';
+
+  @override
+  String get flashcardBadgeFavorite => 'علاقه‌مندی';
+
+  @override
+  String get flashcardResumedHint => 'ادامهٔ جلسه';
+
+  @override
+  String get flashcardRatingAgain => 'دوباره';
+
+  @override
+  String get flashcardRatingHard => 'سخت';
+
+  @override
+  String get flashcardRatingGood => 'خوب';
+
+  @override
+  String get flashcardRatingEasy => 'آسان';
+
+  @override
+  String get flashcardSetupTitle => 'فلش‌کارت';
+
+  @override
+  String get flashcardSetupDeck => 'مجموعه';
+
+  @override
+  String get flashcardSetupPoolAll => 'همهٔ واژه‌ها';
+
+  @override
+  String get flashcardSetupPoolImportant => 'فقط واژه‌های مهم';
+
+  @override
+  String get flashcardSetupPoolFavorites => 'علاقه‌مندی‌ها';
+
+  @override
+  String get flashcardSetupOrder => 'ترتیب';
+
+  @override
+  String get flashcardSetupShuffle => 'بُر زدن کارت‌ها';
+
+  @override
+  String get flashcardSetupDirection => 'جهت کارت';
+
+  @override
+  String get flashcardSetupDirectionWordToMeaning => 'واژه ← معنی';
+
+  @override
+  String get flashcardSetupDirectionMeaningToWord => 'معنی ← واژه';
+
+  @override
+  String get flashcardSetupOptions => 'گزینه‌های مطالعه';
+
+  @override
+  String get flashcardSetupSrs =>
+      'امتیازدهی‌ها به صف مرور روزانهٔ شما می‌روند.';
+
+  @override
+  String get flashcardSetupSrsToggle => 'امتیازدهی روی مرور روزانه اثر بگذارد';
+
+  @override
+  String get flashcardSetupSwipeRatings => 'امتیازدهی با کشیدن';
+
+  @override
+  String get flashcardSetupStart => 'شروع';
+
+  @override
+  String flashcardSetupUnitTitle(int unit) {
+    return 'یونیت $unit';
+  }
+
+  @override
+  String flashcardSetupUnitSectionTitle(int unit, int section) {
+    return 'یونیت $unit · بخش $section';
+  }
+
+  @override
+  String get flashcardSetupResumeTitle => 'ادامهٔ جلسه';
+
+  @override
+  String flashcardSetupResumeBody(int current, int total) {
+    return 'روی کارت $current از $total بودید. از همان‌جا ادامه دهید یا از نو شروع کنید.';
+  }
+
+  @override
+  String get flashcardSetupResumeContinue => 'ادامه';
+
+  @override
+  String get flashcardSetupResumeFresh => 'شروع تازه';
+
+  @override
+  String get flashcardImportantEmptyTitle => 'هنوز واژهٔ مهمی نیست';
+
+  @override
+  String get flashcardImportantEmptyBody =>
+      'روی کارت واژه‌ها، واژه‌ها را به‌عنوان مهم علامت بزنید تا اینجا تمرین کنید.';
+
+  @override
+  String get flashcardImportantEmptyAction => 'رفتن به واژه‌ها';
+
+  @override
+  String get flashcardFavoritesEmptyTitle => 'هنوز واژهٔ علاقه‌مندی‌ای نیست';
+
+  @override
+  String get flashcardFavoritesEmptyBody =>
+      'روی کارت واژه‌ها، واژه‌ها را به علاقه‌مندی‌ها اضافه کنید تا اینجا تمرین کنید.';
+
+  @override
+  String get flashcardFavoritesEmptyAction => 'رفتن به واژه‌ها';
+
+  @override
+  String get flashcardNoWordsTitle => 'واژه‌ای برای تمرین نیست';
+
+  @override
+  String get flashcardNoWordsBody => 'برای این یونیت/بخش واژه‌ای وجود ندارد.';
+
+  @override
+  String get flashcardSessionComplete => 'جلسه تمام شد';
+
+  @override
+  String flashcardSessionCardsReviewed(int count) {
+    return '$count کارت مرور شد';
+  }
+
+  @override
+  String flashcardSessionDuration(int minutes, int seconds) {
+    return '$minutesد $secondsث';
+  }
+
+  @override
+  String flashcardSessionReviewAgain(int count) {
+    return 'مرور دوباره ($count)';
+  }
+
+  @override
+  String get flashcardSessionRestart => 'مطالعه دوباره';
+
+  @override
+  String get flashcardSessionBackToWords => 'بازگشت به واژه‌ها';
+
+  @override
+  String get flashcardSummaryReviewed => 'مرور شده';
+
+  @override
+  String get flashcardSummaryMastered => 'تسلط یافته';
+
+  @override
+  String get flashcardSummaryToReview => 'برای مرور';
 
   @override
   String couldNotLoadSectionsWithError(String error) {

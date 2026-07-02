@@ -20,6 +20,7 @@ import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
 import 'widgets/magic_background.dart';
 import 'widgets/word_builder_coins_chip.dart';
+import 'widgets/word_builder_tray_visual_mode_selector.dart';
 
 class WordBuilderLobbyScreen extends ConsumerStatefulWidget {
   const WordBuilderLobbyScreen({super.key});
@@ -29,7 +30,8 @@ class WordBuilderLobbyScreen extends ConsumerStatefulWidget {
       _WordBuilderLobbyScreenState();
 }
 
-class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen> {
+class _WordBuilderLobbyScreenState
+    extends ConsumerState<WordBuilderLobbyScreen> {
   @override
   void initState() {
     super.initState();
@@ -77,8 +79,8 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
         children: [
           MagicBackground(isDark: isDark),
           Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
               backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
@@ -108,7 +110,7 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                       ),
                     )
                   : null,
-          actions: [
+              actions: [
                 Padding(
                   padding: const EdgeInsetsDirectional.only(top: 14, end: 8),
                   child: Align(
@@ -133,11 +135,11 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                           WordBuilderCoinsChipLoading(scheme: scheme),
                       error: (_, __) => const SizedBox.shrink(),
                     ),
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        body: progAsync.when(
+            body: progAsync.when(
               loading: () => const Center(
                 child: CircularProgressIndicator(color: Color(0xFFFFB300)),
               ),
@@ -150,42 +152,42 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                   ),
                 ),
               ),
-          data: (progress) => SafeArea(
+              data: (progress) => SafeArea(
                 child: RefreshIndicator(
                   color: const Color(0xFFFFB300),
                   onRefresh: _refreshWordBuilderLobby,
-            child: SingleChildScrollView(
+                  child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         if (l10n.wordBuilderCampaignHubSubtitle
                             .trim()
                             .isNotEmpty) ...[
-                  Text(
-                    l10n.wordBuilderCampaignHubSubtitle,
-                    textAlign: TextAlign.center,
+                          Text(
+                            l10n.wordBuilderCampaignHubSubtitle,
+                            textAlign: TextAlign.center,
                             style: GoogleFonts.fredoka(
                               fontSize: 15,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
                               color: const Color(0xFF5D4037),
-                    ),
-                  ),
+                            ),
+                          ),
                           const SizedBox(height: 18),
                         ],
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyBeginner,
+                        _TierLaunchCard(
+                          title: l10n.wordBuilderDifficultyBeginner,
                           subtitle:
                               '${progress.beginnerStagesCleared}/$kWordBuilderStagesPerTier',
                           onTap: () => context.push(
                             '/word-builder/campaign?difficulty=beginner',
                           ),
-                  ),
-                  const SizedBox(height: 14),
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyIntermediate,
+                        ),
+                        const SizedBox(height: 14),
+                        _TierLaunchCard(
+                          title: l10n.wordBuilderDifficultyIntermediate,
                           subtitle:
                               progress.isDifficultyUnlocked(
                                 WordBuilderDifficulty.intermediate,
@@ -209,10 +211,10 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                               '/word-builder/campaign?difficulty=intermediate',
                             );
                           },
-                  ),
-                  const SizedBox(height: 14),
-                  _TierLaunchCard(
-                    title: l10n.wordBuilderDifficultyAdvanced,
+                        ),
+                        const SizedBox(height: 14),
+                        _TierLaunchCard(
+                          title: l10n.wordBuilderDifficultyAdvanced,
                           subtitle:
                               progress.isDifficultyUnlocked(
                                 WordBuilderDifficulty.advanced,
@@ -238,6 +240,24 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                           },
                         ),
                         const SizedBox(height: 22),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: scheme.surfaceContainerHighest.withValues(
+                              alpha: isDark ? 0.35 : 0.72,
+                            ),
+                            border: Border.all(
+                              color: const Color(
+                                0xFFFFB300,
+                              ).withValues(alpha: isDark ? 0.45 : 0.65),
+                            ),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: WordBuilderTrayVisualModeSelector(),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
                         _WordBuilderLeagueCard(
                           progress: progress,
                           coins: coinsAsync.valueOrNull,
@@ -245,11 +265,11 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                           signedIn: auth != null,
                         ),
                         const SizedBox(height: 44),
-                ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
             ),
           ),
         ],
@@ -372,7 +392,7 @@ class _TierLaunchCard extends StatelessWidget {
                   color: const Color(0xFFFFB300).withValues(alpha: 0.18),
                   blurRadius: 14,
                   offset: const Offset(0, 3),
-              ),
+                ),
             ],
           ),
           child: Padding(
@@ -705,9 +725,7 @@ class _WordBuilderLeagueCard extends StatelessWidget {
                   offset: const Offset(0, 9),
                 ),
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark ? 0.28 : 0.06,
-                  ),
+                  color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.06),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),
@@ -1246,7 +1264,7 @@ class _LeaguePreviewBody extends StatelessWidget {
                   style: GoogleFonts.fredoka(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                  color: scheme.primary,
+                    color: scheme.primary,
                   ),
                 ),
               ],
@@ -1671,10 +1689,7 @@ class _LeagueRankBadge extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: colors,
             ),
-            border: Border.all(
-              color: borderColor,
-              width: 1.8,
-            ),
+            border: Border.all(color: borderColor, width: 1.8),
             boxShadow: [
               BoxShadow(
                 color: shadowColor,

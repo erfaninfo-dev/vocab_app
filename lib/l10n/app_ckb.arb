@@ -836,6 +836,15 @@
   "wordBuilderSessionSfxSubtitle": "وەڵامی ڕاست، هەڵە و کۆتایی قۆناغ.",
   "wordBuilderSessionWaterSfxSwitch": "دەنگەکانی ئاو",
   "wordBuilderSessionWaterSfxSubtitle": "ڕژانی ئاو، فشار و کاریگەری سینی کاتێک هەڵە دەکەیت.",
+  "wordBuilderTrayVisualModeTitle": "شێوازی سینی",
+  "wordBuilderTrayVisualModeSubtitle": "هەڵبژێرە ناوەندی سینی چۆن وەڵامی هەڵەکان بدات.",
+  "wordBuilderTrayModeWater": "سینی ئاو",
+  "wordBuilderTrayModeWaterSubtitle": "کلاسیک بە ئاو، بۆری و دەموچاوێکی کاریگەر.",
+  "wordBuilderTrayModeGlass": "شیشەی ترک‌خوراو",
+  "wordBuilderTrayModeGlassSubtitle": "شیشەی ڕاستەقینە — هەر هەڵەیەک ترکێک تا شکان.",
+  "wordBuilderSessionGlassSfxSwitch": "کاریگەری شیشە",
+  "wordBuilderSessionGlassSfxSubtitle": "لەرزین و دەنگی ترک/شکان لە مۆدی شیشە.",
+  "wordBuilderGlassGameOverTitle": "شیشە شکا!",
   "wordBuilderHintMeaningLine": "یارمەتی: {meaning}",
   "@wordBuilderHintMeaningLine": {
     "placeholders": {
@@ -900,6 +909,84 @@
   "flashcardMeaningLabel": "واتا",
   "flashcardWordLabel": "وشە",
   "allCardsReviewed": "هەموو کارتەکان پێداچوونەوە کران!",
+  "flashcardBadgeImportant": "گرنگ",
+  "flashcardBadgeFavorite": "دڵخواز",
+  "flashcardResumedHint": "بەردەوامبوونی دانیشتن",
+  "flashcardRatingAgain": "دووبارە",
+  "flashcardRatingHard": "قورس",
+  "flashcardRatingGood": "باش",
+  "flashcardRatingEasy": "ئاسان",
+  "flashcardSetupTitle": "کارتی فلاش",
+  "flashcardSetupDeck": "کۆمەڵە",
+  "flashcardSetupPoolAll": "هەموو وشەکان",
+  "flashcardSetupPoolImportant": "تەنها وشە گرنگەکان",
+  "flashcardSetupPoolFavorites": "دڵخوازەکان",
+  "flashcardSetupOrder": "ڕیز",
+  "flashcardSetupShuffle": "تێکەڵاندنی کارتەکان",
+  "flashcardSetupDirection": "ئاراستەی کارت",
+  "flashcardSetupDirectionWordToMeaning": "وشە ← واتا",
+  "flashcardSetupDirectionMeaningToWord": "واتا ← وشە",
+  "flashcardSetupOptions": "هەڵبژاردنەکانی خوێندن",
+  "flashcardSetupSrs": "نمرەدان دەچێتە ڕیزی پێداچوونەوەی ڕۆژانە.",
+  "flashcardSetupSrsToggle": "نمرەدان کاریگەری لەسەر پێداچوونەوەی ڕۆژانە هەبێت",
+  "flashcardSetupSwipeRatings": "نمرەدان بە کشاندن",
+  "flashcardSetupStart": "دەستپێبکە",
+  "flashcardSetupUnitTitle": "یەکە {unit}",
+  "@flashcardSetupUnitTitle": {
+    "placeholders": {
+      "unit": {"type": "int"}
+    }
+  },
+  "flashcardSetupUnitSectionTitle": "یەکە {unit} · بەش {section}",
+  "@flashcardSetupUnitSectionTitle": {
+    "placeholders": {
+      "unit": {"type": "int"},
+      "section": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeTitle": "بەردەوامبوون لە دانیشتن",
+  "flashcardSetupResumeBody": "لەسەر کارتی {current} لە {total} بوویت. لەوێ بەردەوام بە یان لە سەرەوە دەستپێبکە.",
+  "@flashcardSetupResumeBody": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "flashcardSetupResumeContinue": "بەردەوام",
+  "flashcardSetupResumeFresh": "لە سەرەوە دەستپێبکە",
+  "flashcardImportantEmptyTitle": "هێشتا وشەی گرنگ نییە",
+  "flashcardImportantEmptyBody": "لەسەر کارتی وشەکان، وشەکان وەک گرنگ نیشانە بکە بۆ ئەم لێرە مەشق بکەی.",
+  "flashcardImportantEmptyAction": "بڕۆ بۆ وشەکان",
+  "flashcardFavoritesEmptyTitle": "هێشتا وشەی دڵخواز نییە",
+  "flashcardFavoritesEmptyBody": "لەسەر کارتی وشەکان، وشەکان بۆ دڵخوازەکان زیاد بکە بۆ ئەم لێرە مەشق بکەی.",
+  "flashcardFavoritesEmptyAction": "بڕۆ بۆ وشەکان",
+  "flashcardNoWordsTitle": "وشە بۆ مەشق نییە",
+  "flashcardNoWordsBody": "بۆ ئەم یەکە/بەشە وشە نییە.",
+  "flashcardSessionComplete": "دانیشتن تەواو بوو",
+  "flashcardSessionCardsReviewed": "{count} کارت پێداچوونەوە کران",
+  "@flashcardSessionCardsReviewed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionDuration": "{minutes}خ {seconds}چ",
+  "@flashcardSessionDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "flashcardSessionReviewAgain": "پێداچوونەوەی دووبارە ({count})",
+  "@flashcardSessionReviewAgain": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flashcardSessionRestart": "دووبارە خوێندن",
+  "flashcardSessionBackToWords": "گەڕانەوە بۆ وشەکان",
+  "flashcardSummaryReviewed": "پێداچوونەوە کرا",
+  "flashcardSummaryMastered": "گەیشتووە بە دەسەڵات",
+  "flashcardSummaryToReview": "بۆ پێداچوونەوە",
   "couldNotLoadSectionsWithError": "بارکردنی بەشەکان سەرکەوتوو نەبوو.\n{error}",
   "@couldNotLoadSectionsWithError": {
     "placeholders": {

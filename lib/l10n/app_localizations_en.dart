@@ -2512,6 +2512,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pouring water, drowning tension, and tray effects when you make mistakes.';
 
   @override
+  String get wordBuilderTrayVisualModeTitle => 'Tray style';
+
+  @override
+  String get wordBuilderTrayVisualModeSubtitle =>
+      'Pick how the center tray reacts to mistakes.';
+
+  @override
+  String get wordBuilderTrayModeWater => 'Water tray';
+
+  @override
+  String get wordBuilderTrayModeWaterSubtitle =>
+      'Classic tub with water, pipes, and a face that reacts.';
+
+  @override
+  String get wordBuilderTrayModeGlass => 'Glass crack';
+
+  @override
+  String get wordBuilderTrayModeGlassSubtitle =>
+      'Realistic glass — each mistake adds a crack until it shatters.';
+
+  @override
+  String get wordBuilderSessionGlassSfxSwitch => 'Glass crack effects';
+
+  @override
+  String get wordBuilderSessionGlassSfxSubtitle =>
+      'Impact haptics and crack/shatter sounds in glass mode.';
+
+  @override
+  String get wordBuilderGlassGameOverTitle => 'The glass shattered!';
+
+  @override
   String wordBuilderHintMeaningLine(String meaning) {
     return 'Hint: $meaning';
   }
@@ -2626,6 +2657,156 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allCardsReviewed => 'All cards reviewed!';
+
+  @override
+  String get flashcardBadgeImportant => 'Important';
+
+  @override
+  String get flashcardBadgeFavorite => 'Favorite';
+
+  @override
+  String get flashcardResumedHint => 'Resumed session';
+
+  @override
+  String get flashcardRatingAgain => 'Again';
+
+  @override
+  String get flashcardRatingHard => 'Hard';
+
+  @override
+  String get flashcardRatingGood => 'Good';
+
+  @override
+  String get flashcardRatingEasy => 'Easy';
+
+  @override
+  String get flashcardSetupTitle => 'Flashcards';
+
+  @override
+  String get flashcardSetupDeck => 'Deck';
+
+  @override
+  String get flashcardSetupPoolAll => 'All words';
+
+  @override
+  String get flashcardSetupPoolImportant => 'Important only';
+
+  @override
+  String get flashcardSetupPoolFavorites => 'Favorites';
+
+  @override
+  String get flashcardSetupOrder => 'Order';
+
+  @override
+  String get flashcardSetupShuffle => 'Shuffle cards';
+
+  @override
+  String get flashcardSetupDirection => 'Card direction';
+
+  @override
+  String get flashcardSetupDirectionWordToMeaning => 'Word → Meaning';
+
+  @override
+  String get flashcardSetupDirectionMeaningToWord => 'Meaning → Word';
+
+  @override
+  String get flashcardSetupOptions => 'Study options';
+
+  @override
+  String get flashcardSetupSrs => 'Ratings feed your daily review queue.';
+
+  @override
+  String get flashcardSetupSrsToggle => 'Ratings affect daily review';
+
+  @override
+  String get flashcardSetupSwipeRatings => 'Swipe to rate';
+
+  @override
+  String get flashcardSetupStart => 'Start';
+
+  @override
+  String flashcardSetupUnitTitle(int unit) {
+    return 'Unit $unit';
+  }
+
+  @override
+  String flashcardSetupUnitSectionTitle(int unit, int section) {
+    return 'Unit $unit · Section $section';
+  }
+
+  @override
+  String get flashcardSetupResumeTitle => 'Resume session';
+
+  @override
+  String flashcardSetupResumeBody(int current, int total) {
+    return 'You were on card $current of $total. Continue where you left off, or start fresh.';
+  }
+
+  @override
+  String get flashcardSetupResumeContinue => 'Continue';
+
+  @override
+  String get flashcardSetupResumeFresh => 'Start fresh';
+
+  @override
+  String get flashcardImportantEmptyTitle => 'No important words yet';
+
+  @override
+  String get flashcardImportantEmptyBody =>
+      'Mark words as important on word cards to study them here.';
+
+  @override
+  String get flashcardImportantEmptyAction => 'Go to words';
+
+  @override
+  String get flashcardFavoritesEmptyTitle => 'No favorite words yet';
+
+  @override
+  String get flashcardFavoritesEmptyBody =>
+      'Mark words as favorite on word cards to study them here.';
+
+  @override
+  String get flashcardFavoritesEmptyAction => 'Go to words';
+
+  @override
+  String get flashcardNoWordsTitle => 'No words to study';
+
+  @override
+  String get flashcardNoWordsBody =>
+      'There are no words for this unit or section.';
+
+  @override
+  String get flashcardSessionComplete => 'Session complete';
+
+  @override
+  String flashcardSessionCardsReviewed(int count) {
+    return '$count cards reviewed';
+  }
+
+  @override
+  String flashcardSessionDuration(int minutes, int seconds) {
+    return '${minutes}m ${seconds}s';
+  }
+
+  @override
+  String flashcardSessionReviewAgain(int count) {
+    return 'Review again ($count)';
+  }
+
+  @override
+  String get flashcardSessionRestart => 'Study again';
+
+  @override
+  String get flashcardSessionBackToWords => 'Back to words';
+
+  @override
+  String get flashcardSummaryReviewed => 'Reviewed';
+
+  @override
+  String get flashcardSummaryMastered => 'Mastered';
+
+  @override
+  String get flashcardSummaryToReview => 'To review';
 
   @override
   String couldNotLoadSectionsWithError(String error) {

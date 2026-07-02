@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/word_builder_game_notifier.dart';
+import '../../application/word_builder_tray_visual_mode_provider.dart';
+import '../../domain/word_builder_tray_visual_mode.dart';
 import '../../domain/word_builder_models.dart';
 import 'fancy_letter.dart';
+import 'tray_glass_scene.dart';
 import 'tray_water_scene.dart';
 
 class _TrayLayout {
@@ -237,6 +240,8 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray>
     final pathWrong = async.valueOrNull?.pathWrongHighlight ?? false;
     final trayBlocked = async.valueOrNull?.trayInputBlocked ?? false;
     final notifier = ref.read(wordBuilderGameProvider(widget.bookKey).notifier);
+    final trayMode = ref.watch(wordBuilderTrayVisualModeProvider);
+    final isGlassMode = trayMode == WordBuilderTrayVisualMode.glassCrack;
 
     _syncWrongFadeAnimation(pathWrong);
 
@@ -322,32 +327,51 @@ class _CircularLetterTrayState extends ConsumerState<CircularLetterTray>
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
                   children: [
-                    RotationTransition(
-                      turns: _orbit,
-                      child: CustomPaint(
+                    if (!isGlassMode)
+                      RotationTransition(
+                        turns: _orbit,
+                        child: CustomPaint(
+                          size: size,
+                          painter: _OrbitGlowPainter(
+                            center: layout.center,
+                            radius: layout.trayRadius + 8,
+                          ),
+                        ),
+                      )
+                    else
+                      CustomPaint(
                         size: size,
-                        painter: _OrbitGlowPainter(
+                        painter: _GlassOrbitGlowPainter(
                           center: layout.center,
-                          radius: layout.trayRadius + 8,
+                          radius: layout.trayRadius + 6,
+                          scheme: scheme,
                         ),
                       ),
-                    ),
-                    CustomPaint(
-                      size: size,
-                      painter: _TraySaucerPainter(
-                        center: layout.center,
-                        radius: layout.trayRadius,
-                        scheme: scheme,
+                    if (!isGlassMode)
+                      CustomPaint(
+                        size: size,
+                        painter: _TraySaucerPainter(
+                          center: layout.center,
+                          radius: layout.trayRadius,
+                          scheme: scheme,
+                        ),
                       ),
-                    ),
-                    TrayWaterScene(
-                      bookKey: widget.bookKey,
-                      size: size,
-                      center: layout.center,
-                      tubRadius: layout.trayRadius * 0.72,
-                      saucerRadius: layout.trayRadius,
-                      faceRadius: layout.trayRadius * 0.5,
-                    ),
+                    if (isGlassMode)
+                      TrayGlassScene(
+                        bookKey: widget.bookKey,
+                        size: size,
+                        center: layout.center,
+                        glassRadius: layout.trayRadius * 0.88,
+                      )
+                    else
+                      TrayWaterScene(
+                        bookKey: widget.bookKey,
+                        size: size,
+                        center: layout.center,
+                        tubRadius: layout.trayRadius * 0.72,
+                        saucerRadius: layout.trayRadius,
+                        faceRadius: layout.trayRadius * 0.5,
+                      ),
                     AnimatedOpacity(
                       key: ValueKey(pathWrong),
                       duration: const Duration(milliseconds: 260),
@@ -455,6 +479,36 @@ class _OrbitGlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _OrbitGlowPainter oldDelegate) {
     return oldDelegate.center != center || oldDelegate.radius != radius;
+  }
+}
+
+class _GlassOrbitGlowPainter extends CustomPainter {
+  _GlassOrbitGlowPainter({
+    required this.center,
+    required this.radius,
+    required this.scheme,
+  });
+
+  final Offset center;
+  final double radius;
+  final ColorScheme scheme;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (radius <= 0) return;
+    final paint = Paint()
+      ..color = scheme.primary.withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlassOrbitGlowPainter oldDelegate) {
+    return oldDelegate.center != center ||
+        oldDelegate.radius != radius ||
+        oldDelegate.scheme.primary != scheme.primary;
   }
 }
 
