@@ -1330,6 +1330,41 @@ class WordBuilderGameNotifier
     }
   }
 
+  /// Checks each row's left-to-right spelling against any unsolved target.
+  /// Returns row indexes that were newly solved this pass.
+  Future<List<int>> evaluatePuzzleRows(List<String?> rowWords) async {
+    if (!ref.read(wordBuilderPlayModeProvider).usesPuzzleLetterBoard) {
+      return const [];
+    }
+    final s = state.valueOrNull;
+    if (s == null || s.trayVictorySequenceActive) return const [];
+
+    var current = s;
+    final newlySolvedRows = <int>[];
+    for (var i = 0; i < rowWords.length; i++) {
+      final built = rowWords[i];
+      if (built == null || built.isEmpty) continue;
+      final matched = findUnsolvedTargetMatchingBuilt(
+        current.level,
+        current.solvedLower,
+        built,
+      );
+      if (matched == null) continue;
+      newlySolvedRows.add(i);
+      await _applyCorrectWord(
+        current,
+        normalizeWord(matched.word),
+        matched,
+        perfectRun: true,
+      );
+      current = state.valueOrNull ?? current;
+      if (current.trayVictorySequenceActive || current.levelComplete) {
+        return newlySolvedRows;
+      }
+    }
+    return newlySolvedRows;
+  }
+
   Future<void> _applyCorrectWord(
     WordBuilderViewState s,
     String norm,

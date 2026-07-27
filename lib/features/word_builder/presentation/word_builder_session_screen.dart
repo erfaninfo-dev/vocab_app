@@ -890,6 +890,7 @@ class _WordBuilderSessionScreenState
                                               child: isPuzzle
                                                   ? PuzzleLetterBoard(
                                                       bookKey: key,
+                                                      level: s.level,
                                                       letters: s.circleLetters,
                                                     )
                                                   : isAngryWords
