@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/class_schedule_slot.dart';
+import '../you/you_jelly_style.dart';
 import 'schedule_time_format.dart';
 
 const double _kTimelineGutter = 26;
@@ -265,58 +266,48 @@ class WeeklyScheduleReadOnlySlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lab = label;
-    return Material(
-      color: scheme.surface,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor:
-                  scheme.secondaryContainer.withValues(alpha: 0.95),
-              foregroundColor: scheme.onSecondaryContainer,
-              child: const Icon(
-                Icons.schedule_rounded,
-                size: 22,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: youJellyCardDecoration(context, scheme: scheme),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          YouJellyIconBubble(
+            color: scheme.secondary,
+            size: 44,
+            child: Icon(
+              Icons.schedule_rounded,
+              size: 22,
+              color: scheme.onSecondary,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  timeText,
+                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (lab != null && lab.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    timeText,
-                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    lab,
+                    style: tt.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (lab != null && lab.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      lab,
-                      style: tt.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

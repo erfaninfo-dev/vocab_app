@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/widgets/app_jelly_style.dart';
 import '../../../core/app_info/package_info_provider.dart';
 import '../../../core/branding/app_brand_logo.dart';
 import '../../../core/network/resolve_update_url.dart';
@@ -75,11 +76,9 @@ class AboutCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final l10nEn = lookupAppLocalizations(const Locale('en'));
 
-    return Card(
-      elevation: 0,
+    return AppJellyCard(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

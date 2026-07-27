@@ -7,6 +7,7 @@ import '../../core/datetime/class_session_chronological_index.dart';
 import '../../core/datetime/class_session_recorded_at.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/financial/financial_format.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/term_payment_status_chip.dart';
 import '../../core/widgets/term_title_card.dart';
 import '../../data/models/teacher_student.dart';
@@ -731,25 +732,19 @@ class _TeacherClassSessionsPanelState
           const SizedBox(height: 14),
           Container(
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
+            decoration: appJellyCardDecoration(context, scheme: scheme),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: scheme.primaryContainer,
+                      AppJellyIconBubble(
+                        color: scheme.primary,
                         child: Icon(
                           Icons.school_outlined,
-                          color: scheme.onPrimaryContainer,
+                          color: scheme.onPrimary,
                           size: 22,
                         ),
                       ),
@@ -865,13 +860,7 @@ class _TeacherClassSessionsPanelState
             children.add(
               Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.45),
-                  ),
-                ),
+                decoration: appJellyCardDecoration(context, scheme: scheme),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Column(
@@ -1129,38 +1118,33 @@ class _SessionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: scheme.surface,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onEdit,
-        child: Padding(
+        borderRadius: BorderRadius.circular(kAppJellyRadius),
+        child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: appJellyCardDecoration(context, scheme: scheme),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: scheme.primaryContainer.withValues(alpha: 0.9),
-                foregroundColor: scheme.onPrimaryContainer,
+              AppJellyIconBubble(
+                color: scheme.primary,
+                size: 44,
                 child: busy
                     ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: scheme.primary,
+                          color: scheme.onPrimary,
                         ),
                       )
                     : Text(
                         '$displayIndex',
                         style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
+                          color: scheme.onPrimary,
                         ),
                       ),
               ),
@@ -1172,7 +1156,7 @@ class _SessionTile extends StatelessWidget {
                     Text(
                       l10n.teacherClassSessionHeading(displayIndex),
                       style: tt.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1203,18 +1187,13 @@ class _SessionTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: scheme.primary.withValues(alpha: 0.1),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(5),
-                  child: Icon(
-                    Icons.check_rounded,
-                    size: 18,
-                    color: scheme.primary,
-                  ),
+              AppJellyIconBubble(
+                color: scheme.primary,
+                size: 32,
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 18,
+                  color: scheme.onPrimary,
                 ),
               ),
               IconButton(

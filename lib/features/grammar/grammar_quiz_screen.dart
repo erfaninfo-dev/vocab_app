@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_question.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -797,30 +798,7 @@ class _GrammarQuizScreenState extends ConsumerState<GrammarQuizScreen> {
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(22),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  scheme.surface.withValues(alpha: 0.95),
-                                  scheme.surfaceContainerHighest.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: scheme.primary.withValues(alpha: 0.85),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: scheme.shadow.withValues(alpha: 0.06),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
+                            decoration: appJellyCardDecoration(context),
                             child: Directionality(
                               textDirection: _grammarQuestionTextDirection(
                                 q.questionText,
@@ -1352,24 +1330,29 @@ class _OptionTile extends StatelessWidget {
       }
     }
 
-    return Material(
-      color: bg ?? scheme.surface.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(16),
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: answered
-                  ? Colors.transparent
-                  : scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Directionality(
+    return AppJellyShell(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: answered
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(kAppJellyRadius),
+              color: bg,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.45),
+                width: 1.2,
+              ),
+            )
+          : appJellyCardSurfaceDecoration(context),
+      shadows: answered
+          ? [
+              BoxShadow(
+                color: (bg ?? scheme.primary).withValues(alpha: 0.22),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ]
+          : appJellyCardShadows(context),
+      child: Directionality(
             textDirection: _grammarQuestionTextDirection(label),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1415,8 +1398,6 @@ class _OptionTile extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }

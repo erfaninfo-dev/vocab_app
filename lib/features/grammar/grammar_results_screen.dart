@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/grammar_result.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import 'grammar_practice_result_card.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
@@ -852,13 +853,8 @@ class _LegacyLinkPreviewCard extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final shownCount = preview.samples.length;
     final totalCount = preview.matchedResultCount;
-    return Container(
+    return AppJellyCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

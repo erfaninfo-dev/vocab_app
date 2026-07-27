@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -286,11 +287,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final body = SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: AppJellyCard(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               l10n.welcomeBack,
               style: Theme.of(
@@ -382,6 +385,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
 

@@ -25,6 +25,37 @@ Toggle: **Settings → Sound → Startup chime**.
 | `word_success.mp3` | Short positive ding when a word is found | ~0.2–0.6 s |
 | `word_error.mp3` | Soft “buzz” or low tone when the path is wrong | ~0.15–0.5 s |
 | `level_success.mp3` | Bigger fanfare when the whole stage/level is finished | ~1.0–2.5 s |
+| `letters_pop.MP3` | Bubble pop when a correct Angry Words letter explodes | ~0.15–0.5 s |
+| `shot2.WAV` | Angry Words cage-phase blaster — one shot per bullet | ~0.1–0.15 s |
+| `pop.WAV` | Angry Words candy / barrier bubble pop (one pop) | ~0.1–0.2 s |
+| `sling_stretch.wav` | Slingshot rubber stretch **loop** while pulling; volume 0.15→1.0 and speed/pitch 0.85→1.25 follow tension | ~1.0–1.5 s, loopable |
+| `sling_snap.wav` | Elastic snap on sling release | ~0.15–0.4 s |
+| `sling_whoosh.wav` | Flight whoosh after a strong release | ~0.15–0.4 s |
+| `egg_crack.wav` | Eggshell crack when a letter-egg / egg prop breaks | ~0.15–0.4 s |
+
+### Train-escape tray scenario (odd levels)
+
+| File | Purpose | Suggested length |
+|------|---------|------------------|
+| `train_horn.mp3` | Horn blast on every wrong answer | ~0.5–1.2 s |
+| `rope_snap.mp3` | Rope snapping on every correct word | ~0.2–0.6 s |
+| `train_approach.mp3` | Rumble loop while the train is close (2+ wrongs); volume ramps with tension | ~2–5 s, loopable |
+| `train_pass.mp3` | Train rushing past after the character escapes (level complete) | ~1–2 s |
+| `train_brake.mp3` | Screeching brake right before the game-over modal | ~1–2 s |
+
+All train files are optional — missing files are skipped without crashing (same as the water sounds).
+
+### Prison-escape tray scenario (every 3rd level)
+
+| File | Purpose | Suggested length |
+|------|---------|------------------|
+| `guard_stir.mp3` | Soft stir / chair creak on every wrong answer | ~0.3–0.8 s |
+| `key_jingle.mp3` | Key jingle on every correct word / key grab | ~0.2–0.6 s |
+| `door_unlock.mp3` | Cell door unlock during victory escape | ~0.6–1.5 s |
+| `guard_wake.mp3` | Guard waking up right before game-over modal | ~0.8–1.8 s |
+| `heartbeat.mp3` | Heartbeat loop while tension is high (2+ wrongs); volume ramps | ~1–3 s, loopable |
+
+All prison files are optional — missing files are skipped without crashing.
 
 These use the same **Startup chime** toggle in Settings until a separate game-sound switch is added.
 

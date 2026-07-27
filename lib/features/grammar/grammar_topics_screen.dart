@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/admin_story.dart';
 import '../../data/models/grammar_book.dart';
 import '../../data/models/grammar_question.dart';
@@ -708,14 +709,8 @@ class _GrammarBooksLoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 112,
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
+    return AppJellyCard(
+      padding: const EdgeInsets.all(20),
       child: const Center(child: CircularProgressIndicator()),
     );
   }
@@ -740,14 +735,8 @@ class _GrammarBooksEmptyCard extends StatelessWidget {
               'Book lessons are separate from the original topic practice.',
         ),
         const SizedBox(height: 12),
-        Container(
-          constraints: const BoxConstraints(minHeight: 112),
+        AppJellyCard(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.82),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
           child: Center(
             child: Text(
               message,
@@ -813,44 +802,44 @@ class _GrammarBookCard extends StatelessWidget {
     final description = book.description?.trim();
     final hasContent = _grammarBookHasContent(book);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: hasContent ? onTap : null,
-        borderRadius: BorderRadius.circular(26),
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
+    return AppJellyShell(
+      onTap: hasContent ? onTap : null,
+      decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kAppJellyRadius),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: hasContent
                   ? [
-                      accents.first.withValues(alpha: 0.86),
-                      accents.last.withValues(alpha: 0.72),
+                      accents.first.withValues(alpha: 0.88),
+                      accents.last.withValues(alpha: 0.74),
                     ]
                   : [
                       accents.first.withValues(alpha: 0.42),
                       accents.last.withValues(alpha: 0.28),
                     ],
             ),
-            border: hasContent
-                ? null
-                : Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    width: 1.2,
-                  ),
-            boxShadow: [
+            border: Border.all(
+              color: Colors.white.withValues(alpha: hasContent ? 0.45 : 0.22),
+              width: 1.4,
+            ),
+          ),
+      shadows: [
               BoxShadow(
                 color: accents.first.withValues(
-                  alpha: hasContent ? 0.20 : 0.10,
+                  alpha: hasContent ? 0.28 : 0.12,
                 ),
-                blurRadius: hasContent ? 18 : 12,
-                offset: const Offset(0, 8),
+                blurRadius: hasContent ? 28 : 14,
+                offset: const Offset(0, 12),
+                spreadRadius: -4,
+              ),
+              BoxShadow(
+                color: accents.last.withValues(alpha: 0.12),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
               ),
             ],
-          ),
-          child: Stack(
+      child: Stack(
             children: [
               Positioned(
                 right: -24,
@@ -869,7 +858,7 @@ class _GrammarBookCard extends StatelessWidget {
                 Positioned.fill(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
+                      borderRadius: BorderRadius.circular(kAppJellyRadius),
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -897,6 +886,9 @@ class _GrammarBookCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.20),
                             borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Text(
                             level == null || level.isEmpty
@@ -965,8 +957,6 @@ class _GrammarBookCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -1689,41 +1679,20 @@ class _TopicCard extends StatelessWidget {
     final accents = _cardAccents(index);
     final textTheme = Theme.of(context).textTheme;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accents.first.withValues(alpha: 0.20),
-                accents.last.withValues(alpha: 0.08),
-                scheme.surface.withValues(alpha: 0.92),
-              ],
-            ),
-            border: Border.all(
-              color: selected
-                  ? scheme.primary
-                  : scheme.outlineVariant.withValues(alpha: 0.45),
-              width: selected ? 2.5 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-            child: SizedBox(
+    return AppJellyShell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      decoration: appJellyAccentCardSurfaceDecoration(
+        context,
+        accent: accents.first,
+        accentEnd: accents.last,
+        selected: selected,
+        intensity: 0.20,
+        scheme: scheme,
+      ),
+      shadows: appJellyCardShadows(context, glowColor: accents.first),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      child: SizedBox(
               height: 120,
               width: double.infinity,
               child: Stack(
@@ -1741,16 +1710,12 @@ class _TopicCard extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: accents.first.withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Icon(
+                            AppJellyIconBubble(
+                              color: accents.first,
+                              size: 52,
+                              child: const Icon(
                                 Icons.rule_rounded,
-                                color: accents.first,
+                                color: Colors.white,
                                 size: 26,
                               ),
                             ),
@@ -1797,7 +1762,7 @@ class _TopicCard extends StatelessWidget {
                             : Icons.arrow_outward_rounded,
                         color: selected
                             ? scheme.primary
-                            : scheme.onSurfaceVariant,
+                            : accents.first.withValues(alpha: 0.75),
                         size: 24,
                       ),
                     ),
@@ -1809,13 +1774,7 @@ class _TopicCard extends StatelessWidget {
                         horizontal: 10,
                         vertical: 4,
                       ),
-                      decoration: BoxDecoration(
-                        color: scheme.surface.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: scheme.outlineVariant.withValues(alpha: 0.4),
-                        ),
-                      ),
+                      decoration: appJellyInsetDecoration(context),
                       child: Text(
                         '$questionCount question${questionCount == 1 ? '' : 's'}',
                         style: textTheme.labelMedium?.copyWith(
@@ -1884,9 +1843,6 @@ class _TopicCard extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

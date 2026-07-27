@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/stats/stats_service.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../you/you_jelly_style.dart';
 import 'combined_quiz_group_chart.dart';
 import 'grammar_stats_charts.dart';
 import 'quiz_insights_data.dart';
@@ -97,28 +98,35 @@ class _OverviewTab extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         if (!loggedIn)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, color: scheme.primary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l10n.insightsSignInGrammar,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: youJellyCardDecoration(context, scheme: scheme),
+            child: Row(
+              children: [
+                YouJellyIconBubble(
+                  color: scheme.primary,
+                  size: 40,
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    color: scheme.onPrimary,
+                    size: 20,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.insightsSignInGrammar,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
           ),
         if (!loggedIn) const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-            child: grammarAsync.when(
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
+          child: grammarAsync.when(
               loading: () => const SizedBox(
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
@@ -138,7 +146,6 @@ class _OverviewTab extends ConsumerWidget {
                   scheme: scheme,
                 );
               },
-            ),
           ),
         ),
       ],
@@ -166,17 +173,16 @@ class _VocabularyTab extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
-            child: VocabQuizDailyChart(stats: stats, scheme: scheme),
-          ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
+          child: VocabQuizDailyChart(stats: stats, scheme: scheme),
         ),
         const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
+          child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -203,7 +209,6 @@ class _VocabularyTab extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
-            ),
           ),
         ),
       ],

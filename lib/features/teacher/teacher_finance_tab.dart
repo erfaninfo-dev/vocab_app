@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/financial/financial_format.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_full_refresh.dart';
@@ -514,15 +515,10 @@ class _StudentFinanceCard extends StatelessWidget {
       l10n,
     );
 
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+    return AppJellyCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
+      child: Row(
             children: [
               ProfileAvatar(
                 avatarId: row.avatar,
@@ -585,8 +581,6 @@ class _StudentFinanceCard extends StatelessWidget {
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
-        ),
-      ),
     );
   }
 }

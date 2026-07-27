@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/language/language_provider.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/stats/stats_service.dart';
 import '../../core/tts/tts_service.dart';
 import '../../data/models/vocab_entry.dart';
@@ -1702,21 +1703,11 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
           const SizedBox(height: 14),
 
           // ── Prompt card ─────────────────────────────────────────────────────
-          Card(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [scheme.primaryContainer, scheme.surface],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+          AppJellyCard(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                   Text(
                     q.playsAudio
                         ? l10n.quizSpellingListenPrompt
@@ -1802,7 +1793,6 @@ class _QuizBodyState extends ConsumerState<_QuizBody> {
                     ),
                   ],
                 ],
-              ),
             ),
           ),
 

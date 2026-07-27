@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/update/apk_download_dialog.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../domain/app_update_provider.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/update/apk_download_dialog.dart';
 
 /// Blocks the entire app when the server requires an update (Android sideload flow).
 ///
@@ -45,12 +46,9 @@ class ForcedUpdateBarrier extends ConsumerWidget {
                     padding: const EdgeInsets.all(24),
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 400),
-                      child: Card(
-                        elevation: 8,
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
+                      child: AppJellyCard(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
@@ -89,7 +87,6 @@ class ForcedUpdateBarrier extends ConsumerWidget {
                               ),
                             ],
                           ),
-                        ),
                       ),
                     ),
                   ),

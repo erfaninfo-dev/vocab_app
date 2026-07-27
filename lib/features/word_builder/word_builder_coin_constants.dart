@@ -16,3 +16,6 @@ int wordBuilderCoinsCostHintMeaning() =>
 
 int wordBuilderCoinsCostHintRemoveWrong() =>
     kWordBuilderWordsPerLevel * 2;
+
+/// Extra coins for an Arkanoid word solved with no rejects on that attempt.
+int wordBuilderCoinsArkanoidPerfectBonus() => kWordBuilderWordsPerLevel;

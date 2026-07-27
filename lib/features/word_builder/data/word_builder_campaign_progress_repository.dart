@@ -38,7 +38,11 @@ class WordBuilderCampaignProgressSnapshot {
     }
   }
 
-  bool isDifficultyUnlocked(WordBuilderDifficulty d) {
+  bool isDifficultyUnlocked(
+    WordBuilderDifficulty d, {
+    bool unlockAll = false,
+  }) {
+    if (unlockAll) return true;
     switch (d) {
       case WordBuilderDifficulty.beginner:
         return true;
@@ -49,10 +53,15 @@ class WordBuilderCampaignProgressSnapshot {
     }
   }
 
-  bool isStageUnlocked(WordBuilderDifficulty d, int stage1Based) {
+  bool isStageUnlocked(
+    WordBuilderDifficulty d,
+    int stage1Based, {
+    bool unlockAll = false,
+  }) {
     if (stage1Based < 1 || stage1Based > kWordBuilderStagesPerTier) {
       return false;
     }
+    if (unlockAll) return true;
     if (!isDifficultyUnlocked(d)) return false;
     final c = clearedFor(d);
     return stage1Based <= c + 1;

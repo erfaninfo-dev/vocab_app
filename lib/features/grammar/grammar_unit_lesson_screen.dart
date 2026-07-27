@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/language/language_provider.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/vocab_entry.dart';
 import '../../data/models/grammar_unit.dart';
 import '../../data/models/grammar_unit_text.dart';
@@ -233,19 +234,15 @@ class _GrammarTextCardState extends State<_GrammarTextCard> {
         widget.unitNumber ??
         _extractGrammarUnitNumber('${primaryText.title}\n$body');
 
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      color: scheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadiusDirectional.only(
-          topEnd: Radius.circular(22),
-          bottomEnd: Radius.circular(22),
-        ),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
+    return ClipRRect(
       clipBehavior: Clip.antiAlias,
-      child: Stack(
+      borderRadius: const BorderRadiusDirectional.only(
+        topEnd: Radius.circular(kAppJellyRadius),
+        bottomEnd: Radius.circular(kAppJellyRadius),
+      ),
+      child: DecoratedBox(
+        decoration: appJellyCardDecoration(context),
+        child: Stack(
         children: [
           PositionedDirectional(
             start: 0,
@@ -309,6 +306,7 @@ class _GrammarTextCardState extends State<_GrammarTextCard> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

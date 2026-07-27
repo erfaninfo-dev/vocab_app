@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_book.dart';
 import '../../data/models/grammar_unit.dart';
 import '../../domain/api_providers.dart';
@@ -162,24 +163,16 @@ class _GrammarUnitCard extends StatelessWidget {
     final subtitle = unit.subtitle?.trim();
     final hasQuiz = onQuizTap != null;
 
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          color: scheme.surface,
-          border: Border.all(color: scheme.outlineVariant),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.06),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
+    return AppJellyShell(
+      decoration: appJellyAccentCardSurfaceDecoration(
+        context,
+        accent: accent,
+        intensity: 0.16,
+        scheme: scheme,
+      ),
+      shadows: appJellyCardShadows(context, glowColor: accent),
+      padding: const EdgeInsets.all(14),
+      child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(2, 2, 2, 10),
@@ -267,8 +260,6 @@ class _GrammarUnitCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -294,37 +285,38 @@ class _GrammarUnitActionTile extends StatelessWidget {
     final enabled = onTap != null;
     final foreground = enabled ? color : scheme.onSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            color: enabled
-                ? color.withValues(alpha: 0.12)
-                : scheme.surfaceContainerHighest.withValues(alpha: 0.48),
-            border: Border.all(
-              color: enabled
-                  ? color.withValues(alpha: 0.26)
-                  : scheme.outlineVariant,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            child: Row(
+    return AppJellyShell(
+      onTap: onTap,
+      decoration: enabled
+          ? appJellyCardSurfaceDecoration(context).copyWith(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(color, Colors.white, 0.82)!,
+                  Color.lerp(color, Colors.white, 0.92)!,
+                ],
+              ),
+              border: Border.all(
+                color: color.withValues(alpha: 0.28),
+                width: 1.3,
+              ),
+            )
+          : appJellyInsetDecoration(context),
+      shadows: enabled
+          ? appJellyCardShadows(context, glowColor: color)
+          : const [],
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Row(
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: enabled
-                        ? color.withValues(alpha: 0.18)
-                        : scheme.surface.withValues(alpha: 0.62),
+                AppJellyIconBubble(
+                  color: enabled ? color : scheme.outline,
+                  size: 34,
+                  child: Icon(
+                    icon,
+                    color: enabled ? Colors.white : foreground,
+                    size: 18,
                   ),
-                  child: Icon(icon, color: foreground, size: 19),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -365,9 +357,6 @@ class _GrammarUnitActionTile extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }

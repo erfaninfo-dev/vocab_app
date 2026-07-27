@@ -17,7 +17,10 @@ import '../../features/grammar/grammar_result_review_screen.dart';
 import '../../features/grammar/grammar_results_screen.dart';
 import '../../features/grammar/grammar_topics_screen.dart';
 import '../../features/grammar/grammar_unit_lesson_screen.dart';
-import '../../features/flashcards/flashcards_screen.dart';
+import '../../features/flashcards/flashcard_session_screen.dart';
+import '../../features/flashcards/flashcard_setup_screen.dart';
+import '../../features/flashcards/models/flashcard_direction.dart';
+import '../../features/flashcards/models/flashcard_pool.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/series_books_screen.dart';
 import '../../features/league/league_screen.dart';
@@ -482,10 +485,33 @@ final routerProvider = Provider<GoRouter>((ref) {
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
               final section =
                   int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
-              return FlashcardsScreen(
+              return FlashcardSetupScreen(
                 bookId: bookId,
                 unit: unit,
                 section: section,
+              );
+            },
+          ),
+          GoRoute(
+            path:
+                '/books/:bookId/units/:unit/sections/:section/flashcards/session',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              final unit =
+                  int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
+              final section =
+                  int.tryParse(state.pathParameters['section'] ?? '') ?? 1;
+              return FlashcardSessionScreen(
+                bookId: bookId,
+                unit: unit,
+                section: section,
+                pool: _flashcardPoolFromQuery(state),
+                direction: _flashcardDirectionFromQuery(state),
+                shuffle: _flashcardBoolFromQuery(state, 'shuffle'),
+                srsEnabled: _flashcardBoolFromQuery(state, 'srs', def: true),
+                swipeRatings:
+                    _flashcardBoolFromQuery(state, 'swipe', def: true),
               );
             },
           ),
@@ -498,10 +524,30 @@ final routerProvider = Provider<GoRouter>((ref) {
                   int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
               final unit =
                   int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
-              return FlashcardsScreen(
+              return FlashcardSetupScreen(
                 bookId: bookId,
                 unit: unit,
                 section: null,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/books/:bookId/units/:unit/flashcards/session',
+            builder: (context, state) {
+              final bookId =
+                  int.tryParse(state.pathParameters['bookId'] ?? '') ?? 0;
+              final unit =
+                  int.tryParse(state.pathParameters['unit'] ?? '') ?? 1;
+              return FlashcardSessionScreen(
+                bookId: bookId,
+                unit: unit,
+                section: null,
+                pool: _flashcardPoolFromQuery(state),
+                direction: _flashcardDirectionFromQuery(state),
+                shuffle: _flashcardBoolFromQuery(state, 'shuffle'),
+                srsEnabled: _flashcardBoolFromQuery(state, 'srs', def: true),
+                swipeRatings:
+                    _flashcardBoolFromQuery(state, 'swipe', def: true),
               );
             },
           ),
@@ -547,6 +593,24 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+FlashcardPool _flashcardPoolFromQuery(GoRouterState state) {
+  final key = state.uri.queryParameters['pool'];
+  return FlashcardPool.values.firstWhere(
+    (e) => e.key == key,
+    orElse: () => FlashcardPool.all,
+  );
+}
+
+FlashcardDirection _flashcardDirectionFromQuery(GoRouterState state) {
+  return FlashcardDirection.fromKey(state.uri.queryParameters['dir']);
+}
+
+bool _flashcardBoolFromQuery(GoRouterState state, String key, {bool def = false}) {
+  final raw = state.uri.queryParameters[key];
+  if (raw == null) return def;
+  return raw == '1' || raw == 'true';
+}
 
 class _SeriesBooksInvalidRoute extends StatelessWidget {
   const _SeriesBooksInvalidRoute();

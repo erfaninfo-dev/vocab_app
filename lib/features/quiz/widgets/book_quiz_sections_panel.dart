@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/app_jelly_style.dart';
 import '../../../data/models/section_info.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -17,14 +18,7 @@ class BookQuizLockedUnitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.75),
-        ),
-      ),
+    return AppJellyCard(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Directionality(
         textDirection: TextDirection.ltr,
@@ -129,14 +123,7 @@ class _UnitSectionsCard extends StatelessWidget {
     final allSelected = sections.every((s) => selected.contains(s.section));
     final noneSelected = selected.isEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.75),
-        ),
-      ),
+    return AppJellyCard(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

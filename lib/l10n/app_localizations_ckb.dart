@@ -2440,6 +2440,23 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get wordBuilderCorrectNice => 'باشە!';
 
   @override
+  String get wordBuilderTrainGameOverTitle => 'شەمەندەفەرەکە گەیشت!';
+
+  @override
+  String get wordBuilderTrainGameOverBody =>
+      'پێش پچڕانی دوایین گوریس کات تەواو بوو. دووبارە هەوڵ بدە و ڕزگاری بکە!';
+
+  @override
+  String get wordBuilderPrisonGameOverTitle => 'گیرابوویت!';
+
+  @override
+  String get wordBuilderPrisonGameOverBody =>
+      'پاسەوانەکە بیدار بوو و کلیلی بردەوە. دووبارە بە وریایی هەوڵ بدە!';
+
+  @override
+  String get wordBuilderReplayLevel => 'دووبارە یاری بکە';
+
+  @override
   String get wordBuilderLevelCompleteTitle => 'ئاستەکە تەواو بوو!';
 
   @override
@@ -2521,35 +2538,70 @@ class AppLocalizationsCkb extends AppLocalizations {
       'ڕژانی ئاو، فشار و کاریگەری سینی کاتێک هەڵە دەکەیت.';
 
   @override
-  String get wordBuilderTrayVisualModeTitle => 'شێوازی سینی';
+  String get wordBuilderPlayModeTitle => 'شێوازی یاری';
 
   @override
-  String get wordBuilderTrayVisualModeSubtitle =>
-      'هەڵبژێرە ناوەندی سینی چۆن وەڵامی هەڵەکان بدات.';
+  String get wordBuilderPlayModeClassic => 'سینی کلاسیک';
 
   @override
-  String get wordBuilderTrayModeWater => 'سینی ئاو';
+  String get wordBuilderPlayModeClassicSubtitle =>
+      'پیتە بازنەیی لەگەڵ دیمەنی ئاو، شەمەندەفەر و زیندان.';
 
   @override
-  String get wordBuilderTrayModeWaterSubtitle =>
-      'کلاسیک بە ئاو، بۆری و دەموچاوێکی کاریگەر.';
+  String get wordBuilderPlayModeArkanoid => 'ئارکانۆید';
 
   @override
-  String get wordBuilderTrayModeGlass => 'شیشەی ترک‌خوراو';
+  String get wordBuilderPlayModeArkanoidSubtitle =>
+      'بۆ تۆپ لێبدە لە خشتەی پیتەکان و وشە دروست بکە.';
 
   @override
-  String get wordBuilderTrayModeGlassSubtitle =>
-      'شیشەی ڕاستەقینە — هەر هەڵەیەک ترکێک تا شکان.';
+  String get wordBuilderPlayModeAngryWords => 'Angry Words';
 
   @override
-  String get wordBuilderSessionGlassSfxSwitch => 'کاریگەری شیشە';
+  String get wordBuilderPlayModeAngryWordsSubtitle =>
+      'بە فڕێدانی قەڵاش ئامانج بگرە، ڕێڕەو ببینە و پیتەکان بە ڕێکوپێکی لێبدە.';
 
   @override
-  String get wordBuilderSessionGlassSfxSubtitle =>
-      'لەرزین و دەنگی ترک/شکان لە مۆدی شیشە.';
+  String get wordBuilderPlayModePuzzle => 'مەتەڵی پیت';
 
   @override
-  String get wordBuilderGlassGameOverTitle => 'شیشە شکا!';
+  String get wordBuilderPlayModePuzzleSubtitle =>
+      'پیتەکان لەسەر تۆڕی شەترەنجی بجوڵێنە و وشە دروست بکە.';
+
+  @override
+  String get wordBuilderPuzzleSlideHint =>
+      'پیتێک کە لە تەنیشت خانە بەتاڵەکەدایە دەست لێبدە بۆ زیادکردن بۆ وشەکە.';
+
+  @override
+  String get wordBuilderAngryWordsAimHint =>
+      'تپ لە پیت بکە بۆ فۆکەس · ڕابکێشە بۆ لێدان · شوێنی بەتاڵ ڕابکێشە بۆ تەقە';
+
+  @override
+  String get wordBuilderAngryWordsWindHint =>
+      'دوگمەی با بگرە، یان فڕێدەرەکە بەرەو با ئاماژە پێ بکە — پیتەکان خێراتر دەجوڵێن';
+
+  @override
+  String get wordBuilderArkanoidCheck => 'پشکنین';
+
+  @override
+  String get wordBuilderArkanoidServeHint =>
+      'پادڵ ڕابکێشە · بۆ فڕێدان دەستی لێبدە';
+
+  @override
+  String get wordBuilderArkanoidBallSpeed => 'خێرایی تۆپ';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedSlow => 'هێواش';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedNormal => 'ئاسایی';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedFast => 'خێرا';
+
+  @override
+  String get wordBuilderPlayModeSwitchHint =>
+      'چۆنیەتی هەڵبژاردنی پیتەکان هەڵبژێرە. کلاسیک چیرۆکی سینی دەهێڵێتەوە؛ مەتەڵ تۆڕی جوڵاوە.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {

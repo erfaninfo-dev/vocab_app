@@ -11,6 +11,7 @@ import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'student_class_schedule_panel.dart';
+import 'you_jelly_style.dart';
 
 List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
   List<ClassSessionEntry> sessions,
@@ -164,42 +165,30 @@ class StudentClassSessionsPanel extends ConsumerWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: scheme.primaryContainer,
+              YouJellyIconBubble(
+                color: scheme.primary,
                 child: Icon(
                   Icons.school_outlined,
-                  color: scheme.onPrimaryContainer,
+                  color: scheme.onPrimary,
                   size: 22,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(l10n.youClassSessionsTitle, style: tt.titleMedium),
+                child: Text(
+                  l10n.youClassSessionsTitle,
+                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
               ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    '$sessionCount',
-                    style: tt.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
+              YouJellyCountBadge(
+                label: '$sessionCount',
+                tone: YouJellyBadgeTone.primary,
               ),
               if (!fullPage && onOpenFullPage != null) ...[
                 const SizedBox(width: 6),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: scheme.onSurfaceVariant,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
               ],
             ],
@@ -220,24 +209,11 @@ class StudentClassSessionsPanel extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onOpenFullPage,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
+            borderRadius: BorderRadius.circular(kYouJellyRadius),
+            child: Ink(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.shadow.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.all(18),
+              decoration: youJellyCardDecoration(context, scheme: scheme),
               child: headerInner,
             ),
           ),
@@ -246,14 +222,8 @@ class StudentClassSessionsPanel extends ConsumerWidget {
 
       final header = Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Padding(padding: const EdgeInsets.all(16), child: headerInner),
+        decoration: youJellyCardDecoration(context, scheme: scheme),
+        child: Padding(padding: const EdgeInsets.all(18), child: headerInner),
       );
 
       final dayFmt = DateFormat.yMMMMEEEEd(loc);
@@ -450,9 +420,11 @@ class StudentClassSessionsPanel extends ConsumerWidget {
     return async.when(
       loading: () => fullPage
           ? const Center(child: CircularProgressIndicator())
-          : const SizedBox(
+          : Container(
+              width: double.infinity,
               height: 140,
-              child: Center(child: CircularProgressIndicator()),
+              decoration: youJellyCardDecoration(context, scheme: scheme),
+              child: const Center(child: CircularProgressIndicator()),
             ),
       error: (e, _) => fullPage
           ? Center(
@@ -464,12 +436,36 @@ class StudentClassSessionsPanel extends ConsumerWidget {
                 ),
               ),
             )
-          : Card(
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                leading: Icon(Icons.error_outline_rounded, color: scheme.error),
-                title: Text(l10n.errorGeneric),
+          : Material(
+              color: Colors.transparent,
+              child: InkWell(
                 onTap: () => ref.invalidate(myClassSessionsProvider),
+                borderRadius: BorderRadius.circular(kYouJellyRadius),
+                child: Ink(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: youJellyCardDecoration(context, scheme: scheme),
+                  child: Row(
+                    children: [
+                      YouJellyIconBubble(
+                        color: scheme.error,
+                        child: Icon(
+                          Icons.error_outline_rounded,
+                          color: scheme.onError,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          l10n.errorGeneric,
+                          style: tt.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
       data: contentForInfo,
@@ -494,80 +490,70 @@ class _StudentSessionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: scheme.surface,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: scheme.primaryContainer.withValues(alpha: 0.9),
-              foregroundColor: scheme.onPrimaryContainer,
-              child: Text(
-                '$displayIndex',
-                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: youJellyCardDecoration(context, scheme: scheme),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          YouJellyIconBubble(
+            color: scheme.primary,
+            size: 44,
+            child: Text(
+              '$displayIndex',
+              style: tt.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: scheme.onPrimary,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.teacherClassSessionHeading(displayIndex),
-                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 15,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          timeLabel,
-                          style: tt.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.primary.withValues(alpha: 0.1),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 18,
-                  color: scheme.primary,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.teacherClassSessionHeading(displayIndex),
+                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 15,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        timeLabel,
+                        style: tt.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          YouJellyIconBubble(
+            color: scheme.primary,
+            size: 32,
+            child: Icon(
+              Icons.check_rounded,
+              size: 18,
+              color: scheme.onPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

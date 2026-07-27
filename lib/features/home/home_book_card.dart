@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -32,35 +33,38 @@ class HomeBookCard extends ConsumerWidget {
     final rtlUnitLine =
         locale.languageCode == 'fa' || locale.languageCode == 'ckb';
 
-    return Card(
+    return AppJellyCard(
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: isSoon ? null : onTap,
-        borderRadius: BorderRadius.circular(28),
-        child: SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isSoon
-                    ? [
-                        accents.first.withValues(alpha: 0.18),
-                        accents.last.withValues(alpha: 0.11),
-                      ]
-                    : [
-                        accents.first.withValues(alpha: 0.18),
-                        accents.last.withValues(alpha: 0.08),
-                      ],
+      onTap: isSoon ? null : onTap,
+      child: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(kAppJellyRadius),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isSoon
+                        ? [
+                            accents.first.withValues(alpha: 0.18),
+                            accents.last.withValues(alpha: 0.11),
+                          ]
+                        : [
+                            accents.first.withValues(alpha: 0.18),
+                            accents.last.withValues(alpha: 0.08),
+                          ],
+                  ),
+                  border: isSoon
+                      ? Border.all(color: accents.first.withValues(alpha: 0.26))
+                      : null,
+                ),
               ),
-              border: isSoon
-                  ? Border.all(color: accents.first.withValues(alpha: 0.26))
-                  : null,
             ),
-            child: Stack(
+            Stack(
               children: [
                 if (isSoon)
                   Positioned(
@@ -79,41 +83,14 @@ class HomeBookCard extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              gradient: isSoon
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        accents.first.withValues(alpha: 0.92),
-                                        accents.last.withValues(alpha: 0.82),
-                                      ],
-                                    )
-                                  : null,
-                              color: isSoon
-                                  ? null
-                                  : accents.first.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: isSoon
-                                  ? [
-                                      BoxShadow(
-                                        color: accents.first.withValues(
-                                          alpha: 0.24,
-                                        ),
-                                        blurRadius: 14,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
+                          AppJellyIconBubble(
+                            color: accents.first,
+                            size: 40,
                             child: Icon(
                               isSoon
                                   ? Icons.hourglass_empty_rounded
                                   : Icons.auto_stories_rounded,
-                              color: isSoon ? Colors.white : accents.first,
+                              color: Colors.white,
                               size: 22,
                             ),
                           ),
@@ -250,7 +227,7 @@ class HomeBookCard extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

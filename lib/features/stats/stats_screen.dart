@@ -7,6 +7,7 @@ import '../../core/stats/stats_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../grammar/grammar_results_screen.dart';
 import '../vocab_quiz/vocab_quiz_history_screen.dart';
+import '../you/you_jelly_style.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key, this.embedded = false});
@@ -214,15 +215,20 @@ class _QuizInsightsEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: () => context.push('/stats/insights'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(kYouJellyRadius),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
           child: Row(
             children: [
-              Icon(Icons.insights_rounded, size: 44, color: scheme.primary),
+              YouJellyIconBubble(
+                color: scheme.primary,
+                child: Icon(Icons.insights_rounded, color: scheme.onPrimary),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -258,7 +264,10 @@ class _QuizInsightsEntryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -289,17 +298,27 @@ class _StreakCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(kYouJellyRadius),
         gradient: const LinearGradient(
           colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.45),
+          width: 1.4,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6B35).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: const Color(0xFFFF6B35).withValues(alpha: 0.35),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: const Color(0xFFFF8C42).withValues(alpha: 0.2),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -421,10 +440,10 @@ class _MasteryCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final total = mastery.total;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: youJellyCardDecoration(context, scheme: scheme),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -505,7 +524,6 @@ class _MasteryCard extends StatelessWidget {
             ],
           ],
         ),
-      ),
     );
   }
 }
@@ -556,10 +574,10 @@ class _WeeklyChart extends StatelessWidget {
         days.map((d) => d.wordsReviewed).fold(0, (a, b) => a > b ? a : b);
     final maxVal = maxWords == 0 ? 1 : maxWords;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
-        child: Column(
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+      decoration: youJellyCardDecoration(context, scheme: scheme),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -661,7 +679,6 @@ class _WeeklyChart extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -731,10 +748,10 @@ class _StatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: youJellyCardDecoration(context),
+      child: Column(
           children: [
             Text(icon, style: const TextStyle(fontSize: 28)),
             const SizedBox(height: 8),
@@ -754,7 +771,6 @@ class _StatBox extends StatelessWidget {
                   ),
             ),
           ],
-        ),
       ),
     );
   }

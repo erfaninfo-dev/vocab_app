@@ -8,6 +8,7 @@ import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../class_schedule/schedule_time_format.dart';
 import '../class_schedule/weekly_schedule_timeline.dart';
+import 'you_jelly_style.dart';
 
 /// Weekly class times — same scale and hierarchy as [StudentClassSessionsPanel],
 /// with a distinct schedule identity (clock tiles, calendar header).
@@ -67,11 +68,11 @@ class StudentClassSchedulePanel extends ConsumerWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: scheme.secondaryContainer,
+                YouJellyIconBubble(
+                  color: scheme.secondary,
                   child: Icon(
                     Icons.calendar_month_rounded,
-                    color: scheme.onSecondaryContainer,
+                    color: scheme.onSecondary,
                     size: 22,
                   ),
                 ),
@@ -79,28 +80,13 @@ class StudentClassSchedulePanel extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     l10n.teacherTabWeeklySchedule,
-                    style: tt.titleMedium,
+                    style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
                 if (count > 0)
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: scheme.secondary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      child: Text(
-                        '$count',
-                        style: tt.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.secondary,
-                        ),
-                      ),
-                    ),
+                  YouJellyCountBadge(
+                    label: '$count',
+                    tone: YouJellyBadgeTone.primary,
                   ),
               ],
             ),
@@ -117,14 +103,8 @@ class StudentClassSchedulePanel extends ConsumerWidget {
 
         final header = Container(
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Padding(padding: const EdgeInsets.all(16), child: headerInner),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
+          child: Padding(padding: const EdgeInsets.all(18), child: headerInner),
         );
 
         if (daysWithClass.isEmpty) {

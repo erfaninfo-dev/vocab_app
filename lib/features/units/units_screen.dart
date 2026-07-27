@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../data/models/unit_model.dart';
 import '../../domain/api_full_refresh.dart';
@@ -250,13 +251,10 @@ class _UnitTileState extends State<_UnitTile> {
       child: AnimatedSlide(
         duration: const Duration(milliseconds: 260),
         offset: _show ? Offset.zero : const Offset(0, 0.06),
-        child: Card(
-          child: InkWell(
-            onTap: widget.isLoading ? null : widget.onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
+        child: AppJellyCard(
+          onTap: widget.isLoading ? null : widget.onTap,
+          padding: const EdgeInsets.all(14),
+          child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Top row: Unit label (left) + Icons (right) ─────────────
@@ -277,22 +275,21 @@ class _UnitTileState extends State<_UnitTile> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      AppJellyIconBubble(
+                        color: scheme.primary,
+                        size: 42,
                         child: widget.isLoading
                             ? Padding(
                                 padding: const EdgeInsets.all(10),
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  color: scheme.primary,
+                                  color: scheme.onPrimary,
                                 ),
                               )
-                            : Icon(Icons.layers_rounded, color: scheme.primary),
+                            : Icon(
+                                Icons.layers_rounded,
+                                color: scheme.onPrimary,
+                              ),
                       ),
                     ],
                   ),
@@ -326,8 +323,6 @@ class _UnitTileState extends State<_UnitTile> {
                     ),
                   ),
                 ],
-              ),
-            ),
           ),
         ),
       ),

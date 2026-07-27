@@ -8,11 +8,13 @@ class WordBuilderCoinsChip extends StatelessWidget {
     required this.balanceLabel,
     required this.isDark,
     required this.scheme,
+    this.compact = false,
   });
 
   final String balanceLabel;
   final bool isDark;
   final ColorScheme scheme;
+  final bool compact;
 
   static const double coinIconSize = 30;
   static const double balanceFontSize = 22;
@@ -23,6 +25,12 @@ class WordBuilderCoinsChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = compact ? 22.0 : coinIconSize;
+    final fontSize = compact ? 16.0 : balanceFontSize;
+    final pad = compact
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 5)
+        : chipPadding;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
@@ -36,27 +44,27 @@ class WordBuilderCoinsChip extends StatelessWidget {
         ),
         border: Border.all(
           color: const Color(0xFFFFB300).withValues(alpha: isDark ? 0.55 : 0.9),
-          width: 2.2,
+          width: compact ? 1.6 : 2.2,
         ),
         boxShadow: [
           BoxShadow(
             color: const Color(
               0xFFFF9800,
             ).withValues(alpha: isDark ? 0.35 : 0.28),
-            blurRadius: 12,
+            blurRadius: compact ? 8 : 12,
             spreadRadius: 0,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Padding(
-        padding: chipPadding,
+        padding: pad,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.monetization_on_rounded,
-              size: coinIconSize,
+              size: iconSize,
               color: isDark ? const Color(0xFFFFCA28) : const Color(0xFFFFA000),
               shadows: [
                 Shadow(
@@ -65,11 +73,11 @@ class WordBuilderCoinsChip extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: compact ? 5 : 8),
             Text(
               balanceLabel,
               style: GoogleFonts.fredoka(
-                fontSize: balanceFontSize,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 height: 1,
                 letterSpacing: 0.5,

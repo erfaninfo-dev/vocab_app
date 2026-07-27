@@ -10,6 +10,7 @@ import '../../domain/api_full_refresh.dart';
 import '../../data/models/admin_user_row.dart';
 import '../../data/services/api_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../you/you_jelly_style.dart';
 import 'admin_users_provider.dart';
 
 /// Teachers plus the signed-in admin (so an admin can assign themselves).
@@ -773,35 +774,22 @@ class _AdminUserTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(kYouJellyRadius),
         child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: scheme.surfaceContainerLow,
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+          decoration: youJellyCardDecoration(context, scheme: scheme),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: avatarBg,
+                YouJellyIconBubble(
+                  color: avatarBg,
+                  size: 52,
                   child: Text(
                     _userInitials(user),
                     style: tt.titleMedium?.copyWith(
                       color: avatarFg,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -813,7 +801,7 @@ class _AdminUserTile extends StatelessWidget {
                       Text(
                         title,
                         style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
                         ),
                         maxLines: 1,

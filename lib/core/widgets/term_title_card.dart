@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Label for a class term: theme surface card, high-contrast label text.
+import 'app_jelly_style.dart';
+
+/// Label for a class term: jelly surface card, high-contrast label text.
 class TermTitleCard extends StatelessWidget {
   const TermTitleCard({super.key, required this.title});
 
@@ -12,15 +14,9 @@ class TermTitleCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: scheme.outline.withValues(alpha: 0.4),
-        ),
-      ),
+      decoration: appJellyInsetDecoration(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Text(
           title,
           style: textTheme.titleSmall?.copyWith(

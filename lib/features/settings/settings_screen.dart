@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import 'theme_mode_controller.dart';
@@ -73,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(16, topInset, 16, 16),
         children: [
             _SectionLabel(label: l10n.sectionAppLanguage),
-            Card(
+            AppJellyCard(
               child: Column(
                 children: [
                   RadioListTile<String>(
@@ -106,7 +107,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             _SectionLabel(label: l10n.sectionTranslationLanguage),
-            Card(
+            AppJellyCard(
               child: Column(
                 children: TranslationLang.values.map((l) {
                   return RadioListTile<TranslationLang>(
@@ -128,7 +129,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             _SectionLabel(label: l10n.sectionAppearance),
-            Card(
+            AppJellyCard(
               child: Column(
                 children: [
                   RadioListTile<ThemeMode>(
@@ -162,7 +163,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             _SectionLabel(label: l10n.sectionDailyReminder),
-            Card(
+            AppJellyCard(
               child: Column(
                 children: [
                   SwitchListTile(

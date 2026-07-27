@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/league.dart';
 import '../../domain/api_providers.dart';
@@ -513,16 +514,12 @@ class _LeagueLeaderboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.55),
-        ),
-      ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(kAppJellyRadius),
       clipBehavior: Clip.antiAlias,
-      child: Column(
+      child: DecoratedBox(
+        decoration: appJellyCardDecoration(context),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
@@ -563,6 +560,7 @@ class _LeagueLeaderboardCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -1029,16 +1027,10 @@ class _LeagueRankTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => onProfileTap(entry),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
+          decoration: appJellyInsetDecoration(context),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,

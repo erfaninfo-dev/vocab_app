@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/locale/ui_locale_provider.dart';
@@ -425,14 +426,7 @@ class _BookVocabQuizSetupScreenState
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.8),
-                ),
-              ),
+            AppJellyCard(
               child: Column(
                 children: [
                   _WordPoolToggleTile(

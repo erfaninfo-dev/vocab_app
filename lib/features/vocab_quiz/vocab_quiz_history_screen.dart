@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_quiz_result.dart';
@@ -160,24 +161,10 @@ class VocabQuizHistoryBody extends ConsumerWidget {
                 context.push(path);
               }
 
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: openDetail,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Card(
-                    elevation: 0,
-                    color:
-                        scheme.surfaceContainerHighest.withValues(alpha: 0.65),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.45),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                      child: Column(
+              return AppJellyCard(
+                onTap: openDetail,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (!omitQuizType) ...[
@@ -249,9 +236,6 @@ class VocabQuizHistoryBody extends ConsumerWidget {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ),
                 ),
               );
             },

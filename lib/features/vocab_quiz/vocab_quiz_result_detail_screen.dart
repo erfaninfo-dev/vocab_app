@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/vocab_quiz_result.dart';
 import '../../domain/api_providers.dart';
@@ -83,10 +84,9 @@ class VocabQuizResultDetailScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               if (!mistakesOnly) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+                AppJellyCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -123,7 +123,6 @@ class VocabQuizResultDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                ),
                 const SizedBox(height: 16),
               ] else ...[
                 Text(
@@ -176,10 +175,9 @@ class VocabQuizResultDetailScreen extends ConsumerWidget {
                   final ok = it.correct;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
+                    child: AppJellyCard(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
@@ -235,7 +233,6 @@ class VocabQuizResultDetailScreen extends ConsumerWidget {
                             ],
                           ],
                         ),
-                      ),
                     ),
                   );
                 }),

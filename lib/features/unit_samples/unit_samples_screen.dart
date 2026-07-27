@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/tts/tts_service.dart';
 import '../../data/models/unit_sample.dart';
@@ -516,26 +517,18 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
     final segmentTextStyle = tt.labelLarge?.copyWith(
       fontWeight: FontWeight.w600,
     );
-    final cardColor = isExpanded ? scheme.surfaceContainerLow : scheme.surface;
     final sectionBadge = _sampleSectionBadgeLabel(l10n, widget.sample);
-    return Card(
+    return ClipRRect(
       key: _cardLeadKey,
-      elevation: isExpanded ? 0.6 : 2.2,
-      shadowColor: scheme.primary.withValues(alpha: 0.12),
-      color: cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: isExpanded
-              ? scheme.outlineVariant.withValues(alpha: 0.55)
-              : scheme.primary.withValues(alpha: 0.18),
-        ),
-      ),
-      surfaceTintColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(kAppJellyRadius),
       clipBehavior: Clip.antiAlias,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: appJellyCardDecoration(context),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
           key: ValueKey('sample-${widget.sample.id}-expanded-$isExpanded'),
           initiallyExpanded: isExpanded,
           onExpansionChanged: _handleExpansionChanged,
@@ -555,10 +548,7 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
                   Container(
                     width: 38,
                     height: 38,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    decoration: appJellyInsetDecoration(context),
                     child: Icon(
                       Icons.article_rounded,
                       color: scheme.onPrimaryContainer,
@@ -718,6 +708,8 @@ class _UnitSampleCardState extends ConsumerState<_UnitSampleCard> {
             else
               const SizedBox.shrink(),
           ],
+            ),
+          ),
         ),
       ),
     );

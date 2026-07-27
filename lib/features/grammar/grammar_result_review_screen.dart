@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_session_item.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -32,72 +33,44 @@ class _SessionSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              scheme.primaryContainer.withValues(alpha: 0.45),
-              scheme.secondaryContainer.withValues(alpha: 0.28),
-              scheme.surface.withValues(alpha: 0.92),
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    quizName,
-                    style: tt.titleMedium?.copyWith(
+    return AppJellyCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  quizName,
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: appJellyInsetDecoration(context),
+                  child: Text(
+                    '${score ?? '—'} / ${totalQuestions ?? '—'}',
+                    style: tt.titleSmall?.copyWith(
+                      color: scheme.primary,
                       fontWeight: FontWeight.w800,
-                      height: 1.25,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.surface.withValues(alpha: 0.82),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: scheme.outlineVariant.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      '${score ?? '—'} / ${totalQuestions ?? '—'}',
-                      style: tt.titleSmall?.copyWith(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 6),
-            _SessionPercentRing(percent: percent, scheme: scheme),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          _SessionPercentRing(percent: percent, scheme: scheme),
+        ],
       ),
     );
   }
@@ -344,9 +317,11 @@ class _QuestionReviewCardState extends State<_QuestionReviewCard> {
         (widget.item.kurExplanation ?? '').trim().isNotEmpty ||
         (widget.item.engExplanation ?? '').trim().isNotEmpty;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(kAppJellyRadius),
+      child: DecoratedBox(
+        decoration: appJellyCardDecoration(context),
+        child: ExpansionTile(
         key: ValueKey<String>('q_${widget.index}_${widget.item.questionId}'),
         initiallyExpanded: false,
         tilePadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -497,6 +472,7 @@ class _QuestionReviewCardState extends State<_QuestionReviewCard> {
             ),
           ],
         ],
+        ),
       ),
     );
   }

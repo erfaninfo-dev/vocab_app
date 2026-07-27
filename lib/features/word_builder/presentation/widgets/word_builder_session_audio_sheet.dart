@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../application/word_builder_session_audio.dart';
-import '../../application/word_builder_tray_visual_mode_provider.dart';
-import '../../domain/word_builder_tray_visual_mode.dart';
-import 'word_builder_tray_visual_mode_selector.dart';
+import 'word_builder_play_mode_switch.dart';
 
 class WordBuilderSessionAudioSheet {
   static Future<void> show(BuildContext context) {
@@ -25,9 +23,8 @@ class WordBuilderSessionAudioSheet {
             final waterOn = ref2.watch(wordBuilderGameWaterSfxEnabledProvider);
             final bgmN = ref2.read(wordBuilderGameBgmEnabledProvider.notifier);
             final sfxN = ref2.read(wordBuilderGameSfxEnabledProvider.notifier);
-            final waterN = ref2.read(
-              wordBuilderGameWaterSfxEnabledProvider.notifier,
-            );
+            final waterN =
+                ref2.read(wordBuilderGameWaterSfxEnabledProvider.notifier);
             return Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
               child: DecoratedBox(
@@ -39,20 +36,24 @@ class WordBuilderSessionAudioSheet {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isDark
-                        ? const [Color(0xFF2D2640), Color(0xFF1E1B24)]
-                        : const [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+                        ? const [
+                            Color(0xFF2D2640),
+                            Color(0xFF1E1B24),
+                          ]
+                        : const [
+                            Color(0xFFFFF8E1),
+                            Color(0xFFFFECB3),
+                          ],
                   ),
                   border: Border.all(
-                    color: const Color(
-                      0xFFFFB300,
-                    ).withValues(alpha: isDark ? 0.55 : 0.85),
+                    color: const Color(0xFFFFB300).withValues(
+                      alpha: isDark ? 0.55 : 0.85,
+                    ),
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.45 : 0.12,
-                      ),
+                      color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.12),
                       blurRadius: 24,
                       offset: const Offset(0, 10),
                     ),
@@ -60,7 +61,8 @@ class WordBuilderSessionAudioSheet {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
-                  child: Column(
+                  child: SingleChildScrollView(
+                    child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -100,8 +102,6 @@ class WordBuilderSessionAudioSheet {
                         ],
                       ),
                       const SizedBox(height: 18),
-                      const WordBuilderTrayVisualModeSelector(),
-                      const SizedBox(height: 18),
                       _SoundTile(
                         icon: Icons.library_music_rounded,
                         title: l10n.wordBuilderSessionBgmSwitch,
@@ -121,21 +121,21 @@ class WordBuilderSessionAudioSheet {
                         scheme: scheme,
                         isDark: isDark,
                       ),
-                      if (ref2.watch(wordBuilderTrayVisualModeProvider) ==
-                          WordBuilderTrayVisualMode.water) ...[
-                        const SizedBox(height: 12),
-                        _SoundTile(
-                          icon: Icons.water_drop_rounded,
-                          title: l10n.wordBuilderSessionWaterSfxSwitch,
-                          subtitle: l10n.wordBuilderSessionWaterSfxSubtitle,
-                          value: waterOn,
-                          onChanged: (v) => waterN.setEnabled(v),
-                          scheme: scheme,
-                          isDark: isDark,
-                        ),
-                      ],
+                      const SizedBox(height: 12),
+                      _SoundTile(
+                        icon: Icons.water_drop_rounded,
+                        title: l10n.wordBuilderSessionWaterSfxSwitch,
+                        subtitle: l10n.wordBuilderSessionWaterSfxSubtitle,
+                        value: waterOn,
+                        onChanged: (v) => waterN.setEnabled(v),
+                        scheme: scheme,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      const WordBuilderPlayModeSwitch(),
                       const SizedBox(height: 8),
                     ],
+                  ),
                   ),
                 ),
               ),
@@ -207,7 +207,9 @@ class _SoundTile extends StatelessWidget {
                     child: Icon(
                       icon,
                       size: 22,
-                      color: value ? scheme.onPrimary : scheme.onSurfaceVariant,
+                      color: value
+                          ? scheme.onPrimary
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -239,7 +241,10 @@ class _SoundTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Switch.adaptive(value: value, onChanged: onChanged),
+                Switch.adaptive(
+                  value: value,
+                  onChanged: onChanged,
+                ),
               ],
             ),
           ),

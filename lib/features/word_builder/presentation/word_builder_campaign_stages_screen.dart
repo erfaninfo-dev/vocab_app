@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/auth/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
 import '../data/word_builder_campaign_progress_repository.dart';
@@ -70,6 +71,8 @@ class _WordBuilderCampaignStagesScreenState
     final difficulty = widget.difficulty;
     final planAsync = ref.watch(wordBuilderCampaignPlanProvider);
     final progAsync = ref.watch(wordBuilderCampaignProgressProvider);
+    final adminUnlockAll =
+        ref.watch(authProvider).valueOrNull?.user.isAdmin ?? false;
 
     final funTheme = Theme.of(context).copyWith(
       textTheme: GoogleFonts.fredokaTextTheme(Theme.of(context).textTheme),
@@ -179,6 +182,7 @@ class _WordBuilderCampaignStagesScreenState
                                       index: i,
                                       difficulty: difficulty,
                                       progress: progress,
+                                      unlockAll: adminUnlockAll,
                                       stagePoolEmpty:
                                           i <= stages.length &&
                                           stages[i - 1].isEmpty,
@@ -233,6 +237,7 @@ class _StageCell extends StatelessWidget {
     required this.index,
     required this.difficulty,
     required this.progress,
+    required this.unlockAll,
     required this.stagePoolEmpty,
     required this.l10n,
     required this.onLockedTap,
@@ -243,6 +248,7 @@ class _StageCell extends StatelessWidget {
   final int index;
   final WordBuilderDifficulty difficulty;
   final WordBuilderCampaignProgressSnapshot progress;
+  final bool unlockAll;
   final bool stagePoolEmpty;
   final AppLocalizations l10n;
   final VoidCallback onLockedTap;
@@ -250,7 +256,11 @@ class _StageCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unlocked = progress.isStageUnlocked(difficulty, index);
+    final unlocked = progress.isStageUnlocked(
+      difficulty,
+      index,
+      unlockAll: unlockAll,
+    );
     final completed = progress.isStageCompleted(difficulty, index);
 
     if (stagePoolEmpty && unlocked) {

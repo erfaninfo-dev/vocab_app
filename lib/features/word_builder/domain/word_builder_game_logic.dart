@@ -230,6 +230,55 @@ bool pathCanExtendToLongerUnsolvedTarget(
   return false;
 }
 
+/// True when [builtLower] is a prefix of at least one unsolved target word.
+bool isValidUnsolvedTargetPrefix(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  String builtLower,
+) {
+  final prefix = normalizeWord(builtLower);
+  if (prefix.isEmpty) return false;
+  for (final t in unsolvedTargets(level, solvedLower)) {
+    if (normalizeWord(t.word).startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+/// Next letter hint for Ghost letter UI (shortest matching unsolved target).
+String? ghostNextLetterForUnsolvedPrefix(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  String built,
+) {
+  final prefix = normalizeWord(built);
+  String? bestWord;
+  for (final t in unsolvedTargets(level, solvedLower)) {
+    final w = normalizeWord(t.word);
+    if (!w.startsWith(prefix) || w.length <= prefix.length) continue;
+    if (bestWord == null || w.length < bestWord.length) {
+      bestWord = w;
+    }
+  }
+  if (bestWord == null) return null;
+  return bestWord[prefix.length].toUpperCase();
+}
+
+/// True when appending [nextChar] keeps a valid prefix / completes a target
+/// for the active unsolved word order (خانه فعال).
+bool isValidNextLetterForActiveSlots(
+  WordBuilderLevel level,
+  Set<String> solvedLower,
+  String currentBuilt,
+  String nextChar,
+) {
+  if (nextChar.trim().isEmpty) return false;
+  final built = normalizeWord('$currentBuilt$nextChar');
+  if (findUnsolvedTargetMatchingBuilt(level, solvedLower, built) != null) {
+    return true;
+  }
+  return isValidUnsolvedTargetPrefix(level, solvedLower, built);
+}
+
 WordBuilderTargetWord? findUnsolvedTargetMatchingBuilt(
   WordBuilderLevel level,
   Set<String> solvedLower,

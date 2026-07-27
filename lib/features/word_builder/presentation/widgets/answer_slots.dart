@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/word_builder_game_logic.dart';
 import '../../domain/word_builder_models.dart';
+import 'angry_words/angry_words_celebrate.dart';
+import 'answer_slot_key_bag.dart';
 
-class AnswerSlotsPanel extends StatelessWidget {
+class AnswerSlotsPanel extends ConsumerWidget {
   const AnswerSlotsPanel({
     super.key,
     required this.level,
@@ -11,6 +14,7 @@ class AnswerSlotsPanel extends StatelessWidget {
     required this.revealedPositions,
     this.layoutScale = 1.0,
     this.onSolvedWordTap,
+    this.slotKeyBag,
   });
 
   final WordBuilderLevel level;
@@ -18,19 +22,21 @@ class AnswerSlotsPanel extends StatelessWidget {
   final Map<String, Set<int>> revealedPositions;
   final double layoutScale;
   final void Function(WordBuilderTargetWord target)? onSolvedWordTap;
+  final AnswerSlotKeyBag? slotKeyBag;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final targets = level.targetWords;
     final sc = layoutScale;
+    final celebrate = ref.watch(angryWordsSlotRevealProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         for (var wi = 0; wi < targets.length; wi++) ...[
-          if (wi > 0) SizedBox(height: (14 * sc).clamp(10.0, 18.0)),
+          if (wi > 0) SizedBox(height: (10 * sc).clamp(6.0, 14.0)),
           _TargetWordRow(
             target: targets[wi],
             solved: solvedLower.contains(normalizeWord(targets[wi].word)),
@@ -39,6 +45,8 @@ class AnswerSlotsPanel extends StatelessWidget {
             scheme: scheme,
             layoutScale: sc,
             onSolvedTap: onSolvedWordTap,
+            slotKeyBag: slotKeyBag,
+            celebrate: celebrate,
           ),
         ],
       ],
@@ -54,6 +62,8 @@ class _TargetWordRow extends StatelessWidget {
     required this.scheme,
     required this.layoutScale,
     this.onSolvedTap,
+    this.slotKeyBag,
+    this.celebrate,
   });
 
   final WordBuilderTargetWord target;
@@ -62,6 +72,8 @@ class _TargetWordRow extends StatelessWidget {
   final ColorScheme scheme;
   final double layoutScale;
   final void Function(WordBuilderTargetWord target)? onSolvedTap;
+  final AnswerSlotKeyBag? slotKeyBag;
+  final AngryWordsSlotReveal? celebrate;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +82,8 @@ class _TargetWordRow extends StatelessWidget {
     ];
     final sc = layoutScale;
     final gap = (10 * sc).clamp(8.0, 14.0);
+    final norm = normalizeWord(target.word);
+    final celebrating = celebrate?.wordNorm == norm;
 
     return Center(
       child: FittedBox(
@@ -80,17 +94,26 @@ class _TargetWordRow extends StatelessWidget {
           children: [
             for (var i = 0; i < chars.length; i++) ...[
               if (i > 0) SizedBox(width: gap),
-              _SlotCell(
-                letter: solved
-                    ? chars[i].toUpperCase()
-                    : revealed.contains(i)
-                    ? chars[i].toUpperCase()
-                    : null,
-                scheme: scheme,
-                layoutScale: sc,
-                solvedWord: solved,
-                hintRevealed: !solved && revealed.contains(i),
-                onTap: solved ? () => onSolvedTap?.call(target) : null,
+              Builder(
+                builder: (context) {
+                  final arrived =
+                      !celebrating || i < (celebrate?.revealedCount ?? 0);
+                  final showSolved = solved && arrived;
+                  return _SlotCell(
+                    key: slotKeyBag?.keyFor(target.word, i),
+                    letter: showSolved
+                        ? chars[i].toUpperCase()
+                        : revealed.contains(i) && !solved
+                        ? chars[i].toUpperCase()
+                        : null,
+                    scheme: scheme,
+                    layoutScale: sc,
+                    solvedWord: showSolved,
+                    hintRevealed: !solved && revealed.contains(i),
+                    awaitingFlight: celebrating && solved && !arrived,
+                    onTap: showSolved ? () => onSolvedTap?.call(target) : null,
+                  );
+                },
               ),
             ],
           ],
@@ -102,11 +125,13 @@ class _TargetWordRow extends StatelessWidget {
 
 class _SlotCell extends StatelessWidget {
   const _SlotCell({
+    super.key,
     required this.letter,
     required this.scheme,
     required this.layoutScale,
     this.solvedWord = false,
     this.hintRevealed = false,
+    this.awaitingFlight = false,
     this.onTap,
   });
 
@@ -115,6 +140,7 @@ class _SlotCell extends StatelessWidget {
   final double layoutScale;
   final bool solvedWord;
   final bool hintRevealed;
+  final bool awaitingFlight;
   final VoidCallback? onTap;
 
   static const Color _solvedGreenTop = Color(0xFF66BB6A);
@@ -147,12 +173,14 @@ class _SlotCell extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(r),
         border: Border.all(
-          color: solvedStyle
+          color: awaitingFlight
+              ? const Color(0xFFFFD54F).withValues(alpha: 0.85)
+              : solvedStyle
               ? _solvedBorder.withValues(alpha: 0.85)
               : hintStyle
               ? _hintGreenBorder.withValues(alpha: 0.7)
               : Colors.white.withValues(alpha: 0.55),
-          width: show ? 2.0 : 1.5,
+          width: show || awaitingFlight ? 2.0 : 1.5,
         ),
         gradient: solvedStyle
             ? const LinearGradient(
@@ -166,20 +194,33 @@ class _SlotCell extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [_hintGreenTop, _hintGreenBottom],
               )
+            : awaitingFlight
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFFFFF8E1).withValues(alpha: 0.55),
+                  const Color(0xFFFFECB3).withValues(alpha: 0.4),
+                ],
+              )
             : null,
-        color: solvedStyle || hintStyle
+        color: solvedStyle || hintStyle || awaitingFlight
             ? null
             : Colors.white.withValues(alpha: 0.35),
         boxShadow: [
           BoxShadow(
             color:
-                (solvedStyle
+                (awaitingFlight
+                        ? const Color(0xFFFFD54F)
+                        : solvedStyle
                         ? _solvedGreenBottom
                         : hintStyle
                         ? _hintGreenBottom
                         : Colors.black)
                     .withValues(
-                      alpha: solvedStyle
+                      alpha: awaitingFlight
+                          ? 0.35
+                          : solvedStyle
                           ? 0.32
                           : hintStyle
                           ? 0.22
@@ -191,7 +232,7 @@ class _SlotCell extends StatelessWidget {
         ],
       ),
       child: Text(
-        show ? letter! : '·',
+        show ? letter! : awaitingFlight ? '' : '·',
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,

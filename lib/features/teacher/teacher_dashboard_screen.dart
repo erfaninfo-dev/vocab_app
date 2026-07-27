@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/financial/financial_format.dart';
 import '../../core/profile/profile_avatar.dart';
@@ -303,22 +304,10 @@ class _StudentsTab extends ConsumerWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final s = students[i];
-                return Card(
-                  elevation: 2,
-                  shadowColor: scheme.primary.withValues(alpha: 0.18),
-                  color: scheme.surface.withValues(alpha: 0.96),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: scheme.outlineVariant.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => context.push('/teacher/student/${s.id}'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
+                return AppJellyCard(
+                  onTap: () => context.push('/teacher/student/${s.id}'),
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
                         children: [
                           ProfileAvatar(
                             avatarId: s.avatar,
@@ -429,8 +418,6 @@ class _StudentsTab extends ConsumerWidget {
                           ),
                         ],
                       ),
-                    ),
-                  ),
                 );
               },
             ),
@@ -565,35 +552,18 @@ class _MessagesTab extends ConsumerWidget {
                       userId: s.id,
                     );
 
-                    return Card(
-                      elevation: hasUnread ? 3 : 2,
-                      shadowColor: scheme.primary.withValues(
-                        alpha: hasUnread ? 0.24 : 0.16,
+                    return AppJellyCard(
+                      onTap: () {
+                        context.push(
+                          '/teacher/chat/${s.id}',
+                          extra: openArgs,
+                        );
+                      },
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
                       ),
-                      color: scheme.surface.withValues(alpha: 0.96),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: hasUnread
-                              ? scheme.primary.withValues(alpha: 0.42)
-                              : scheme.outlineVariant.withValues(alpha: 0.35),
-                          width: hasUnread ? 1.5 : 1,
-                        ),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          context.push(
-                            '/teacher/chat/${s.id}',
-                            extra: openArgs,
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
-                          child: Row(
+                      child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (isSavedMessages)
@@ -693,8 +663,6 @@ class _MessagesTab extends ConsumerWidget {
                               ),
                             ],
                           ),
-                        ),
-                      ),
                     );
                   },
                 ),

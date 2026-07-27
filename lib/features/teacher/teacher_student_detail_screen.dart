@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/errors/user_friendly_error.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_result.dart';
 import '../../data/models/teacher_student.dart';
 import '../../data/models/vocab_quiz_result.dart';
@@ -231,18 +232,9 @@ class _VocabTab extends ConsumerWidget {
                 ? r.bookTitle!.trim()
                 : 'Book #${r.bookId}';
             final omitQuizType = _omitVocabQuizTypeLine(r.quizName, l10n);
-            return Card(
-              elevation: 0,
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                  color: scheme.outlineVariant.withValues(alpha: 0.45),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
+            return AppJellyCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (!omitQuizType) ...[
@@ -289,7 +281,6 @@ class _VocabTab extends ConsumerWidget {
                     ],
                   ],
                 ),
-              ),
             );
           },
         );

@@ -10,6 +10,7 @@ import '../../data/models/teacher_message.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../teacher/messages_updating.dart';
+import 'you_jelly_style.dart';
 
 /// Learner: choose which teacher/admin thread to open.
 class StudentMessagePeersScreen extends ConsumerStatefulWidget {
@@ -179,63 +180,73 @@ class _StudentMessagePeersScreenState
                         .format(dt.toLocal());
                   }
                 }
-                return Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: scheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: scheme.primaryContainer,
-                      child: Icon(
-                        Icons.person_rounded,
-                        color: scheme.onPrimaryContainer,
-                      ),
-                    ),
-                    title: Text(
-                      name,
-                      style: tt.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    subtitle: timeStr != null
-                        ? Text(timeStr, style: tt.bodySmall)
-                        : null,
-                    trailing: p.unreadCount > 0
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: scheme.error,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              p.unreadCount > 99 ? '99+' : '${p.unreadCount}',
-                              style: TextStyle(
-                                color: scheme.onError,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            Icons.chevron_right_rounded,
-                            color: scheme.onSurfaceVariant,
-                          ),
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(kYouJellyRadius),
                     onTap: () {
                       context.push(
                         '/you/messages?peer_teacher_id=${p.teacherUserId}',
                       );
                     },
+                    child: Ink(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: youJellyCardDecoration(
+                        context,
+                        scheme: scheme,
+                      ),
+                      child: Row(
+                        children: [
+                          YouJellyIconBubble(
+                            color: scheme.primary,
+                            child: Icon(
+                              Icons.person_rounded,
+                              color: scheme.onPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: tt.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                if (timeStr != null) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    timeStr,
+                                    style: tt.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (p.unreadCount > 0) ...[
+                            YouJellyCountBadge(
+                              label: p.unreadCount > 99
+                                  ? '99+'
+                                  : '${p.unreadCount}',
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: 0.7,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },

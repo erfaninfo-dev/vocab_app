@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/profile/profile_avatar.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/admin_story.dart';
 import 'story_providers.dart';
 
@@ -73,22 +74,20 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: scheme.primary),
-            const SizedBox(height: 8),
-            Text(
-              '$value',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            Text(label),
-          ],
-        ),
+    return AppJellyCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Icon(icon, color: scheme.primary),
+          const SizedBox(height: 8),
+          Text(
+            '$value',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          Text(label),
+        ],
       ),
     );
   }
@@ -107,10 +106,9 @@ class _PeopleSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Column(
+    return AppJellyCard(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
@@ -138,7 +136,6 @@ class _PeopleSection extends StatelessWidget {
                 ),
           ],
         ),
-      ),
     );
   }
 }

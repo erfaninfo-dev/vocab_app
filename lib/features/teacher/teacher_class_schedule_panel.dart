@@ -6,6 +6,7 @@ import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/class_schedule_slot.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../class_schedule/schedule_time_format.dart';
 import '../class_schedule/weekly_schedule_timeline.dart';
 
@@ -131,25 +132,19 @@ class _TeacherClassSchedulePanelState
           children: [
             Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
+              decoration: appJellyCardDecoration(context, scheme: scheme),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: scheme.secondaryContainer,
+                        AppJellyIconBubble(
+                          color: scheme.secondary,
                           child: Icon(
                             Icons.calendar_month_rounded,
-                            color: scheme.onSecondaryContainer,
+                            color: scheme.onSecondary,
                             size: 22,
                           ),
                         ),
@@ -157,27 +152,14 @@ class _TeacherClassSchedulePanelState
                         Expanded(
                           child: Text(
                             l10n.teacherTabWeeklySchedule,
-                            style: tt.titleMedium,
+                            style: tt.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: scheme.secondary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            child: Text(
-                              '${slots.length}',
-                              style: tt.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.secondary,
-                              ),
-                            ),
-                          ),
+                        AppJellyCountBadge(
+                          label: '${slots.length}',
+                          tone: AppJellyBadgeTone.primary,
                         ),
                       ],
                     ),

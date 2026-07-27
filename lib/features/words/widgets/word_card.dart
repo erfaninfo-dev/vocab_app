@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_jelly_style.dart';
 import '../../../core/language/language_provider.dart';
 import '../../../core/tts/tts_service.dart';
 import '../../../data/models/book_model.dart';
@@ -64,17 +65,11 @@ class WordCard extends ConsumerWidget {
 
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Card(
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: scheme.surface.withValues(alpha: 0.92),
-            border: Border.all(color: accent.withValues(alpha: 0.25)),
-          ),
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: AppJellyCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               if (bookTitle != null) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +308,6 @@ class WordCard extends ConsumerWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

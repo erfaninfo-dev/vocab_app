@@ -9,12 +9,14 @@ class WordBuilderEmbeddedMeaning extends StatelessWidget {
     required this.meaning,
     required this.isDark,
     this.layoutScale = 1,
+    this.compact = false,
   });
 
   final String label;
   final String meaning;
   final bool isDark;
   final double layoutScale;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,7 @@ class WordBuilderEmbeddedMeaning extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
@@ -39,53 +41,53 @@ class WordBuilderEmbeddedMeaning extends StatelessWidget {
               ),
               border: Border.all(
                 color: const Color(0xFFE65100).withValues(alpha: 0.45),
-                width: 1.6,
+                width: 1.4,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.35),
-                  blurRadius: 8,
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Padding(
-              padding: EdgeInsets.all(8 * s),
+              padding: EdgeInsets.all((compact ? 6 : 8) * s),
               child: Icon(
                 Icons.translate_rounded,
-                size: 20 * s,
+                size: (compact ? 16 : 18) * s,
                 color: const Color(0xFF5D4037),
               ),
             ),
           ),
-          SizedBox(width: 10 * s),
+          SizedBox(width: 8 * s),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.fredoka(
-                    fontSize: 12 * s,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                    color: labelColor,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label · ',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11 * s,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                      color: labelColor,
+                    ),
                   ),
-                ),
-                SizedBox(height: 3 * s),
-                Text(
-                  meaning,
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.fredoka(
-                    fontSize: (17 * s).clamp(15.0, 20.0),
-                    fontWeight: FontWeight.w700,
-                    height: 1.4,
-                    color: bodyColor,
+                  TextSpan(
+                    text: meaning,
+                    style: GoogleFonts.fredoka(
+                      fontSize: (compact ? 15 : 16) * s,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                      color: bodyColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -111,12 +113,10 @@ class WordBuilderMeaningBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = layoutScale.clamp(0.85, 1.15);
-    final labelColor = isDark
-        ? const Color(0xFFFFB300)
-        : const Color(0xFFE65100);
-    final bodyColor = isDark
-        ? Colors.white.withValues(alpha: 0.95)
-        : const Color(0xFF5D4037);
+    final labelColor =
+        isDark ? const Color(0xFFFFB300) : const Color(0xFFE65100);
+    final bodyColor =
+        isDark ? Colors.white.withValues(alpha: 0.95) : const Color(0xFF5D4037);
 
     return AnimatedSlide(
       duration: const Duration(milliseconds: 320),

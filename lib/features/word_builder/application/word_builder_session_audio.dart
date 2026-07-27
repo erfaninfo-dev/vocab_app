@@ -6,6 +6,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/audio/app_audio_session.dart';
+import 'word_builder_tray_prison_audio.dart';
+import 'word_builder_tray_train_audio.dart';
 import 'word_builder_tray_water_audio.dart';
 
 final wordBuilderBgmPlayerProvider = Provider<WordBuilderBgmPlayer>((ref) {
@@ -36,6 +38,8 @@ final wordBuilderSessionAudioLifecycleProvider = Provider.autoDispose
       final bgm = ref.read(wordBuilderBgmPlayerProvider);
 
       ref.watch(wordBuilderTrayWaterAudioProvider(bookKey));
+      ref.watch(wordBuilderTrayTrainAudioProvider(bookKey));
+      ref.watch(wordBuilderTrayPrisonAudioProvider(bookKey));
 
       ref.listen<bool>(wordBuilderGameBgmEnabledProvider, (prev, next) {
         unawaited(bgm.applyFromRef(ref));
@@ -46,6 +50,12 @@ final wordBuilderSessionAudioLifecycleProvider = Provider.autoDispose
           unawaited(
             ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll(),
           );
+          unawaited(
+            ref.read(wordBuilderTrayTrainAudioProvider(bookKey)).stopAll(),
+          );
+          unawaited(
+            ref.read(wordBuilderTrayPrisonAudioProvider(bookKey)).stopAll(),
+          );
         }
       });
 
@@ -55,6 +65,12 @@ final wordBuilderSessionAudioLifecycleProvider = Provider.autoDispose
       ref.onDispose(() {
         unawaited(
           ref.read(wordBuilderTrayWaterAudioProvider(bookKey)).stopAll(),
+        );
+        unawaited(
+          ref.read(wordBuilderTrayTrainAudioProvider(bookKey)).stopAll(),
+        );
+        unawaited(
+          ref.read(wordBuilderTrayPrisonAudioProvider(bookKey)).stopAll(),
         );
         unawaited(bgm.onLeave());
       });
@@ -154,6 +170,7 @@ class WordBuilderBgmPlayer {
   AudioPlayer? _player;
   int _sessions = 0;
   bool _userWantsBgm = true;
+  int _sfxBurstHolds = 0;
 
   Future<void> applyFromRef(Ref ref) async {
     _userWantsBgm = ref.read(wordBuilderGameBgmEnabledProvider);
@@ -176,14 +193,29 @@ class WordBuilderBgmPlayer {
     await _syncPlayback();
   }
 
+  /// Pause BGM while a burst of SFX plays (Windows just_audio is fragile).
+  Future<void> beginSfxBurst() async {
+    _sfxBurstHolds++;
+    final player = _player;
+    if (player == null) return;
+    try {
+      await player.pause();
+    } catch (_) {}
+  }
+
+  Future<void> endSfxBurst() async {
+    if (_sfxBurstHolds > 0) _sfxBurstHolds--;
+    await _syncPlayback();
+  }
+
   Future<void> stopForAppBackground() => _stop();
 
   Future<void> _syncPlayback() async {
-    final should = _sessions > 0 && _userWantsBgm;
+    final should = _sessions > 0 && _userWantsBgm && _sfxBurstHolds == 0;
     if (should) {
       await _ensureLooping();
     } else {
-      await _stop();
+      await _pauseOrStop();
     }
   }
 
@@ -202,6 +234,19 @@ class WordBuilderBgmPlayer {
     }
   }
 
+  Future<void> _pauseOrStop() async {
+    final player = _player;
+    if (player == null) return;
+    try {
+      // Pause during SFX burst so resume is cheap; full stop when leaving.
+      if (_sfxBurstHolds > 0) {
+        await player.pause();
+      } else {
+        await player.stop();
+      }
+    } catch (_) {}
+  }
+
   Future<void> _stop() async {
     final player = _player;
     if (player == null) return;
@@ -214,6 +259,7 @@ class WordBuilderBgmPlayer {
     final player = _player;
     _player = null;
     _sessions = 0;
+    _sfxBurstHolds = 0;
     if (player == null) return;
     try {
       await player.stop();

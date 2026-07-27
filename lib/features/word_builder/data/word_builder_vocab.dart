@@ -130,6 +130,42 @@ String _lemmaKey(VocabEntry e) => wordBuilderGameLemma(e) ?? '';
   return null;
 }
 
+List<int> puzzleCampaignLengthPattern(WordBuilderDifficulty d) {
+  switch (d) {
+    case WordBuilderDifficulty.beginner:
+      return const [3, 3, 3];
+    case WordBuilderDifficulty.intermediate:
+      return const [3, 4, 4];
+    case WordBuilderDifficulty.advanced:
+      return const [4, 5, 5];
+  }
+}
+
+bool _entriesMatchPuzzleLengths(
+  List<VocabEntry> entries,
+  WordBuilderDifficulty difficulty,
+) {
+  if (entries.length != 3) return false;
+  final expected = puzzleCampaignLengthPattern(difficulty);
+  final lengths = entries
+      .map((e) => wordBuilderGameLemma(e)?.length ?? -1)
+      .toList()
+    ..sort();
+  final want = List<int>.of(expected)..sort();
+  for (var i = 0; i < 3; i++) {
+    if (lengths[i] != want[i]) return false;
+  }
+  return true;
+}
+
+List<List<int>> puzzleCampaignIdealPatterns(WordBuilderDifficulty d) {
+  final primary = puzzleCampaignLengthPattern(d);
+  if (d == WordBuilderDifficulty.beginner) {
+    return [primary];
+  }
+  return [primary, ...campaignIdealLengthPatterns(d)];
+}
+
 List<List<int>> campaignIdealLengthPatterns(WordBuilderDifficulty d) {
   switch (d) {
     case WordBuilderDifficulty.beginner:
@@ -199,6 +235,7 @@ List<VocabEntry>? pickCampaignStageEntries({
   required WordBuilderDifficulty difficulty,
   required Set<String> usedHeads,
   required Random random,
+  bool forPuzzle = false,
 }) {
   final available = <VocabEntry>[];
   final seen = <String>{};
@@ -219,7 +256,9 @@ List<VocabEntry>? pickCampaignStageEntries({
     list.shuffle(random);
   }
 
-  for (final lens in campaignIdealLengthPatterns(difficulty)) {
+  for (final lens in forPuzzle
+      ? puzzleCampaignIdealPatterns(difficulty)
+      : campaignIdealLengthPatterns(difficulty)) {
     final triple = _tryPickTriple(
       byLen: byLen,
       lens: lens,
@@ -251,7 +290,9 @@ List<VocabEntry>? pickCampaignStageEntries({
     for (var b = a + 1; b < scan.length - 1; b++) {
       for (var c = b + 1; c < scan.length; c++) {
         final triple = [scan[a], scan[b], scan[c]];
-        if (campaignTriplePlayable(triple, difficulty)) {
+        if (campaignTriplePlayable(triple, difficulty) &&
+            (!forPuzzle ||
+                _entriesMatchPuzzleLengths(triple, difficulty))) {
           triple.sort(
             (x, y) => wordBuilderGameLemma(
               x,
@@ -270,8 +311,9 @@ WordBuilderLevel _levelFromCampaignEntries(
   List<VocabEntry> ordered,
   WordBuilderDifficulty difficulty,
   String categoryLabel,
-  int stage1Based,
-) {
+  int stage1Based, {
+  bool forPuzzle = false,
+}) {
   final targets = <WordBuilderTargetWord>[];
   for (final e in ordered) {
     targets.add(targetFromVocab(e, normalizeWord(e.word.trim())));
@@ -279,7 +321,9 @@ WordBuilderLevel _levelFromCampaignEntries(
   final wordsLower = targets
       .map((t) => normalizeWord(t.word))
       .toList(growable: false);
-  final letters = expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
+  final letters = forPuzzle
+      ? wordsLower.expand((w) => w.split('')).toList(growable: false)
+      : expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
   return WordBuilderLevel(
     levelId: 900000000 + difficulty.index * 20 + stage1Based,
     difficulty: difficulty,
@@ -294,6 +338,7 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
   Random random, {
   required String categoryLabel,
   int maxLevelsPerWordLength = kWordBuilderLevelsPerLengthBand,
+  bool forPuzzle = false,
 }) {
   final byHead = <String, List<VocabEntry>>{};
   for (final e in raw) {
@@ -341,7 +386,9 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
   ];
 
   for (final difficulty in tierOrder) {
-    final lens = difficulty == WordBuilderDifficulty.beginner
+    final lens = forPuzzle
+        ? puzzleCampaignLengthPattern(difficulty)
+        : difficulty == WordBuilderDifficulty.beginner
         ? _beginnerLens(byLen)
         : _wordLengthsForDifficulty(difficulty);
     for (var round = 0; round < maxLevelsPerWordLength; round++) {
@@ -372,9 +419,9 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
       final wordsLower = targets
           .map((t) => normalizeWord(t.word))
           .toList(growable: false);
-      final letters = expandPoolLetters(
-        poolMaxPerLetterAcrossWords(wordsLower),
-      );
+      final letters = forPuzzle
+          ? wordsLower.expand((w) => w.split('')).toList(growable: false)
+          : expandPoolLetters(poolMaxPerLetterAcrossWords(wordsLower));
 
       levels.add(
         WordBuilderLevel(
@@ -397,6 +444,7 @@ WordBuilderLevel buildCampaignStageLevel({
   required String categoryLabel,
   required int stage1Based,
   Random? random,
+  bool forPuzzle = false,
 }) {
   final rnd = random ?? Random();
   final usable = <VocabEntry>[];
@@ -410,26 +458,34 @@ WordBuilderLevel buildCampaignStageLevel({
   }
 
   if (usable.length >= 3) {
-    final picked = usable.length == 3
-        ? (List<VocabEntry>.of(usable)..sort(
-            (a, b) => wordBuilderGameLemma(
-              a,
-            )!.length.compareTo(wordBuilderGameLemma(b)!.length),
-          ))
-        : pickCampaignStageEntries(
-            candidates: usable,
-            difficulty: difficulty,
-            usedHeads: const {},
-            random: rnd,
-          );
+    List<VocabEntry>? picked;
+    if (usable.length == 3 &&
+        (!forPuzzle || _entriesMatchPuzzleLengths(usable, difficulty))) {
+      picked = List<VocabEntry>.of(usable)
+        ..sort(
+          (a, b) => wordBuilderGameLemma(
+            a,
+          )!.length.compareTo(wordBuilderGameLemma(b)!.length),
+        );
+    } else {
+      picked = pickCampaignStageEntries(
+        candidates: usable,
+        difficulty: difficulty,
+        usedHeads: const {},
+        random: rnd,
+        forPuzzle: forPuzzle,
+      );
+    }
     if (picked != null &&
         picked.length == 3 &&
-        campaignTriplePlayable(picked, difficulty)) {
+        campaignTriplePlayable(picked, difficulty) &&
+        (!forPuzzle || _entriesMatchPuzzleLengths(picked, difficulty))) {
       return _levelFromCampaignEntries(
         picked,
         difficulty,
         categoryLabel,
         stage1Based,
+        forPuzzle: forPuzzle,
       );
     }
   }
@@ -448,7 +504,9 @@ WordBuilderLevel buildCampaignStageLevel({
     list.shuffle(rnd);
   }
 
-  for (final lens in campaignIdealLengthPatterns(difficulty)) {
+  for (final lens in forPuzzle
+      ? puzzleCampaignIdealPatterns(difficulty)
+      : campaignIdealLengthPatterns(difficulty)) {
     final triple = _tryPickTriple(
       byLen: byLen,
       lens: lens,
@@ -470,6 +528,7 @@ WordBuilderLevel buildCampaignStageLevel({
         difficulty,
         categoryLabel,
         stage1Based,
+        forPuzzle: forPuzzle,
       );
     }
   }
@@ -479,13 +538,17 @@ WordBuilderLevel buildCampaignStageLevel({
     difficulty: difficulty,
     usedHeads: const {},
     random: rnd,
+    forPuzzle: forPuzzle,
   );
-  if (fallback != null && fallback.length == 3) {
+  if (fallback != null &&
+      fallback.length == 3 &&
+      (!forPuzzle || _entriesMatchPuzzleLengths(fallback, difficulty))) {
     return _levelFromCampaignEntries(
       fallback,
       difficulty,
       categoryLabel,
       stage1Based,
+      forPuzzle: forPuzzle,
     );
   }
 

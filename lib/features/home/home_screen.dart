@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/branding/app_brand_logo.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/book_model.dart';
@@ -374,20 +375,7 @@ class _HomeBooksErrorState extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: 0.86),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.42),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: scheme.shadow.withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
+            decoration: appJellyCardDecoration(context),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
               child: Column(
@@ -481,15 +469,8 @@ class _HomeHeader extends ConsumerWidget {
       homeDisplayedBooksProvider.select((v) => v.valueOrNull?.length ?? 0),
     );
 
-    return Container(
+    return AppJellyCard(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        color: scheme.surface.withValues(alpha: 0.58),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -885,78 +866,79 @@ class _IeltsSeriesCard extends StatelessWidget {
     final rtlSubtitle =
         locale.languageCode == 'fa' || locale.languageCode == 'ckb';
 
-    return Card(
+    return AppJellyCard(
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accents.first.withValues(alpha: 0.18),
-                accents.last.withValues(alpha: 0.08),
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(kAppJellyRadius),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    accents.first.withValues(alpha: 0.18),
+                    accents.last.withValues(alpha: 0.08),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    AppJellyIconBubble(
+                      color: accents.first,
+                      size: 40,
+                      child: Icon(
+                        Icons.collections_bookmark_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_outward_rounded,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                SizedBox(
+                  width: double.infinity,
+                  child: Directionality(
+                    textDirection: rtlSubtitle
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    child: Text(
+                      l10n.homeSeriesVolumesCount(bookCount),
+                      textAlign: rtlSubtitle ? TextAlign.right : TextAlign.left,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: accents.first.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.collections_bookmark_rounded,
-                      color: accents.first,
-                      size: 22,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.arrow_outward_rounded,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 3),
-              SizedBox(
-                width: double.infinity,
-                child: Directionality(
-                  textDirection: rtlSubtitle
-                      ? TextDirection.rtl
-                      : TextDirection.ltr,
-                  child: Text(
-                    l10n.homeSeriesVolumesCount(bookCount),
-                    textAlign: rtlSubtitle ? TextAlign.right : TextAlign.left,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

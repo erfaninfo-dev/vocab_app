@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../core/profile/profile_avatar.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_result.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -95,27 +96,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-              scheme.surface.withValues(alpha: 0.98),
-            ],
-          ),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.45),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+        decoration: appJellyCardDecoration(context),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           child: Row(

@@ -2428,6 +2428,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordBuilderCorrectNice => 'Nice!';
 
   @override
+  String get wordBuilderTrainGameOverTitle => 'The train arrived!';
+
+  @override
+  String get wordBuilderTrainGameOverBody =>
+      'Time ran out before the last rope snapped. Try again and set them free!';
+
+  @override
+  String get wordBuilderPrisonGameOverTitle => 'Caught!';
+
+  @override
+  String get wordBuilderPrisonGameOverBody =>
+      'The guard woke up and took the key back. Try again — carefully this time!';
+
+  @override
+  String get wordBuilderReplayLevel => 'Play again';
+
+  @override
   String get wordBuilderLevelCompleteTitle => 'Level complete!';
 
   @override
@@ -2512,35 +2529,69 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pouring water, drowning tension, and tray effects when you make mistakes.';
 
   @override
-  String get wordBuilderTrayVisualModeTitle => 'Tray style';
+  String get wordBuilderPlayModeTitle => 'Play mode';
 
   @override
-  String get wordBuilderTrayVisualModeSubtitle =>
-      'Pick how the center tray reacts to mistakes.';
+  String get wordBuilderPlayModeClassic => 'Classic Tray';
 
   @override
-  String get wordBuilderTrayModeWater => 'Water tray';
+  String get wordBuilderPlayModeClassicSubtitle =>
+      'Circular letters with water, train, and prison scenes.';
 
   @override
-  String get wordBuilderTrayModeWaterSubtitle =>
-      'Classic tub with water, pipes, and a face that reacts.';
+  String get wordBuilderPlayModeArkanoid => 'Arkanoid';
 
   @override
-  String get wordBuilderTrayModeGlass => 'Glass crack';
+  String get wordBuilderPlayModeArkanoidSubtitle =>
+      'Bounce the ball to hit letter bricks and build words.';
 
   @override
-  String get wordBuilderTrayModeGlassSubtitle =>
-      'Realistic glass — each mistake adds a crack until it shatters.';
+  String get wordBuilderPlayModeAngryWords => 'Angry Words';
 
   @override
-  String get wordBuilderSessionGlassSfxSwitch => 'Glass crack effects';
+  String get wordBuilderPlayModeAngryWordsSubtitle =>
+      'Aim the slingshot, follow the trajectory, and hit letters in order.';
 
   @override
-  String get wordBuilderSessionGlassSfxSubtitle =>
-      'Impact haptics and crack/shatter sounds in glass mode.';
+  String get wordBuilderPlayModePuzzle => 'Letter Puzzle';
 
   @override
-  String get wordBuilderGlassGameOverTitle => 'The glass shattered!';
+  String get wordBuilderPlayModePuzzleSubtitle =>
+      'Slide letter tiles on a checkerboard grid to build words.';
+
+  @override
+  String get wordBuilderPuzzleSlideHint =>
+      'Tap a letter next to the empty cell to slide it into your word.';
+
+  @override
+  String get wordBuilderAngryWordsAimHint =>
+      'Tap a letter to focus · drag to bump · pull empty space to shoot';
+
+  @override
+  String get wordBuilderAngryWordsWindHint =>
+      'Hold the wind button, or aim the slingshot at it — letters drift faster';
+
+  @override
+  String get wordBuilderArkanoidCheck => 'Check';
+
+  @override
+  String get wordBuilderArkanoidServeHint => 'Drag paddle · tap to serve';
+
+  @override
+  String get wordBuilderArkanoidBallSpeed => 'Ball speed';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedSlow => 'Slow';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedNormal => 'Normal';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedFast => 'Fast';
+
+  @override
+  String get wordBuilderPlayModeSwitchHint =>
+      'Choose how you pick letters. Classic keeps tray stories; Puzzle uses a sliding tile grid.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {

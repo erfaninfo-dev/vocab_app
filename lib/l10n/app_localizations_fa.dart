@@ -2425,6 +2425,23 @@ class AppLocalizationsFa extends AppLocalizations {
   String get wordBuilderCorrectNice => 'آفرین!';
 
   @override
+  String get wordBuilderTrainGameOverTitle => 'قطار رسید!';
+
+  @override
+  String get wordBuilderTrainGameOverBody =>
+      'قبل از پاره شدن آخرین طناب زمان تمام شد. دوباره تلاش کن و نجاتش بده!';
+
+  @override
+  String get wordBuilderPrisonGameOverTitle => 'گیر افتادی!';
+
+  @override
+  String get wordBuilderPrisonGameOverBody =>
+      'نگهبان بیدار شد و کلید را پس گرفت. دوباره با احتیاط تلاش کن!';
+
+  @override
+  String get wordBuilderReplayLevel => 'دوباره بازی کن';
+
+  @override
   String get wordBuilderLevelCompleteTitle => 'مرحله کامل شد!';
 
   @override
@@ -2506,35 +2523,69 @@ class AppLocalizationsFa extends AppLocalizations {
       'ریختن آب، فشار غرق‌شدن و جلوه‌های سینی هنگام اشتباه.';
 
   @override
-  String get wordBuilderTrayVisualModeTitle => 'سبک سینی';
+  String get wordBuilderPlayModeTitle => 'حالت بازی';
 
   @override
-  String get wordBuilderTrayVisualModeSubtitle =>
-      'نحوهٔ واکنش مرکز سینی به اشتباه را انتخاب کن.';
+  String get wordBuilderPlayModeClassic => 'سینی کلاسیک';
 
   @override
-  String get wordBuilderTrayModeWater => 'سینی آب';
+  String get wordBuilderPlayModeClassicSubtitle =>
+      'حروف دایره‌ای با صحنه‌های آب، قطار و زندان.';
 
   @override
-  String get wordBuilderTrayModeWaterSubtitle =>
-      'حالت کلاسیک با آب، لوله و شکلک واکنش‌دار.';
+  String get wordBuilderPlayModeArkanoid => 'آرکانویید';
 
   @override
-  String get wordBuilderTrayModeGlass => 'شیشه ترک‌خورده';
+  String get wordBuilderPlayModeArkanoidSubtitle =>
+      'با توپ به آجر حروف بزن و کلمه بساز.';
 
   @override
-  String get wordBuilderTrayModeGlassSubtitle =>
-      'شیشه واقع‌گرایانه — هر اشتباه یک ترک تا شکستن کامل.';
+  String get wordBuilderPlayModeAngryWords => 'Angry Words';
 
   @override
-  String get wordBuilderSessionGlassSfxSwitch => 'جلوه‌های شیشه';
+  String get wordBuilderPlayModeAngryWordsSubtitle =>
+      'با تیرکمان نشانه بگیر، مسیر را ببین و حروف را به‌ترتیب بزن.';
 
   @override
-  String get wordBuilderSessionGlassSfxSubtitle =>
-      'لرزش و صدای ترک/شکستن در مود شیشه.';
+  String get wordBuilderPlayModePuzzle => 'پازل حروف';
 
   @override
-  String get wordBuilderGlassGameOverTitle => 'شیشه شکست!';
+  String get wordBuilderPlayModePuzzleSubtitle =>
+      'حروف را روی شبکهٔ شطرنجی بلغزان و کلمه بساز.';
+
+  @override
+  String get wordBuilderPuzzleSlideHint =>
+      'حرفی که کنار خانهٔ خالی است را لمس کن تا به کلمه اضافه شود.';
+
+  @override
+  String get wordBuilderAngryWordsAimHint =>
+      'تپ روی حرف برای فوکس · بکش برای هل دادن · فضای خالی را بکش تا شلیک شود';
+
+  @override
+  String get wordBuilderAngryWordsWindHint =>
+      'دکمه باد را نگه دار، یا پرتاب‌کننده را به سمتش نشانه بگیر — حروف تندتر جابه‌جا می‌شوند';
+
+  @override
+  String get wordBuilderArkanoidCheck => 'بررسی';
+
+  @override
+  String get wordBuilderArkanoidServeHint => 'پدل را بکش · برای پرتاب لمس کن';
+
+  @override
+  String get wordBuilderArkanoidBallSpeed => 'سرعت توپ';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedSlow => 'آرام';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedNormal => 'عادی';
+
+  @override
+  String get wordBuilderArkanoidBallSpeedFast => 'سریع';
+
+  @override
+  String get wordBuilderPlayModeSwitchHint =>
+      'نحوهٔ انتخاب حروف را انتخاب کن. کلاسیک داستان سینی را نگه می‌دارد؛ پازل شبکهٔ لغزنده دارد.';
 
   @override
   String wordBuilderHintMeaningLine(String meaning) {

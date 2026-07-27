@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/onboarding/language_selection_prefs.dart';
 import '../../core/onboarding/onboarding_prefs.dart';
@@ -88,7 +89,7 @@ class _LanguageSelectionScreenState
                   ),
                 ),
                 const SizedBox(height: 28),
-                Card(
+                AppJellyCard(
                   child: Column(
                     children: [
                       RadioListTile<String>(

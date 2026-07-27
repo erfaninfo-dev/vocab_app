@@ -10,22 +10,9 @@ import '../../domain/api_providers.dart';
 import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import 'student_class_sessions_screen.dart';
+import 'learning_goal_card.dart';
 import 'you_account_section.dart';
-
-BoxDecoration _youPanelCardDecoration(ColorScheme scheme) {
-  return BoxDecoration(
-    color: scheme.surface,
-    borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-    boxShadow: [
-      BoxShadow(
-        color: scheme.shadow.withValues(alpha: 0.04),
-        blurRadius: 8,
-        offset: const Offset(0, 2),
-      ),
-    ],
-  );
-}
+import 'you_jelly_style.dart';
 
 List<Widget> _youTeacherMessagesSection({
   required BuildContext context,
@@ -76,35 +63,35 @@ List<Widget> _youTeacherMessagesSection({
       Container(
         width: double.infinity,
         padding: const EdgeInsets.all(22),
-        decoration: _youPanelCardDecoration(scheme),
+        decoration: youJellyCardDecoration(context, scheme: scheme),
         child: const Center(child: CircularProgressIndicator()),
       ),
     ],
     error: (_, __) => [
       _SectionLabel(label: l10n.youSectionMessages),
       const SizedBox(height: 8),
-      Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => ref.invalidate(teacherMessagesPreviewProvider),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: _youPanelCardDecoration(scheme),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline_rounded, color: scheme.error),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.errorGeneric,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              ],
+      YouJellyShell(
+        onTap: () => ref.invalidate(teacherMessagesPreviewProvider),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: youJellyCardSurfaceDecoration(context, scheme: scheme),
+        shadows: youJellyCardShadows(context, scheme: scheme),
+        child: Row(
+          children: [
+            YouJellyIconBubble(
+              color: scheme.error,
+              child: Icon(Icons.error_outline_rounded, color: scheme.onError),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.errorGeneric,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ],
@@ -131,7 +118,11 @@ class YouScreen extends ConsumerWidget {
       context: context,
       title: Text(l10n.youPageTitle),
     );
-    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 12);
+    final topInset = appGradientContentTopInset(
+      context,
+      appBar: appBar,
+      extra: 12,
+    );
 
     return AppGradientScaffold(
       appBar: appBar,
@@ -151,65 +142,141 @@ class YouScreen extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, topInset, 16, 24),
         children: [
-            const YouAccountSection(),
-            if (showLearnerMessages) ...[
-              const SizedBox(height: 20),
-              ..._youTeacherMessagesSection(
-                context: context,
-                ref: ref,
-                scheme: scheme,
-                l10n: l10n,
-                previewAsync: previewAsync,
-                hasTeacher: hasTeacher,
-              ),
-            ],
-            if (session?.user.isAdmin == true) ...[
-              const SizedBox(height: 20),
-              _SectionLabel(label: l10n.youSectionAdmin),
-              const SizedBox(height: 8),
-              _YouAdminUsersInkCard(
-                scheme: scheme,
-                l10n: l10n,
-                onTap: () => context.push('/admin/users'),
-              ),
-            ],
-            const SizedBox(height: 16),
-            _SectionLabel(label: l10n.youSectionProgress),
-            const SizedBox(height: 8),
-            _YouProgressInkCard(
-              scheme: scheme,
-              l10n: l10n,
-              onTap: () => context.push('/stats'),
-            ),
-            if (!isTeacherPanel && hasTeacher) ...[
-              const SizedBox(height: 20),
-              _SectionLabel(label: l10n.youClassSessionsTitle),
-              const SizedBox(height: 8),
-              StudentClassSessionsPanel(
-                onOpenFullPage: () => context.push('/you/class-sessions'),
-              ),
-            ],
-            if (isTeacherPanel) ...[
-              const SizedBox(height: 20),
-              _SectionLabel(label: l10n.teacherOpenPanel),
-              const SizedBox(height: 8),
-              _YouTeacherPanelInkCard(
-                scheme: scheme,
-                l10n: l10n,
-                onTap: () => context.push('/teacher'),
-              ),
-            ],
+          const YouAccountSection(),
+          if (showLearnerMessages) ...[
             const SizedBox(height: 20),
-            _SectionLabel(label: l10n.youSectionReview),
-            const SizedBox(height: 8),
-            _YouReviewInkCard(
+            ..._youTeacherMessagesSection(
+              context: context,
+              ref: ref,
               scheme: scheme,
               l10n: l10n,
-              dueCount: ref.watch(srsProvider.select((s) => s.dueTodayCount)),
-              onTap: () => context.push('/review'),
+              previewAsync: previewAsync,
+              hasTeacher: hasTeacher,
             ),
           ],
-        ),
+          if (session?.user.isAdmin == true) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(label: l10n.youSectionAdmin),
+            const SizedBox(height: 8),
+            _YouAdminUsersInkCard(
+              scheme: scheme,
+              l10n: l10n,
+              onTap: () => context.push('/admin/users'),
+            ),
+          ],
+          const SizedBox(height: 16),
+          _SectionLabel(label: l10n.youSectionProgress),
+          const SizedBox(height: 8),
+          _YouProgressInkCard(
+            scheme: scheme,
+            l10n: l10n,
+            onTap: () => context.push('/stats'),
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel(label: learningGoalSectionTitle(context)),
+          const SizedBox(height: 8),
+          const LearningGoalCard(),
+          if (!isTeacherPanel && hasTeacher) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(label: l10n.youClassSessionsTitle),
+            const SizedBox(height: 8),
+            StudentClassSessionsPanel(
+              onOpenFullPage: () => context.push('/you/class-sessions'),
+            ),
+          ],
+          if (isTeacherPanel) ...[
+            const SizedBox(height: 20),
+            _SectionLabel(label: l10n.teacherOpenPanel),
+            const SizedBox(height: 8),
+            _YouTeacherPanelInkCard(
+              scheme: scheme,
+              l10n: l10n,
+              onTap: () => context.push('/teacher'),
+            ),
+          ],
+          const SizedBox(height: 20),
+          _SectionLabel(label: l10n.youSectionReview),
+          const SizedBox(height: 8),
+          _YouReviewInkCard(
+            scheme: scheme,
+            l10n: l10n,
+            dueCount: ref.watch(srsProvider.select((s) => s.dueTodayCount)),
+            onTap: () => context.push('/review'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _YouJellyNavCard extends StatelessWidget {
+  const _YouJellyNavCard({
+    required this.scheme,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.onIconColor,
+    required this.onTap,
+    this.trailing,
+  });
+
+  final ColorScheme scheme;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final Color onIconColor;
+  final VoidCallback onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return YouJellyShell(
+      onTap: onTap,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: youJellyCardSurfaceDecoration(context, scheme: scheme),
+      shadows: youJellyCardShadows(context, scheme: scheme),
+      child: Row(
+        children: [
+          YouJellyIconBubble(
+            color: iconColor,
+            child: Icon(icon, color: onIconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: tt.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            trailing!,
+            const SizedBox(width: 4),
+          ],
+          Icon(
+            Icons.chevron_right_rounded,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -227,46 +294,14 @@ class _YouAdminUsersInkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: _youPanelCardDecoration(scheme),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: scheme.errorContainer,
-                child: Icon(
-                  Icons.manage_accounts_rounded,
-                  color: scheme.onErrorContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.adminUserManagement, style: tt.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.youAdminPanelSubtitle,
-                      style: tt.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
+    return _YouJellyNavCard(
+      scheme: scheme,
+      title: l10n.adminUserManagement,
+      subtitle: l10n.youAdminPanelSubtitle,
+      icon: Icons.manage_accounts_rounded,
+      iconColor: scheme.error,
+      onIconColor: scheme.onError,
+      onTap: onTap,
     );
   }
 }
@@ -286,68 +321,17 @@ class _YouReviewInkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: _youPanelCardDecoration(scheme),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: scheme.primaryContainer,
-                child: Icon(
-                  Icons.loop_rounded,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.tabReview, style: tt.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.youSectionReviewSubtitle,
-                      style: tt.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (dueCount > 0)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.error,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      dueCount > 99 ? '99+' : '$dueCount',
-                      style: TextStyle(
-                        color: scheme.onError,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
+    return _YouJellyNavCard(
+      scheme: scheme,
+      title: l10n.tabReview,
+      subtitle: l10n.youSectionReviewSubtitle,
+      icon: Icons.loop_rounded,
+      iconColor: scheme.primary,
+      onIconColor: scheme.onPrimary,
+      onTap: onTap,
+      trailing: dueCount > 0
+          ? YouJellyCountBadge(label: dueCount > 99 ? '99+' : '$dueCount')
+          : null,
     );
   }
 }
@@ -365,46 +349,14 @@ class _YouProgressInkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: _youPanelCardDecoration(scheme),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: scheme.tertiaryContainer,
-                child: Icon(
-                  Icons.insights_rounded,
-                  color: scheme.onTertiaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.statsMyProgress, style: tt.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.youSectionProgressSubtitle,
-                      style: tt.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
+    return _YouJellyNavCard(
+      scheme: scheme,
+      title: l10n.statsMyProgress,
+      subtitle: l10n.youSectionProgressSubtitle,
+      icon: Icons.insights_rounded,
+      iconColor: scheme.tertiary,
+      onIconColor: scheme.onTertiary,
+      onTap: onTap,
     );
   }
 }
@@ -422,46 +374,14 @@ class _YouTeacherPanelInkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: _youPanelCardDecoration(scheme),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: scheme.tertiaryContainer,
-                child: Icon(
-                  Icons.dashboard_customize_rounded,
-                  color: scheme.onTertiaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.teacherOpenPanel, style: tt.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.youTeacherPanelSubtitle,
-                      style: tt.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
+    return _YouJellyNavCard(
+      scheme: scheme,
+      title: l10n.teacherOpenPanel,
+      subtitle: l10n.youTeacherPanelSubtitle,
+      icon: Icons.dashboard_customize_rounded,
+      iconColor: scheme.tertiary,
+      onIconColor: scheme.onTertiary,
+      onTap: onTap,
     );
   }
 }
@@ -476,16 +396,22 @@ class _YouNoTeacherMessagesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: _youPanelCardDecoration(scheme),
+      padding: const EdgeInsets.all(18),
+      decoration: youJellyCardDecoration(context, scheme: scheme),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, color: scheme.primary),
-          const SizedBox(width: 12),
+          YouJellyIconBubble(
+            color: scheme.primary,
+            child: Icon(Icons.info_outline_rounded, color: scheme.onPrimary),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
               l10n.teacherMessagesNoTeacher,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -527,25 +453,22 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
       } catch (_) {}
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onOpen,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: _youPanelCardDecoration(scheme),
-          child: Column(
+    return YouJellyShell(
+      onTap: onOpen,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: youJellyCardSurfaceDecoration(context, scheme: scheme),
+      shadows: youJellyCardShadows(context, scheme: scheme),
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: scheme.primaryContainer,
+                  YouJellyIconBubble(
+                    color: scheme.primary,
                     child: Icon(
                       Icons.chat_bubble_rounded,
-                      color: scheme.onPrimaryContainer,
+                      color: scheme.onPrimary,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -553,64 +476,44 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: tt.titleMedium),
-                        const SizedBox(height: 2),
+                        Text(
+                          title,
+                          style: tt.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
                         Text(
                           useHubCopy
                               ? l10n.youSectionMessagesSubtitleHub
                               : l10n.youSectionMessagesSubtitle,
                           style: tt.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
+                            height: 1.35,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (unread > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.error,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          unread > 99 ? '99+' : '$unread',
-                          style: TextStyle(
-                            color: scheme.onError,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
+                  if (unread > 0) ...[
+                    YouJellyCountBadge(label: unread > 99 ? '99+' : '$unread'),
+                    const SizedBox(width: 4),
+                  ],
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ],
               ),
               if (last != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    horizontal: 14,
+                    vertical: 12,
                   ),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: 0.65,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: scheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                  ),
+                  decoration: youJellyInsetDecoration(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -619,6 +522,7 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
                           timeLabel,
                           style: tt.labelSmall?.copyWith(
                             color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       if (timeLabel != null) const SizedBox(height: 4),
@@ -626,7 +530,7 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
                         last.body,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: tt.bodyMedium,
+                        style: tt.bodyMedium?.copyWith(height: 1.35),
                       ),
                     ],
                   ),
@@ -643,8 +547,6 @@ class _TeacherMessagesPreviewCard extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
     );
   }
 }

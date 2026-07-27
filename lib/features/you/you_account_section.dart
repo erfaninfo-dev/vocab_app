@@ -8,25 +8,11 @@ import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
 import '../stories/story_ring.dart';
 import 'student_code_dialogs.dart';
+import 'you_jelly_style.dart';
 
 /// Account card moved from Settings — sign-in, profile, student code, sign-out.
 class YouAccountSection extends ConsumerWidget {
   const YouAccountSection({super.key});
-
-  static BoxDecoration _cardDecoration(ColorScheme scheme) {
-    return BoxDecoration(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      boxShadow: [
-        BoxShadow(
-          color: scheme.shadow.withValues(alpha: 0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,22 +33,57 @@ class YouAccountSection extends ConsumerWidget {
           data: (session) {
             if (session == null) {
               return Container(
-                decoration: _cardDecoration(scheme),
+                decoration: youJellyCardDecoration(context, scheme: scheme),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(Icons.login_rounded, color: scheme.primary),
-                      title: Text(l10n.signIn),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      leading: YouJellyIconBubble(
+                        color: scheme.primary,
+                        size: 40,
+                        child: Icon(
+                          Icons.login_rounded,
+                          size: 20,
+                          color: scheme.onPrimary,
+                        ),
+                      ),
+                      title: Text(
+                        l10n.signIn,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       subtitle: Text(l10n.signInSubtitle),
                       onTap: () => context.push('/login'),
                     ),
-                    const Divider(height: 0),
+                    Divider(
+                      height: 0,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
                     ListTile(
-                      leading: Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: scheme.secondary,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      title: Text(l10n.createAccount),
+                      leading: YouJellyIconBubble(
+                        color: scheme.secondary,
+                        size: 40,
+                        child: Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 20,
+                          color: scheme.onSecondary,
+                        ),
+                      ),
+                      title: Text(
+                        l10n.createAccount,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       onTap: () => context.push('/register'),
                     ),
                   ],
@@ -70,7 +91,8 @@ class YouAccountSection extends ConsumerWidget {
               );
             }
             return Container(
-              decoration: _cardDecoration(scheme),
+              decoration: youJellyCardDecoration(context, scheme: scheme),
+              clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
                   Builder(
@@ -116,7 +138,10 @@ class YouAccountSection extends ConsumerWidget {
                                     children: [
                                       Text(
                                         l10n.profile,
-                                        style: theme.textTheme.titleMedium,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -144,9 +169,14 @@ class YouAccountSection extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
-                                Icon(
-                                  Icons.edit_outlined,
-                                  color: scheme.onSurfaceVariant,
+                                YouJellyIconBubble(
+                                  color: scheme.secondary,
+                                  size: 36,
+                                  child: Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: scheme.onSecondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -156,13 +186,30 @@ class YouAccountSection extends ConsumerWidget {
                     },
                   ),
                   if (session.user.isTeacher || session.user.isAdmin) ...[
-                    const Divider(height: 0),
+                    Divider(
+                      height: 0,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
                     ListTile(
-                      leading: Icon(
-                        Icons.vpn_key_outlined,
-                        color: scheme.tertiary,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      title: Text(l10n.createStudentCode),
+                      leading: YouJellyIconBubble(
+                        color: scheme.tertiary,
+                        size: 40,
+                        child: Icon(
+                          Icons.vpn_key_outlined,
+                          size: 20,
+                          color: scheme.onTertiary,
+                        ),
+                      ),
+                      title: Text(
+                        l10n.createStudentCode,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       subtitle: Text(
                         l10n.createStudentCodeSubtitle,
                         maxLines: 2,
@@ -172,13 +219,30 @@ class YouAccountSection extends ConsumerWidget {
                           showCreateTeacherStudentCodeDialog(context, ref),
                     ),
                   ] else if (!session.user.studentAccess) ...[
-                    const Divider(height: 0),
+                    Divider(
+                      height: 0,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
                     ListTile(
-                      leading: Icon(
-                        Icons.school_outlined,
-                        color: scheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      title: Text(l10n.redeemStudentCode),
+                      leading: YouJellyIconBubble(
+                        color: scheme.primary,
+                        size: 40,
+                        child: Icon(
+                          Icons.school_outlined,
+                          size: 20,
+                          color: scheme.onPrimary,
+                        ),
+                      ),
+                      title: Text(
+                        l10n.redeemStudentCode,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       subtitle: Text(
                         l10n.redeemStudentCodeSubtitle,
                         maxLines: 2,
@@ -187,11 +251,14 @@ class YouAccountSection extends ConsumerWidget {
                       onTap: () => showRedeemStudentCodeDialog(context, ref),
                     ),
                   ],
-                  const Divider(height: 0),
+                  Divider(
+                    height: 0,
+                    color: scheme.outlineVariant.withValues(alpha: 0.35),
+                  ),
                   ClipRRect(
                     borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(15),
-                      bottomRight: Radius.circular(15),
+                      bottomLeft: Radius.circular(kYouJellyRadius - 1),
+                      bottomRight: Radius.circular(kYouJellyRadius - 1),
                     ),
                     child: Material(
                       color: Color.lerp(
@@ -248,7 +315,7 @@ class YouAccountSection extends ConsumerWidget {
             );
           },
           loading: () => Container(
-            decoration: _cardDecoration(scheme),
+            decoration: youJellyCardDecoration(context, scheme: scheme),
             child: ListTile(
               leading: SizedBox(
                 width: 28,

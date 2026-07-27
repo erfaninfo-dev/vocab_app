@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../core/audio/app_audio_session.dart';
+import '../../../core/audio/audio_asset_probe.dart';
 
 enum _TrayWaterLoopTier { stage2, stage3 }
 
@@ -89,16 +90,18 @@ class WordBuilderTrayWaterAudio {
     required String assetPath,
     required double volume,
   }) async {
+    if (!await audioAssetExists(assetPath)) return;
     try {
       await configureAppAudioSession();
-      await player.stop();
+      try {
+        if (player.playing) await player.pause();
+      } catch (_) {}
       await player.setLoopMode(LoopMode.off);
       await player.setVolume(volume);
       await player.setAudioSource(
         AudioSource.asset(assetPath),
         preload: true,
       );
-      await player.seek(Duration.zero);
       await player.play();
     } catch (e, st) {
       debugPrint('WordBuilderTrayWaterAudio: failed $assetPath ($e)\n$st');
@@ -108,6 +111,11 @@ class WordBuilderTrayWaterAudio {
   Future<void> _syncLoopTier(_TrayWaterLoopTier? tier) async {
     if (tier == null) {
       await stopLoops();
+      return;
+    }
+    final path = _pathForTier(tier);
+    if (!await audioAssetExists(path)) {
+      _activeLoopTier = null;
       return;
     }
     if (_activeLoopTier == tier) {
@@ -122,20 +130,21 @@ class WordBuilderTrayWaterAudio {
     try {
       final player = _loopPlayer ??= AudioPlayer();
       await configureAppAudioSession();
-      await player.stop();
+      try {
+        if (player.playing) await player.pause();
+      } catch (_) {}
       await player.setLoopMode(LoopMode.off);
       await player.setVolume(_loopVolume);
       await player.setAudioSource(
-        AudioSource.asset(_pathForTier(tier)),
+        AudioSource.asset(path),
         preload: true,
       );
-      await player.seek(Duration.zero);
       _attachLoopRestart(player, tier);
       await player.play();
     } catch (e, st) {
       _activeLoopTier = null;
       debugPrint(
-        'WordBuilderTrayWaterAudio: loop skipped ${_pathForTier(tier)} ($e)\n$st',
+        'WordBuilderTrayWaterAudio: loop skipped $path ($e)\n$st',
       );
     }
   }

@@ -4306,6 +4306,36 @@ abstract class AppLocalizations {
   /// **'Nice!'**
   String get wordBuilderCorrectNice;
 
+  /// No description provided for @wordBuilderTrainGameOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The train arrived!'**
+  String get wordBuilderTrainGameOverTitle;
+
+  /// No description provided for @wordBuilderTrainGameOverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Time ran out before the last rope snapped. Try again and set them free!'**
+  String get wordBuilderTrainGameOverBody;
+
+  /// No description provided for @wordBuilderPrisonGameOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Caught!'**
+  String get wordBuilderPrisonGameOverTitle;
+
+  /// No description provided for @wordBuilderPrisonGameOverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The guard woke up and took the key back. Try again — carefully this time!'**
+  String get wordBuilderPrisonGameOverBody;
+
+  /// No description provided for @wordBuilderReplayLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get wordBuilderReplayLevel;
+
   /// No description provided for @wordBuilderLevelCompleteTitle.
   ///
   /// In en, this message translates to:
@@ -4444,59 +4474,119 @@ abstract class AppLocalizations {
   /// **'Pouring water, drowning tension, and tray effects when you make mistakes.'**
   String get wordBuilderSessionWaterSfxSubtitle;
 
-  /// No description provided for @wordBuilderTrayVisualModeTitle.
+  /// No description provided for @wordBuilderPlayModeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Tray style'**
-  String get wordBuilderTrayVisualModeTitle;
+  /// **'Play mode'**
+  String get wordBuilderPlayModeTitle;
 
-  /// No description provided for @wordBuilderTrayVisualModeSubtitle.
+  /// No description provided for @wordBuilderPlayModeClassic.
   ///
   /// In en, this message translates to:
-  /// **'Pick how the center tray reacts to mistakes.'**
-  String get wordBuilderTrayVisualModeSubtitle;
+  /// **'Classic Tray'**
+  String get wordBuilderPlayModeClassic;
 
-  /// No description provided for @wordBuilderTrayModeWater.
+  /// No description provided for @wordBuilderPlayModeClassicSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Water tray'**
-  String get wordBuilderTrayModeWater;
+  /// **'Circular letters with water, train, and prison scenes.'**
+  String get wordBuilderPlayModeClassicSubtitle;
 
-  /// No description provided for @wordBuilderTrayModeWaterSubtitle.
+  /// No description provided for @wordBuilderPlayModeArkanoid.
   ///
   /// In en, this message translates to:
-  /// **'Classic tub with water, pipes, and a face that reacts.'**
-  String get wordBuilderTrayModeWaterSubtitle;
+  /// **'Arkanoid'**
+  String get wordBuilderPlayModeArkanoid;
 
-  /// No description provided for @wordBuilderTrayModeGlass.
+  /// No description provided for @wordBuilderPlayModeArkanoidSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Glass crack'**
-  String get wordBuilderTrayModeGlass;
+  /// **'Bounce the ball to hit letter bricks and build words.'**
+  String get wordBuilderPlayModeArkanoidSubtitle;
 
-  /// No description provided for @wordBuilderTrayModeGlassSubtitle.
+  /// No description provided for @wordBuilderPlayModeAngryWords.
   ///
   /// In en, this message translates to:
-  /// **'Realistic glass — each mistake adds a crack until it shatters.'**
-  String get wordBuilderTrayModeGlassSubtitle;
+  /// **'Angry Words'**
+  String get wordBuilderPlayModeAngryWords;
 
-  /// No description provided for @wordBuilderSessionGlassSfxSwitch.
+  /// No description provided for @wordBuilderPlayModeAngryWordsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Glass crack effects'**
-  String get wordBuilderSessionGlassSfxSwitch;
+  /// **'Aim the slingshot, follow the trajectory, and hit letters in order.'**
+  String get wordBuilderPlayModeAngryWordsSubtitle;
 
-  /// No description provided for @wordBuilderSessionGlassSfxSubtitle.
+  /// No description provided for @wordBuilderPlayModePuzzle.
   ///
   /// In en, this message translates to:
-  /// **'Impact haptics and crack/shatter sounds in glass mode.'**
-  String get wordBuilderSessionGlassSfxSubtitle;
+  /// **'Letter Puzzle'**
+  String get wordBuilderPlayModePuzzle;
 
-  /// No description provided for @wordBuilderGlassGameOverTitle.
+  /// No description provided for @wordBuilderPlayModePuzzleSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'The glass shattered!'**
-  String get wordBuilderGlassGameOverTitle;
+  /// **'Slide letter tiles on a checkerboard grid to build words.'**
+  String get wordBuilderPlayModePuzzleSubtitle;
+
+  /// No description provided for @wordBuilderPuzzleSlideHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a letter next to the empty cell to slide it into your word.'**
+  String get wordBuilderPuzzleSlideHint;
+
+  /// No description provided for @wordBuilderAngryWordsAimHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a letter to focus · drag to bump · pull empty space to shoot'**
+  String get wordBuilderAngryWordsAimHint;
+
+  /// No description provided for @wordBuilderAngryWordsWindHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the wind button, or aim the slingshot at it — letters drift faster'**
+  String get wordBuilderAngryWordsWindHint;
+
+  /// No description provided for @wordBuilderArkanoidCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get wordBuilderArkanoidCheck;
+
+  /// No description provided for @wordBuilderArkanoidServeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag paddle · tap to serve'**
+  String get wordBuilderArkanoidServeHint;
+
+  /// No description provided for @wordBuilderArkanoidBallSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Ball speed'**
+  String get wordBuilderArkanoidBallSpeed;
+
+  /// No description provided for @wordBuilderArkanoidBallSpeedSlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow'**
+  String get wordBuilderArkanoidBallSpeedSlow;
+
+  /// No description provided for @wordBuilderArkanoidBallSpeedNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get wordBuilderArkanoidBallSpeedNormal;
+
+  /// No description provided for @wordBuilderArkanoidBallSpeedFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get wordBuilderArkanoidBallSpeedFast;
+
+  /// No description provided for @wordBuilderPlayModeSwitchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you pick letters. Classic keeps tray stories; Puzzle uses a sliding tile grid.'**
+  String get wordBuilderPlayModeSwitchHint;
 
   /// No description provided for @wordBuilderHintMeaningLine.
   ///

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_result.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -37,21 +38,19 @@ class GrammarStatsCharts extends ConsumerWidget {
     final loggedIn = ref.watch(authProvider).valueOrNull != null;
 
     if (!loggedIn) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Icon(Icons.rule_rounded, color: scheme.primary, size: 32),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  l10n.statsSignInGrammarTrend,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+      return AppJellyCard(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Icon(Icons.rule_rounded, color: scheme.primary, size: 32),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                l10n.statsSignInGrammarTrend,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -59,42 +58,36 @@ class GrammarStatsCharts extends ConsumerWidget {
     final async = ref.watch(grammarStatsChartResultsProvider);
 
     return async.when(
-      loading: () => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: CircularProgressIndicator(color: scheme.primary),
-          ),
+      loading: () => AppJellyCard(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: CircularProgressIndicator(color: scheme.primary),
         ),
       ),
-      error: (_, __) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Text(
-            l10n.statsCouldNotLoadGrammar,
-            style: TextStyle(color: scheme.error),
-          ),
+      error: (_, __) => AppJellyCard(
+        padding: const EdgeInsets.all(18),
+        child: Text(
+          l10n.statsCouldNotLoadGrammar,
+          style: TextStyle(color: scheme.error),
         ),
       ),
       data: (results) {
         if (results.isEmpty) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Icon(Icons.insights_rounded, color: scheme.outline, size: 32),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      l10n.statsNoGrammarYet,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
+          return AppJellyCard(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Icon(Icons.insights_rounded, color: scheme.outline, size: 32),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    l10n.statsNoGrammarYet,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
@@ -139,10 +132,9 @@ class GrammarStatsCharts extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Column(
+            AppJellyCard(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -205,12 +197,10 @@ class GrammarStatsCharts extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
             const SizedBox(height: 10),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 16, 16, 16),
-                child: Column(
+            AppJellyCard(
+              padding: const EdgeInsets.fromLTRB(8, 16, 16, 16),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
@@ -345,12 +335,10 @@ class GrammarStatsCharts extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
             const SizedBox(height: 10),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+            AppJellyCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -376,7 +364,6 @@ class GrammarStatsCharts extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
           ],
         );
       },

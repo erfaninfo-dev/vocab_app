@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../home/widgets/home_release_notes_banner.dart';
+import '../you/learning_goal_provider.dart';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 
@@ -91,8 +92,8 @@ class _PlayTabIconState extends State<_PlayTabIcon> {
 
     final gradientColors = selected
         ? (isDark
-            ? [const Color(0xFFFF8A50), _warmOrange]
-            : [const Color(0xFFFF7043), _warmAmber])
+              ? [const Color(0xFFFF8A50), _warmOrange]
+              : [const Color(0xFFFF7043), _warmAmber])
         : null;
 
     final unselectedColor = isDark
@@ -142,15 +143,83 @@ class _PlayTabIconState extends State<_PlayTabIcon> {
   }
 }
 
+class _YouGoalTabIcon extends StatelessWidget {
+  const _YouGoalTabIcon({required this.selected, required this.goal});
+
+  final bool selected;
+  final LearningGoal? goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final inheritedIconColor = IconTheme.of(context).color;
+    final iconColor =
+        inheritedIconColor ??
+        (selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant);
+    final goal = this.goal;
+
+    if (goal == null) {
+      return Icon(
+        selected ? Icons.person_rounded : Icons.person_outline_rounded,
+      );
+    }
+
+    final remainingDays = goal.remainingDays(DateTime.now());
+    final remainingFraction = (remainingDays / goal.totalDays.clamp(1, 3650))
+        .clamp(0.0, 1.0);
+    final remainingPct = (remainingFraction * 100).round().clamp(0, 100);
+
+    return SizedBox(
+      width: 58,
+      height: 28,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? Icons.person_rounded : Icons.person_outline_rounded,
+              size: 23,
+              color: iconColor,
+            ),
+            const SizedBox(width: 2),
+            Text(
+              '$remainingPct%',
+              style: TextStyle(
+                color: iconColor.withValues(alpha: selected ? 0.96 : 0.82),
+                fontSize: 9,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 NavigationDestination _navDestination(
   _Tab tab, {
   required bool isPlayTab,
+  required bool isYouTab,
   required bool isDark,
+  required LearningGoal? learningGoal,
 }) {
   if (isPlayTab) {
     return NavigationDestination(
       icon: _PlayTabIcon(selected: false, isDark: isDark),
       selectedIcon: _PlayTabIcon(selected: true, isDark: isDark),
+      label: tab.label,
+    );
+  }
+
+  if (isYouTab) {
+    return NavigationDestination(
+      icon: _YouGoalTabIcon(selected: false, goal: learningGoal),
+      selectedIcon: _YouGoalTabIcon(selected: true, goal: learningGoal),
       label: tab.label,
     );
   }
@@ -187,6 +256,7 @@ class ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _tabs(l10n);
+    final learningGoal = ref.watch(learningGoalProvider);
 
     final hideBottomBar = _hideBottomBarForLocation(location);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -227,7 +297,9 @@ class ShellScaffold extends ConsumerWidget {
                     _navDestination(
                       tabs[i],
                       isPlayTab: tabs[i].path == '/word-builder',
+                      isYouTab: tabs[i].path == '/you',
                       isDark: isDark,
+                      learningGoal: learningGoal,
                     ),
                 ],
               ),

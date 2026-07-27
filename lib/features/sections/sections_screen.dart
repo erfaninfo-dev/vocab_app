@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../data/models/section_info.dart';
 import '../../domain/api_full_refresh.dart';
@@ -197,42 +198,40 @@ class _SectionTile extends StatelessWidget {
     final accents = _sectionAccents(info.section);
     final titleLabel = _sectionTitleLabel(l10n, info);
 
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              colors: [
-                accents.first.withValues(alpha: 0.16),
-                accents.last.withValues(alpha: 0.08),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return AppJellyCard(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(kAppJellyRadius),
+                gradient: LinearGradient(
+                  colors: [
+                    accents.first.withValues(alpha: 0.16),
+                    accents.last.withValues(alpha: 0.08),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: accents.first.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+            child: Row(
+              children: [
+                AppJellyIconBubble(
+                  color: accents.first,
+                  size: 48,
                   child: Text(
                     '${info.section}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: accents.first,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -258,6 +257,7 @@ class _SectionTile extends StatelessWidget {
             ],
           ),
         ),
+        ],
       ),
     );
   }

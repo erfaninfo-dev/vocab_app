@@ -13,6 +13,7 @@ import '../../core/profile/profile_avatar.dart';
 import '../../core/profile/profile_presets.dart';
 import '../../data/models/auth_user.dart';
 import '../../l10n/app_localizations.dart';
+import '../you/you_jelly_style.dart';
 
 /// Re-enable when password change / reset email works on the server.
 const _kProfilePasswordSectionEnabled = false;
@@ -300,90 +301,106 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Stack(
-                        alignment: Alignment.center,
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                      decoration: youJellyCardDecoration(
+                        context,
+                        scheme: scheme,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          ProfileAvatar(
-                            avatarId: _selectedAvatarId,
-                            userId: session.user.id,
-                            size: 96,
-                            showBorder: true,
-                          ),
-                          if (_uploadingPhoto)
-                            const SizedBox(
-                              width: 96,
-                              height: 96,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                          Center(
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ProfileAvatar(
+                                  avatarId: _selectedAvatarId,
+                                  userId: session.user.id,
+                                  size: 96,
+                                  showBorder: true,
+                                ),
+                                if (_uploadingPhoto)
+                                  const SizedBox(
+                                    width: 96,
+                                    height: 96,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                              ],
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _uploadingPhoto || _saving
+                                    ? null
+                                    : () =>
+                                        _pickAndUpload(ImageSource.gallery),
+                                icon: const Icon(
+                                  Icons.photo_library_outlined,
+                                  size: 20,
+                                ),
+                                label: Text(l10n.profileGallery),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: _uploadingPhoto || _saving
+                                    ? null
+                                    : () =>
+                                        _pickAndUpload(ImageSource.camera),
+                                icon: const Icon(
+                                  Icons.photo_camera_outlined,
+                                  size: 20,
+                                ),
+                                label: Text(l10n.profileCamera),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            session.user.email,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _nameCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              labelText: l10n.profileDisplayName,
+                              hintText: l10n.profileDisplayNameHint,
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _bioCtrl,
+                            minLines: 3,
+                            maxLines: 5,
+                            maxLength: 160,
+                            textCapitalization:
+                                TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              labelText: l10n.profileBio,
+                              hintText: l10n.profileBioHint,
+                              alignLabelWithHint: true,
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          if (_kProfilePasswordSectionEnabled) ...[
+                            const SizedBox(height: 12),
+                            const _ProfilePasswordSection(),
+                          ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _uploadingPhoto || _saving
-                              ? null
-                              : () => _pickAndUpload(ImageSource.gallery),
-                          icon: const Icon(
-                            Icons.photo_library_outlined,
-                            size: 20,
-                          ),
-                          label: Text(l10n.profileGallery),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _uploadingPhoto || _saving
-                              ? null
-                              : () => _pickAndUpload(ImageSource.camera),
-                          icon: const Icon(
-                            Icons.photo_camera_outlined,
-                            size: 20,
-                          ),
-                          label: Text(l10n.profileCamera),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      session.user.email,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _nameCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: l10n.profileDisplayName,
-                        hintText: l10n.profileDisplayNameHint,
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _bioCtrl,
-                      minLines: 3,
-                      maxLines: 5,
-                      maxLength: 160,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: l10n.profileBio,
-                        hintText: l10n.profileBioHint,
-                        alignLabelWithHint: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    if (_kProfilePasswordSectionEnabled) ...[
-                      const SizedBox(height: 12),
-                      const _ProfilePasswordSection(),
-                    ],
-                    const SizedBox(height: 8),
                     Text(
                       l10n.profilePresetAvatars,
                       textAlign: TextAlign.center,
@@ -404,7 +421,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _AvatarGrid(
                       presets: boys,
                       selectedId: _selectedAvatarId,
-                      onSelect: (id) => setState(() => _selectedAvatarId = id),
+                      onSelect: (id) =>
+                          setState(() => _selectedAvatarId = id),
                     ),
                     const SizedBox(height: 24),
                     Text(

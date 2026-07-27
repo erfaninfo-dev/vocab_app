@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_jelly_style.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/student/student_code_input.dart';
 import '../../l10n/app_localizations.dart';
@@ -87,11 +88,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     final body = SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: AppJellyCard(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               l10n.newAccount,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -248,6 +251,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
 
