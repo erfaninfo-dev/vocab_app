@@ -2,13 +2,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// import '../../core/audio/splash_sound_controller.dart';
+import '../../core/audio/app_sound_prefs.dart';
+import '../../core/auth/auth_provider.dart';
 import '../../core/locale/ui_locale_provider.dart';
 import '../../core/language/language_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/app_gradient_scaffold.dart';
 import '../../l10n/app_localizations.dart';
+import '../word_builder/application/word_builder_onboarding_prefs.dart';
 import 'theme_mode_controller.dart';
 import 'widgets/about_card.dart';
 
@@ -50,6 +52,12 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final uiLoc = ref.watch(uiLocaleProvider);
     final uiLocN = ref.read(uiLocaleProvider.notifier);
+    final musicOn = ref.watch(appMusicEnabledProvider);
+    final sfxOn = ref.watch(appSfxEnabledProvider);
+    final hapticsOn = ref.watch(appHapticsEnabledProvider);
+    final musicN = ref.read(appMusicEnabledProvider.notifier);
+    final sfxN = ref.read(appSfxEnabledProvider.notifier);
+    final hapticsN = ref.read(appHapticsEnabledProvider.notifier);
 
     final appBar = styledAppGradientAppBar(
       context: context,
@@ -210,18 +218,74 @@ class SettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // Startup chime setting hidden for now.
-            // _SectionLabel(label: l10n.sectionSound),
-            // Card(
-            //   child: SwitchListTile(
-            //     secondary: const Icon(Icons.music_note_rounded),
-            //     title: Text(l10n.splashSoundTitle),
-            //     subtitle: Text(l10n.splashSoundSubtitle),
-            //     value: splashSound,
-            //     onChanged: (v) => splashSoundN.setEnabled(v),
-            //   ),
-            // ),
-            // const SizedBox(height: 16),
+            _SectionLabel(label: l10n.sectionSound),
+            Card(
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    secondary: const Icon(Icons.music_note_rounded),
+                    title: Text(l10n.soundMusicTitle),
+                    subtitle: Text(l10n.soundMusicSubtitle),
+                    value: musicOn,
+                    onChanged: (v) => musicN.setEnabled(v),
+                  ),
+                  const Divider(height: 0),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.graphic_eq_rounded),
+                    title: Text(l10n.soundSfxTitle),
+                    subtitle: Text(l10n.soundSfxSubtitle),
+                    value: sfxOn,
+                    onChanged: (v) => sfxN.setEnabled(v),
+                  ),
+                  const Divider(height: 0),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.vibration_rounded),
+                    title: Text(l10n.soundHapticsTitle),
+                    subtitle: Text(l10n.soundHapticsSubtitle),
+                    value: hapticsOn,
+                    onChanged: (v) => hapticsN.setEnabled(v),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            _SectionLabel(label: l10n.wordBuilderTitle),
+            AppJellyCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.school_outlined),
+                    title: Text(l10n.wordBuilderResetTutorials),
+                    onTap: () async {
+                      await resetAllWordBuilderOnboarding(ref);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.wordBuilderResetTutorialsDone)),
+                      );
+                    },
+                  ),
+                  if (ref.watch(authProvider).valueOrNull?.user.isAdmin ==
+                      true) ...[
+                    const Divider(height: 0),
+                    ListTile(
+                      leading: const Icon(Icons.restart_alt_rounded),
+                      title: Text(l10n.wordBuilderAdminResetOnboarding),
+                      onTap: () async {
+                        await resetAllWordBuilderOnboarding(ref);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.wordBuilderResetTutorialsDone),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
             _SectionLabel(label: l10n.sectionAbout),
             const AboutCard(),

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Coin balance pill — same styling as the Word Builder session AppBar.
-class WordBuilderCoinsChip extends StatelessWidget {
+import '../theme/word_builder_tokens.dart';
+
+/// Coin balance pill — count-up + pulse when balance changes.
+class WordBuilderCoinsChip extends StatefulWidget {
   const WordBuilderCoinsChip({
     super.key,
+    required this.balance,
     required this.balanceLabel,
     required this.isDark,
     required this.scheme,
     this.compact = false,
   });
 
+  final int balance;
   final String balanceLabel;
   final bool isDark;
   final ColorScheme scheme;
@@ -18,75 +22,136 @@ class WordBuilderCoinsChip extends StatelessWidget {
 
   static const double coinIconSize = 30;
   static const double balanceFontSize = 22;
-  static const EdgeInsets chipPadding = EdgeInsets.symmetric(
-    horizontal: 16,
-    vertical: 9,
-  );
+
+  @override
+  State<WordBuilderCoinsChip> createState() => _WordBuilderCoinsChipState();
+}
+
+class _WordBuilderCoinsChipState extends State<WordBuilderCoinsChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+  late int _from;
+  late int _to;
+
+  @override
+  void initState() {
+    super.initState();
+    _from = widget.balance;
+    _to = widget.balance;
+    _pulse = AnimationController(vsync: this, duration: WbTokens.dBase)
+      ..value = 1;
+  }
+
+  @override
+  void didUpdateWidget(covariant WordBuilderCoinsChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.balance != widget.balance) {
+      final t = Curves.easeOutCubic.transform(_pulse.value);
+      _from = (_from + (_to - _from) * t).round();
+      _to = widget.balance;
+      _pulse.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = compact ? 22.0 : coinIconSize;
-    final fontSize = compact ? 16.0 : balanceFontSize;
-    final pad = compact
+    final iconSize = widget.compact ? 22.0 : WordBuilderCoinsChip.coinIconSize;
+    final fontSize = widget.compact
+        ? WbTokens.tMd
+        : WordBuilderCoinsChip.balanceFontSize;
+    final pad = widget.compact
         ? const EdgeInsets.symmetric(horizontal: 10, vertical: 5)
-        : chipPadding;
+        : const EdgeInsets.symmetric(horizontal: 16, vertical: 9);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        gradient: LinearGradient(
-          colors: isDark
-              ? [
-                  scheme.surfaceContainerHigh.withValues(alpha: 0.85),
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                ]
-              : const [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
-        ),
-        border: Border.all(
-          color: const Color(0xFFFFB300).withValues(alpha: isDark ? 0.55 : 0.9),
-          width: compact ? 1.6 : 2.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(
-              0xFFFF9800,
-            ).withValues(alpha: isDark ? 0.35 : 0.28),
-            blurRadius: compact ? 8 : 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: pad,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.monetization_on_rounded,
-              size: iconSize,
-              color: isDark ? const Color(0xFFFFCA28) : const Color(0xFFFFA000),
-              shadows: [
-                Shadow(
-                  color: Colors.orange.withValues(alpha: 0.45),
-                  blurRadius: 6,
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final t = Curves.easeOutCubic.transform(_pulse.value);
+        final display = (_from + (_to - _from) * t).round();
+        final pulseScale =
+            1.0 + 0.06 * (1 - (2 * t - 1).abs()).clamp(0.0, 1.0);
+        final label = widget.balanceLabel.contains(RegExp(r'\d'))
+            ? widget.balanceLabel.replaceFirstMapped(
+                RegExp(r'\d+'),
+                (_) => '$display',
+              )
+            : '$display';
+        return Transform.scale(
+          scale: _pulse.isAnimating ? pulseScale : 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(WbTokens.rPill),
+              gradient: LinearGradient(
+                colors: widget.isDark
+                    ? [
+                        widget.scheme.surfaceContainerHigh.withValues(
+                          alpha: 0.85,
+                        ),
+                        widget.scheme.surfaceContainerHighest.withValues(
+                          alpha: 0.9,
+                        ),
+                      ]
+                    : const [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+              ),
+              border: Border.all(
+                color: const Color(
+                  0xFFFFB300,
+                ).withValues(alpha: widget.isDark ? 0.55 : 0.9),
+                width: widget.compact ? 1.6 : 2.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0xFFFF9800,
+                  ).withValues(alpha: widget.isDark ? 0.35 : 0.28),
+                  blurRadius: widget.compact ? 8 : 12,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
-            SizedBox(width: compact ? 5 : 8),
-            Text(
-              balanceLabel,
-              style: GoogleFonts.fredoka(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w800,
-                height: 1,
-                letterSpacing: 0.5,
-                color: isDark ? scheme.onSurface : const Color(0xFF5D4037),
+            child: Padding(
+              padding: pad,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.monetization_on_rounded,
+                    size: iconSize,
+                    color: widget.isDark
+                        ? const Color(0xFFFFCA28)
+                        : const Color(0xFFFFA000),
+                    shadows: [
+                      Shadow(
+                        color: Colors.orange.withValues(alpha: 0.45),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  SizedBox(width: widget.compact ? 5 : 8),
+                  Text(
+                    label,
+                    style: GoogleFonts.fredoka(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                      letterSpacing: 0.5,
+                      color: widget.isDark
+                          ? widget.scheme.onSurface
+                          : const Color(0xFF5D4037),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

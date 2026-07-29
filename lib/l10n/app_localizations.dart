@@ -916,6 +916,42 @@ abstract class AppLocalizations {
   /// **'Play a calming sound when the app opens'**
   String get splashSoundSubtitle;
 
+  /// No description provided for @soundMusicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get soundMusicTitle;
+
+  /// No description provided for @soundMusicSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background music in games and menus where available'**
+  String get soundMusicSubtitle;
+
+  /// No description provided for @soundSfxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get soundSfxTitle;
+
+  /// No description provided for @soundSfxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shots, pops, correct/wrong feedback, and other SFX'**
+  String get soundSfxSubtitle;
+
+  /// No description provided for @soundHapticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Haptics'**
+  String get soundHapticsTitle;
+
+  /// No description provided for @soundHapticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration feedback for taps and game events'**
+  String get soundHapticsSubtitle;
+
   /// No description provided for @sectionAbout.
   ///
   /// In en, this message translates to:
@@ -4545,6 +4581,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hold the wind button, or aim the slingshot at it — letters drift faster'**
   String get wordBuilderAngryWordsWindHint;
+
+  /// No description provided for @wordBuilderAngryWordsHammerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the hammer · smash bottles'**
+  String get wordBuilderAngryWordsHammerHint;
+
+  /// No description provided for @wordBuilderAngryWordsHoldSprayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold & spray · {label}'**
+  String wordBuilderAngryWordsHoldSprayHint(String label);
+
+  /// No description provided for @wordBuilderAngryWordsClearWallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the wall · {label}'**
+  String wordBuilderAngryWordsClearWallHint(String label);
+
+  /// No description provided for @wordBuilderAngryWordsBlastOrbsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Blast letter orbs · {label} · {found}/{total}'**
+  String wordBuilderAngryWordsBlastOrbsHint(String label, int found, int total);
+
+  /// No description provided for @wordBuilderAngryWordsLettersUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Letters unlocked!'**
+  String get wordBuilderAngryWordsLettersUnlocked;
+
+  /// No description provided for @wordBuilderAngryWordsLettersLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} letters left'**
+  String wordBuilderAngryWordsLettersLeft(int count);
+
+  /// No description provided for @wordBuilderCoachHoldFire.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold and shoot to blast the wall'**
+  String get wordBuilderCoachHoldFire;
+
+  /// No description provided for @wordBuilderCoachHammerSmash.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the hammer to smash bottles'**
+  String get wordBuilderCoachHammerSmash;
+
+  /// No description provided for @wordBuilderCoachLettersHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Letters are hidden inside some orbs — find them!'**
+  String get wordBuilderCoachLettersHidden;
+
+  /// No description provided for @wordBuilderCoachClearWall.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the whole wall to unlock the slingshot'**
+  String get wordBuilderCoachClearWall;
+
+  /// No description provided for @wordBuilderCoachWallCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Wall cleared — now use the slingshot'**
+  String get wordBuilderCoachWallCleared;
+
+  /// No description provided for @wordBuilderCoachPullRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull back and release to hit letters'**
+  String get wordBuilderCoachPullRelease;
+
+  /// No description provided for @wordBuilderCoachPrefixOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Hit letters in the correct order for the word'**
+  String get wordBuilderCoachPrefixOrder;
+
+  /// No description provided for @wordBuilderCoachArkanoidAim.
+  ///
+  /// In en, this message translates to:
+  /// **'Bounce the ball into letter bricks to build your word'**
+  String get wordBuilderCoachArkanoidAim;
+
+  /// No description provided for @wordBuilderCoachPuzzleSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a letter next to the empty cell to slide it into your word'**
+  String get wordBuilderCoachPuzzleSlide;
+
+  /// No description provided for @wordBuilderResetTutorials.
+  ///
+  /// In en, this message translates to:
+  /// **'Show tutorials again'**
+  String get wordBuilderResetTutorials;
+
+  /// No description provided for @wordBuilderResetTutorialsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tutorials will show the next time you play each mode'**
+  String get wordBuilderResetTutorialsDone;
+
+  /// No description provided for @wordBuilderAdminResetOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Word Builder onboarding (admin)'**
+  String get wordBuilderAdminResetOnboarding;
 
   /// No description provided for @wordBuilderArkanoidCheck.
   ///

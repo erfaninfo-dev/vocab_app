@@ -483,6 +483,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get splashSoundSubtitle => 'Play a calming sound when the app opens';
 
   @override
+  String get soundMusicTitle => 'Music';
+
+  @override
+  String get soundMusicSubtitle =>
+      'Background music in games and menus where available';
+
+  @override
+  String get soundSfxTitle => 'Sound effects';
+
+  @override
+  String get soundSfxSubtitle =>
+      'Shots, pops, correct/wrong feedback, and other SFX';
+
+  @override
+  String get soundHapticsTitle => 'Haptics';
+
+  @override
+  String get soundHapticsSubtitle =>
+      'Vibration feedback for taps and game events';
+
+  @override
   String get sectionAbout => 'About';
 
   @override
@@ -2570,6 +2591,82 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wordBuilderAngryWordsWindHint =>
       'Hold the wind button, or aim the slingshot at it — letters drift faster';
+
+  @override
+  String get wordBuilderAngryWordsHammerHint =>
+      'Drag the hammer · smash bottles';
+
+  @override
+  String wordBuilderAngryWordsHoldSprayHint(String label) {
+    return 'Hold & spray · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsClearWallHint(String label) {
+    return 'Clear the wall · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsBlastOrbsHint(
+    String label,
+    int found,
+    int total,
+  ) {
+    return 'Blast letter orbs · $label · $found/$total';
+  }
+
+  @override
+  String get wordBuilderAngryWordsLettersUnlocked => 'Letters unlocked!';
+
+  @override
+  String wordBuilderAngryWordsLettersLeft(int count) {
+    return '$count letters left';
+  }
+
+  @override
+  String get wordBuilderCoachHoldFire => 'Hold and shoot to blast the wall';
+
+  @override
+  String get wordBuilderCoachHammerSmash => 'Drag the hammer to smash bottles';
+
+  @override
+  String get wordBuilderCoachLettersHidden =>
+      'Letters are hidden inside some orbs — find them!';
+
+  @override
+  String get wordBuilderCoachClearWall =>
+      'Clear the whole wall to unlock the slingshot';
+
+  @override
+  String get wordBuilderCoachWallCleared =>
+      'Wall cleared — now use the slingshot';
+
+  @override
+  String get wordBuilderCoachPullRelease =>
+      'Pull back and release to hit letters';
+
+  @override
+  String get wordBuilderCoachPrefixOrder =>
+      'Hit letters in the correct order for the word';
+
+  @override
+  String get wordBuilderCoachArkanoidAim =>
+      'Bounce the ball into letter bricks to build your word';
+
+  @override
+  String get wordBuilderCoachPuzzleSlide =>
+      'Tap a letter next to the empty cell to slide it into your word';
+
+  @override
+  String get wordBuilderResetTutorials => 'Show tutorials again';
+
+  @override
+  String get wordBuilderResetTutorialsDone =>
+      'Tutorials will show the next time you play each mode';
+
+  @override
+  String get wordBuilderAdminResetOnboarding =>
+      'Reset Word Builder onboarding (admin)';
 
   @override
   String get wordBuilderArkanoidCheck => 'Check';

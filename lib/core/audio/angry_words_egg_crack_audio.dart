@@ -8,7 +8,10 @@ import 'app_audio_session.dart';
 import 'audio_asset_probe.dart';
 import 'word_builder_sound_service.dart';
 
-/// One-shot eggshell crack for letter-eggs / egg wall pops.
+/// Distinct egg-shell crack for Angry Words free-phase letter eggs.
+///
+/// Separate from generic [AngryWordsPopAudio] (`pop.wav`) so barrier candy
+/// and egg cracks do not share the same timbre.
 class AngryWordsEggCrackAudio {
   static const assetPath = 'assets/audio/egg_crack.wav';
 
@@ -27,11 +30,8 @@ class AngryWordsEggCrackAudio {
       await configureAppAudioSession();
       final player = _player ??= AudioPlayer();
       await player.setLoopMode(LoopMode.off);
-      await player.setVolume(0.95);
-      await player.setAudioSource(
-        AudioSource.asset(assetPath),
-        preload: true,
-      );
+      await player.setVolume(0.9);
+      await player.setAudioSource(AudioSource.asset(assetPath), preload: true);
       _ready = true;
     } catch (e, st) {
       debugPrint('AngryWordsEggCrackAudio: load failed ($e)\n$st');
@@ -41,7 +41,7 @@ class AngryWordsEggCrackAudio {
 
   void play({required bool enabled}) {
     if (!enabled) return;
-    final minGapMs = WordBuilderSoundService.isFragileDesktopAudio ? 140 : 80;
+    final minGapMs = WordBuilderSoundService.isFragileDesktopAudio ? 120 : 70;
     final now = DateTime.now();
     if (_lastPlayAt != null &&
         now.difference(_lastPlayAt!).inMilliseconds < minGapMs) {
@@ -98,7 +98,9 @@ class AngryWordsEggCrackAudio {
   }
 }
 
-final angryWordsEggCrackAudioProvider = Provider<AngryWordsEggCrackAudio>((ref) {
+final angryWordsEggCrackAudioProvider = Provider<AngryWordsEggCrackAudio>((
+  ref,
+) {
   final audio = AngryWordsEggCrackAudio();
   ref.onDispose(() => unawaited(audio.dispose()));
   return audio;

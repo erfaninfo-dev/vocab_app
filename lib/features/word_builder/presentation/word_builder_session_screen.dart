@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/angry_words_gun_audio.dart';
+import '../../../core/audio/angry_words_sling_audio.dart';
 import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
@@ -34,11 +36,15 @@ import 'widgets/circular_letter_tray.dart';
 import 'widgets/magic_background.dart';
 import 'widgets/puzzle/puzzle_letter_board.dart';
 import 'widgets/shake_wrapper.dart';
+import 'widgets/word_builder_action_bar.dart';
 import 'widgets/word_builder_coins_chip.dart';
+import 'widgets/word_builder_level_complete_panel.dart';
 import 'widgets/word_builder_meaning_banner.dart';
+import 'widgets/word_builder_path_letters.dart';
 import 'widgets/word_builder_session_audio_sheet.dart';
-import 'widgets/word_builder_tray_circle_button.dart';
 import 'widgets/word_info_sheet.dart';
+import 'theme/word_builder_chapter_meta.dart';
+import 'theme/word_builder_tokens.dart';
 
 class WordBuilderSessionScreen extends ConsumerStatefulWidget {
   const WordBuilderSessionScreen({super.key, required this.bookKey});
@@ -54,6 +60,7 @@ class _WordBuilderSessionScreenState
     extends ConsumerState<WordBuilderSessionScreen>
     with WidgetsBindingObserver {
   final _answerSlotKeys = AnswerSlotKeyBag();
+  final _pathCardKey = GlobalKey(debugLabel: 'angryWordsPathCard');
 
   @override
   void initState() {
@@ -81,6 +88,11 @@ class _WordBuilderSessionScreenState
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
         _stopSessionAudioForBackground();
+        unawaited(
+          ref
+              .read(wordBuilderGameProvider(widget.bookKey).notifier)
+              .persistSessionDraft(),
+        );
     }
   }
 
@@ -96,6 +108,8 @@ class _WordBuilderSessionScreenState
     unawaited(
       ref.read(wordBuilderTrayPrisonAudioProvider(widget.bookKey)).stopAll(),
     );
+    unawaited(ref.read(angryWordsGunAudioProvider).stop());
+    unawaited(ref.read(angryWordsSlingAudioProvider).stop());
   }
 
   Future<void> _saveCampaignStageProgress() async {
@@ -131,6 +145,14 @@ class _WordBuilderSessionScreenState
     }
   }
 
+  /// Confetti only when finishing the last stage of a chapter (not every level).
+  bool _isChapterComplete() {
+    final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
+    if (camp == null) return false;
+    final m = WbChapterMeta.forStage(camp.stage1Based);
+    return m.indexInChapter >= m.chapterLength;
+  }
+
   bool _isCampaignTierComplete() {
     final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
     return camp != null && camp.stage1Based >= kWordBuilderStagesPerTier;
@@ -157,14 +179,14 @@ class _WordBuilderSessionScreenState
         );
       case WordBuilderDifficulty.intermediate:
         return (
-          emoji: '🚀🏆🎉',
+          emoji: '🚀🏆✨',
           title: l10n.wordBuilderIntermediateCompleteTitle,
           body: l10n.wordBuilderIntermediateCompleteBody,
           nextLabel: l10n.wordBuilderStartAdvanced,
         );
       case WordBuilderDifficulty.advanced:
         return (
-          emoji: '👑🏆🎉',
+          emoji: '👑✨🏆',
           title: l10n.wordBuilderAdvancedCompleteTitle,
           body: l10n.wordBuilderAdvancedCompleteBody,
           nextLabel: l10n.exit,
@@ -173,6 +195,9 @@ class _WordBuilderSessionScreenState
   }
 
   Future<void> _finishCampaignStageAndExit() async {
+    await ref
+        .read(wordBuilderGameProvider(widget.bookKey).notifier)
+        .clearSessionDraft();
     await _saveCampaignStageProgress();
     if (mounted) context.pop();
   }
@@ -180,6 +205,7 @@ class _WordBuilderSessionScreenState
   Future<void> _advanceAfterLevelComplete() async {
     final key = widget.bookKey;
     final camp = decodeWordBuilderCampaignSessionKey(key);
+    await ref.read(wordBuilderGameProvider(key).notifier).clearSessionDraft();
     if (camp != null) {
       await _saveCampaignStageProgress();
       if (!mounted) return;
@@ -294,8 +320,6 @@ class _WordBuilderSessionScreenState
                 toolbarHeight: playMode.usesCompactLetterBoard
                     ? 44
                     : kToolbarHeight,
-                title: const SizedBox.shrink(),
-                centerTitle: false,
                 automaticallyImplyLeading: false,
                 leading: trayGameOver
                     ? null
@@ -313,6 +337,29 @@ class _WordBuilderSessionScreenState
                             ? context.pop()
                             : context.go('/word-builder'),
                       ),
+                title: Builder(
+                  builder: (context) {
+                    final camp =
+                        decodeWordBuilderCampaignSessionKey(widget.bookKey);
+                    if (camp == null) return const SizedBox.shrink();
+                    return Text(
+                      WbChapterMeta.hudLabel(camp.stage1Based),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.fredoka(
+                        fontSize: playMode.usesCompactLetterBoard
+                            ? WbTokens.tSm
+                            : WbTokens.tMd,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? scheme.onSurface
+                            : const Color(0xFF5D4037),
+                      ),
+                    );
+                  },
+                ),
+                centerTitle: false,
+                titleSpacing: 0,
                 actions: [
                   Padding(
                     padding: const EdgeInsetsDirectional.only(end: 6),
@@ -327,8 +374,12 @@ class _WordBuilderSessionScreenState
                               : () =>
                                     WordBuilderSessionAudioSheet.show(context),
                           child: Ink(
-                            height: playMode.usesCompactLetterBoard ? 34 : 44,
-                            width: playMode.usesCompactLetterBoard ? 34 : 44,
+                            height: playMode.usesCompactLetterBoard
+                                ? 34
+                                : 44,
+                            width: playMode.usesCompactLetterBoard
+                                ? 34
+                                : 44,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isDark
@@ -357,7 +408,9 @@ class _WordBuilderSessionScreenState
                             child: Center(
                               child: Icon(
                                 Icons.settings_rounded,
-                                size: playMode.usesCompactLetterBoard ? 18 : 24,
+                                size: playMode.usesCompactLetterBoard
+                                    ? 18
+                                    : 24,
                                 color: isDark
                                     ? scheme.onSurface
                                     : const Color(0xFF5D4037),
@@ -373,6 +426,7 @@ class _WordBuilderSessionScreenState
                     child: Center(
                       child: coinsAsync.when(
                         data: (c) => WordBuilderCoinsChip(
+                          balance: c,
                           balanceLabel: l10n.wordBuilderCoinsBalance(c),
                           isDark: isDark,
                           scheme: scheme,
@@ -458,17 +512,12 @@ class _WordBuilderSessionScreenState
                             playMode == WordBuilderPlayMode.arkanoid;
                         final isAngryWords =
                             playMode == WordBuilderPlayMode.angryWords;
-                        final isPuzzle = playMode == WordBuilderPlayMode.puzzle;
-                        final topScale = isCompactBoard
-                            ? sScale * 0.92
-                            : sScale;
-                        final chromeBtn = isCompactBoard
-                            ? (30 * sScale).clamp(28.0, 34.0)
-                            : (50 * sScale).clamp(44.0, 54.0);
-                        // Equal air between path card ↔ chrome ↔ game board.
-                        final chromeGap = isCompactBoard
-                            ? (16 * sScale).clamp(14.0, 20.0)
-                            : 0.0;
+                        final isPuzzle =
+                            playMode == WordBuilderPlayMode.puzzle;
+                        final topScale = isCompactBoard ? sScale * 0.92 : sScale;
+                        // Equal air between path card â†” chrome â†” game board.
+                        final chromeGap = (14 * sScale).clamp(10.0, 18.0);
+                        final actionBarHeight = (52 * sScale).clamp(48.0, 58.0);
                         final pathCardMaxWidth = isCompactBoard
                             ? (outer.maxWidth * 0.74).clamp(220.0, 360.0)
                             : double.infinity;
@@ -476,250 +525,181 @@ class _WordBuilderSessionScreenState
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                14 * sScale,
-                                isCompactBoard ? 4 * sScale : 10 * sScale,
-                                14 * sScale,
-                                isCompactBoard ? 0 : 2,
-                              ),
-                              child: AnswerSlotsPanel(
-                                level: s.level,
-                                solvedLower: s.solvedLower,
-                                revealedPositions: s.revealedPositions,
-                                layoutScale: isCompactBoard ? topScale : sScale,
-                                onSolvedWordTap: _onSolvedWordTapped,
-                                slotKeyBag: isAngryWords
-                                    ? _answerSlotKeys
-                                    : null,
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                isCompactBoard ? 0 : 16 * sScale,
-                                isCompactBoard ? 4 * sScale : 6 * sScale,
-                                isCompactBoard ? 0 : 16 * sScale,
-                                isCompactBoard ? 0 : 4 * sScale,
-                              ),
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: pathCardMaxWidth,
-                                  ),
-                                  child: ShakeWrapper(
-                                    shake: s.pathWrongHighlight,
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          isCompactBoard ? 14 : 18,
-                                        ),
-                                        gradient: LinearGradient(
-                                          colors: s.pathWrongHighlight
-                                              ? const [
-                                                  Color(0xFFFFCDD2),
-                                                  Color(0xFFFF8A80),
-                                                ]
-                                              : isDark
-                                              ? const [
-                                                  Color(0xFF5D4037),
-                                                  Color(0xFF2D2640),
-                                                ]
-                                              : const [
-                                                  Color(0xFFFFF8E1),
-                                                  Color(0xFFFFECB3),
-                                                ],
-                                        ),
-                                        border: Border.all(
-                                          color: s.pathWrongHighlight
-                                              ? const Color(0xFFD32F2F)
-                                              : const Color(
-                                                  0xFFFFB300,
-                                                ).withValues(
-                                                  alpha: isDark ? 0.82 : 1,
-                                                ),
-                                          width: isCompactBoard ? 1.6 : 2.2,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                (s.pathWrongHighlight
-                                                        ? Colors.red
-                                                        : Colors.orange)
-                                                    .withValues(
-                                                      alpha: isCompactBoard
-                                                          ? 0.22
-                                                          : 0.35,
-                                                    ),
-                                            blurRadius: isCompactBoard ? 8 : 14,
-                                            spreadRadius: 0,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
+                                    Padding(
+                                      padding: EdgeInsets.fromLTRB(
+                                        14 * sScale,
+                                        isCompactBoard ? 4 * sScale : 10 * sScale,
+                                        14 * sScale,
+                                        isCompactBoard ? 0 : 2,
                                       ),
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: isCompactBoard
-                                              ? (8 * topScale).clamp(6.0, 10.0)
-                                              : (11 * sScale).clamp(8.0, 14.0),
-                                          horizontal: isCompactBoard
-                                              ? (16 * topScale).clamp(
-                                                  14.0,
-                                                  20.0,
-                                                )
-                                              : (14 * sScale).clamp(10.0, 16.0),
-                                        ),
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 280,
+                                      child: AnswerSlotsPanel(
+                                        level: s.level,
+                                        solvedLower: s.solvedLower,
+                                        revealedPositions: s.revealedPositions,
+                                        builtPath: built,
+                                        layoutScale: isCompactBoard
+                                            ? topScale
+                                            : sScale,
+                                        onSolvedWordTap: _onSolvedWordTapped,
+                                        slotKeyBag: isAngryWords
+                                            ? _answerSlotKeys
+                                            : null,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.fromLTRB(
+                                        isCompactBoard ? 0 : 16 * sScale,
+                                        isCompactBoard ? 4 * sScale : 6 * sScale,
+                                        isCompactBoard ? 0 : 16 * sScale,
+                                        isCompactBoard ? 0 : 4 * sScale,
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.center,
+                                        child: ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: pathCardMaxWidth,
                                           ),
-                                          transitionBuilder: (child, anim) {
-                                            return FadeTransition(
-                                              opacity: anim,
-                                              child: ScaleTransition(
-                                                scale: anim,
-                                                child: child,
-                                              ),
-                                            );
-                                          },
-                                          // Translate replaces the selected-letter
-                                          // text; hitting a letter clears meaning.
-                                          child: meaningText != null
-                                              ? WordBuilderEmbeddedMeaning(
-                                                  key: ValueKey(
-                                                    'meaning|$meaningText',
-                                                  ),
-                                                  label: l10n
-                                                      .wordBuilderTranslation,
-                                                  meaning: meaningText,
-                                                  isDark: isDark,
-                                                  layoutScale: topScale,
-                                                  compact: true,
-                                                )
-                                              : Row(
-                                                  key: ValueKey(
-                                                    'path|$built|${ghostNext ?? ''}|$prefixGlow',
-                                                  ),
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        built.isEmpty
-                                                            ? ' '
-                                                            : built
-                                                                  .toUpperCase(),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: GoogleFonts.fredoka(
-                                                          fontSize:
-                                                              (isCompactBoard
-                                                                  ? 26
-                                                                  : 32) *
-                                                              topScale,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          letterSpacing:
-                                                              isCompactBoard
-                                                              ? 2
-                                                              : 3,
-                                                          color:
-                                                              s.pathWrongHighlight
-                                                              ? const Color(
-                                                                  0xFFB71C1C,
-                                                                )
-                                                              : prefixGlow
-                                                              ? const Color(
-                                                                  0xFF2E7D32,
-                                                                )
-                                                              : isDark
-                                                              ? const Color(
-                                                                  0xFFFFF8E1,
-                                                                )
-                                                              : const Color(
-                                                                  0xFF5D4037,
-                                                                ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    if (ghostNext != null &&
-                                                        !s.pathWrongHighlight) ...[
-                                                      const SizedBox(width: 6),
-                                                      Opacity(
-                                                        opacity: 0.38,
-                                                        child: DecoratedBox(
-                                                          decoration: BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  8,
-                                                                ),
-                                                            border: Border.all(
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFFFB300,
-                                                                  ).withValues(
-                                                                    alpha: 0.55,
-                                                                  ),
-                                                            ),
-                                                            color: isDark
-                                                                ? Colors.white
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            0.06,
-                                                                      )
-                                                                : Colors.white
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            0.45,
-                                                                      ),
-                                                          ),
-                                                          child: Padding(
-                                                            padding:
-                                                                EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      8 *
-                                                                      sScale,
-                                                                  vertical:
-                                                                      4 *
-                                                                      sScale,
-                                                                ),
-                                                            child: Text(
-                                                              ghostNext
-                                                                  .toUpperCase(),
-                                                              style: GoogleFonts.fredoka(
-                                                                fontSize:
-                                                                    22 * sScale,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700,
-                                                                color: isDark
-                                                                    ? const Color(
-                                                                        0xFFFFF8E1,
-                                                                      )
-                                                                    : const Color(
-                                                                        0xFF5D4037,
-                                                                      ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
+                                          child: ShakeWrapper(
+                                        shake: s.pathWrongHighlight,
+                                        child: DecoratedBox(
+                                          key: isAngryWords ? _pathCardKey : null,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              isCompactBoard ? 14 : 18,
+                                            ),
+                                            gradient: LinearGradient(
+                                              colors: s.pathWrongHighlight
+                                                  ? const [
+                                                      Color(0xFFFFCDD2),
+                                                      Color(0xFFFF8A80),
+                                                    ]
+                                                  : isDark
+                                                  ? const [
+                                                      Color(0xFF5D4037),
+                                                      Color(0xFF2D2640),
+                                                    ]
+                                                  : const [
+                                                      Color(0xFFFFF8E1),
+                                                      Color(0xFFFFECB3),
                                                     ],
-                                                  ],
-                                                ),
+                                            ),
+                                            border: Border.all(
+                                              color: s.pathWrongHighlight
+                                                  ? const Color(0xFFD32F2F)
+                                                  : const Color(
+                                                      0xFFFFB300,
+                                                    ).withValues(
+                                                      alpha: isDark ? 0.82 : 1,
+                                                    ),
+                                              width: isCompactBoard ? 1.6 : 2.2,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color:
+                                                    (s.pathWrongHighlight
+                                                            ? Colors.red
+                                                            : Colors.orange)
+                                                        .withValues(
+                                                          alpha: isCompactBoard
+                                                              ? 0.22
+                                                              : 0.35,
+                                                        ),
+                                                blurRadius: isCompactBoard ? 8 : 14,
+                                                spreadRadius: 0,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: isCompactBoard
+                                                  ? (8 * topScale).clamp(
+                                                      6.0,
+                                                      10.0,
+                                                    )
+                                                  : (11 * sScale).clamp(
+                                                      8.0,
+                                                      14.0,
+                                                    ),
+                                              horizontal: isCompactBoard
+                                                  ? (16 * topScale).clamp(
+                                                      14.0,
+                                                      20.0,
+                                                    )
+                                                  : (14 * sScale).clamp(
+                                                      10.0,
+                                                      16.0,
+                                                    ),
+                                            ),
+                                            child: AnimatedSwitcher(
+                                              duration: WbTokens.dBase,
+                                              switchInCurve: WbTokens.cEnter,
+                                              switchOutCurve: WbTokens.cExit,
+                                              transitionBuilder:
+                                                  (child, anim) {
+                                                    return FadeTransition(
+                                                      opacity: anim,
+                                                      child: child,
+                                                    );
+                                                  },
+                                              // Translate cross-fades with letters.
+                                              child: meaningText != null
+                                                  ? WordBuilderEmbeddedMeaning(
+                                                      key: ValueKey(
+                                                        'meaning|$meaningText',
+                                                      ),
+                                                      label: l10n
+                                                          .wordBuilderTranslation,
+                                                      meaning: meaningText,
+                                                      isDark: isDark,
+                                                      layoutScale: topScale,
+                                                      compact: true,
+                                                    )
+                                                  : WordBuilderPathLetters(
+                                                      key: ValueKey(
+                                                        'path|$built|${ghostNext ?? ''}|$prefixGlow',
+                                                      ),
+                                                      built: built,
+                                                      fontSize:
+                                                          (isCompactBoard
+                                                              ? 26
+                                                              : 32) *
+                                                          topScale,
+                                                      letterSpacing:
+                                                          isCompactBoard
+                                                          ? 2
+                                                          : 3,
+                                                      color: s.pathWrongHighlight
+                                                          ? const Color(
+                                                              0xFFB71C1C,
+                                                            )
+                                                          : prefixGlow
+                                                          ? const Color(
+                                                              0xFF2E7D32,
+                                                            )
+                                                          : isDark
+                                                          ? const Color(
+                                                              0xFFFFF8E1,
+                                                            )
+                                                          : const Color(
+                                                              0xFF5D4037,
+                                                            ),
+                                                      ghostNext:
+                                                          ghostNext != null &&
+                                                              !s.pathWrongHighlight
+                                                          ? ghostNext
+                                                          : null,
+                                                      ghostScale: sScale,
+                                                      isDark: isDark,
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                                  ],
                         );
                         final showLevelCompletePanel =
                             s.levelComplete && !s.trayVictorySequenceActive;
@@ -737,39 +717,25 @@ class _WordBuilderSessionScreenState
                                   child: topPanel,
                                 ),
                               ),
-                            // Equal gap: path card → chrome → game board.
-                            if (isCompactBoard && !showLevelCompletePanel) ...[
+                            // Equal gap: path card â†’ chrome â†’ game board.
+                            if (!showLevelCompletePanel) ...[
                               SizedBox(height: chromeGap),
-                              SizedBox(
-                                height: chromeBtn,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    WordBuilderTrayCircleButton(
-                                      bookKey: key,
-                                      kind: WordBuilderTrayActionKind.hint,
-                                      diameter: chromeBtn,
-                                      l10n: l10n,
-                                      enabled: canHint,
-                                      tooltipOverride: hintTip,
-                                    ),
-                                    WordBuilderTrayCircleButton(
-                                      bookKey: key,
-                                      kind: WordBuilderTrayActionKind.shuffle,
-                                      diameter: chromeBtn,
-                                      l10n: l10n,
-                                      enabled: !trayBlocked,
-                                    ),
-                                    WordBuilderTrayCircleButton(
-                                      bookKey: key,
-                                      kind: WordBuilderTrayActionKind.translate,
-                                      diameter: chromeBtn,
-                                      l10n: l10n,
-                                      enabled: canMeaning,
-                                      tooltipOverride: meaningTip,
-                                    ),
-                                  ],
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: (16 * sScale).clamp(12.0, 24.0),
+                                ),
+                                child: SizedBox(
+                                  height: actionBarHeight,
+                                  child: WordBuilderActionBar(
+                                    bookKey: key,
+                                    l10n: l10n,
+                                    canHint: canHint,
+                                    canShuffle: !trayBlocked,
+                                    canTranslate: canMeaning,
+                                    hintCost: letterCost,
+                                    hintTooltip: hintTip,
+                                    translateTooltip: meaningTip,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: chromeGap),
@@ -801,11 +767,6 @@ class _WordBuilderSessionScreenState
                                     final side =
                                         math.min(w, trayConstraints.maxHeight) *
                                         (0.76 * sScale).clamp(0.56, 0.82);
-                                    final btn = chromeBtn;
-                                    final inset = (22 * sScale).clamp(
-                                      18.0,
-                                      32.0,
-                                    );
                                     final completeCopy = _levelCompleteCopy(
                                       l10n,
                                     );
@@ -813,25 +774,23 @@ class _WordBuilderSessionScreenState
                                         ? (12 * sScale).clamp(10.0, 16.0)
                                         : 0.0;
                                     return AnimatedSwitcher(
-                                      duration: const Duration(
-                                        milliseconds: 520,
-                                      ),
-                                      switchInCurve: Curves.easeOutCubic,
-                                      switchOutCurve: Curves.easeInCubic,
+                                      duration: WbTokens.dSlow,
+                                      switchInCurve: WbTokens.cEnter,
+                                      switchOutCurve: WbTokens.cExit,
                                       // Expand so physics boards stay full-width
                                       // and centered (equal left/right inset).
                                       layoutBuilder:
                                           (currentChild, previousChildren) {
-                                            return Stack(
-                                              alignment: Alignment.center,
-                                              fit: StackFit.expand,
-                                              children: <Widget>[
-                                                ...previousChildren,
-                                                if (currentChild != null)
-                                                  currentChild,
-                                              ],
-                                            );
-                                          },
+                                        return Stack(
+                                          alignment: Alignment.center,
+                                          fit: StackFit.expand,
+                                          children: <Widget>[
+                                            ...previousChildren,
+                                            if (currentChild != null)
+                                              currentChild,
+                                          ],
+                                        );
+                                      },
                                       transitionBuilder: (child, animation) {
                                         return FadeTransition(
                                           opacity: animation,
@@ -845,7 +804,7 @@ class _WordBuilderSessionScreenState
                                         );
                                       },
                                       child: showLevelCompletePanel
-                                          ? _LevelCompleteActionPanel(
+                                          ? WordBuilderLevelCompletePanel(
                                               key: const ValueKey(
                                                 'level-complete-actions',
                                               ),
@@ -858,6 +817,8 @@ class _WordBuilderSessionScreenState
                                               nextLabel: completeCopy.nextLabel,
                                               tierComplete:
                                                   _isCampaignTierComplete(),
+                                              chapterComplete:
+                                                  _isChapterComplete(),
                                               onNext:
                                                   _advanceAfterLevelComplete,
                                               onReplay: () => unawaited(
@@ -899,6 +860,7 @@ class _WordBuilderSessionScreenState
                                                       letters: s.circleLetters,
                                                       slotKeyBag:
                                                           _answerSlotKeys,
+                                                      pathCardKey: _pathCardKey,
                                                     )
                                                   : ArkanoidLetterBoard(
                                                       bookKey: key,
@@ -966,54 +928,10 @@ class _WordBuilderSessionScreenState
                                                                   w,
                                                                   side,
                                                                 ),
-                                                            chromeInset: inset,
-                                                            chromeButtonSize:
-                                                                btn,
                                                           ),
                                                         ),
                                                       ),
                                                     ],
-                                                  ),
-                                                ),
-                                                PositionedDirectional(
-                                                  start: inset,
-                                                  top: inset,
-                                                  child: WordBuilderTrayCircleButton(
-                                                    bookKey: key,
-                                                    kind:
-                                                        WordBuilderTrayActionKind
-                                                            .hint,
-                                                    diameter: btn,
-                                                    l10n: l10n,
-                                                    enabled: canHint,
-                                                    tooltipOverride: hintTip,
-                                                  ),
-                                                ),
-                                                PositionedDirectional(
-                                                  start: inset,
-                                                  bottom: inset,
-                                                  child: WordBuilderTrayCircleButton(
-                                                    bookKey: key,
-                                                    kind:
-                                                        WordBuilderTrayActionKind
-                                                            .shuffle,
-                                                    diameter: btn,
-                                                    l10n: l10n,
-                                                    enabled: !trayBlocked,
-                                                  ),
-                                                ),
-                                                PositionedDirectional(
-                                                  end: inset,
-                                                  bottom: inset,
-                                                  child: WordBuilderTrayCircleButton(
-                                                    bookKey: key,
-                                                    kind:
-                                                        WordBuilderTrayActionKind
-                                                            .translate,
-                                                    diameter: btn,
-                                                    l10n: l10n,
-                                                    enabled: canMeaning,
-                                                    tooltipOverride: meaningTip,
                                                   ),
                                                 ),
                                               ],
@@ -1038,217 +956,3 @@ class _WordBuilderSessionScreenState
   }
 }
 
-class _LevelCompleteActionPanel extends StatelessWidget {
-  const _LevelCompleteActionPanel({
-    super.key,
-    required this.l10n,
-    required this.isDark,
-    required this.layoutScale,
-    required this.emoji,
-    required this.title,
-    required this.body,
-    required this.nextLabel,
-    required this.tierComplete,
-    required this.onNext,
-    required this.onReplay,
-    required this.onExit,
-  });
-
-  final AppLocalizations l10n;
-  final bool isDark;
-  final double layoutScale;
-  final String emoji;
-  final String title;
-  final String body;
-  final String nextLabel;
-  final bool tierComplete;
-  final VoidCallback onNext;
-  final VoidCallback onReplay;
-  final VoidCallback onExit;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = layoutScale.clamp(0.85, 1.15);
-    final titleColor = isDark
-        ? const Color(0xFFFFF8E1)
-        : const Color(0xFF4E342E);
-    final bodyColor = isDark
-        ? const Color(0xFFFFECB3).withValues(alpha: 0.82)
-        : const Color(0xFF6D4C41);
-
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 22 * s, vertical: 10 * s),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 360 * s),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28 * s),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? const [Color(0xFF5D4037), Color(0xFF2D2640)]
-                    : const [Color(0xFFFFFDE7), Color(0xFFFFECB3)],
-              ),
-              border: Border.all(
-                color: const Color(
-                  0xFFFFB300,
-                ).withValues(alpha: isDark ? 0.82 : 0.95),
-                width: 2.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(
-                    0xFFFF9800,
-                  ).withValues(alpha: isDark ? 0.28 : 0.36),
-                  blurRadius: 24 * s,
-                  offset: Offset(0, 8 * s),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-                  blurRadius: 16 * s,
-                  offset: Offset(0, 5 * s),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(18 * s, 18 * s, 18 * s, 16 * s),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    emoji,
-                    style: TextStyle(fontSize: tierComplete ? 46 * s : 40 * s),
-                  ),
-                  SizedBox(height: 8 * s),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.fredoka(
-                      fontSize: (24 * s).clamp(20.0, 28.0),
-                      fontWeight: FontWeight.w900,
-                      color: titleColor,
-                    ),
-                  ),
-                  SizedBox(height: 5 * s),
-                  Text(
-                    body,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.fredoka(
-                      fontSize: (13.5 * s).clamp(12.0, 16.0),
-                      fontWeight: FontWeight.w600,
-                      height: 1.25,
-                      color: bodyColor,
-                    ),
-                  ),
-                  SizedBox(height: 16 * s),
-                  _LevelCompleteButton(
-                    label: nextLabel,
-                    icon: Icons.arrow_forward_rounded,
-                    filled: true,
-                    isDark: isDark,
-                    onPressed: onNext,
-                  ),
-                  SizedBox(height: 10 * s),
-                  _LevelCompleteButton(
-                    label: l10n.wordBuilderReplayLevel,
-                    icon: Icons.replay_rounded,
-                    filled: false,
-                    isDark: isDark,
-                    onPressed: onReplay,
-                  ),
-                  SizedBox(height: 10 * s),
-                  _LevelCompleteButton(
-                    label: l10n.exit,
-                    icon: Icons.logout_rounded,
-                    filled: false,
-                    isDark: isDark,
-                    onPressed: onExit,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LevelCompleteButton extends StatelessWidget {
-  const _LevelCompleteButton({
-    required this.label,
-    required this.icon,
-    required this.filled,
-    required this.isDark,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool filled;
-  final bool isDark;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 22),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: GoogleFonts.fredoka(fontWeight: FontWeight.w900, fontSize: 16),
-        ),
-      ],
-    );
-
-    if (filled) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFFFB300),
-            foregroundColor: const Color(0xFF4E342E),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: child,
-        ),
-      );
-    }
-
-    final outlineForeground = isDark
-        ? const Color(0xFFFFECB3)
-        : const Color(0xFF5D4037);
-    final outlineBorder = isDark
-        ? const Color(0xFFFFD54F).withValues(alpha: 0.85)
-        : const Color(0xFFFFB300).withValues(alpha: 0.95);
-    final outlineBackground = isDark
-        ? const Color(0xFF3E3228).withValues(alpha: 0.64)
-        : const Color(0xFFFFF8E1).withValues(alpha: 0.7);
-
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: outlineBackground,
-          foregroundColor: outlineForeground,
-          side: BorderSide(color: outlineBorder, width: 1.6),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: child,
-      ),
-    );
-  }
-}

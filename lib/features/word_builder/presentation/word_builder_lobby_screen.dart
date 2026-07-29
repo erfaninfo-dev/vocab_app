@@ -129,6 +129,7 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                     alignment: Alignment.topCenter,
                     child: coinsAsync.when(
                       data: (c) => WordBuilderCoinsChip(
+                        balance: c,
                         balanceLabel: l10n.wordBuilderCoinsBalance(c),
                         isDark: isDark,
                         scheme: scheme,

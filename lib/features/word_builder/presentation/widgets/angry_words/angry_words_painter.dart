@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'angry_words_loadout.dart';
+import 'angry_words_paint_model.dart';
 import 'angry_words_physics.dart';
 
 enum AngryWordsBitShape { round, shard, chip, drop, spark, dust, glitter }
@@ -16,6 +17,7 @@ class AngryWordsLetterExplosion {
     required this.bits,
     this.juicy = false,
     this.steamy = false,
+    this.chromatic = false,
     this.ringA = const Color(0xFFFFD54F),
     this.ringB = const Color(0xFFFF7043),
     this.material,
@@ -27,6 +29,9 @@ class AngryWordsLetterExplosion {
   final List<AngryWordsExplosionBit> bits;
   final bool juicy;
   final bool steamy;
+
+  /// Soft RGB split for plasma/laser pops.
+  final bool chromatic;
   final Color ringA;
   final Color ringB;
   final AngryWordsPropMaterial? material;
@@ -40,12 +45,6 @@ const kAngryWordsPropPalettes = <List<Color>>[
   [Color(0xFFFFE57F), Color(0xFFFFAB00)],
   [Color(0xFFEA80FC), Color(0xFFAA00FF)],
   [Color(0xFFFFAB91), Color(0xFFFF5722)],
-  [Color(0xFFFF8A80), Color(0xFFD50000)],
-  [Color(0xFFA7FFEB), Color(0xFF00BFA5)],
-  [Color(0xFFFFD180), Color(0xFFFF6D00)],
-  [Color(0xFFCCFF90), Color(0xFF64DD17)],
-  [Color(0xFFB388FF), Color(0xFF6200EA)],
-  [Color(0xFFFF80AB), Color(0xFFC51162)],
 ];
 
 /// Distinct letter-orb colors — one unique hue per letter in a stage.
@@ -79,118 +78,91 @@ const kAngryWordsLetterTints = <Color>[
 Color angryWordsLetterTint(int tintIndex) =>
     kAngryWordsLetterTints[tintIndex % kAngryWordsLetterTints.length];
 
-List<Color> _angryWordsPaletteTint(
-  int palette,
-  Color light,
-  Color dark, {
-  double amount = 0.62,
-}) {
-  final p = kAngryWordsPropPalettes[palette % kAngryWordsPropPalettes.length];
-  return [
-    Color.lerp(light, p[0], amount)!,
-    Color.lerp(dark, p[1], amount)!,
-  ];
+Color _angryWordsDesaturate(Color c, double amount) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl
+      .withSaturation((hsl.saturation * (1.0 - amount)).clamp(0.0, 1.0))
+      .toColor();
+}
+
+Color _angryWordsBoostSaturation(Color c, double amount) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl
+      .withSaturation((hsl.saturation * (1.0 + amount)).clamp(0.0, 1.0))
+      .toColor();
+}
+
+Color _angryWordsDarken(Color c, double amount) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl
+      .withLightness((hsl.lightness * (1.0 - amount)).clamp(0.0, 1.0))
+      .toColor();
+}
+
+/// High-contrast letter fill (≥ ~4.5:1 vs typical orb body) + outline pair.
+({Color fill, Color outline}) angryWordsCargoLetterColors(Color body) {
+  final lightBody = body.computeLuminance() > 0.42;
+  if (lightBody) {
+    return (
+      fill: const Color(0xFF1A1208),
+      outline: const Color(0xFFFFF8E7),
+    );
+  }
+  return (
+    fill: const Color(0xFFFFF8E7),
+    outline: const Color(0xFF1A1208),
+  );
 }
 
 List<Color> angryWordsColorsForMaterial(
   AngryWordsPropMaterial material,
   int palette,
 ) {
-  final candy =
-      kAngryWordsPropPalettes[palette % kAngryWordsPropPalettes.length];
   return switch (material) {
-    AngryWordsPropMaterial.candy || AngryWordsPropMaterial.plastic => candy,
-    // Keep material identity, but dye with the candy palette so late walls
-    // stay as colorful as early toy stages.
-    AngryWordsPropMaterial.wood => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFD7CCC8),
-      const Color(0xFF6D4C41),
-      amount: 0.48,
-    ),
-    AngryWordsPropMaterial.glass => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFE0F7FA),
-      const Color(0xFF4DD0E1),
-      amount: 0.55,
-    ),
-    AngryWordsPropMaterial.water => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFB3E5FC),
-      const Color(0xFF0288D1),
-      amount: 0.5,
-    ),
-    AngryWordsPropMaterial.rubber => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFFAB91),
-      const Color(0xFFE64A19),
-      amount: 0.45,
-    ),
-    AngryWordsPropMaterial.stone => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFB0BEC5),
-      const Color(0xFF546E7A),
-      amount: 0.72,
-    ),
-    AngryWordsPropMaterial.metal => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFCFD8DC),
-      const Color(0xFF455A64),
-      amount: 0.7,
-    ),
-    AngryWordsPropMaterial.ice => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFE1F5FE),
-      const Color(0xFF81D4FA),
-      amount: 0.65,
-    ),
-    AngryWordsPropMaterial.crystal => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFE1BEE7),
-      const Color(0xFF8E24AA),
-      amount: 0.4,
-    ),
-    AngryWordsPropMaterial.porcelain => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFAFAFA),
-      const Color(0xFFBDBDBD),
-      amount: 0.68,
-    ),
-    AngryWordsPropMaterial.sand => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFFE0B2),
-      const Color(0xFFBF360C),
-      amount: 0.4,
-    ),
-    AngryWordsPropMaterial.foam => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFFFFFF),
-      const Color(0xFFECEFF1),
-      amount: 0.75,
-    ),
-    AngryWordsPropMaterial.magma => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFF6D00),
-      const Color(0xFFBF360C),
-      amount: 0.35,
-    ),
-    AngryWordsPropMaterial.gold => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFFFF59D),
-      const Color(0xFFFF8F00),
-      amount: 0.35,
-    ),
-    AngryWordsPropMaterial.slime => _angryWordsPaletteTint(
-      palette,
-      const Color(0xFFB2FF59),
-      const Color(0xFF64DD17),
-      amount: 0.4,
-    ),
-    // Eggs keep natural cream shell — no candy palette dye (pop is shell+yolk).
-    AngryWordsPropMaterial.egg => const [
-      Color(0xFFFFF8E1),
-      Color(0xFFE8D5B5),
+    AngryWordsPropMaterial.candy || AngryWordsPropMaterial.plastic =>
+      kAngryWordsPropPalettes[palette % kAngryWordsPropPalettes.length],
+    AngryWordsPropMaterial.wood => const [Color(0xFFD7CCC8), Color(0xFF6D4C41)],
+    AngryWordsPropMaterial.glass => const [
+      Color(0xFFE0F7FA),
+      Color(0xFF4DD0E1),
     ],
+    AngryWordsPropMaterial.water => const [
+      Color(0xFFB3E5FC),
+      Color(0xFF0288D1),
+    ],
+    AngryWordsPropMaterial.rubber => const [
+      Color(0xFFFFAB91),
+      Color(0xFFE64A19),
+    ],
+    AngryWordsPropMaterial.stone => const [
+      Color(0xFFB0BEC5),
+      Color(0xFF546E7A),
+    ],
+    AngryWordsPropMaterial.metal => const [
+      Color(0xFFCFD8DC),
+      Color(0xFF455A64),
+    ],
+    AngryWordsPropMaterial.ice => const [Color(0xFFE1F5FE), Color(0xFF81D4FA)],
+    AngryWordsPropMaterial.crystal => const [
+      Color(0xFFE1BEE7),
+      Color(0xFF8E24AA),
+    ],
+    AngryWordsPropMaterial.porcelain => const [
+      Color(0xFFFAFAFA),
+      Color(0xFFBDBDBD),
+    ],
+    AngryWordsPropMaterial.sand => const [Color(0xFFFFE0B2), Color(0xFFBF360C)],
+    AngryWordsPropMaterial.foam => const [Color(0xFFFFFFFF), Color(0xFFECEFF1)],
+    AngryWordsPropMaterial.magma => const [
+      Color(0xFFFF6D00),
+      Color(0xFFBF360C),
+    ],
+    AngryWordsPropMaterial.gold => const [Color(0xFFFFF59D), Color(0xFFFF8F00)],
+    AngryWordsPropMaterial.slime => const [
+      Color(0xFFB2FF59),
+      Color(0xFF64DD17),
+    ],
+    AngryWordsPropMaterial.egg => const [Color(0xFFFFF8E1), Color(0xFFE8D5B5)],
   };
 }
 
@@ -212,31 +184,42 @@ class AngryWordsExplosionBit {
 
 /// Premium warm board painter for Angry Words.
 class AngryWordsBoardPainter extends CustomPainter {
-  AngryWordsBoardPainter({
-    required this.world,
-    required this.selectedIds,
-    required this.wrongFlash,
-    required this.successFlash,
-    required this.prefixFlash,
-    required this.combo,
-    required this.trail,
-    required this.sparkLife,
-    required this.explosions,
-    required this.isDark,
-    required this.scheme,
-  });
+  AngryWordsBoardPainter({required this.model}) : super(repaint: model);
 
-  final AngryWordsPhysicsWorld world;
-  final Set<int> selectedIds;
-  final double wrongFlash;
-  final double successFlash;
-  final double prefixFlash;
-  final int combo;
-  final List<Offset> trail;
-  final double sparkLife;
-  final List<AngryWordsLetterExplosion> explosions;
-  final bool isDark;
-  final ColorScheme scheme;
+  final AngryWordsPaintModel model;
+
+  AngryWordsPhysicsWorld get world => model.world;
+  Set<int> get selectedIds => model.selectedIds;
+  double get wrongFlash => model.wrongFlash;
+  double get successFlash => model.successFlash;
+  double get prefixFlash => model.prefixFlash;
+  int get combo => 0;
+  List<Offset> get trail => model.trail;
+  double get sparkLife => model.sparkLife;
+  List<AngryWordsLetterExplosion> get explosions => model.explosions;
+  bool get isDark => model.isDark;
+  ColorScheme get scheme => model.scheme ?? const ColorScheme.light();
+  String? get nextLetterHighlight => model.nextLetterHighlight;
+  String? get peekChar => model.peekChar;
+  double get peekFlash => model.peekFlash;
+  bool get allowIdlePulse => model.allowIdlePulse;
+  double get particleScale => model.particleScale;
+
+  ui.Picture? _bgPicture;
+  Size? _bgSize;
+  bool? _bgDark;
+
+  void _ensureBackground(Size size) {
+    if (_bgPicture != null && _bgSize == size && _bgDark == isDark) return;
+    _bgPicture?.dispose();
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    _paintSky(c, size);
+    _paintHills(c, size);
+    _bgPicture = recorder.endRecording();
+    _bgSize = size;
+    _bgDark = isDark;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -247,8 +230,14 @@ class AngryWordsBoardPainter extends CustomPainter {
     canvas.save();
     canvas.clipRRect(rrect);
 
-    _paintSky(canvas, size);
-    _paintHills(canvas, size);
+    _ensureBackground(size);
+    final bg = _bgPicture;
+    if (bg != null) {
+      canvas.drawPicture(bg);
+    } else {
+      _paintSky(canvas, size);
+      _paintHills(canvas, size);
+    }
     _paintWindStreaks(canvas, size);
 
     if (wrongFlash > 0) {
@@ -280,7 +269,6 @@ class AngryWordsBoardPainter extends CustomPainter {
     }
 
     _paintProps(canvas);
-    _paintYolks(canvas);
     _paintLetters(canvas);
     if (world.usesSlingshot) {
       _paintTargetLock(canvas);
@@ -293,12 +281,14 @@ class AngryWordsBoardPainter extends CustomPainter {
     if (world.usesGun) {
       _paintBullets(canvas);
       _paintMuzzleFlash(canvas);
+      _paintMuzzleSmoke(canvas);
     } else {
       _paintTrail(canvas);
       if (world.inFlight || world.aiming) {
         _paintBall(canvas);
       }
     }
+    _paintGroundDust(canvas);
     if (sparkLife > 0 && world.sparkAt != null) {
       _paintSpark(canvas, world.sparkAt!, sparkLife);
     }
@@ -733,6 +723,7 @@ class AngryWordsBoardPainter extends CustomPainter {
     final flash = world.muzzleFlash;
     if (flash <= 0.01) return;
     final gun = world.loadout.gun;
+    final tip = world.muzzle + world.gunAim * (28 - world.gunRecoil * 10);
     final aimA = math.atan2(world.gunAim.dy, world.gunAim.dx);
     final element = world.loadout.element;
 
@@ -859,52 +850,49 @@ class AngryWordsBoardPainter extends CustomPainter {
       }
     }
 
-    for (var mount = 0; mount < world.gunMountCount; mount++) {
-      final tip = world.muzzleForMount(mount) +
-          world.gunAim * (28 - world.gunRecoil * 10);
-      if (barrelFlashes >= 5) {
-        final side = Offset(-world.gunAim.dy, world.gunAim.dx);
-        final s = scale * 0.55;
-        for (final o in [-2.0, -1.0, 0.0, 1.0, 2.0]) {
-          flashAt(tip + side * (8 * o), s * (o == 0 ? 1.15 : 0.9));
-        }
-      } else if (barrelFlashes >= 2) {
-        final side = Offset(-world.gunAim.dy, world.gunAim.dx);
-        final gap = barrelFlashes == 3 ? 14.0 : 16.0;
-        final s = scale * (barrelFlashes == 3 ? 0.72 : 0.85);
-        if (barrelFlashes == 3) {
-          flashAt(tip + side * gap, s);
-          flashAt(tip, s);
-          flashAt(tip - side * gap, s);
-        } else {
-          flashAt(tip + side * gap, s);
-          flashAt(tip - side * gap, s);
-        }
+    if (barrelFlashes >= 5) {
+      final side = Offset(-world.gunAim.dy, world.gunAim.dx);
+      final s = scale * 0.55;
+      for (final o in [-2.0, -1.0, 0.0, 1.0, 2.0]) {
+        flashAt(tip + side * (8 * o), s * (o == 0 ? 1.15 : 0.9));
+      }
+    } else if (barrelFlashes >= 2) {
+      final side = Offset(-world.gunAim.dy, world.gunAim.dx);
+      final gap = barrelFlashes == 3 ? 14.0 : 16.0;
+      final s = scale * (barrelFlashes == 3 ? 0.72 : 0.85);
+      if (barrelFlashes == 3) {
+        flashAt(tip + side * gap, s);
+        flashAt(tip, s);
+        flashAt(tip - side * gap, s);
       } else {
-        flashAt(tip, scale);
+        flashAt(tip + side * gap, s);
+        flashAt(tip - side * gap, s);
       }
-      if (gun == AngryWordsGunKind.doomsdayMg) {
-        canvas.drawCircle(
-          tip,
-          28 + flash * 34,
-          Paint()
-            ..color = const Color(0xFFFF3D00).withValues(alpha: 0.28 * flash)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
-        );
-        canvas.drawCircle(
-          tip,
-          14 + flash * 18,
-          Paint()
-            ..color = const Color(0xFFFFAB40).withValues(alpha: 0.4 * flash)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-        );
-      }
+    } else {
+      flashAt(tip, scale);
+    }
+    if (gun == AngryWordsGunKind.doomsdayMg) {
+      canvas.drawCircle(
+        tip,
+        28 + flash * 34,
+        Paint()
+          ..color = const Color(0xFFFF3D00).withValues(alpha: 0.28 * flash)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+      );
+      canvas.drawCircle(
+        tip,
+        14 + flash * 18,
+        Paint()
+          ..color = const Color(0xFFFFAB40).withValues(alpha: 0.4 * flash)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      );
     }
   }
 
   void _paintProps(Canvas canvas) {
     for (final P in world.props) {
       if (P.removed || !P.isSpawnVisible) continue;
+      final isCargo = P.holdsLetter;
       final spawn = Curves.easeOutBack.transform(P.spawnT.clamp(0.0, 1.0));
       final magmaPulse = P.material == AngryWordsPropMaterial.magma
           ? 0.08 * (0.5 + 0.5 * math.sin(world.simTime * 6.5 + P.phase))
@@ -916,19 +904,49 @@ class AngryWordsBoardPainter extends CustomPainter {
       final isEgg = P.material == AngryWordsPropMaterial.egg;
       final ovalW = isEgg ? 0.86 : 1.0 / stretch;
       final ovalH = isEgg ? 1.28 : stretch;
-      final pulse =
-          1.0 + 0.06 * math.sin(world.simTime * 4.2 + P.phase) + magmaPulse;
+      // Cargo: slow readable breath (2.2s). Fillers: keep subtle busy pulse.
+      final pulse = !allowIdlePulse
+          ? 1.0 + magmaPulse
+          : isCargo
+          ? 1.0 +
+                0.04 *
+                    math.sin(
+                      world.simTime * (math.pi * 2 / 2.2) + P.phase,
+                    ) +
+                magmaPulse
+          : 1.0 +
+                0.045 * math.sin(world.simTime * 4.2 + P.phase) +
+                magmaPulse;
       final r = P.radius * pulse * (0.2 + 0.8 * spawn);
       final c = P.pos;
-      final flash = P.hitFlash;
-      final spawnAlpha = spawn.clamp(0.0, 1.0);
-
-      if (P.skinEmoji != null) {
-        _paintEmojiProp(canvas, P, c, r, spawnAlpha, flash);
-        continue;
+      final baseColors = angryWordsColorsForMaterial(P.material, P.palette);
+      // Cargo: unique letter tint wash + saturation so letters read in dense walls.
+      final List<Color> colors;
+      if (isCargo) {
+        final tint = angryWordsLetterTint(P.cargoTintIndex ?? P.palette);
+        colors = [
+          _angryWordsBoostSaturation(
+            Color.lerp(baseColors[0], tint, 0.42)!,
+            0.22,
+          ),
+          _angryWordsBoostSaturation(
+            Color.lerp(baseColors[1], tint, 0.32)!,
+            0.18,
+          ),
+        ];
+      } else {
+        colors = [
+          _angryWordsDarken(
+            _angryWordsDesaturate(baseColors[0], 0.35),
+            0.12,
+          ),
+          _angryWordsDarken(
+            _angryWordsDesaturate(baseColors[1], 0.35),
+            0.14,
+          ),
+        ];
       }
-
-      final colors = angryWordsColorsForMaterial(P.material, P.palette);
+      final flash = P.hitFlash;
       final glassLike =
           P.material == AngryWordsPropMaterial.glass ||
           P.material == AngryWordsPropMaterial.ice ||
@@ -936,19 +954,36 @@ class AngryWordsBoardPainter extends CustomPainter {
           P.material == AngryWordsPropMaterial.crystal ||
           P.material == AngryWordsPropMaterial.foam ||
           isEgg;
+      final spawnAlpha = spawn.clamp(0.0, 1.0);
+      final cargoChar = P.cargo?.char.toLowerCase();
+      final isNextHighlight =
+          cargoChar != null &&
+          nextLetterHighlight != null &&
+          cargoChar == nextLetterHighlight;
+      final isPeek =
+          peekFlash > 0.02 &&
+          cargoChar != null &&
+          peekChar != null &&
+          cargoChar == peekChar;
 
       canvas.saveLayer(
-        Rect.fromCircle(center: c, radius: r * math.max(ovalW, ovalH) + 14),
+        Rect.fromCircle(center: c, radius: r * math.max(ovalW, ovalH) + 18),
         Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
       );
 
+      // Soft ground shadow — stronger under cargo so letters pop forward.
       canvas.drawOval(
         Rect.fromCenter(
-          center: c + const Offset(0, 3.5),
-          width: r * 2 * ovalW,
-          height: r * 2 * ovalH,
+          center: c + Offset(0, isCargo ? 4.5 : 3.0),
+          width: r * 2 * ovalW * (isCargo ? 1.05 : 0.95),
+          height: r * 2 * ovalH * 0.55,
         ),
-        Paint()..color = Colors.black.withValues(alpha: 0.16),
+        Paint()
+          ..color = Colors.black.withValues(alpha: isCargo ? 0.22 : 0.12)
+          ..maskFilter = MaskFilter.blur(
+            BlurStyle.normal,
+            isCargo ? 6 : 3.5,
+          ),
       );
       canvas.drawOval(
         Rect.fromCenter(center: c, width: r * 2 * ovalW, height: r * 2 * ovalH),
@@ -957,7 +992,11 @@ class AngryWordsBoardPainter extends CustomPainter {
             c + Offset(-r * 0.32, -r * 0.34),
             r * 1.2,
             [
-              Colors.white.withValues(alpha: glassLike ? 0.82 : 0.98),
+              Colors.white.withValues(
+                alpha: isCargo
+                    ? (glassLike ? 0.9 : 1.0)
+                    : (glassLike ? 0.55 : 0.7),
+              ),
               Color.lerp(colors[0], Colors.white, flash * 0.55)!,
               Color.lerp(colors[1], Colors.white, flash * 0.35)!,
             ],
@@ -975,17 +1014,20 @@ class AngryWordsBoardPainter extends CustomPainter {
         ),
         Paint()
           ..color = Colors.white.withValues(
-            alpha: glassLike
-                ? 0.88
-                : P.material == AngryWordsPropMaterial.slime
-                ? 0.55
-                : 0.72,
+            alpha: isCargo
+                ? (glassLike
+                      ? 0.92
+                      : P.material == AngryWordsPropMaterial.slime
+                      ? 0.62
+                      : 0.8)
+                : (glassLike ? 0.45 : 0.32),
           ),
       );
 
-      if (P.material == AngryWordsPropMaterial.candy ||
-          P.material == AngryWordsPropMaterial.plastic ||
-          P.material == AngryWordsPropMaterial.gold) {
+      if (isCargo &&
+          (P.material == AngryWordsPropMaterial.candy ||
+              P.material == AngryWordsPropMaterial.plastic ||
+              P.material == AngryWordsPropMaterial.gold)) {
         final spark = Paint()
           ..color = Colors.white.withValues(alpha: 0.92)
           ..strokeWidth = 1.6
@@ -1005,17 +1047,63 @@ class AngryWordsBoardPainter extends CustomPainter {
         AngryWordsPropMaterial.egg => const Color(0xFFFFFDE7),
         _ => Colors.white,
       };
+      // Bright rim light on cargo; muted stroke on fillers.
       canvas.drawOval(
         Rect.fromCenter(center: c, width: r * 2 * ovalW, height: r * 2 * ovalH),
         Paint()
-          ..color = rim.withValues(alpha: 0.55)
+          ..color = rim.withValues(alpha: isCargo ? 0.85 : 0.28)
           ..style = PaintingStyle.stroke
-          ..strokeWidth =
-              P.material == AngryWordsPropMaterial.metal ||
-                  P.material == AngryWordsPropMaterial.gold
-              ? 2.1
-              : 1.5,
+          ..strokeWidth = isCargo
+              ? (P.material == AngryWordsPropMaterial.metal ||
+                        P.material == AngryWordsPropMaterial.gold
+                    ? 2.6
+                    : 2.1)
+              : 1.1,
       );
+      if (isCargo) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: c,
+            width: r * 2 * ovalW + 3.5,
+            height: r * 2 * ovalH + 3.5,
+          ),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.35)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2),
+        );
+      }
+
+      if (isNextHighlight || isPeek) {
+        final haloStrength = isPeek
+            ? (0.35 + 0.55 * peekFlash)
+            : (0.22 +
+                  0.12 *
+                      (0.5 +
+                          0.5 *
+                              math.sin(
+                                world.simTime * 3.2 + P.phase,
+                              )));
+        final haloColor = isPeek
+            ? const Color(0xFFFFD54F)
+            : const Color(0xFF80D8FF);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: c,
+            width: r * 2 * ovalW + 10,
+            height: r * 2 * ovalH + 10,
+          ),
+          Paint()
+            ..color = haloColor.withValues(alpha: haloStrength)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = isPeek ? 3.2 : 2.4
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              isPeek ? 5 : 3.5,
+            ),
+        );
+      }
 
       if (P.maxHp >= 2 ||
           P.material == AngryWordsPropMaterial.stone ||
@@ -1096,217 +1184,58 @@ class AngryWordsBoardPainter extends CustomPainter {
 
       final cargo = P.cargo;
       if (cargo != null) {
-        final cargoTint = angryWordsLetterTint(P.cargoTintIndex ?? P.palette);
-        final pulseRing = 0.35 + 0.2 * math.sin(world.simTime * 5 + P.phase);
-        canvas.drawCircle(
-          c,
-          r * 0.92,
-          Paint()..color = cargoTint.withValues(alpha: 0.28),
-        );
-        canvas.drawCircle(
-          c,
-          r + 3.5,
-          Paint()
-            ..color = cargoTint.withValues(alpha: pulseRing + 0.25)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.4,
-        );
-        final tp = TextPainter(
+        final bodyMid = Color.lerp(colors[0], colors[1], 0.45)!;
+        final letterColors = angryWordsCargoLetterColors(bodyMid);
+        final fontSize = math.min(r * 0.95, 22.0).clamp(12.0, 22.0);
+        // Dark outline (≈1.5px) then fill for WCAG-ish contrast on any orb.
+        final outline = TextPainter(
           text: TextSpan(
             text: cargo.char.toUpperCase(),
             style: TextStyle(
-              color: const Color(0xFF4E342E).withValues(alpha: 0.5),
-              fontSize: math.min(r * 0.9, 20),
+              color: letterColors.outline,
+              fontSize: fontSize,
               fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+              shadows: [
+                Shadow(
+                  color: letterColors.outline.withValues(alpha: 0.95),
+                  offset: const Offset(-1.1, 0),
+                ),
+                Shadow(
+                  color: letterColors.outline.withValues(alpha: 0.95),
+                  offset: const Offset(1.1, 0),
+                ),
+                Shadow(
+                  color: letterColors.outline.withValues(alpha: 0.95),
+                  offset: const Offset(0, -1.1),
+                ),
+                Shadow(
+                  color: letterColors.outline.withValues(alpha: 0.95),
+                  offset: const Offset(0, 1.1),
+                ),
+              ],
             ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+        final fill = TextPainter(
+          text: TextSpan(
+            text: cargo.char.toUpperCase(),
+            style: TextStyle(
+              color: letterColors.fill,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final origin = c - Offset(fill.width / 2, fill.height / 2);
+        outline.paint(canvas, origin);
+        fill.paint(canvas, origin);
       }
       canvas.restore();
     }
-  }
-
-  void _paintYolks(Canvas canvas) {
-    if (world.yolks.isEmpty) return;
-    for (final Y in world.yolks) {
-      if (Y.removed) continue;
-      final c = Y.pos;
-      final rw = Y.radius * (Y.onFloor ? 1.55 : 1.05);
-      final rh = Y.radius * (Y.onFloor ? 0.72 : 1.0);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + const Offset(0, 2.2),
-          width: rw * 2,
-          height: rh * 2,
-        ),
-        Paint()..color = const Color(0xFFFF8F00).withValues(alpha: 0.22),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: rw * 2, height: rh * 2),
-        Paint()
-          ..shader = ui.Gradient.radial(
-            c + Offset(-rw * 0.25, -rh * 0.35),
-            rw * 1.15,
-            const [
-              Color(0xFFFFF59D),
-              Color(0xFFFFD54F),
-              Color(0xFFFFA000),
-            ],
-            const [0.0, 0.45, 1.0],
-          ),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + Offset(-rw * 0.22, -rh * 0.28),
-          width: rw * 0.55,
-          height: rh * 0.35,
-        ),
-        Paint()..color = Colors.white.withValues(alpha: 0.45),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: rw * 2, height: rh * 2),
-        Paint()
-          ..color = const Color(0xFFFF6F00).withValues(alpha: 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2,
-      );
-    }
-  }
-
-  /// Stages 35–36: material physics stays; visual is a varied emoji instead of a disc.
-  void _paintEmojiProp(
-    Canvas canvas,
-    AngryWordsPropBubble P,
-    Offset c,
-    double r,
-    double spawnAlpha,
-    double flash,
-  ) {
-    final emoji = P.skinEmoji;
-    if (emoji == null) return;
-
-    canvas.saveLayer(
-      Rect.fromCircle(center: c, radius: r * 1.55 + 12),
-      Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
-    );
-
-    canvas.drawCircle(
-      c + const Offset(0, 2.8),
-      r * 0.72,
-      Paint()..color = Colors.black.withValues(alpha: 0.14),
-    );
-
-    final tp = TextPainter(
-      text: TextSpan(
-        text: emoji,
-        style: TextStyle(
-          fontSize: r * 1.9,
-          height: 1.0,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    )..layout();
-    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
-
-    if (P.maxHp >= 2 ||
-        P.material == AngryWordsPropMaterial.stone ||
-        P.material == AngryWordsPropMaterial.metal ||
-        P.material == AngryWordsPropMaterial.gold ||
-        P.material == AngryWordsPropMaterial.crystal) {
-      final armorColor = switch (P.material) {
-        AngryWordsPropMaterial.metal => const Color(0xFF90A4AE),
-        AngryWordsPropMaterial.gold => const Color(0xFFFFD54F),
-        AngryWordsPropMaterial.crystal => const Color(0xFFCE93D8),
-        _ => P.hp >= 3 ? const Color(0xFFFFD54F) : const Color(0xFFFFAB40),
-      };
-      final crack = 1.0 - (P.hp / P.maxHp).clamp(0.0, 1.0);
-      canvas.drawCircle(
-        c,
-        r + 2.2,
-        Paint()
-          ..color = armorColor.withValues(alpha: 0.5 + flash * 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = P.hp >= 3 ? 2.8 : 2.0,
-      );
-      if (crack > 0.15) {
-        final crackPaint = Paint()
-          ..color = Colors.black.withValues(alpha: 0.28 + crack * 0.3)
-          ..strokeWidth = 1.2
-          ..strokeCap = StrokeCap.round;
-        canvas.drawLine(
-          c + Offset(-r * 0.35, -r * 0.1),
-          c + Offset(r * 0.1, r * 0.35 * crack),
-          crackPaint,
-        );
-        if (crack > 0.4) {
-          canvas.drawLine(
-            c + Offset(r * 0.05, -r * 0.3),
-            c + Offset(r * 0.35, r * 0.15),
-            crackPaint,
-          );
-        }
-      }
-    }
-
-    if (P.freezeT > 0.05) {
-      final status = P.material == AngryWordsPropMaterial.slime
-          ? const Color(0xFF76FF03)
-          : const Color(0xFF81D4FA);
-      canvas.drawCircle(
-        c,
-        r + 1.5,
-        Paint()
-          ..color = status.withValues(alpha: 0.45)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.2,
-      );
-    }
-    if (flash > 0.05) {
-      canvas.drawCircle(
-        c,
-        r * (1.05 + flash * 0.12),
-        Paint()..color = Colors.white.withValues(alpha: 0.35 * flash),
-      );
-    }
-
-    final cargo = P.cargo;
-    if (cargo != null) {
-      final cargoTint = angryWordsLetterTint(P.cargoTintIndex ?? P.palette);
-      final pulseRing = 0.35 + 0.2 * math.sin(world.simTime * 5 + P.phase);
-      canvas.drawCircle(
-        c,
-        r * 0.92,
-        Paint()..color = cargoTint.withValues(alpha: 0.22),
-      );
-      canvas.drawCircle(
-        c,
-        r + 3.5,
-        Paint()
-          ..color = cargoTint.withValues(alpha: pulseRing + 0.25)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4,
-      );
-      final letterTp = TextPainter(
-        text: TextSpan(
-          text: cargo.char.toUpperCase(),
-          style: TextStyle(
-            color: const Color(0xFF4E342E).withValues(alpha: 0.55),
-            fontSize: math.min(r * 0.75, 18),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      letterTp.paint(
-        canvas,
-        c - Offset(letterTp.width / 2, letterTp.height / 2),
-      );
-    }
-
-    canvas.restore();
   }
 
   void _paintPropMaterialDetail(
@@ -1457,6 +1386,7 @@ class AngryWordsBoardPainter extends CustomPainter {
           );
         }
       case AngryWordsPropMaterial.foam:
+        // Soft overlapping bubbles + scalloped rim (shape ≠ candy sprinkles).
         canvas.drawCircle(
           c + Offset(-r * 0.15, -r * 0.1),
           r * 0.55,
@@ -1467,6 +1397,23 @@ class AngryWordsBoardPainter extends CustomPainter {
           r * 0.4,
           Paint()..color = Colors.white.withValues(alpha: 0.28),
         );
+        final scallop = Paint()
+          ..color = const Color(0xFF90A4AE).withValues(alpha: 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6;
+        for (var i = 0; i < 6; i++) {
+          final a = P.phase + i * (math.pi / 3);
+          canvas.drawArc(
+            Rect.fromCircle(
+              center: c + Offset(math.cos(a) * r * 0.72, math.sin(a) * r * 0.72),
+              radius: r * 0.22,
+            ),
+            a - 0.9,
+            1.8,
+            false,
+            scallop,
+          );
+        }
       case AngryWordsPropMaterial.magma:
         canvas.drawCircle(
           c,
@@ -1526,8 +1473,32 @@ class AngryWordsBoardPainter extends CustomPainter {
             ..strokeCap = StrokeCap.round,
         );
       case AngryWordsPropMaterial.candy:
+        // Sprinkle dots in a ring — shape cue independent of hue.
+        final sprinkle = Paint()..color = Colors.white.withValues(alpha: 0.85);
+        for (var i = 0; i < 5; i++) {
+          final a = P.phase + i * (math.pi * 2 / 5);
+          canvas.drawCircle(
+            c + Offset(math.cos(a) * r * 0.42, math.sin(a) * r * 0.42),
+            r * 0.11,
+            sprinkle,
+          );
+        }
       case AngryWordsPropMaterial.plastic:
-        break;
+        // Diagonal hatch — distinct from candy sprinkles / foam scallops.
+        final hatch = Paint()
+          ..color = Colors.white.withValues(alpha: 0.4)
+          ..strokeWidth = 1.3
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(
+          c + Offset(-r * 0.4, r * 0.2),
+          c + Offset(r * 0.35, -r * 0.35),
+          hatch,
+        );
+        canvas.drawLine(
+          c + Offset(-r * 0.25, r * 0.4),
+          c + Offset(r * 0.45, -r * 0.1),
+          hatch..strokeWidth = 1.0,
+        );
     }
   }
 
@@ -1546,75 +1517,43 @@ class AngryWordsBoardPainter extends CustomPainter {
       final reveal = Curves.easeOutBack.transform(L.revealT.clamp(0.0, 1.0));
       final r = L.radius * (dragged ? 1.08 : 1.0) * (0.35 + 0.65 * reveal);
       final alpha = (0.25 + 0.75 * L.revealT).clamp(0.0, 1.0);
-      // Letters are eggs: tall oval shell with the char on top.
-      final ovalW = 0.86;
-      final ovalH = 1.28;
-      final rw = r * ovalW;
-      final rh = r * ovalH;
 
       canvas.saveLayer(
-        Rect.fromCenter(center: c, width: rw * 2 + 16, height: rh * 2 + 16),
+        Rect.fromCircle(center: c, radius: r + 8),
         Paint()..color = Colors.white.withValues(alpha: alpha),
       );
 
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + const Offset(0, 3),
-          width: rw * 2,
-          height: rh * 2,
-        ),
-        Paint()..color = Colors.black.withValues(alpha: 0.16),
+      canvas.drawCircle(
+        c + const Offset(0, 3),
+        r,
+        Paint()..color = Colors.black.withValues(alpha: 0.18),
       );
 
       final baseTint = angryWordsLetterTint(L.tintIndex);
       final tint = shake > 0 ? const Color(0xFFFF5252) : baseTint;
-      final shellLight = Color.lerp(
-        const Color(0xFFFFF8E1),
-        baseTint,
-        0.18,
-      )!;
-      final shellDark = Color.lerp(
-        const Color(0xFFE8D5B5),
-        tint,
-        shake > 0 ? 0.45 : 0.22,
-      )!;
 
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: rw * 2, height: rh * 2),
+      canvas.drawCircle(
+        c,
+        r,
         Paint()
           ..shader = ui.Gradient.radial(
-            c + Offset(-rw * 0.28, -rh * 0.32),
-            r * 1.2,
+            c + Offset(-r * 0.28, -r * 0.3),
+            r * 1.15,
             [
-              Colors.white.withValues(alpha: 0.96),
-              shellLight,
-              shellDark,
+              Colors.white.withValues(alpha: 0.95),
+              Color.lerp(baseTint, Colors.white, 0.22)!.withValues(alpha: 0.95),
+              tint.withValues(alpha: 0.92),
             ],
             const [0.0, 0.45, 1.0],
           ),
       );
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + Offset(rw * 0.12, rh * 0.22),
-          width: rw * 0.55,
-          height: rh * 0.7,
-        ),
-        Paint()..color = const Color(0xFFD7CCC8).withValues(alpha: 0.2),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + Offset(-rw * 0.18, -rh * 0.28),
-          width: rw * 0.42,
-          height: rh * 0.28,
-        ),
-        Paint()..color = Colors.white.withValues(alpha: 0.72),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: rw * 2, height: rh * 2),
+      canvas.drawCircle(
+        c,
+        r,
         Paint()
-          ..color = const Color(0xFFFFFDE7).withValues(alpha: 0.55)
+          ..color = Colors.white.withValues(alpha: 0.7)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
+          ..strokeWidth = 1.6,
       );
 
       final tp = TextPainter(
@@ -1622,10 +1561,10 @@ class AngryWordsBoardPainter extends CustomPainter {
           text: L.letter.char.toUpperCase(),
           style: TextStyle(
             color: const Color(0xFF4E342E),
-            fontSize: math.min(r * 0.9, 22),
+            fontSize: math.min(r * 0.95, 22),
             fontWeight: FontWeight.w800,
             shadows: [
-              Shadow(color: tint.withValues(alpha: 0.4), blurRadius: 6),
+              Shadow(color: tint.withValues(alpha: 0.45), blurRadius: 6),
             ],
           ),
         ),
@@ -1633,12 +1572,9 @@ class AngryWordsBoardPainter extends CustomPainter {
       )..layout();
       tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
       if (L.revealT < 0.95) {
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: c,
-            width: rw * 2 * (1.35 - L.revealT * 0.35),
-            height: rh * 2 * (1.35 - L.revealT * 0.35),
-          ),
+        canvas.drawCircle(
+          c,
+          r * (1.35 - L.revealT * 0.35),
           Paint()
             ..color = const Color(
               0xFFFFD54F,
@@ -1720,8 +1656,21 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   void _paintExplosions(Canvas canvas) {
+    final pScale = particleScale.clamp(0.15, 1.0);
     for (final e in explosions) {
       final t = 1 - e.life;
+      // Anticipation squash: briefly wide before bits fly (≤ ~80ms of life).
+      if (e.life > 0.82) {
+        final squash = ((e.life - 0.82) / 0.18).clamp(0.0, 1.0);
+        final rw = (e.material != null ? 14.0 : 12.0) * (1.0 + 0.2 * squash);
+        final rh = (e.material != null ? 14.0 : 12.0) * (1.0 - 0.18 * squash);
+        canvas.drawOval(
+          Rect.fromCenter(center: e.at, width: rw * 2, height: rh * 2),
+          Paint()
+            ..color = e.ringA.withValues(alpha: 0.55 * squash)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+      }
       final ringScale = e.juicy ? 1.45 : 1.0;
       final soft =
           e.material == AngryWordsPropMaterial.foam ||
@@ -1742,6 +1691,26 @@ class AngryWordsBoardPainter extends CustomPainter {
           ..color = e.ringB.withValues(alpha: 0.4 * e.life)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, soft ? 14 : 10),
       );
+      if (e.chromatic && e.life > 0.45) {
+        final split = 1.8 * e.life * pScale;
+        final a = 0.22 * e.life;
+        canvas.drawCircle(
+          e.at + Offset(-split, 0),
+          10 + t * 22,
+          Paint()
+            ..color = const Color(0xFFFF1744).withValues(alpha: a)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6,
+        );
+        canvas.drawCircle(
+          e.at + Offset(split, 0),
+          10 + t * 22,
+          Paint()
+            ..color = const Color(0xFF00E5FF).withValues(alpha: a)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6,
+        );
+      }
       if (e.juicy) {
         canvas.drawCircle(
           e.at,
@@ -1760,7 +1729,9 @@ class AngryWordsBoardPainter extends CustomPainter {
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
         );
       }
-      for (final bit in e.bits) {
+      final bitBudget = math.max(2, (e.bits.length * pScale).round());
+      for (var bi = 0; bi < bitBudget; bi++) {
+        final bit = e.bits[bi];
         final dist = bit.speed * t * (e.juicy ? 1.25 : 1.0);
         final lift = soft ? t * 22 : t * 36;
         final p = Offset(
@@ -1877,37 +1848,27 @@ class AngryWordsBoardPainter extends CustomPainter {
     if (!lockedOnLetter) {
       final preview = world.aimPreview();
       if (preview != null && preview.path.length >= 2) {
-        final power = world.powerNorm;
         final color = preview.hitsLetter
-            ? Color.lerp(
-                const Color(0xFF69F0AE),
-                const Color(0xFF00E676),
-                power,
-              )!
-            : Color.lerp(
-                const Color(0xFFFFF176),
-                const Color(0xFFFF6D00),
-                power,
-              )!;
-        // Stronger pull → thicker, denser dashes (reads as more speed).
+            ? const Color(0xFF69F0AE)
+            : const Color(0xFFFFF176);
         _drawDottedPath(
           canvas,
           preview.path,
           Paint()
-            ..color = color.withValues(alpha: 0.75 + power * 0.2)
-            ..strokeWidth = 1.8 + power * 2.4
+            ..color = color.withValues(alpha: 0.85)
+            ..strokeWidth = 2.2
             ..strokeCap = StrokeCap.round,
         );
         final impact = preview.impact;
         if (impact != null) {
           canvas.drawCircle(
             impact,
-            4.5 + power * 3.5,
+            5.5,
             Paint()..color = color.withValues(alpha: 0.95),
           );
           canvas.drawCircle(
             impact,
-            4.5 + power * 3.5,
+            5.5,
             Paint()
               ..color = Colors.white.withValues(alpha: 0.9)
               ..style = PaintingStyle.stroke
@@ -1917,160 +1878,15 @@ class AngryWordsBoardPainter extends CustomPainter {
       }
     }
 
-    if (world.aiming && world.pullPoint != null) {
-      _paintPullPowerMeter(canvas);
-    }
-  }
-
-  /// Clear pull → power / speed readout while stretching the sling.
-  void _paintPullPowerMeter(Canvas canvas) {
+    // Power ring at muzzle.
     final power = world.powerNorm;
-    final m = world.muzzle;
-    final pull = world.pullPoint!;
-    final pullDelta = pull - m;
-    final pullLen = pullDelta.distance;
-    if (pullLen < 4) return;
-
-    final pullDir = pullDelta / pullLen;
-    final side = Offset(-pullDir.dy, pullDir.dx);
-    final meterOrigin = m + side * 34 - pullDir * 6;
-
-    // Track (empty) + fill (power).
-    const trackH = 52.0;
-    const trackW = 10.0;
-    canvas.save();
-    canvas.translate(meterOrigin.dx, meterOrigin.dy);
-    final ang = math.atan2(pullDir.dy, pullDir.dx) + math.pi / 2;
-    canvas.rotate(ang);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset.zero, width: trackW, height: trackH),
-        const Radius.circular(5),
-      ),
-      Paint()..color = Colors.black.withValues(alpha: 0.28),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset.zero, width: trackW, height: trackH),
-        const Radius.circular(5),
-      ),
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.35)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-    final fillH = (trackH - 4) * power;
-    if (fillH > 0.5) {
-      final fillColor = Color.lerp(
-        const Color(0xFFFFF176),
-        Color.lerp(const Color(0xFFFF8A65), const Color(0xFFFF1744), power)!,
-        power,
-      )!;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTRB(
-            -trackW / 2 + 2,
-            trackH / 2 - 2 - fillH,
-            trackW / 2 - 2,
-            trackH / 2 - 2,
-          ),
-          const Radius.circular(3.5),
-        ),
-        Paint()
-          ..shader = ui.Gradient.linear(
-            Offset(0, trackH / 2),
-            Offset(0, -trackH / 2),
-            [
-              const Color(0xFFFFF59D),
-              fillColor,
-              const Color(0xFFFF1744),
-            ],
-            const [0.0, 0.55, 1.0],
-          ),
-      );
-    }
-    // Tick marks at 25/50/75%.
-    for (final t in [0.25, 0.5, 0.75]) {
-      final y = trackH / 2 - 2 - (trackH - 4) * t;
-      canvas.drawLine(
-        Offset(-trackW / 2 - 2, y),
-        Offset(-trackW / 2 + 2.5, y),
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.55)
-          ..strokeWidth = 1.1,
-      );
-    }
-    canvas.restore();
-
-    // Label: weak → max (thresholds match ease-out pull curve).
-    final label = power < 0.22
-        ? 'WEAK'
-        : power < 0.52
-            ? 'MID'
-            : power < 0.82
-                ? 'STRONG'
-                : 'MAX';
-    final labelColor = Color.lerp(
-      const Color(0xFFFFF176),
-      const Color(0xFFFF1744),
-      power,
-    )!;
-    final tp = TextPainter(
-      text: TextSpan(
-        text: label,
-        style: TextStyle(
-          color: labelColor,
-          fontSize: 11 + power * 3,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.6,
-          shadows: [
-            Shadow(
-              color: Colors.black.withValues(alpha: 0.45),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final labelAt = meterOrigin - pullDir * (trackH * 0.85) + side * 2;
-    tp.paint(canvas, labelAt - Offset(tp.width / 2, tp.height / 2));
-
-    // Speed chevrons in launch direction (opposite of pull).
-    final launchDir = -pullDir;
-    final chevronCount = 1 + (power * 3).round().clamp(0, 3);
-    for (var i = 0; i < chevronCount; i++) {
-      final along = 28.0 + i * (10 + power * 6);
-      final tip = m + launchDir * along;
-      final wing = 5.0 + power * 3.5;
-      final a = tip - launchDir * 7 + side * wing;
-      final b = tip;
-      final c = tip - launchDir * 7 - side * wing;
-      canvas.drawLine(
-        a,
-        b,
-        Paint()
-          ..color = labelColor.withValues(alpha: 0.35 + 0.2 * power)
-          ..strokeWidth = 2 + power
-          ..strokeCap = StrokeCap.round,
-      );
-      canvas.drawLine(
-        c,
-        b,
-        Paint()
-          ..color = labelColor.withValues(alpha: 0.35 + 0.2 * power)
-          ..strokeWidth = 2 + power
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-
-    // Soft glow at muzzle scales with charge.
     canvas.drawCircle(
-      m,
-      12 + power * 22,
+      world.muzzle,
+      10 + power * 16,
       Paint()
-        ..color = labelColor.withValues(alpha: 0.08 + power * 0.18)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+        ..color = const Color(0xFFFF7043).withValues(alpha: 0.15 + power * 0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
     );
   }
 
@@ -2107,13 +1923,7 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   void _paintBlaster(Canvas canvas) {
-    final mounts = world.gunMountCount;
-    for (var i = 0; i < mounts; i++) {
-      _paintBlasterAt(canvas, world.muzzleForMount(i));
-    }
-  }
-
-  void _paintBlasterAt(Canvas canvas, Offset m) {
+    final m = world.muzzle;
     final angle = math.atan2(world.gunAim.dy, world.gunAim.dx);
     final kick = world.gunRecoil * 6;
     final gun = world.loadout.gun;
@@ -3308,51 +3118,14 @@ class AngryWordsBoardPainter extends CustomPainter {
     canvas.restore();
 
     if (world.aiming && pull != null) {
-      final power = world.powerNorm;
-      final bandColor = Color.lerp(
-        const Color(0xFF546E7A),
-        Color.lerp(const Color(0xFFFF8A65), const Color(0xFFFF1744), power)!,
-        0.25 + power * 0.75,
-      )!;
       final left = Offset(m.dx - 22, m.dy + 4);
       final right = Offset(m.dx + 22, m.dy + 4);
       final band = Paint()
-        ..color = bandColor.withValues(alpha: 0.88)
-        ..strokeWidth = 2.6 + power * 3.2
+        ..color = const Color(0xFF37474F).withValues(alpha: 0.9)
+        ..strokeWidth = 3.4
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(left, pull, band);
       canvas.drawLine(right, pull, band);
-      // Stretch sparks along bands when charging hard.
-      if (power > 0.45) {
-        final sparkN = 2 + (power * 4).round();
-        for (var i = 1; i <= sparkN; i++) {
-          final t = i / (sparkN + 1);
-          final onLeft = Offset.lerp(left, pull, t)!;
-          final onRight = Offset.lerp(right, pull, t)!;
-          final spark = Paint()
-            ..color = bandColor.withValues(alpha: 0.35 + power * 0.35)
-            ..strokeWidth = 1.4
-            ..strokeCap = StrokeCap.round;
-          canvas.drawLine(
-            onLeft,
-            onLeft + Offset(0, -3 - power * 4),
-            spark,
-          );
-          canvas.drawLine(
-            onRight,
-            onRight + Offset(0, -3 - power * 4),
-            spark,
-          );
-        }
-      }
-      final tipR = AngryWordsPhysicsWorld.ballRadius * (1.0 + power * 0.28);
-      canvas.drawCircle(
-        pull,
-        tipR + 4 + power * 6,
-        Paint()
-          ..color = bandColor.withValues(alpha: 0.12 + power * 0.2)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-      );
       canvas.drawCircle(
         pull,
         3.2,
@@ -3360,22 +3133,18 @@ class AngryWordsBoardPainter extends CustomPainter {
       );
       canvas.drawCircle(
         pull,
-        tipR,
+        AngryWordsPhysicsWorld.ballRadius,
         Paint()
           ..shader = ui.Gradient.radial(
             pull + const Offset(-3, -3),
-            tipR,
-            [
-              const Color(0xFFFFF8E1),
-              Color.lerp(const Color(0xFFFF7043), const Color(0xFFFF1744), power)!,
-              Color.lerp(const Color(0xFFD84315), const Color(0xFFB71C1C), power)!,
-            ],
+            AngryWordsPhysicsWorld.ballRadius,
+            const [Color(0xFFFFF8E1), Color(0xFFFF7043), Color(0xFFD84315)],
             const [0.0, 0.55, 1.0],
           ),
       );
       canvas.drawCircle(
         pull,
-        tipR,
+        AngryWordsPhysicsWorld.ballRadius,
         Paint()
           ..color = Colors.white.withValues(alpha: 0.55)
           ..style = PaintingStyle.stroke
@@ -3397,12 +3166,62 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   void _paintTrail(Canvas canvas) {
-    for (var i = 0; i < trail.length; i++) {
-      final t = (i + 1) / (trail.length + 1);
+    // Exactly up to 8 fading dots behind the sling ball.
+    final n = math.min(8, trail.length);
+    if (n == 0) return;
+    final start = trail.length - n;
+    for (var i = 0; i < n; i++) {
+      final t = (i + 1) / (n + 1);
       canvas.drawCircle(
-        trail[i],
-        AngryWordsPhysicsWorld.ballRadius * (0.3 + t * 0.4),
-        Paint()..color = const Color(0xFFFFAB91).withValues(alpha: 0.28 * t),
+        trail[start + i],
+        AngryWordsPhysicsWorld.ballRadius * (0.22 + t * 0.45),
+        Paint()..color = const Color(0xFFFFAB91).withValues(alpha: 0.12 + 0.38 * t),
+      );
+    }
+  }
+
+  void _paintMuzzleSmoke(Canvas canvas) {
+    final smoke = world.muzzleSmoke;
+    if (smoke <= 0.02) return;
+    final tip = world.muzzle + world.gunAim * (22 - world.gunRecoil * 8);
+    final up = -world.gunAim;
+    final side = Offset(-world.gunAim.dy, world.gunAim.dx);
+    final rise = (1 - smoke) * 28;
+    for (var i = 0; i < 3; i++) {
+      final o = tip +
+          up * (rise + i * 10) +
+          side * ((i - 1) * 5.5) +
+          Offset(0, -i * 4.0 * smoke);
+      final r = (7.0 + i * 3.5) * smoke;
+      canvas.drawCircle(
+        o,
+        r,
+        Paint()
+          ..color = const Color(0xFFECEFF1).withValues(alpha: 0.28 * smoke)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      );
+    }
+  }
+
+  void _paintGroundDust(Canvas canvas) {
+    final life = world.groundDustLife;
+    final at = world.groundDustAt;
+    if (life <= 0.02 || at == null) return;
+    final t = 1 - life;
+    final budget = math.max(3, (8 * particleScale).round());
+    for (var i = 0; i < budget; i++) {
+      final a = -math.pi / 2 + (i - budget * 0.5) * 0.22;
+      final dist = 8 + t * (18 + i * 2.5);
+      final p = Offset(
+        at.dx + math.cos(a) * dist,
+        at.dy - math.sin(a.abs()) * dist * 0.35 - t * 6,
+      );
+      canvas.drawCircle(
+        p,
+        (2.2 + (i % 3)) * life,
+        Paint()
+          ..color = const Color(0xFF8D6E63).withValues(alpha: 0.4 * life)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
       );
     }
   }
@@ -3452,19 +3271,7 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   void _paintCombo(Canvas canvas, Size size) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'Combo x$combo',
-        style: TextStyle(
-          color: const Color(0xFFFF6F00).withValues(alpha: 0.95),
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          shadows: const [Shadow(color: Color(0x66FFECB3), blurRadius: 10)],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, Offset(size.width / 2 - tp.width / 2, 12));
+    // Combo HUD moved to WordBuilderComboChip (top corner) — keep hook empty.
   }
 
   void _paintPerfectBurst(Canvas canvas, Size size) {
@@ -3486,5 +3293,5 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant AngryWordsBoardPainter oldDelegate) => true;
+  bool shouldRepaint(covariant AngryWordsBoardPainter oldDelegate) => false;
 }

@@ -187,6 +187,12 @@
   "sectionSound": "Sound",
   "splashSoundTitle": "Startup chime",
   "splashSoundSubtitle": "Play a calming sound when the app opens",
+  "soundMusicTitle": "Music",
+  "soundMusicSubtitle": "Background music in games and menus where available",
+  "soundSfxTitle": "Sound effects",
+  "soundSfxSubtitle": "Shots, pops, correct/wrong feedback, and other SFX",
+  "soundHapticsTitle": "Haptics",
+  "soundHapticsSubtitle": "Vibration feedback for taps and game events",
   "sectionAbout": "About",
   "sectionAppLanguage": "App language",
   "appLanguageSubtitle": "Interface language (English, Persian, or Kurdish Sorani)",
@@ -1060,6 +1066,46 @@
   "wordBuilderPuzzleSlideHint": "Tap a letter next to the empty cell to slide it into your word.",
   "wordBuilderAngryWordsAimHint": "Tap a letter to focus · drag to bump · pull empty space to shoot",
   "wordBuilderAngryWordsWindHint": "Hold the wind button, or aim the slingshot at it — letters drift faster",
+  "wordBuilderAngryWordsHammerHint": "Drag the hammer · smash bottles",
+  "wordBuilderAngryWordsHoldSprayHint": "Hold & spray · {label}",
+  "@wordBuilderAngryWordsHoldSprayHint": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
+  "wordBuilderAngryWordsClearWallHint": "Clear the wall · {label}",
+  "@wordBuilderAngryWordsClearWallHint": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
+  "wordBuilderAngryWordsBlastOrbsHint": "Blast letter orbs · {label} · {found}/{total}",
+  "@wordBuilderAngryWordsBlastOrbsHint": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "found": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "wordBuilderAngryWordsLettersUnlocked": "Letters unlocked!",
+  "wordBuilderAngryWordsLettersLeft": "{count} letters left",
+  "@wordBuilderAngryWordsLettersLeft": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "wordBuilderCoachHoldFire": "Hold and shoot to blast the wall",
+  "wordBuilderCoachHammerSmash": "Drag the hammer to smash bottles",
+  "wordBuilderCoachLettersHidden": "Letters are hidden inside some orbs — find them!",
+  "wordBuilderCoachClearWall": "Clear the whole wall to unlock the slingshot",
+  "wordBuilderCoachWallCleared": "Wall cleared — now use the slingshot",
+  "wordBuilderCoachPullRelease": "Pull back and release to hit letters",
+  "wordBuilderCoachPrefixOrder": "Hit letters in the correct order for the word",
+  "wordBuilderCoachArkanoidAim": "Bounce the ball into letter bricks to build your word",
+  "wordBuilderCoachPuzzleSlide": "Tap a letter next to the empty cell to slide it into your word",
+  "wordBuilderResetTutorials": "Show tutorials again",
+  "wordBuilderResetTutorialsDone": "Tutorials will show the next time you play each mode",
+  "wordBuilderAdminResetOnboarding": "Reset Word Builder onboarding (admin)",
   "wordBuilderArkanoidCheck": "Check",
   "wordBuilderArkanoidServeHint": "Drag paddle · tap to serve",
   "wordBuilderArkanoidBallSpeed": "Ball speed",

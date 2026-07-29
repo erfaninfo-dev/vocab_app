@@ -9,6 +9,7 @@ import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../data/models/vocab_entry.dart';
 import '../../../domain/api_providers.dart';
 import '../data/word_builder_progress_repository.dart';
+import '../data/word_builder_session_draft.dart';
 import '../data/word_builder_vocab.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_campaign_constants.dart';
@@ -297,13 +298,24 @@ class WordBuilderGameNotifier
   ) {
     final prefix = normalizeWord(builtLower);
     if (prefix.isEmpty) return false;
-    return pathCanExtendToLongerUnsolvedTarget(
+    if (pathCanExtendToLongerUnsolvedTarget(
           s.level,
           s.solvedLower,
           prefix,
         ) ||
         isValidUnsolvedTargetPrefix(s.level, s.solvedLower, prefix) ||
-        _catalogCanExtendBuilt(s, prefix);
+        _catalogCanExtendBuilt(s, prefix)) {
+      return true;
+    }
+    // Already found a short word (e.g. "hi") while longer slots remain
+    // (e.g. "hit"): keep waiting — do not treat the short path as done again.
+    if (prefix.length >= 2 &&
+        _wasSolvedAnywhere(prefix, s.persisted, s.solvedLower) &&
+        _unsolvedTargetLengths(s.level, s.solvedLower)
+            .any((len) => len > prefix.length)) {
+      return true;
+    }
+    return false;
   }
 
   bool _isKnownDuplicateBuilt(WordBuilderViewState s, String builtLower) {
@@ -950,7 +962,7 @@ class WordBuilderGameNotifier
         scenarioOverride: trayScenarioForLevelIndex(campaign.stage1Based - 1),
       );
       _startPassiveWaterTimer();
-      return initial;
+      return await _withDraftIfAny(bookKey, initial);
     }
 
     final entries = bookKey == kWordBuilderAllBooksKey
@@ -986,7 +998,55 @@ class WordBuilderGameNotifier
       random: _random,
     );
     _startPassiveWaterTimer();
-    return initial;
+    return await _withDraftIfAny(bookKey, initial);
+  }
+
+  Future<WordBuilderViewState> _withDraftIfAny(
+    int bookKey,
+    WordBuilderViewState initial,
+  ) async {
+    final draft = await WordBuilderSessionDraftRepository().load();
+    if (draft == null ||
+        draft.bookKey != bookKey ||
+        draft.levelIndex != initial.levelIndex) {
+      return initial;
+    }
+    return _applyDraft(initial, draft);
+  }
+
+  WordBuilderViewState _applyDraft(
+    WordBuilderViewState s,
+    WordBuilderSessionDraft draft,
+  ) {
+    final path = <LetterInstance>[];
+    for (var i = 0; i < draft.pathChars.length; i++) {
+      final id = i < draft.pathIds.length ? draft.pathIds[i] : i;
+      path.add(LetterInstance(id: id, char: draft.pathChars[i]));
+    }
+    final solved = sanitizeSolvedForLevel(
+      s.level,
+      draft.solvedLower.toSet(),
+    );
+    return s.copyWith(
+      path: path,
+      solvedLower: solved,
+      wrongAnswerCount: draft.wrongAnswerCount,
+    );
+  }
+
+  Future<void> persistSessionDraft() async {
+    final s = state.valueOrNull;
+    if (s == null || s.levelComplete || s.isTrayGameOver) return;
+    if (s.path.isEmpty && s.solvedLower.isEmpty && s.wrongAnswerCount == 0) {
+      return;
+    }
+    await WordBuilderSessionDraftRepository().save(
+      WordBuilderSessionDraft.fromViewState(bookKey: arg, s: s),
+    );
+  }
+
+  Future<void> clearSessionDraft() async {
+    await WordBuilderSessionDraftRepository().clearIfBook(arg);
   }
 
   Future<void> _commit(WordBuilderViewState next) async {
@@ -1122,6 +1182,29 @@ class WordBuilderGameNotifier
     }
 
     await _commitWrongWithTray(s);
+  }
+
+  /// Puzzle mode: each grid row maps to one target word. Returns newly solved
+  /// row indices so the board can freeze those tiles.
+  Future<Set<int>> evaluatePuzzleRows(List<String?> rowWords) async {
+    if (ref.read(wordBuilderPlayModeProvider) != WordBuilderPlayMode.puzzle) {
+      return const {};
+    }
+    final newly = <int>{};
+    for (var i = 0; i < rowWords.length; i++) {
+      final built = rowWords[i];
+      if (built == null || built.isEmpty) continue;
+      final s = state.valueOrNull;
+      if (s == null || s.trayVictorySequenceActive) break;
+      if (i >= s.level.targetWords.length) continue;
+      final target = s.level.targetWords[i];
+      final norm = normalizeWord(target.word);
+      if (s.solvedLower.contains(norm)) continue;
+      if (built != norm) continue;
+      newly.add(i);
+      await _applyCorrectWord(s, norm, target, perfectRun: true);
+    }
+    return newly;
   }
 
   /// Whether appending [nextChar] is still a valid physics path step:
@@ -1330,41 +1413,6 @@ class WordBuilderGameNotifier
     }
   }
 
-  /// Checks each row's left-to-right spelling against any unsolved target.
-  /// Returns row indexes that were newly solved this pass.
-  Future<List<int>> evaluatePuzzleRows(List<String?> rowWords) async {
-    if (!ref.read(wordBuilderPlayModeProvider).usesPuzzleLetterBoard) {
-      return const [];
-    }
-    final s = state.valueOrNull;
-    if (s == null || s.trayVictorySequenceActive) return const [];
-
-    var current = s;
-    final newlySolvedRows = <int>[];
-    for (var i = 0; i < rowWords.length; i++) {
-      final built = rowWords[i];
-      if (built == null || built.isEmpty) continue;
-      final matched = findUnsolvedTargetMatchingBuilt(
-        current.level,
-        current.solvedLower,
-        built,
-      );
-      if (matched == null) continue;
-      newlySolvedRows.add(i);
-      await _applyCorrectWord(
-        current,
-        normalizeWord(matched.word),
-        matched,
-        perfectRun: true,
-      );
-      current = state.valueOrNull ?? current;
-      if (current.trayVictorySequenceActive || current.levelComplete) {
-        return newlySolvedRows;
-      }
-    }
-    return newlySolvedRows;
-  }
-
   Future<void> _applyCorrectWord(
     WordBuilderViewState s,
     String norm,
@@ -1454,6 +1502,9 @@ class WordBuilderGameNotifier
     }
     await ref.read(wordBuilderCoinsProvider.notifier).addCoins(coinReward);
     final levelDone = isLevelComplete(s.level, newSolved);
+    if (levelDone) {
+      unawaited(clearSessionDraft());
+    }
     final deferLevelSfx =
         levelDone &&
         ref.read(wordBuilderPlayModeProvider) == WordBuilderPlayMode.angryWords;

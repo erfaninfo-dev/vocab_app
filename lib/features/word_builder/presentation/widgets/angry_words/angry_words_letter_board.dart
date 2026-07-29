@@ -1,25 +1,35 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/audio/angry_words_egg_crack_audio.dart';
 import '../../../../../core/audio/angry_words_gun_audio.dart';
 import '../../../../../core/audio/angry_words_pop_audio.dart';
+import '../../../../../core/audio/angry_words_porcelain_break_audio.dart';
 import '../../../../../core/audio/angry_words_sling_audio.dart';
+import '../../../../../core/audio/angry_words_sling_snap_audio.dart';
+import '../../../../../core/audio/angry_words_sling_whoosh_audio.dart';
+import '../../../../../core/audio/app_haptics.dart';
 import '../../../../../core/audio/word_builder_sound_service.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../application/word_builder_game_notifier.dart';
+import '../../../application/word_builder_onboarding_prefs.dart';
 import '../../../application/word_builder_session_audio.dart';
 import '../../../domain/word_builder_game_logic.dart';
 import '../../../domain/word_builder_models.dart';
+import '../../../word_builder_campaign_session_key.dart';
+import '../../theme/word_builder_motion.dart';
 import '../answer_slot_key_bag.dart';
+import '../coach/coach_overlay.dart';
+import '../word_builder_combo_chip.dart';
 import 'angry_words_celebrate.dart';
 import 'angry_words_flight_overlay.dart';
 import 'angry_words_loadout.dart';
+import 'angry_words_paint_model.dart';
 import 'angry_words_painter.dart';
 import 'angry_words_physics.dart';
 
@@ -45,11 +55,15 @@ class AngryWordsLetterBoard extends ConsumerStatefulWidget {
     required this.bookKey,
     required this.letters,
     this.slotKeyBag,
+    this.pathCardKey,
   });
 
   final int bookKey;
   final List<LetterInstance> letters;
   final AnswerSlotKeyBag? slotKeyBag;
+
+  /// Path / typed-letter card — chicks fly here when a letter is found.
+  final GlobalKey? pathCardKey;
 
   @override
   ConsumerState<AngryWordsLetterBoard> createState() =>
@@ -57,19 +71,28 @@ class AngryWordsLetterBoard extends ConsumerStatefulWidget {
 }
 
 class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker;
   final _world = AngryWordsPhysicsWorld(width: 1, height: 1);
+  late final AngryWordsPaintModel _paint = AngryWordsPaintModel(_world);
+  late final AngryWordsBoardPainter _painter = AngryWordsBoardPainter(
+    model: _paint,
+  );
   Duration _lastElapsed = Duration.zero;
   final List<Offset> _trail = [];
   double _sparkLife = 0;
   double _wrongFlash = 0;
   double _successFlash = 0;
   double _prefixFlash = 0;
+  String? _peekChar;
+  double _peekFlash = 0;
   bool _wasWrong = false;
   bool _autoEvalBusy = false;
   bool _attemptClean = true;
   int _combo = 0;
+  /// 0..1 remaining combo window (visual + soft reset).
+  double _comboLife = 0;
+  static const _comboWindowSec = 3.5;
   int? _layoutSig;
   bool _awaitingReload = false;
   /// After a solved word, rebuild floating letters from scratch (do not keep
@@ -91,6 +114,20 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
   bool _celebrateBusy = false;
   Completer<void>? _flightCompleter;
 
+  /// Phase-6 first-run coach.
+  bool _coachEnabled = false;
+  bool _coachBootstrapped = false;
+  int _coachPops = 0;
+  bool _freeShotOk = false;
+  bool _prefixCoachVisible = false;
+  bool _prefixCoachDone = false;
+  /// Armed for this session when prefs say onboarding is incomplete.
+  bool _prefixOnWrongArmed = false;
+  List<CoachStep> _coachSteps = const [];
+  int _hudCargo = -1;
+  AngryWordsPhase? _hudPhase;
+  int _hudCombo = 0;
+
   static const _windBtnSize = 52.0;
   static const _windBtnRight = 10.0;
   static const _windBtnBottom = 64.0;
@@ -107,7 +144,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         _world.isAimingToward(_windButtonCenter, hitRadius: 96);
     final held = _windButtonHeld || aimingAtWind;
     if (hapticOnAimEnter && aimingAtWind && !_wasAimingAtWind) {
-      HapticFeedback.selectionClick();
+      appHapticSelection(ref);
     }
     _wasAimingAtWind = aimingAtWind;
     _world.setWindAimActive(aimingAtWind && _world.aiming);
@@ -126,6 +163,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ticker = createTicker(_onTick)..start();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -134,23 +172,167 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
             .read(wordBuilderGameProvider(widget.bookKey).notifier)
             .preparePhysicsLetterMode(),
       );
-      // Preload cage + free-phase SFX once — never reload per shot/pop/pull.
       unawaited(ref.read(angryWordsGunAudioProvider).ensureLoaded());
       unawaited(ref.read(angryWordsPopAudioProvider).ensureLoaded());
+      unawaited(
+        ref.read(angryWordsPorcelainBreakAudioProvider).ensureLoaded(),
+      );
       unawaited(ref.read(angryWordsSlingAudioProvider).ensureLoaded());
+      unawaited(ref.read(angryWordsSlingSnapAudioProvider).ensureLoaded());
+      unawaited(ref.read(angryWordsSlingWhooshAudioProvider).ensureLoaded());
       unawaited(ref.read(angryWordsEggCrackAudioProvider).ensureLoaded());
+      _bootstrapCoachIfNeeded();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (mounted && !_ticker.isActive) _ticker.start();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        if (_ticker.isActive) _ticker.stop();
+        unawaited(_stopAngryWordsAudio());
+    }
+  }
+
+  Future<void> _stopAngryWordsAudio() async {
+    await ref.read(angryWordsGunAudioProvider).stop();
+    await ref.read(angryWordsSlingAudioProvider).stop();
+  }
+
+  void _bootstrapCoachIfNeeded() {
+    if (_coachBootstrapped) return;
+    _coachBootstrapped = true;
+    unawaited(() async {
+      final done =
+          await ref.read(wordBuilderAngryWordsOnboardingProvider.future);
+      if (!mounted || done) return;
+      final l10n = AppLocalizations.of(context);
+      if (l10n == null) return;
+      setState(() {
+        _coachEnabled = true;
+        _prefixOnWrongArmed = true;
+        _coachSteps = _buildAngryWordsCoachSteps(l10n);
+      });
+    }());
+  }
+
+  List<CoachStep> _buildAngryWordsCoachSteps(AppLocalizations l10n) {
+    final hammer = _world.usesHammer;
+    return [
+      CoachStep(
+        id: 'cage_shoot',
+        message: hammer
+            ? l10n.wordBuilderCoachHammerSmash
+            : l10n.wordBuilderCoachHoldFire,
+        targetRect: hammer ? _hammerSpotlightRect : _muzzleSpotlightRect,
+        finger: hammer ? CoachFingerKind.dragPull : CoachFingerKind.hold,
+        isComplete: () => _coachPops >= 3,
+      ),
+      CoachStep(
+        id: 'cage_cargo',
+        message: l10n.wordBuilderCoachLettersHidden,
+        targetRect: _cargoSpotlightRect,
+        finger: CoachFingerKind.none,
+        autoAdvanceAfter: const Duration(milliseconds: 2200),
+        allowSkip: true,
+        blocksInput: false,
+      ),
+      CoachStep(
+        id: 'wait_clear',
+        message: l10n.wordBuilderCoachClearWall,
+        targetRect: null,
+        dimOpacity: 0.28,
+        blocksInput: false,
+        isComplete: () =>
+            _world.phase == AngryWordsPhase.freeing ||
+            _world.phase == AngryWordsPhase.free,
+      ),
+      CoachStep(
+        id: 'freeing_banner',
+        message: l10n.wordBuilderCoachWallCleared,
+        autoAdvanceAfter: const Duration(milliseconds: 1200),
+        dimOpacity: 0.4,
+        blocksInput: false,
+      ),
+      CoachStep(
+        id: 'free_aim',
+        message: l10n.wordBuilderCoachPullRelease,
+        targetRect: _muzzleSpotlightRect,
+        finger: CoachFingerKind.dragPull,
+        isComplete: () => _freeShotOk,
+      ),
+    ];
+  }
+
+  Rect? _muzzleSpotlightRect() {
+    if (_boardSize.width < 8) return null;
+    final m = _world.muzzle;
+    return Rect.fromCenter(center: m, width: 88, height: 72);
+  }
+
+  Rect? _hammerSpotlightRect() {
+    if (_boardSize.width < 8) return null;
+    final c = _world.hammerPos ?? _world.muzzle;
+    return Rect.fromCenter(center: c, width: 96, height: 96);
+  }
+
+  Rect? _cargoSpotlightRect() {
+    for (final P in _world.props) {
+      if (P.removed || !P.holdsLetter || !P.isSpawnVisible) continue;
+      return Rect.fromCircle(center: P.pos, radius: P.radius + 10);
+    }
+    return _muzzleSpotlightRect();
+  }
+
+  Rect? _expectedLetterSpotlightRect(String? peekLower) {
+    if (peekLower == null || peekLower.isEmpty) return null;
+    for (final L in _world.letters) {
+      if (L.removed) continue;
+      if (L.letter.char.toLowerCase() == peekLower) {
+        return Rect.fromCircle(center: L.pos, radius: L.radius + 12);
+      }
+    }
+    for (final P in _world.props) {
+      if (P.removed || P.cargo == null) continue;
+      if (P.cargo!.char.toLowerCase() == peekLower) {
+        return Rect.fromCircle(center: P.pos, radius: P.radius + 12);
+      }
+    }
+    return null;
+  }
+
+  Future<void> _finishMainCoach() async {
+    if (!_coachEnabled) return;
+    setState(() => _coachEnabled = false);
+    await ref
+        .read(wordBuilderAngryWordsOnboardingProvider.notifier)
+        .markComplete();
+  }
+
+  Future<void> _finishPrefixCoach() async {
+    setState(() {
+      _prefixCoachVisible = false;
+      _prefixCoachDone = true;
+      _prefixOnWrongArmed = false;
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _removeFlightOverlay();
     _windButtonHeld = false;
     _world.setWindHeld(false);
     _world.setGunTrigger(false);
     unawaited(ref.read(angryWordsGunAudioProvider).stop());
-    unawaited(ref.read(angryWordsSlingAudioProvider).stopStretch());
+    unawaited(ref.read(angryWordsSlingAudioProvider).stop());
     _ticker.dispose();
+    _paint.dispose();
     super.dispose();
   }
 
@@ -187,14 +369,17 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         continue;
       }
       if (f.t < 1) {
-        f.t = (f.t + dt / 0.68).clamp(0.0, 1.0);
+        f.age += dt;
+        f.t = (f.t + dt / f.durationSec).clamp(0.0, 1.0);
         allDone = false;
+      } else if (f.asChick && !f.settled) {
+        f.age += dt;
       }
       if (f.t >= 1 && !f.settled) {
         f.settled = true;
         anySettled = true;
         revealed = math.max(revealed, i + 1);
-        HapticFeedback.selectionClick();
+        appHapticSelection(ref);
       }
       if (!f.settled) allDone = false;
     }
@@ -328,8 +513,12 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       _wrongFlash = 1;
       _attemptClean = false;
       _combo = 0;
-      HapticFeedback.lightImpact();
+      _comboLife = 0;
+      appHapticLight(ref);
       unawaited(_clearWrongAfterFlash());
+      if (_prefixOnWrongArmed && !_prefixCoachDone && !_prefixCoachVisible) {
+        setState(() => _prefixCoachVisible = true);
+      }
     }
     _wasWrong = s.pathWrongHighlight;
 
@@ -342,17 +531,24 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     if (_prefixFlash > 0) {
       _prefixFlash = (_prefixFlash - dt * 3.0).clamp(0.0, 1.0);
     }
+    if (_peekFlash > 0) {
+      // ~400ms peek flash after wrong path clears.
+      _peekFlash = (_peekFlash - dt * 2.5).clamp(0.0, 1.0);
+      if (_peekFlash <= 0) _peekChar = null;
+    }
     if (_sparkLife > 0) {
       _sparkLife = (_sparkLife - dt * 3.2).clamp(0.0, 1.0);
     }
     for (final e in _explosions) {
-      final decay = e.material == AngryWordsPropMaterial.foam ||
-              e.material == AngryWordsPropMaterial.sand
-          ? 1.15
-          : e.material == AngryWordsPropMaterial.stone ||
-                  e.material == AngryWordsPropMaterial.metal
-              ? 1.35
-              : 1.55;
+      final decay = e.material == AngryWordsPropMaterial.porcelain
+          ? 1.65
+          : e.material == AngryWordsPropMaterial.foam ||
+                  e.material == AngryWordsPropMaterial.sand
+              ? 1.15
+              : e.material == AngryWordsPropMaterial.stone ||
+                      e.material == AngryWordsPropMaterial.metal
+                  ? 1.35
+                  : 1.55;
       e.life = (e.life - dt * decay).clamp(0.0, 2.0);
     }
     _explosions.removeWhere((e) => e.life <= 0);
@@ -376,7 +572,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         final gun = ref.read(angryWordsGunAudioProvider);
         for (var i = 0; i < shots; i++) {
           gun.playShot(enabled: sfx);
-          HapticFeedback.selectionClick();
+          appHapticLightThrottled(ref);
         }
         _world.shotsFiredThisFrame = 0;
       }
@@ -386,12 +582,13 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       if (_world.aiming &&
           softLock != null &&
           softLock != _lastSoftLockId) {
-        HapticFeedback.selectionClick();
+        appHapticSelection(ref);
       }
       _lastSoftLockId = _world.aiming ? softLock : null;
       final propPops = _world.takePropPops();
       // Always allow pop.WAV (own player + rate limit) — single or spray.
       for (final pop in propPops) {
+        if (_coachEnabled) _coachPops += 1;
         _spawnPropExplosion(pop, playSound: true);
       }
       while (_explosions.length > 28) {
@@ -416,17 +613,54 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
 
     if (_world.isFreePhase && _world.inFlight) {
       _trail.add(_world.ball);
-      if (_trail.length > 10) _trail.removeAt(0);
+      if (_trail.length > 8) _trail.removeAt(0);
       _awaitingReload = true;
     } else if (!_world.aiming) {
       _trail.clear();
     }
 
     if (_world.cageCombo >= 2) {
+      if (_world.cageCombo > _combo) {
+        _comboLife = 1;
+      }
       _combo = math.max(_combo, _world.cageCombo);
     }
+    if (_combo >= 2 && _comboLife > 0) {
+      _comboLife = (_comboLife - dt / _comboWindowSec).clamp(0.0, 1.0);
+      if (_comboLife <= 0) {
+        _combo = 0;
+        _world.cageCombo = 0;
+      }
+    }
 
-    if (mounted) setState(() {});
+    final motion = WbMotion.of(context);
+    _paint.selectedIds = selectedIds;
+    _paint.wrongFlash = _wrongFlash;
+    _paint.successFlash = _successFlash;
+    _paint.prefixFlash = _prefixFlash;
+    _paint.sparkLife = _sparkLife;
+    _paint.trail = _trail;
+    _paint.explosions = _explosions;
+    _paint.isDark = Theme.of(context).brightness == Brightness.dark;
+    _paint.scheme = Theme.of(context).colorScheme;
+    _paint.nextLetterHighlight = _nextLetterHighlightFor(s);
+    _paint.peekChar = _peekChar;
+    _paint.peekFlash = _peekFlash;
+    _paint.allowIdlePulse = motion.allowIdlePulse;
+    _paint.particleScale = motion.particleScale;
+    _paint.markNeedsPaint();
+
+    final cargo = _world.remainingCargoCount;
+    final phase = _world.phase;
+    final comboShown = _combo >= 2 ? _combo : 0;
+    if (cargo != _hudCargo ||
+        phase != _hudPhase ||
+        comboShown != _hudCombo) {
+      _hudCargo = cargo;
+      _hudPhase = phase;
+      _hudCombo = comboShown;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _onLetterHit(LetterInstance hit) async {
@@ -449,13 +683,16 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     }
     hitPos ??= _world.sparkAt ?? _world.ball;
 
+    final porcelainLetters = _world.loadout.isPorcelainOnlyWall;
+    final sfxEnabled = ref.read(wordBuilderGameSfxEnabledProvider);
+
     if (correctForActive) {
+      // Hit-stop: freeze sim ~50ms so the impact reads before shards fly.
+      _world.requestHitStop(WbMotion.hitStop.inMilliseconds / 1000.0);
       var tint = 0;
-      var eggR = 16.0;
       for (final L in _world.letters) {
         if (L.letter.id == hit.id) {
           tint = L.tintIndex;
-          eggR = L.radius;
           break;
         }
       }
@@ -467,17 +704,66 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         ),
       );
       _world.explodeLetter(hit.id);
-      // Found letter-egg cracks: shell burst + yolk spills to the floor pool.
-      _world.spillYolkAt(hitPos, fromRadius: eggR, seed: hit.id);
-      _spawnEggLetterBreak(hitPos);
+      // Correct: shell cracks, chick flies — no yolk. Stage 22 = jug shatter.
+      if (porcelainLetters) {
+        _spawnPropExplosion(
+          AngryWordsPropPop(
+            at: hitPos,
+            palette: tint,
+            radius: 16,
+            material: AngryWordsPropMaterial.porcelain,
+          ),
+        );
+      } else {
+        _spawnEggLetterBreak(hitPos);
+        ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfxEnabled);
+      }
       _sparkLife = 1;
-      HapticFeedback.mediumImpact();
-      final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
-      ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfx);
+      appHapticMedium(ref);
+
+      final landing = _chickLandingGlobal(
+        before: before,
+        letterIndex: before.path.length,
+        fallbackBoardPos: hitPos,
+      );
+      if (landing != null) {
+        await _flySingleChick(
+          boardStart: hitPos,
+          char: hit.char,
+          tintIndex: tint,
+          endGlobal: landing,
+        );
+        if (!mounted) return;
+      }
     } else {
+      // Wrong: shatter + scatter. Eggs spill yolk; stage 22 jugs do not.
+      var letterR = 16.0;
+      var tint = 0;
+      for (final L in _world.letters) {
+        if (L.letter.id == hit.id) {
+          letterR = L.radius;
+          tint = L.tintIndex;
+          break;
+        }
+      }
       _pathAnchors.clear();
+      if (porcelainLetters) {
+        _spawnPropExplosion(
+          AngryWordsPropPop(
+            at: hitPos,
+            palette: tint,
+            radius: letterR,
+            material: AngryWordsPropMaterial.porcelain,
+          ),
+        );
+      } else {
+        _spawnEggLetterBreak(hitPos);
+        _world.spillYolkAt(hitPos, fromRadius: letterR, seed: hit.id);
+        ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfxEnabled);
+      }
       _world.scatterFromWrongHit(hit.id);
-      HapticFeedback.heavyImpact();
+      _sparkLife = 1;
+      appHapticHeavy(ref);
     }
 
     await n.appendLetterFromDrag(hit);
@@ -499,10 +785,16 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
           after?.feedbackMessage == '__physics_prefix') {
         _prefixFlash = 1;
         _combo += 1;
+        _comboLife = 1;
+        if (_coachEnabled && _world.isFreePhase) _freeShotOk = true;
       }
       if (after?.feedbackMessage == '__correct' ||
           after?.feedbackMessage == '__correct_perfect') {
         _combo += 1;
+        _comboLife = 1;
+        _world.requestScreenPunch(0.55);
+        unawaited(appHapticWordComplete(ref));
+        if (_coachEnabled && _world.isFreePhase) _freeShotOk = true;
       }
     } finally {
       _autoEvalBusy = false;
@@ -575,7 +867,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
           await sounds.play(WordBuilderSound.letterPop, enabled: true);
         }
         if (!mounted) return;
-        HapticFeedback.mediumImpact();
+        appHapticMedium(ref);
         setState(() {});
         await Future<void>.delayed(Duration(milliseconds: popGapMs));
       }
@@ -589,7 +881,8 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
           .clearAngryWordsVictoryHold();
       if (!mounted) return;
       _successFlash = 1;
-      HapticFeedback.heavyImpact();
+      _world.requestScreenPunch(0.7);
+      appHapticHeavy(ref);
       setState(() {});
     } finally {
       await bgm.endSfxBurst();
@@ -664,13 +957,15 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       pop.palette * 31 + pop.at.dx.round() + pop.material.index * 17,
     );
     final profile = _popProfileFor(pop.material);
+    final motionScale = mounted ? WbMotion.of(context).particleScale : 1.0;
     final bits = <AngryWordsExplosionBit>[];
     if (pop.material == AngryWordsPropMaterial.egg) {
       // Shell shards only — yolk becomes a live floor puddle.
       const shell = Color(0xFFFFF8E1);
       const shellDark = Color(0xFFE8D5B5);
-      for (var i = 0; i < 16; i++) {
-        final a = i * math.pi * 2 / 16 + rng.nextDouble() * 0.4;
+      final shardN = math.max(4, (16 * motionScale).round());
+      for (var i = 0; i < shardN; i++) {
+        final a = i * math.pi * 2 / shardN + rng.nextDouble() * 0.4;
         bits.add(
           AngryWordsExplosionBit(
             angle: a,
@@ -682,8 +977,9 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         );
       }
     } else {
-      for (var i = 0; i < profile.count; i++) {
-        final a = i * math.pi * 2 / profile.count + rng.nextDouble() * 0.55;
+      final count = math.max(2, (profile.count * motionScale).round());
+      for (var i = 0; i < count; i++) {
+        final a = i * math.pi * 2 / count + rng.nextDouble() * 0.55;
         final speed = profile.speedMin +
             rng.nextDouble() * (profile.speedMax - profile.speedMin);
         final shape = profile.shapes[i % profile.shapes.length];
@@ -702,6 +998,54 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         );
       }
     }
+
+    // Extra ceramic shatter: fine shards stay near the jug (tight radius).
+    if (pop.material == AngryWordsPropMaterial.porcelain) {
+      for (var i = 0; i < 22; i++) {
+        final a = rng.nextDouble() * math.pi * 2;
+        bits.add(
+          AngryWordsExplosionBit(
+            angle: a,
+            speed: 22 + rng.nextDouble() * 48,
+            size: 1.0 + rng.nextDouble() * 1.8,
+            color: i.isEven ? palette[0] : palette[1],
+            shape: AngryWordsBitShape.shard,
+          ),
+        );
+      }
+      for (var i = 0; i < 12; i++) {
+        final a = rng.nextDouble() * math.pi * 2;
+        bits.add(
+          AngryWordsExplosionBit(
+            angle: a,
+            speed: 16 + rng.nextDouble() * 36,
+            size: 0.8 + rng.nextDouble() * 1.4,
+            color: palette[0],
+            shape: AngryWordsBitShape.shard,
+          ),
+        );
+      }
+      // Powder cloud: brief beige puff near the break (fades faster in paint).
+      const dustColors = [
+        Color(0xFFEDE7E0),
+        Color(0xFFD7CCC8),
+        Color(0xFFBCAAA4),
+        Color(0xFFF5F0E8),
+      ];
+      for (var i = 0; i < 14; i++) {
+        final a = rng.nextDouble() * math.pi * 2;
+        bits.add(
+          AngryWordsExplosionBit(
+            angle: a,
+            speed: 8 + rng.nextDouble() * 22,
+            size: 2.4 + rng.nextDouble() * 3.2,
+            color: dustColors[i % dustColors.length],
+            shape: AngryWordsBitShape.dust,
+          ),
+        );
+      }
+    }
+
     if (pop.steamy) {
       for (var i = 0; i < 8; i++) {
         final a = rng.nextDouble() * math.pi * 2;
@@ -724,19 +1068,27 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         bits: bits,
         juicy: profile.juicy,
         steamy: pop.steamy,
+        chromatic: _world.loadout.element == AngryWordsBulletElement.plasma ||
+            _world.loadout.element == AngryWordsBulletElement.laser,
         ringA: profile.ringA,
         ringB: profile.ringB,
         material: pop.material,
       ),
     );
     _sparkLife = 1;
-    HapticFeedback.mediumImpact();
+    appHapticSelection(ref);
     if (playSound) {
-      final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
-      if (pop.material == AngryWordsPropMaterial.egg) {
-        ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfx);
+      final sfxEnabled = ref.read(wordBuilderGameSfxEnabledProvider);
+      if (pop.material == AngryWordsPropMaterial.porcelain ||
+          (pop.material == AngryWordsPropMaterial.glass &&
+              _world.loadout.isBottleOnlyWall)) {
+        ref.read(angryWordsPorcelainBreakAudioProvider).play(
+          enabled: sfxEnabled,
+        );
       } else {
-        ref.read(angryWordsPopAudioProvider).play(enabled: sfx);
+        ref.read(angryWordsPopAudioProvider).play(
+          enabled: sfxEnabled,
+        );
       }
     }
   }
@@ -770,15 +1122,21 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         accent: Color(0xFFFFFFFF),
       ),
       AngryWordsPropMaterial.porcelain => const _AngryWordsPopProfile(
-        count: 28,
-        speedMin: 130,
-        speedMax: 300,
-        sizeMin: 2.0,
-        sizeMax: 5.2,
-        shapes: [AngryWordsBitShape.shard, AngryWordsBitShape.dust],
-        ringA: Color(0xFFFAFAFA),
-        ringB: Color(0xFFBDBDBD),
+        count: 36,
+        speedMin: 28,
+        speedMax: 72,
+        sizeMin: 1.0,
+        sizeMax: 2.6,
+        shapes: [
+          AngryWordsBitShape.shard,
+          AngryWordsBitShape.shard,
+          AngryWordsBitShape.spark,
+        ],
+        ringA: Color(0xFFEDE7E0),
+        ringB: Color(0xFFBCAAA4),
         accent: Color(0xFFEEEEEE),
+        juicy: false,
+        life: 1.0,
       ),
       AngryWordsPropMaterial.ice => const _AngryWordsPopProfile(
         count: 28,
@@ -971,6 +1329,34 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     // Bring back any prefix balls that had been popped before the wrong hit.
     _world.revealAllLetters();
     _world.resetToCannon();
+    // Peek: flash only the next expected letter (~400ms) — no full-word spoil.
+    final s = ref.read(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
+    if (s != null) {
+      final peek = ghostNextLetterForUnsolvedPrefix(
+        s.level,
+        s.solvedLower,
+        '',
+      );
+      if (peek != null && peek.isNotEmpty) {
+        _peekChar = peek.toLowerCase();
+        _peekFlash = 1;
+        setState(() {});
+      }
+    }
+  }
+
+  /// Soft next-letter halo while path is non-empty (off on advanced).
+  String? _nextLetterHighlightFor(WordBuilderViewState s) {
+    final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
+    if (camp?.difficulty == WordBuilderDifficulty.advanced) return null;
+    if (s.path.isEmpty) return null;
+    final built = s.path.map((e) => e.char).join();
+    final next = ghostNextLetterForUnsolvedPrefix(
+      s.level,
+      s.solvedLower,
+      built,
+    );
+    return next?.toLowerCase();
   }
 
   Future<void> _onCorrectWord({required bool perfect}) async {
@@ -980,6 +1366,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     _prefixFlash = 0;
     _attemptClean = true;
     _combo = perfect ? math.max(_combo, 2) : _combo;
+    if (perfect) _comboLife = 1;
     if (!mounted) {
       _celebrateBusy = false;
       return;
@@ -1008,6 +1395,63 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       }
       _celebrateBusy = false;
     }
+  }
+
+  /// Target for a hatching chick: path / typed-letter card (or board top fallback).
+  Offset? _chickLandingGlobal({
+    required WordBuilderViewState before,
+    required int letterIndex,
+    required Offset fallbackBoardPos,
+  }) {
+    final key = widget.pathCardKey;
+    if (key != null) {
+      final box = key.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) {
+        final center = box.localToGlobal(box.size.center(Offset.zero));
+        // Nudge toward where the new glyph will appear in the path text.
+        final stagger = ((letterIndex - before.path.length / 2) * 11.0)
+            .clamp(-48.0, 48.0);
+        return center.translate(stagger, 0);
+      }
+    }
+    final boardBox = context.findRenderObject() as RenderBox?;
+    if (boardBox == null || !boardBox.hasSize) return null;
+    return boardBox.localToGlobal(
+      Offset(fallbackBoardPos.dx.clamp(24.0, _world.width - 24), 28),
+    );
+  }
+
+  Future<void> _flySingleChick({
+    required Offset boardStart,
+    required String char,
+    required int tintIndex,
+    required Offset endGlobal,
+  }) async {
+    final boardBox = context.findRenderObject() as RenderBox?;
+    if (boardBox == null || !boardBox.hasSize) return;
+
+    _flights
+      ..clear()
+      ..add(
+        AngryWordsFlightLetter(
+          char: char,
+          startGlobal: boardBox.localToGlobal(boardStart),
+          endGlobal: endGlobal,
+          tint: angryWordsLetterTint(tintIndex),
+          delay: 0,
+          asChick: true,
+        ),
+      );
+    _flightCompleter = Completer<void>();
+    _syncFlightOverlay();
+
+    await _flightCompleter!.future.timeout(
+      const Duration(milliseconds: 2400),
+      onTimeout: () {},
+    );
+    if (!mounted) return;
+    _flights.clear();
+    _removeFlightOverlay();
   }
 
   Future<void> _flyPathLettersToSlots(WordBuilderTargetWord word) async {
@@ -1046,6 +1490,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                 ),
             tint: angryWordsLetterTint(anchors[i].tintIndex),
             delay: i * 0.085,
+            asChick: true,
           ),
       ]);
     _pathAnchors.clear();
@@ -1053,7 +1498,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     _syncFlightOverlay();
 
     await _flightCompleter!.future.timeout(
-      const Duration(milliseconds: 2400),
+      const Duration(milliseconds: 4200),
       onTimeout: () {},
     );
     if (!mounted) return;
@@ -1068,7 +1513,6 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final s = ref.watch(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
-    final selectedIds = s?.path.map((e) => e.id).toSet() ?? {};
     final hardBlocked = s?.trayVictorySequenceActive ?? false;
     final inputBlocked = hardBlocked ||
         (s?.pathWrongHighlight ?? false) ||
@@ -1120,11 +1564,16 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         _boardSize = size;
         _ensureLayout(size);
 
-        final punch = _world.screenPunch;
+        final motion = WbMotion.of(context);
+        final punch = motion.allowShake ? _world.screenPunch : 0.0;
         final shake = punch > 0.01
             ? Offset(
-                math.sin(_world.simTime * 70) * punch * 5,
-                math.cos(_world.simTime * 55) * punch * 3.5,
+                math.sin(_world.simTime * 70) *
+                    punch *
+                    WbMotion.maxShakePx,
+                math.cos(_world.simTime * 55) *
+                    punch *
+                    (WbMotion.maxShakePx * 0.7),
               )
             : Offset.zero;
 
@@ -1144,6 +1593,11 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           if (box == null) return;
                           final local =
                               box.globalToLocal(d.globalPosition);
+                          if (_world.usesHammer) {
+                            _world.beginHammer(local);
+                            appHapticSelection(ref);
+                            return;
+                          }
                           if (_world.usesGun) {
                             _world.setGunAim(local);
                             unawaited(_setGunTrigger(true));
@@ -1152,7 +1606,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           }
                           if (_world.inFlight) return;
                           if (_world.beginLetterDrag(local)) {
-                            HapticFeedback.selectionClick();
+                            appHapticSelection(ref);
                             return;
                           }
                           _world.beginAim(local);
@@ -1168,6 +1622,10 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           if (box == null) return;
                           final local =
                               box.globalToLocal(d.globalPosition);
+                          if (_world.usesHammer) {
+                            _world.updateHammer(local);
+                            return;
+                          }
                           if (_world.usesGun) {
                             _world.setGunAim(local);
                             if (!_world.gunTriggerHeld) {
@@ -1187,6 +1645,11 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                   onPanEnd: inputBlocked
                       ? null
                       : (_) {
+                          if (_world.usesHammer) {
+                            _world.endHammer();
+                            appHapticMedium(ref);
+                            return;
+                          }
                           if (_world.usesGun) {
                             unawaited(_setGunTrigger(false));
                             _syncWindFromSources();
@@ -1194,56 +1657,94 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           }
                           if (_world.isDraggingLetter) {
                             final focused = _world.endLetterDrag();
-                            HapticFeedback.lightImpact();
+                            appHapticLight(ref);
                             if (focused) {
-                              HapticFeedback.selectionClick();
+                              appHapticSelection(ref);
                             }
                             return;
                           }
-                          final power = _world.powerNorm;
                           final launched = _world.releaseAim();
-                          final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
-                          unawaited(
-                            ref.read(angryWordsSlingAudioProvider).onRelease(
-                                  enabled: sfx,
-                                  powerNorm: power,
-                                  launched: launched,
-                                ),
-                          );
-                          _syncWindFromSources();
+                          unawaited(ref.read(angryWordsSlingAudioProvider).stop());
+                          final sfxOn = ref.read(wordBuilderGameSfxEnabledProvider);
                           if (launched) {
-                            HapticFeedback.mediumImpact();
+                            ref.read(angryWordsSlingSnapAudioProvider).play(enabled: sfxOn);
+                            ref.read(angryWordsSlingWhooshAudioProvider).play(enabled: sfxOn);
+                            appHapticMedium(ref);
                           }
+                          _syncWindFromSources();
                         },
                   onPanCancel: () {
-                    if (_world.usesGun) {
+                    if (_world.usesHammer) {
+                      _world.cancelHammer();
+                    } else if (_world.usesGun) {
                       unawaited(_setGunTrigger(false));
                     } else if (_world.isDraggingLetter) {
                       _world.endLetterDrag();
                     } else {
                       _world.cancelAim();
-                      unawaited(ref.read(angryWordsSlingAudioProvider).stopStretch());
+                      unawaited(ref.read(angryWordsSlingAudioProvider).stop());
                     }
                     _lastSoftLockId = null;
                     _syncWindFromSources();
                   },
-                  child: CustomPaint(
-                    size: size,
-                    painter: AngryWordsBoardPainter(
-                      world: _world,
-                      selectedIds: selectedIds,
-                      wrongFlash: _wrongFlash,
-                      successFlash: _successFlash,
-                      prefixFlash: _prefixFlash,
-                      combo: _combo,
-                      trail: List.of(_trail),
-                      sparkLife: _sparkLife,
-                      explosions: List.of(_explosions),
-                      isDark: isDark,
-                      scheme: scheme,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      size: size,
+                      painter: _painter,
                     ),
                   ),
                 ),
+                if (_combo >= 2)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: RepaintBoundary(
+                      child: ListenableBuilder(
+                        listenable: _paint,
+                        builder: (context, _) => IgnorePointer(
+                          child: WordBuilderComboChip(
+                            combo: _combo,
+                            life: _comboLife,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_world.phase == AngryWordsPhase.cage &&
+                    _world.remainingCargoCount > 0)
+                  Positioned(
+                    top: _combo >= 2 ? 58 : 10,
+                    right: 10,
+                    child: RepaintBoundary(
+                      child: ListenableBuilder(
+                        listenable: _paint,
+                        builder: (context, _) => IgnorePointer(
+                          child: _AngryWordsHudChip(
+                            child: Text.rich(
+                              TextSpan(
+                                style: TextStyle(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.92,
+                                  ),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.1,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: l10n.wordBuilderAngryWordsLettersLeft(
+                                      _world.remainingCargoCount,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (_world.isFreePhase)
                   Positioned(
                     right: _windBtnRight,
@@ -1256,44 +1757,69 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                       onHeldChanged: (held) {
                         _windButtonHeld = held;
                         _syncWindFromSources();
-                        if (held) HapticFeedback.selectionClick();
+                        if (held) appHapticSelection(ref);
                         setState(() {});
                       },
                     ),
                   ),
                 if (!inputBlocked &&
-                    ((_world.usesGun && !_world.gunTriggerHeld) ||
+                    ((_world.usesHammer && !_world.hammerHeld) ||
+                        (_world.usesGun && !_world.gunTriggerHeld) ||
                         (_world.isFreePhase &&
                             !_world.inFlight &&
                             !_world.aiming &&
                             !_world.isDraggingLetter)))
                   Positioned(
-                    left: 0,
-                    right: 0,
+                    left: 12,
+                    right: 12,
                     bottom: 10,
                     child: IgnorePointer(
-                      child: Text(
-                        _world.usesGun
-                            ? (_world.loadout.gun ==
-                                        AngryWordsGunKind.doomsdayMg ||
-                                    (_world.loadout.gun ==
-                                            AngryWordsGunKind.tankCannon &&
-                                        _world.loadout.pelletCount >= 2)
-                                ? 'Hold & spray · ${_world.loadout.label} · ${_world.loadout.chapterTag} · ${_world.loadout.wallHint}'
-                                : _world.remainingCargoCount == 0 &&
-                                        _world.revealedLetterCount > 0
-                                ? 'Clear the wall · ${_world.loadout.label} · ${_world.loadout.wallHint}'
-                                : 'Blast letter orbs · ${_world.loadout.label} · ${_world.revealedLetterCount} / ${_world.revealedLetterCount + _world.remainingCargoCount} · ${_world.loadout.wallHint}')
-                            : _world.phase == AngryWordsPhase.freeing
-                            ? 'Letters unlocked!'
-                            : l10n.wordBuilderAngryWordsAimHint,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: scheme.onSurface.withValues(alpha: 0.72),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                      child: Center(
+                        child: _AngryWordsHudChip(
+                          child: _angryWordsHintText(
+                            scheme: scheme,
+                            l10n: l10n,
+                          ),
                         ),
                       ),
+                    ),
+                  ),
+                if (_coachEnabled && _coachSteps.isNotEmpty)
+                  Positioned.fill(
+                    child: CoachOverlay(
+                      key: const ValueKey('aw-main-coach'),
+                      steps: _coachSteps,
+                      onFinished: () => unawaited(_finishMainCoach()),
+                    ),
+                  ),
+                if (_prefixCoachVisible)
+                  Positioned.fill(
+                    child: CoachOverlay(
+                      key: const ValueKey('aw-prefix-coach'),
+                      steps: [
+                        CoachStep(
+                          id: 'prefix',
+                          message: l10n.wordBuilderCoachPrefixOrder,
+                          targetRect: () {
+                            final s = ref
+                                .read(wordBuilderGameProvider(widget.bookKey))
+                                .valueOrNull;
+                            if (s == null) return null;
+                            final next = ghostNextLetterForUnsolvedPrefix(
+                              s.level,
+                              s.solvedLower,
+                              '',
+                            );
+                            return _expectedLetterSpotlightRect(
+                              next?.toLowerCase(),
+                            );
+                          },
+                          autoAdvanceAfter: const Duration(milliseconds: 2800),
+                          allowSkip: true,
+                          dimOpacity: 0.5,
+                        ),
+                      ],
+                      onFinished: () => unawaited(_finishPrefixCoach()),
                     ),
                   ),
               ],
@@ -1301,6 +1827,95 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
           ),
         );
       },
+    );
+  }
+
+  Widget _angryWordsHintText({
+    required ColorScheme scheme,
+    required AppLocalizations l10n,
+  }) {
+    final found = _world.revealedLetterCount;
+    final total = found + _world.remainingCargoCount;
+    final baseStyle = TextStyle(
+      color: scheme.onSurface.withValues(alpha: 0.88),
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+      height: 1.2,
+    );
+    if (_world.usesHammer) {
+      return Text(
+        '${l10n.wordBuilderAngryWordsHammerHint} · $found / $total',
+        textAlign: TextAlign.center,
+        style: baseStyle,
+      );
+    }
+    if (_world.usesGun) {
+      final label = _world.loadout.label;
+      if (_world.loadout.gun == AngryWordsGunKind.doomsdayMg ||
+          (_world.loadout.gun == AngryWordsGunKind.tankCannon &&
+              _world.loadout.pelletCount >= 2)) {
+        return Text(
+          l10n.wordBuilderAngryWordsHoldSprayHint(label),
+          textAlign: TextAlign.center,
+          style: baseStyle,
+        );
+      }
+      if (_world.remainingCargoCount == 0 && _world.revealedLetterCount > 0) {
+        return Text(
+          l10n.wordBuilderAngryWordsClearWallHint(label),
+          textAlign: TextAlign.center,
+          style: baseStyle,
+        );
+      }
+      return Text(
+        l10n.wordBuilderAngryWordsBlastOrbsHint(label, found, total),
+        textAlign: TextAlign.center,
+        style: baseStyle,
+      );
+    }
+    if (_world.phase == AngryWordsPhase.freeing) {
+      return Text(
+        l10n.wordBuilderAngryWordsLettersUnlocked,
+        textAlign: TextAlign.center,
+        style: baseStyle,
+      );
+    }
+    return Text(
+      l10n.wordBuilderAngryWordsAimHint,
+      textAlign: TextAlign.center,
+      style: baseStyle,
+    );
+  }
+}
+
+class _AngryWordsHudChip extends StatelessWidget {
+  const _AngryWordsHudChip({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.black : Colors.white).withValues(
+              alpha: isDark ? 0.42 : 0.55,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.35),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }

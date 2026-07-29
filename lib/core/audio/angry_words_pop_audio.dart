@@ -8,13 +8,13 @@ import 'app_audio_session.dart';
 import 'audio_asset_probe.dart';
 import 'word_builder_sound_service.dart';
 
-/// Dedicated one-shot player for Angry Words barrier pops (`pop.WAV`).
+/// Dedicated one-shot player for Angry Words barrier pops (`pop.wav`).
 ///
 /// Loads the asset **once**. Rapid clears only pause→seek→play — never
 /// `setAudioSource` again. On Windows, plays are heavily rate-limited because
 /// `just_audio_windows` crashes under load/seek thrash.
 class AngryWordsPopAudio {
-  static const assetPath = 'assets/audio/pop.WAV';
+  static const assetPath = 'assets/audio/pop.wav';
 
   AudioPlayer? _player;
   bool _ready = false;

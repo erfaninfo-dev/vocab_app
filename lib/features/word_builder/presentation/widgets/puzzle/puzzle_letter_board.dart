@@ -2,15 +2,17 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../../core/audio/app_haptics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../application/word_builder_game_notifier.dart';
+import '../../../application/word_builder_onboarding_prefs.dart';
 import '../../../domain/puzzle_grid_logic.dart';
 import '../../../domain/word_builder_game_logic.dart';
 import '../../../domain/word_builder_models.dart';
+import '../coach/coach_overlay.dart';
 
 /// Sliding letter grid where each row spells one target word (left → right).
 class PuzzleLetterBoard extends ConsumerStatefulWidget {
@@ -37,6 +39,7 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
   bool _busy = false;
   final Set<int> _frozenRows = <int>{};
   final _random = math.Random();
+  bool _coachVisible = false;
 
   @override
   void initState() {
@@ -50,6 +53,11 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
             .read(wordBuilderGameProvider(widget.bookKey).notifier)
             .preparePhysicsLetterMode(),
       );
+      unawaited(() async {
+        final done = await ref.read(wordBuilderPuzzleOnboardingProvider.future);
+        if (!mounted || done) return;
+        setState(() => _coachVisible = true);
+      }());
     });
   }
 
@@ -157,11 +165,11 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
     if (_busy || _cells[index] == null) return;
     if (!_layout.isSlideable(index)) return;
     if (_isFrozenIndex(index)) {
-      HapticFeedback.selectionClick();
+      appHapticSelection(ref);
       return;
     }
     if (!_layout.areAdjacent(index, _emptyIndex)) {
-      HapticFeedback.selectionClick();
+      appHapticSelection(ref);
       return;
     }
     final neighbors = _layout
@@ -169,7 +177,7 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
         .where((i) => !_isFrozenIndex(i))
         .toList();
     if (!neighbors.contains(index)) {
-      HapticFeedback.selectionClick();
+      appHapticSelection(ref);
       return;
     }
 
@@ -182,7 +190,7 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
       _cells[index] = null;
       _emptyIndex = index;
     });
-    HapticFeedback.lightImpact();
+    appHapticLight(ref);
 
     try {
       final solvedRows = await ref
@@ -237,9 +245,12 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
         final boardH =
             cellSide * _layout.rowCount + gap * (_layout.rowCount - 1);
 
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        return Stack(
+          fit: StackFit.expand,
           children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
             Expanded(
               child: Center(
                 child: DecoratedBox(
@@ -331,6 +342,38 @@ class _PuzzleLetterBoardState extends ConsumerState<PuzzleLetterBoard> {
                 ),
               ),
             ),
+              ],
+            ),
+            if (_coachVisible)
+              Positioned.fill(
+                child: CoachOverlay(
+                  steps: [
+                    CoachStep(
+                      id: 'puzzle_slide',
+                      message: l10n.wordBuilderCoachPuzzleSlide,
+                      targetRect: () => Rect.fromCenter(
+                        center: Offset(
+                          constraints.maxWidth * 0.5,
+                          constraints.maxHeight * 0.42,
+                        ),
+                        width: boardW.clamp(120.0, constraints.maxWidth * 0.9),
+                        height: boardH.clamp(100.0, constraints.maxHeight * 0.55),
+                      ),
+                      finger: CoachFingerKind.tap,
+                      autoAdvanceAfter: const Duration(milliseconds: 3200),
+                      allowSkip: true,
+                    ),
+                  ],
+                  onFinished: () {
+                    setState(() => _coachVisible = false);
+                    unawaited(
+                      ref
+                          .read(wordBuilderPuzzleOnboardingProvider.notifier)
+                          .markComplete(),
+                    );
+                  },
+                ),
+              ),
           ],
         );
       },

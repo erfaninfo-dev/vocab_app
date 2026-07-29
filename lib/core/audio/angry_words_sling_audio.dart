@@ -8,94 +8,42 @@ import 'app_audio_session.dart';
 import 'audio_asset_probe.dart';
 import 'word_builder_sound_service.dart';
 
-/// Angry Words slingshot Foley:
-/// stretch loop (pitch/volume follow tension) → snap on release → optional whoosh.
+/// Looping rubber-band stretch SFX while the Angry Words slingshot is pulled.
+///
+/// Volume and playback speed rise with pull power so tension feels natural.
 class AngryWordsSlingAudio {
-  static const stretchAsset = 'assets/audio/sling_stretch.wav';
-  static const snapAsset = 'assets/audio/sling_snap.wav';
-  static const whooshAsset = 'assets/audio/sling_whoosh.wav';
+  static const assetPath = 'assets/audio/sling_stretch.wav';
 
-  AudioPlayer? _stretch;
-  AudioPlayer? _snap;
-  AudioPlayer? _whoosh;
-  bool _stretchReady = false;
-  bool _snapReady = false;
-  bool _whooshReady = false;
+  AudioPlayer? _player;
+  bool _ready = false;
   bool _active = false;
   bool _syncBusy = false;
   double _lastVolume = -1;
   double _lastSpeed = -1;
   DateTime? _lastParamAt;
 
-  Future<void> ensureLoaded() async {
-    await Future.wait([
-      _ensureStretch(),
-      _ensureOneShot(
-        asset: snapAsset,
-        getPlayer: () => _snap,
-        setPlayer: (p) => _snap = p,
-        isReady: () => _snapReady,
-        setReady: (v) => _snapReady = v,
-        label: 'snap',
-      ),
-      _ensureOneShot(
-        asset: whooshAsset,
-        getPlayer: () => _whoosh,
-        setPlayer: (p) => _whoosh = p,
-        isReady: () => _whooshReady,
-        setReady: (v) => _whooshReady = v,
-        label: 'whoosh',
-      ),
-    ]);
-  }
+  bool get isReady => _ready;
 
-  Future<void> _ensureStretch() async {
-    if (_stretchReady) return;
-    if (!await audioAssetExists(stretchAsset)) {
-      debugPrint('AngryWordsSlingAudio: missing $stretchAsset');
+  Future<void> ensureLoaded() async {
+    if (_ready) return;
+    if (!await audioAssetExists(assetPath)) {
+      debugPrint('AngryWordsSlingAudio: missing $assetPath');
       return;
     }
     try {
       await configureAppAudioSession();
-      final player = _stretch ??= AudioPlayer();
+      final player = _player ??= AudioPlayer();
       await player.setLoopMode(LoopMode.one);
       await player.setVolume(0.0);
       await player.setSpeed(1.0);
       await player.setAudioSource(
-        AudioSource.asset(stretchAsset),
+        AudioSource.asset(assetPath),
         preload: true,
       );
-      _stretchReady = true;
+      _ready = true;
     } catch (e, st) {
-      debugPrint('AngryWordsSlingAudio: stretch load failed ($e)\n$st');
-      _stretchReady = false;
-    }
-  }
-
-  Future<void> _ensureOneShot({
-    required String asset,
-    required AudioPlayer? Function() getPlayer,
-    required void Function(AudioPlayer) setPlayer,
-    required bool Function() isReady,
-    required void Function(bool) setReady,
-    required String label,
-  }) async {
-    if (isReady()) return;
-    if (!await audioAssetExists(asset)) {
-      debugPrint('AngryWordsSlingAudio: missing $asset');
-      return;
-    }
-    try {
-      await configureAppAudioSession();
-      final player = getPlayer() ?? AudioPlayer();
-      setPlayer(player);
-      await player.setLoopMode(LoopMode.off);
-      await player.setVolume(0.92);
-      await player.setAudioSource(AudioSource.asset(asset), preload: true);
-      setReady(true);
-    } catch (e, st) {
-      debugPrint('AngryWordsSlingAudio: $label load failed ($e)\n$st');
-      setReady(false);
+      debugPrint('AngryWordsSlingAudio: load failed ($e)\n$st');
+      _ready = false;
     }
   }
 
@@ -108,36 +56,29 @@ class AngryWordsSlingAudio {
     required double minPull,
   }) {
     if (!enabled || !aiming || pullDistance < minPull * 0.55) {
-      if (_active) unawaited(stopStretch());
+      if (_active) unawaited(stop());
       return;
     }
     unawaited(_syncActive(powerNorm.clamp(0.0, 1.0)));
   }
 
-  /// Volume 0.15→1.0 and pitch/speed 0.85→1.25 from tension.
-  static double volumeForTension(double tension) =>
-      (0.15 + tension.clamp(0.0, 1.0) * 0.85).clamp(0.15, 1.0);
-
-  static double speedForTension(double tension) =>
-      (0.85 + tension.clamp(0.0, 1.0) * 0.4).clamp(0.85, 1.25);
-
-  Future<void> _syncActive(double tension) async {
+  Future<void> _syncActive(double power) async {
     if (_syncBusy) return;
     _syncBusy = true;
     try {
-      await _ensureStretch();
-      final player = _stretch;
-      if (player == null || !_stretchReady) return;
+      await ensureLoaded();
+      final player = _player;
+      if (player == null || !_ready) return;
 
-      // Soft-cap loudness on fragile Windows just_audio, keep curve shape.
-      final fragile = WordBuilderSoundService.isFragileDesktopAudio;
-      final volume = fragile
-          ? (volumeForTension(tension) * 0.72).clamp(0.1, 0.78)
-          : volumeForTension(tension);
-      final speed = fragile ? 1.0 : speedForTension(tension);
+      final volume = (0.12 + power * 0.62).clamp(0.0, 0.78);
+      // Slightly faster playback = higher tension pitch.
+      final speed = WordBuilderSoundService.isFragileDesktopAudio
+          ? 1.0
+          : (0.88 + power * 0.42).clamp(0.85, 1.35);
 
       final now = DateTime.now();
-      final throttleMs = fragile ? 90 : 40;
+      final throttleMs =
+          WordBuilderSoundService.isFragileDesktopAudio ? 90 : 45;
       final allowParams = _lastParamAt == null ||
           now.difference(_lastParamAt!).inMilliseconds >= throttleMs;
 
@@ -145,14 +86,16 @@ class AngryWordsSlingAudio {
         try {
           await player.seek(Duration.zero);
         } catch (_) {
-          _stretchReady = false;
-          await _ensureStretch();
+          _ready = false;
+          await ensureLoaded();
         }
-        final again = _stretch;
-        if (again == null || !_stretchReady) return;
+        final again = _player;
+        if (again == null || !_ready) return;
         try {
           await again.setVolume(volume);
-          if (!fragile) await again.setSpeed(speed);
+          if (!WordBuilderSoundService.isFragileDesktopAudio) {
+            await again.setSpeed(speed);
+          }
         } catch (_) {}
         _lastVolume = volume;
         _lastSpeed = speed;
@@ -172,13 +115,14 @@ class AngryWordsSlingAudio {
 
       if (!allowParams) return;
       _lastParamAt = now;
-      if ((volume - _lastVolume).abs() > 0.025) {
+      if ((volume - _lastVolume).abs() > 0.03) {
         try {
           await player.setVolume(volume);
           _lastVolume = volume;
         } catch (_) {}
       }
-      if (!fragile && (speed - _lastSpeed).abs() > 0.03) {
+      if (!WordBuilderSoundService.isFragileDesktopAudio &&
+          (speed - _lastSpeed).abs() > 0.04) {
         try {
           await player.setSpeed(speed);
           _lastSpeed = speed;
@@ -197,64 +141,18 @@ class AngryWordsSlingAudio {
       }
     } catch (e, st) {
       debugPrint('AngryWordsSlingAudio: sync skipped ($e)\n$st');
-      _stretchReady = false;
+      _ready = false;
       _active = false;
     } finally {
       _syncBusy = false;
     }
   }
 
-  /// Stop stretch loop; if [launched], play snap (+ whoosh when charged).
-  Future<void> onRelease({
-    required bool enabled,
-    required double powerNorm,
-    required bool launched,
-  }) async {
-    await stopStretch();
-    if (!enabled || !launched) return;
-    await _playOneShot(_snap, () => _snapReady, 'snap');
-    if (powerNorm >= 0.42) {
-      // Slight delay so snap reads first, then flight whoosh.
-      await Future<void>.delayed(const Duration(milliseconds: 28));
-      await _playOneShot(_whoosh, () => _whooshReady, 'whoosh');
-    }
-  }
-
-  Future<void> _playOneShot(
-    AudioPlayer? player,
-    bool Function() isReady,
-    String label,
-  ) async {
-    await ensureLoaded();
-    final p = player;
-    if (p == null || !isReady()) return;
-    try {
-      try {
-        if (p.playing) await p.pause();
-      } catch (_) {}
-      try {
-        await p.seek(Duration.zero);
-      } catch (_) {
-        return;
-      }
-      unawaited(
-        p.play().then<void>(
-          (_) {},
-          onError: (Object e, StackTrace st) {
-            debugPrint('AngryWordsSlingAudio: $label play error ($e)\n$st');
-          },
-        ),
-      );
-    } catch (e, st) {
-      debugPrint('AngryWordsSlingAudio: $label skipped ($e)\n$st');
-    }
-  }
-
-  Future<void> stopStretch() async {
+  Future<void> stop() async {
     _active = false;
     _lastVolume = -1;
     _lastSpeed = -1;
-    final player = _stretch;
+    final player = _player;
     if (player == null) return;
     try {
       if (player.playing) await player.pause();
@@ -266,25 +164,16 @@ class AngryWordsSlingAudio {
     } catch (_) {}
   }
 
-  /// Alias used by dispose / cancel paths.
-  Future<void> stop() => stopStretch();
-
   Future<void> dispose() async {
     _active = false;
-    final players = <AudioPlayer?>[_stretch, _snap, _whoosh];
-    _stretch = null;
-    _snap = null;
-    _whoosh = null;
-    _stretchReady = false;
-    _snapReady = false;
-    _whooshReady = false;
-    for (final p in players) {
-      if (p == null) continue;
-      try {
-        await p.stop();
-        await p.dispose();
-      } catch (_) {}
-    }
+    final p = _player;
+    _player = null;
+    _ready = false;
+    if (p == null) return;
+    try {
+      await p.stop();
+      await p.dispose();
+    } catch (_) {}
   }
 }
 

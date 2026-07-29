@@ -484,6 +484,25 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get splashSoundSubtitle => 'کاتێک ئەپ دەکرێتەوە دەنگێکی هێمن لێ بدە';
 
   @override
+  String get soundMusicTitle => 'میوزیک';
+
+  @override
+  String get soundMusicSubtitle =>
+      'میوزیکی پاشبنەما لە یاری و مینیو (ئەگەر هەبێت)';
+
+  @override
+  String get soundSfxTitle => 'ئێفێکتی دەنگ';
+
+  @override
+  String get soundSfxSubtitle => 'تەقە، پۆپ، فیدباکی ڕاست/هەڵە و ئێفێکتی تر';
+
+  @override
+  String get soundHapticsTitle => 'لەرزین';
+
+  @override
+  String get soundHapticsSubtitle => 'فیدباکی دەستی بۆ کرتە و ڕووداوەکانی یاری';
+
+  @override
   String get sectionAbout => 'دەربارە';
 
   @override
@@ -2579,6 +2598,80 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get wordBuilderAngryWordsWindHint =>
       'دوگمەی با بگرە، یان فڕێدەرەکە بەرەو با ئاماژە پێ بکە — پیتەکان خێراتر دەجوڵێن';
+
+  @override
+  String get wordBuilderAngryWordsHammerHint =>
+      'چەکووش ڕابکێشە · شووشەکان بشکێنە';
+
+  @override
+  String wordBuilderAngryWordsHoldSprayHint(String label) {
+    return 'بگرە و بپاشە · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsClearWallHint(String label) {
+    return 'دیوار پاک بکە · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsBlastOrbsHint(
+    String label,
+    int found,
+    int total,
+  ) {
+    return 'تۆپە پیتەکان لێبدە · $label · $found/$total';
+  }
+
+  @override
+  String get wordBuilderAngryWordsLettersUnlocked => 'پیتەکان ئازادکران!';
+
+  @override
+  String wordBuilderAngryWordsLettersLeft(int count) {
+    return '$count پیت ماوە';
+  }
+
+  @override
+  String get wordBuilderCoachHoldFire => 'بگرە و تەقە بکە تا دیوار بشکێت';
+
+  @override
+  String get wordBuilderCoachHammerSmash => 'چەکووش ڕابکێشە تا شووشەکان بشکێن';
+
+  @override
+  String get wordBuilderCoachLettersHidden =>
+      'پیتەکان لەناو هەندێک تۆپدا شاراون — بدۆزەوە!';
+
+  @override
+  String get wordBuilderCoachClearWall =>
+      'هەموو دیوار پاک بکە تا فڕێدەر بکڕێتەوە';
+
+  @override
+  String get wordBuilderCoachWallCleared => 'دیوار پاک بوو — ئێستا فڕێدەر';
+
+  @override
+  String get wordBuilderCoachPullRelease =>
+      'ڕابکێشە و بەجێی بهێڵە بۆ لێدانی پیت';
+
+  @override
+  String get wordBuilderCoachPrefixOrder => 'پیتەکان بە ڕیزی دروستی وشە لێ بدە';
+
+  @override
+  String get wordBuilderCoachArkanoidAim =>
+      'تۆپ بدە بە خشتەکانی پیت بۆ دروستکردنی وشە';
+
+  @override
+  String get wordBuilderCoachPuzzleSlide =>
+      'پیتی تەنیشت خانەی بەتاڵ لێبدە تا بجوڵێت';
+
+  @override
+  String get wordBuilderResetTutorials => 'فێرکارییەکان دووبارە پیشان بدە';
+
+  @override
+  String get wordBuilderResetTutorialsDone =>
+      'جارێکی تر لە هەر دۆخێکدا فێرکاری دەبینرێتەوە';
+
+  @override
+  String get wordBuilderAdminResetOnboarding =>
+      'ڕیسێتی فێرکاری Word Builder (ئەدمین)';
 
   @override
   String get wordBuilderArkanoidCheck => 'پشکنین';

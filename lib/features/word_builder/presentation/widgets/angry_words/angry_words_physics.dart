@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import '../../../domain/word_builder_models.dart';
 import 'angry_words_loadout.dart';
+import 'angry_words_spatial_grid.dart';
 
 /// Cage breach → free slingshot letter hunt.
 enum AngryWordsPhase {
@@ -16,7 +17,7 @@ enum AngryWordsPhase {
   free,
 }
 
-/// Rapid-fire blaster projectile (Phase A only).
+/// Rapid-fire blaster projectile (Phase A only). Fields mutable for pooling.
 class AngryWordsBullet {
   AngryWordsBullet({
     required this.pos,
@@ -29,15 +30,38 @@ class AngryWordsBullet {
     this.homing = false,
   });
 
-  Offset pos;
-  Offset vel;
-  final int damage;
-  int pierceLeft;
-  final double radius;
-  final AngryWordsBulletElement element;
-  final double splashRadius;
-  final bool homing;
+  AngryWordsBullet._pooled();
+
+  Offset pos = Offset.zero;
+  Offset vel = Offset.zero;
+  int damage = 1;
+  int pierceLeft = 0;
+  double radius = 5;
+  AngryWordsBulletElement element = AngryWordsBulletElement.normal;
+  double splashRadius = 0;
+  bool homing = false;
   bool dead = false;
+
+  void _configure({
+    required Offset pos,
+    required Offset vel,
+    required int damage,
+    required int pierceLeft,
+    required double radius,
+    required AngryWordsBulletElement element,
+    required double splashRadius,
+    required bool homing,
+  }) {
+    this.pos = pos;
+    this.vel = vel;
+    this.damage = damage;
+    this.pierceLeft = pierceLeft;
+    this.radius = radius;
+    this.element = element;
+    this.splashRadius = splashRadius;
+    this.homing = homing;
+    dead = false;
+  }
 }
 
 /// Floating letter that wanders continuously (never sits still).
@@ -270,6 +294,8 @@ class AngryWordsPhysicsWorld {
   final List<AngryWordsPropBubble> props = [];
   final List<AngryWordsPropPop> _pendingPropPops = [];
   final List<AngryWordsBullet> bullets = [];
+  final List<AngryWordsBullet> _bulletPool = [];
+  final AngryWordsSpatialGrid _propGrid = AngryWordsSpatialGrid();
   final List<AngryWordsYolkBlob> yolks = [];
   double simTime = 0;
 
@@ -283,10 +309,20 @@ class AngryWordsPhysicsWorld {
   bool gunTriggerHeld = false;
   double fireCooldown = 0;
   double muzzleFlash = 0;
+  /// Soft smoke that rises after a shot (longer than muzzle flash).
+  double muzzleSmoke = 0;
   double gunRecoil = 0;
 
-  /// 0..1 — board can punch/shake the camera.
+  /// 0..1 — board can punch/shake the camera (heavy events only).
   double screenPunch = 0;
+
+  /// Wall-clock freeze after a correct letter hit (dt forced to 0).
+  double hitStopRemaining = 0;
+
+  /// Dust puff when the sling ball lands on the ground.
+  Offset? groundDustAt;
+  double groundDustLife = 0;
+
   int cageCombo = 0;
   double _freeUnlockTimer = 0;
 
@@ -394,8 +430,21 @@ class AngryWordsPhysicsWorld {
 
   bool get isCagePhase => phase == AngryWordsPhase.cage;
   bool get isFreePhase => phase == AngryWordsPhase.free;
-  bool get usesGun => phase == AngryWordsPhase.cage;
+  /// Cage blaster — not used on the bottle/hammer stage.
+  bool get usesGun =>
+      phase == AngryWordsPhase.cage && !loadout.isBottleOnlyWall;
+  /// Stage 23: drag a hammer to smash glass bottles.
+  bool get usesHammer =>
+      phase == AngryWordsPhase.cage && loadout.isBottleOnlyWall;
   bool get usesSlingshot => phase == AngryWordsPhase.free;
+
+  /// Finger / hammer tip while smashing bottles (cage stage 23).
+  Offset? hammerPos;
+  bool hammerHeld = false;
+  /// 0..1 strike pulse (rotates the hammer head).
+  double hammerSwing = 0;
+  double hammerSmashCooldown = 0;
+  int? _lastHammerHitPropId;
 
   /// Active aim target: while pulling, purely the letter under the aim angle.
   int? get lockedLetterId => aiming ? softLockLetterId : focusedLetterId;
@@ -548,10 +597,19 @@ class AngryWordsPhysicsWorld {
     gunTriggerHeld = false;
     fireCooldown = 0;
     muzzleFlash = 0;
+    muzzleSmoke = 0;
     gunRecoil = 0;
     screenPunch = 0;
+    hitStopRemaining = 0;
+    groundDustAt = null;
+    groundDustLife = 0;
     cageCombo = 0;
     gunAim = const Offset(0, -1);
+    hammerPos = null;
+    hammerHeld = false;
+    hammerSwing = 0;
+    hammerSmashCooldown = 0;
+    _lastHammerHitPropId = null;
     _freeUnlockTimer = 0;
     bullets.clear();
     letters.clear();
@@ -574,7 +632,14 @@ class AngryWordsPhysicsWorld {
         P.spawnT = 0;
       }
     }
-    _assignLetterCargos(props, source, math.Random(layoutSeed ^ 0xC4A60));
+    final keepWallMaterial = this.loadout.isPorcelainOnlyWall ||
+        this.loadout.isBottleOnlyWall;
+    _assignLetterCargos(
+      props,
+      source,
+      math.Random(layoutSeed ^ 0xC4A60),
+      keepWallMaterial: keepWallMaterial,
+    );
     _pendingPropPops.clear();
     clearLetterFocus();
     resetToCannon();
@@ -644,6 +709,7 @@ class AngryWordsPhysicsWorld {
     List<AngryWordsPropBubble> props,
     List<LetterInstance> source,
     math.Random rng,
+    {bool keepWallMaterial = false}
   ) {
     if (props.isEmpty || source.isEmpty) return;
     final ranked = List<AngryWordsPropBubble>.of(props)
@@ -660,8 +726,11 @@ class AngryWordsPhysicsWorld {
       final P = pool[i];
       P.cargo = letters[i];
       P.cargoTintIndex = tintSlots[i % tintCount];
-      // Letters always live in eggs — cream shell + yolk spill on crack.
-      P.material = AngryWordsPropMaterial.egg;
+      // Keep material only for themed walls (stage 22/23) so letters feel
+      // "engraved" on the wall props instead of swapping into egg ovals.
+      if (!keepWallMaterial) {
+        P.material = AngryWordsPropMaterial.egg;
+      }
       P.maxHp = 1;
       P.hp = 1;
       P.skinEmoji = null;
@@ -1155,6 +1224,86 @@ class AngryWordsPhysicsWorld {
     gunTriggerHeld = held;
   }
 
+  void beginHammer(Offset local) {
+    if (!usesHammer) return;
+    hammerHeld = true;
+    hammerPos = local;
+    _lastHammerHitPropId = null;
+    _tryHammerSmash(local, force: true);
+  }
+
+  void updateHammer(Offset local) {
+    if (!usesHammer || !hammerHeld) return;
+    hammerPos = local;
+    _tryHammerSmash(local, force: false);
+  }
+
+  void endHammer() {
+    hammerHeld = false;
+    if (hammerPos != null) {
+      _tryHammerSmash(hammerPos!, force: true);
+    }
+    hammerPos = null;
+    _lastHammerHitPropId = null;
+  }
+
+  void cancelHammer() {
+    hammerHeld = false;
+    hammerPos = null;
+    _lastHammerHitPropId = null;
+  }
+
+  /// Brief full freeze (correct letter hit) — board keeps ticking wall time.
+  void requestHitStop([double seconds = 0.05]) {
+    hitStopRemaining = math.max(hitStopRemaining, seconds);
+  }
+
+  /// Important-event camera punch only (heavy gun / word / stage).
+  void requestScreenPunch(double amount) {
+    screenPunch = (screenPunch + amount).clamp(0.0, 1.0);
+  }
+
+  bool get _isHeavyGunJuice {
+    final g = loadout.gun;
+    return loadout.splashRadius >= 40 ||
+        loadout.recoilKick >= 1.35 ||
+        g == AngryWordsGunKind.rpg ||
+        g == AngryWordsGunKind.siege ||
+        g == AngryWordsGunKind.railgun ||
+        g == AngryWordsGunKind.antiMateriel ||
+        g == AngryWordsGunKind.doomsdayMg ||
+        g == AngryWordsGunKind.grenadeLauncher ||
+        g == AngryWordsGunKind.tankCannon ||
+        g == AngryWordsGunKind.plasmaCannon;
+  }
+
+  /// Smash any bottle under the hammer tip (drag-to-hit).
+  bool _tryHammerSmash(Offset at, {required bool force}) {
+    if (!usesHammer) return false;
+    if (!force && hammerSmashCooldown > 0) return false;
+    const hitR = 38.0;
+    AngryWordsPropBubble? best;
+    var bestD = hitR * hitR;
+    for (final P in props) {
+      if (P.removed || P.spawnT < 0.45) continue;
+      final d = (P.pos - at).distanceSquared;
+      final reach = (P.radius + hitR) * (P.radius + hitR);
+      if (d > reach || d >= bestD) continue;
+      if (!force && P.id == _lastHammerHitPropId) continue;
+      best = P;
+      bestD = d;
+    }
+    if (best == null) return false;
+    _lastHammerHitPropId = best.id;
+    hammerSmashCooldown = 0.09;
+    hammerSwing = 1;
+    requestScreenPunch(0.4);
+    best.hp = 0;
+    best.hitFlash = 1;
+    _popProp(best);
+    return true;
+  }
+
   /// Returns true when a round was actually fired (for juice).
   bool tryFireGun() {
     if (!usesGun || fireCooldown > 0) return false;
@@ -1197,24 +1346,14 @@ class AngryWordsPhysicsWorld {
       }
     }
     muzzleFlash = 1;
+    muzzleSmoke = math.max(muzzleSmoke, 0.95);
     gunRecoil = loadout.recoilKick.clamp(0.35, 2.2);
-    final punch =
-        0.22 * loadout.recoilKick +
-        (loadout.splashRadius > 0 ? 0.12 : 0) +
-        (loadout.splashRadius >= 55 ? 0.1 : 0) +
-        (loadout.homing ? 0.08 : 0) +
-        (loadout.pierce >= 2 ? 0.08 : 0) +
-        (loadout.element == AngryWordsBulletElement.ice ? 0.04 : 0) +
-        (loadout.element == AngryWordsBulletElement.laser && loadout.pierce >= 4
-            ? 0.05
-            : 0) +
-        (loadout.gun == AngryWordsGunKind.railgun ||
-                loadout.gun == AngryWordsGunKind.antiMateriel ||
-                loadout.gun == AngryWordsGunKind.siege
-            ? 0.1
-            : 0) +
-        (loadout.gun == AngryWordsGunKind.doomsdayMg ? 0.045 : 0);
-    screenPunch = (screenPunch + punch).clamp(0.0, 1.0);
+    if (_isHeavyGunJuice) {
+      final punch =
+          0.28 * loadout.recoilKick.clamp(0.5, 1.6) +
+          (loadout.splashRadius >= 55 ? 0.12 : 0);
+      requestScreenPunch(punch.clamp(0.2, 0.85));
+    }
     return true;
   }
 
@@ -1276,22 +1415,23 @@ class AngryWordsPhysicsWorld {
       splashRadius = 0;
     }
 
-    bullets.add(
-      AngryWordsBullet(
-        pos: tip,
-        vel: dir * speed,
-        damage: damage,
-        pierceLeft: pierceLeft,
-        radius: radius,
-        element: element,
-        splashRadius: splashRadius,
-        homing: loadout.homing,
-      ),
+    _spawnBullet(
+      pos: tip,
+      vel: dir * speed,
+      damage: damage,
+      pierceLeft: pierceLeft,
+      radius: radius,
+      element: element,
+      splashRadius: splashRadius,
+      homing: loadout.homing,
     );
     if (countTowardJuice) {
       muzzleFlash = 1;
+      muzzleSmoke = math.max(muzzleSmoke, 0.9);
       gunRecoil = loadout.recoilKick.clamp(0.35, 2.2);
-      screenPunch = (screenPunch + 0.28 * loadout.recoilKick).clamp(0.0, 1.0);
+      if (_isHeavyGunJuice) {
+        requestScreenPunch(0.28 * loadout.recoilKick.clamp(0.4, 1.4));
+      }
     }
     return true;
   }
@@ -1486,11 +1626,28 @@ class AngryWordsPhysicsWorld {
   void update(double dt, {required Set<int> selectedIds}) {
     hitLetter = null;
     sparkAt = null;
+
+    // Hit-stop: consume wall time, freeze simulation (dt → 0).
+    if (hitStopRemaining > 0) {
+      hitStopRemaining = (hitStopRemaining - dt).clamp(0.0, 1.0);
+      return;
+    }
+
     simTime += dt;
 
     muzzleFlash = (muzzleFlash - dt * 9).clamp(0.0, 1.0);
+    muzzleSmoke = (muzzleSmoke - dt * 2.4).clamp(0.0, 1.0);
     gunRecoil = (gunRecoil - dt * 7).clamp(0.0, 1.0);
-    screenPunch = (screenPunch - dt * 11).clamp(0.0, 1.0);
+    // ~250ms decay for screen shake.
+    screenPunch = (screenPunch - dt * 4).clamp(0.0, 1.0);
+    if (groundDustLife > 0) {
+      groundDustLife = (groundDustLife - dt * 3.5).clamp(0.0, 1.0);
+      if (groundDustLife <= 0) groundDustAt = null;
+    }
+    hammerSwing = (hammerSwing - dt * 4.2).clamp(0.0, 1.0);
+    if (hammerSmashCooldown > 0) {
+      hammerSmashCooldown = (hammerSmashCooldown - dt).clamp(0.0, 1.0);
+    }
     if (fireCooldown > 0) {
       fireCooldown = (fireCooldown - dt).clamp(0.0, 2.0);
     }
@@ -1662,6 +1819,7 @@ class AngryWordsPhysicsWorld {
     if (phase != AngryWordsPhase.cage) return;
     phase = AngryWordsPhase.freeing;
     gunTriggerHeld = false;
+    cancelHammer();
     bullets.clear();
     _freeUnlockTimer = 0;
     cageCombo = 0;
@@ -1681,7 +1839,7 @@ class AngryWordsPhysicsWorld {
         homeLetterRadiusForCount(letters.length),
       );
     }
-    screenPunch = (screenPunch + 0.35).clamp(0.0, 1.0);
+    requestScreenPunch(0.28);
   }
 
   void _stepFreeing(double dt) {
@@ -1693,10 +1851,48 @@ class AngryWordsPhysicsWorld {
     }
   }
 
+  void _spawnBullet({
+    required Offset pos,
+    required Offset vel,
+    required int damage,
+    required int pierceLeft,
+    required double radius,
+    required AngryWordsBulletElement element,
+    required double splashRadius,
+    required bool homing,
+  }) {
+    final b = _bulletPool.isEmpty
+        ? AngryWordsBullet._pooled()
+        : _bulletPool.removeLast();
+    b._configure(
+      pos: pos,
+      vel: vel,
+      damage: damage,
+      pierceLeft: pierceLeft,
+      radius: radius,
+      element: element,
+      splashRadius: splashRadius,
+      homing: homing,
+    );
+    bullets.add(b);
+  }
+
+  void _recycleDeadBullets() {
+    for (var i = bullets.length - 1; i >= 0; i--) {
+      final b = bullets[i];
+      if (!b.dead) continue;
+      bullets.removeAt(i);
+      if (_bulletPool.length < 96) _bulletPool.add(b);
+    }
+  }
+
   void _updateBullets(double dt) {
     if (bullets.isEmpty) return;
+    _propGrid.rebuild(props);
     final step = dt / substeps;
     for (var s = 0; s < substeps; s++) {
+      // Props drift slowly; rebuild every other substep is enough and cheaper.
+      if (s == 0 || s == 3) _propGrid.rebuild(props);
       for (final b in bullets) {
         if (b.dead) continue;
         if (b.homing) _steerBullet(b, step);
@@ -1712,22 +1908,21 @@ class AngryWordsPhysicsWorld {
         _collideBulletWithProps(b);
       }
     }
-    bullets.removeWhere((b) => b.dead);
+    _recycleDeadBullets();
   }
 
   void _steerBullet(AngryWordsBullet b, double step) {
     AngryWordsPropBubble? best;
     var bestD2 = double.infinity;
-    for (final P in props) {
-      if (P.removed || P.spawnT < 0.85) continue;
+    _propGrid.forNear(b.pos, 220, (P) {
       final d2 = (P.pos - b.pos).distanceSquared;
       if (d2 < bestD2) {
         bestD2 = d2;
         best = P;
       }
-    }
+    });
     if (best == null) return;
-    final to = best.pos - b.pos;
+    final to = best!.pos - b.pos;
     final len = to.distance;
     if (len < 0.001) return;
     final desired = to / len * b.vel.distance.clamp(400.0, 2000.0);
@@ -1735,15 +1930,26 @@ class AngryWordsPhysicsWorld {
   }
 
   void _collideBulletWithProps(AngryWordsBullet b) {
-    for (final P in props) {
-      if (P.removed || P.spawnT < 0.85) continue;
-      final delta = b.pos - P.pos;
-      final minDist = b.radius + P.radius;
-      if (delta.distanceSquared > minDist * minDist) continue;
+    // Piercing projectiles may hit several props in one substep after reposition.
+    for (var guard = 0; guard < 8 && !b.dead; guard++) {
+      AngryWordsPropBubble? hit;
+      var hitMinDist = 0.0;
+      var hitDelta = Offset.zero;
+      _propGrid.forNear(b.pos, b.radius, (P) {
+        if (hit != null || P.removed) return;
+        final delta = b.pos - P.pos;
+        final minDist = b.radius + P.radius;
+        if (delta.distanceSquared > minDist * minDist) return;
+        hit = P;
+        hitMinDist = minDist;
+        hitDelta = delta;
+      });
+      final P = hit;
+      if (P == null) return;
+      final delta = hitDelta;
+      final minDist = hitMinDist;
 
       sparkAt = P.pos;
-      // Stage 50 stone: one impact cracks, next impact shatters — ignore
-      // same-volley pellet pile-on while hitFlash is hot.
       final stage50Stone =
           loadout.profileIndex == 49 &&
           P.material == AngryWordsPropMaterial.stone;
@@ -1759,7 +1965,7 @@ class AngryWordsPhysicsWorld {
           continue;
         }
         b.dead = true;
-        break;
+        return;
       }
       var dmg = _effectiveBulletDamage(b, P);
       if (stage50Stone) dmg = 1;
@@ -1805,12 +2011,11 @@ class AngryWordsPhysicsWorld {
             b.element == AngryWordsBulletElement.laser && b.pierceLeft > 0;
         if (!canPierceAlive) {
           b.dead = true;
-        } else {
-          b.pierceLeft--;
-          b.pos = P.pos + n * (minDist + 2);
+          return;
         }
-        screenPunch = (screenPunch + 0.12).clamp(0.0, 1.0);
-        break;
+        b.pierceLeft--;
+        b.pos = P.pos + n * (minDist + 2);
+        continue;
       }
 
       if (P.material == AngryWordsPropMaterial.rubber &&
@@ -1826,8 +2031,7 @@ class AngryWordsPhysicsWorld {
             : Offset(delta.dx / d, delta.dy / d);
         P.vel += n * (_knockbackFor(P.material) * 1.35) + b.vel * 0.05;
         b.dead = true;
-        screenPunch = (screenPunch + 0.18).clamp(0.0, 1.0);
-        break;
+        return;
       }
 
       _popProp(P, steamy: steamyHit);
@@ -1841,7 +2045,7 @@ class AngryWordsPhysicsWorld {
         continue;
       }
       b.dead = true;
-      break;
+      return;
     }
   }
 
@@ -1955,14 +2159,10 @@ class AngryWordsPhysicsWorld {
     P.cargo = null;
     if (phase == AngryWordsPhase.cage) {
       cageCombo += 1;
-      screenPunch = (screenPunch + (cargo != null ? 0.42 : 0.28)).clamp(
-        0.0,
-        1.0,
-      );
-    } else {
-      screenPunch = (screenPunch + 0.16).clamp(0.0, 1.0);
     }
+    // Shake only for letter cargo reveals — filler pops stay calm.
     if (cargo != null && phase == AngryWordsPhase.cage) {
+      requestScreenPunch(0.32);
       _revealLetterFromProp(cargo, P);
     }
     var steam = steamy;
@@ -2633,6 +2833,8 @@ class AngryWordsPhysicsWorld {
     }
 
     if (ball.dy > height - groundYPad + ballRadius * 0.5) {
+      groundDustAt = Offset(ball.dx, height - groundYPad);
+      groundDustLife = 1;
       resetToCannon();
       return;
     }

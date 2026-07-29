@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
+import '../../../../../core/audio/app_haptics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../application/arkanoid_ball_speed_controller.dart';
 import '../../../application/word_builder_game_notifier.dart';
+import '../../../application/word_builder_onboarding_prefs.dart';
 import '../../../domain/word_builder_models.dart';
+import '../coach/coach_overlay.dart';
 import 'arkanoid_painter.dart';
 import 'arkanoid_physics.dart';
 
@@ -46,6 +48,8 @@ class _ArkanoidLetterBoardState extends ConsumerState<ArkanoidLetterBoard>
   int _wrongStreak = 0;
   int? _layoutSig;
   int? _lastHitLetterId;
+  bool _coachVisible = false;
+  bool _coachBootstrapped = false;
 
   @override
   void initState() {
@@ -58,6 +62,13 @@ class _ArkanoidLetterBoardState extends ConsumerState<ArkanoidLetterBoard>
             .read(wordBuilderGameProvider(widget.bookKey).notifier)
             .prepareArkanoidMode(),
       );
+      unawaited(() async {
+        final done =
+            await ref.read(wordBuilderArkanoidOnboardingProvider.future);
+        if (!mounted) return;
+        _coachBootstrapped = true;
+        if (!done) setState(() => _coachVisible = true);
+      }());
     });
   }
 
@@ -130,7 +141,7 @@ class _ArkanoidLetterBoardState extends ConsumerState<ArkanoidLetterBoard>
       _wrongStreak += 1;
       _world.shrinkPaddle();
       // Keep ball in play — only feedback (flash / haptic / sound), no re-serve.
-      HapticFeedback.mediumImpact();
+      appHapticMedium(ref);
       unawaited(_clearWrongAfterFlash());
     }
     _wasWrong = s.pathWrongHighlight;
@@ -320,6 +331,34 @@ class _ArkanoidLetterBoardState extends ConsumerState<ArkanoidLetterBoard>
                       fontSize: 13,
                     ),
                   ),
+                ),
+              ),
+            if (_coachVisible && _coachBootstrapped)
+              Positioned.fill(
+                child: CoachOverlay(
+                  steps: [
+                    CoachStep(
+                      id: 'arkanoid_aim',
+                      message: l10n.wordBuilderCoachArkanoidAim,
+                      targetRect: () => Rect.fromLTWH(
+                        size.width * 0.2,
+                        size.height * 0.15,
+                        size.width * 0.6,
+                        size.height * 0.35,
+                      ),
+                      finger: CoachFingerKind.tap,
+                      autoAdvanceAfter: const Duration(milliseconds: 3200),
+                      allowSkip: true,
+                    ),
+                  ],
+                  onFinished: () {
+                    setState(() => _coachVisible = false);
+                    unawaited(
+                      ref
+                          .read(wordBuilderArkanoidOnboardingProvider.notifier)
+                          .markComplete(),
+                    );
+                  },
                 ),
               ),
           ],

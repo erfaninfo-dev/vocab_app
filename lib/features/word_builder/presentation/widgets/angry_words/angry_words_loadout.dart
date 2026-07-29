@@ -222,11 +222,14 @@ class AngryWordsLoadout {
   /// Early stages stay sparse; small clutter unlocks later.
   bool get allowsSmallProps => profileIndex >= 12;
 
+  /// Sparse walls through ~stage 25 (profileIndex 24); taper gradually.
   double get earlySparseSkipChance => switch (profileIndex) {
         <= 3 => 0.48,
         <= 7 => 0.34,
-        <= 11 => 0.2,
-        <= 16 => 0.1,
+        <= 11 => 0.22,
+        <= 16 => 0.14,
+        <= 20 => 0.09,
+        <= 24 => 0.05,
         _ => 0.0,
       };
 
@@ -241,6 +244,12 @@ class AngryWordsLoadout {
 
   /// Stage 9: cracked eggs spill yolk blobs that pool on the floor.
   bool get spillsYolk => profileIndex == 8;
+
+  /// Stage 22: entire cage wall is porcelain jugs (کوزه).
+  bool get isPorcelainOnlyWall => profileIndex == 21;
+
+  /// Stage 23: entire cage wall is round glass bottles.
+  bool get isBottleOnlyWall => profileIndex == 22;
 
   /// Fun chapter beat for UI (pacing story, not just DPS).
   String get chapterTag => switch (profileIndex) {
@@ -393,6 +402,12 @@ const _sprayEarly = [
 const _eggOnlyWall = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.egg, 1.0),
 ];
+const _porcelainOnlyWall = [
+  AngryWordsMaterialWeight(AngryWordsPropMaterial.porcelain, 1.0),
+];
+const _bottleOnlyWall = [
+  AngryWordsMaterialWeight(AngryWordsPropMaterial.glass, 1.0),
+];
 const _woodWater = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.wood, 0.3),
   AngryWordsMaterialWeight(AngryWordsPropMaterial.water, 0.26),
@@ -428,14 +443,6 @@ const _stoneWood = [
 ];
 /// Mid/late walls stay tough via HP materials, but bias candy/plastic/egg
 /// so the board reads as colorful as early toy stages (not grey metal/ice).
-const _iceWater = [
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.candy, 0.26),
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.plastic, 0.16),
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.egg, 0.16),
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.water, 0.14),
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.ice, 0.12),
-  AngryWordsMaterialWeight(AngryWordsPropMaterial.slime, 0.16),
-];
 const _iceWaterDense = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.candy, 0.24),
   AngryWordsMaterialWeight(AngryWordsPropMaterial.plastic, 0.16),
@@ -1107,11 +1114,11 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     fillerCount: 37,
     wallMix: _rubberStone,
   ),
-  // 22 Heavy SMG
+  // 22 Heavy SMG — porcelain jug wall
   const AngryWordsLoadout(
     profileIndex: 21,
     label: 'Heavy SMG',
-    wallHint: 'rubber · stone · slime',
+    wallHint: 'porcelain',
     gun: AngryWordsGunKind.heavySmg,
     fireInterval: 0.072,
     bulletDamage: 2,
@@ -1128,13 +1135,13 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 39,
-    wallMix: _rubberStone,
+    wallMix: _porcelainOnlyWall,
   ),
-  // 23 Ice Pistol
+  // 23 Glass bottles — smash with hammer (no gun)
   const AngryWordsLoadout(
     profileIndex: 22,
-    label: 'Ice Pistol',
-    wallHint: 'candy · egg · slime',
+    label: 'Hammer',
+    wallHint: 'glass',
     gun: AngryWordsGunKind.icePistol,
     fireInterval: 0.19,
     bulletDamage: 1,
@@ -1151,7 +1158,7 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 38,
-    wallMix: _iceWater,
+    wallMix: _bottleOnlyWall,
   ),
   // 24 Freeze Ray
   const AngryWordsLoadout(

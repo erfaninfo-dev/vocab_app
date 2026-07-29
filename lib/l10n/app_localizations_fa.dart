@@ -482,6 +482,26 @@ class AppLocalizationsFa extends AppLocalizations {
   String get splashSoundSubtitle => 'هنگام باز شدن اپ یک صدای آرام پخش شود';
 
   @override
+  String get soundMusicTitle => 'موسیقی';
+
+  @override
+  String get soundMusicSubtitle =>
+      'موسیقی پس‌زمینه در بازی و منوها (در صورت وجود)';
+
+  @override
+  String get soundSfxTitle => 'افکت‌های صوتی';
+
+  @override
+  String get soundSfxSubtitle => 'شلیک، پاپ، بازخورد درست/غلط و سایر افکت‌ها';
+
+  @override
+  String get soundHapticsTitle => 'لرزش';
+
+  @override
+  String get soundHapticsSubtitle =>
+      'بازخورد لمسی برای ضربه‌ها و رویدادهای بازی';
+
+  @override
   String get sectionAbout => 'درباره';
 
   @override
@@ -2564,6 +2584,78 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get wordBuilderAngryWordsWindHint =>
       'دکمه باد را نگه دار، یا پرتاب‌کننده را به سمتش نشانه بگیر — حروف تندتر جابه‌جا می‌شوند';
+
+  @override
+  String get wordBuilderAngryWordsHammerHint => 'چکش را بکش · بطری‌ها را بشکن';
+
+  @override
+  String wordBuilderAngryWordsHoldSprayHint(String label) {
+    return 'نگه دار و بپاش · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsClearWallHint(String label) {
+    return 'دیوار را پاک کن · $label';
+  }
+
+  @override
+  String wordBuilderAngryWordsBlastOrbsHint(
+    String label,
+    int found,
+    int total,
+  ) {
+    return 'توپ‌های حرف را بزن · $label · $found/$total';
+  }
+
+  @override
+  String get wordBuilderAngryWordsLettersUnlocked => 'حروف آزاد شدند!';
+
+  @override
+  String wordBuilderAngryWordsLettersLeft(int count) {
+    return '$count حرف باقی‌مانده';
+  }
+
+  @override
+  String get wordBuilderCoachHoldFire => 'نگه دار و شلیک کن تا دیوار بترکد';
+
+  @override
+  String get wordBuilderCoachHammerSmash => 'چکش را بکش تا بطری‌ها بشکنند';
+
+  @override
+  String get wordBuilderCoachLettersHidden =>
+      'حروف داخل بعضی توپ‌ها پنهان‌اند — پیدایشان کن!';
+
+  @override
+  String get wordBuilderCoachClearWall =>
+      'کل دیوار را پاک کن تا تیرکمان باز شود';
+
+  @override
+  String get wordBuilderCoachWallCleared => 'دیوار پاک شد — حالا تیرکمان';
+
+  @override
+  String get wordBuilderCoachPullRelease => 'بکش و رها کن تا به حروف بزنی';
+
+  @override
+  String get wordBuilderCoachPrefixOrder => 'حروف را به ترتیب درست کلمه بزن';
+
+  @override
+  String get wordBuilderCoachArkanoidAim =>
+      'توپ را به آجرهای حرف بزن تا کلمه ساخته شود';
+
+  @override
+  String get wordBuilderCoachPuzzleSlide =>
+      'حرف کنار خانه خالی را بزن تا سر بخورد';
+
+  @override
+  String get wordBuilderResetTutorials => 'آموزش‌ها را دوباره نشان بده';
+
+  @override
+  String get wordBuilderResetTutorialsDone =>
+      'دفعه بعد در هر حالت، آموزش دوباره دیده می‌شود';
+
+  @override
+  String get wordBuilderAdminResetOnboarding =>
+      'ریست آموزش Word Builder (ادمین)';
 
   @override
   String get wordBuilderArkanoidCheck => 'بررسی';

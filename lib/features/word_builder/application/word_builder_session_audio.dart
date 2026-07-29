@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/audio/app_audio_session.dart';
+import '../../../core/audio/app_sound_prefs.dart';
 import 'word_builder_tray_prison_audio.dart';
 import 'word_builder_tray_train_audio.dart';
 import 'word_builder_tray_water_audio.dart';
@@ -83,6 +84,10 @@ class WordBuilderGameSfxNotifier extends Notifier<bool> {
 
   @override
   bool build() {
+    // Mirror global Settings → Sound → SFX when available.
+    ref.listen<bool>(appSfxEnabledProvider, (prev, next) {
+      if (next != state) state = next;
+    });
     Future.microtask(_load);
     return true;
   }
@@ -90,7 +95,10 @@ class WordBuilderGameSfxNotifier extends Notifier<bool> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final v = prefs.getBool(_key) ?? true;
+      await AppSoundPrefs.migrateIfNeeded(prefs);
+      final v = prefs.getBool(AppSoundPrefs.sfxKey) ??
+          prefs.getBool(_key) ??
+          true;
       if (v != state) state = v;
     } catch (_) {}
   }
@@ -100,8 +108,13 @@ class WordBuilderGameSfxNotifier extends Notifier<bool> {
     state = value;
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(AppSoundPrefs.sfxKey, value);
       await prefs.setBool(_key, value);
     } catch (_) {}
+    // Sync Settings toggle without re-entering if already matched.
+    if (ref.read(appSfxEnabledProvider) != value) {
+      await ref.read(appSfxEnabledProvider.notifier).setEnabled(value);
+    }
   }
 }
 
@@ -137,6 +150,12 @@ class WordBuilderGameBgmNotifier extends Notifier<bool> {
 
   @override
   bool build() {
+    ref.listen<bool>(appMusicEnabledProvider, (prev, next) {
+      if (next != state) {
+        state = next;
+        unawaited(ref.read(wordBuilderBgmPlayerProvider).applyFromRef(ref));
+      }
+    });
     Future.microtask(_load);
     return false;
   }
@@ -144,7 +163,10 @@ class WordBuilderGameBgmNotifier extends Notifier<bool> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final v = prefs.getBool(_key) ?? true;
+      await AppSoundPrefs.migrateIfNeeded(prefs);
+      final v = prefs.getBool(AppSoundPrefs.musicKey) ??
+          prefs.getBool(_key) ??
+          true;
       state = v;
       await ref.read(wordBuilderBgmPlayerProvider).applyFromRef(ref);
     } catch (_) {}
@@ -155,8 +177,10 @@ class WordBuilderGameBgmNotifier extends Notifier<bool> {
     state = value;
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(AppSoundPrefs.musicKey, value);
       await prefs.setBool(_key, value);
     } catch (_) {}
+    await ref.read(appMusicEnabledProvider.notifier).setEnabled(value);
     await ref.read(wordBuilderBgmPlayerProvider).applyFromRef(ref);
   }
 }
