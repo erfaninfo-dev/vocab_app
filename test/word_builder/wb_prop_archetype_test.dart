@@ -58,6 +58,18 @@ const _kPiercersArchetypes = <WbPropArchetype>[
   WbPropArchetype.magnetSphere,
 ];
 
+/// Energy Age (stages 33–40) — STEP 2 chapter 7.
+const _kEnergyAgeArchetypes = <WbPropArchetype>[
+  WbPropArchetype.crystal,
+  WbPropArchetype.oldTv,
+  WbPropArchetype.emojiVariety,
+  WbPropArchetype.emojiAnimal,
+  WbPropArchetype.neonOrb,
+  WbPropArchetype.neonTube,
+  WbPropArchetype.metalGear,
+  WbPropArchetype.batteryCell,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -260,6 +272,31 @@ void main() {
     expect(kWbArchetypes[WbPropArchetype.steelPlate]!.hpOverride, 3);
     expect(kWbArchetypes[WbPropArchetype.magnetSphere]!.behavior,
         WbBreakBehavior.magnetize);
+  });
+
+  test('Energy Age chapter (8) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(40));
+    for (final id in _kEnergyAgeArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.crystal]!.behavior,
+        WbBreakBehavior.refract);
+    expect(kWbArchetypes[WbPropArchetype.oldTv]!.material,
+        AngryWordsPropMaterial.plastic);
+    expect(kWbArchetypes[WbPropArchetype.emojiVariety]!.hpOverride, 0);
+    expect(kWbArchetypes[WbPropArchetype.emojiAnimal]!.hpOverride, 0);
+    expect(kWbArchetypes[WbPropArchetype.neonOrb]!.glows, isTrue);
+    expect(kWbArchetypes[WbPropArchetype.neonTube]!.aspectRatio,
+        closeTo(0.35, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.neonTube]!.behavior,
+        WbBreakBehavior.splitInHalf);
+    expect(kWbArchetypes[WbPropArchetype.metalGear]!.material,
+        AngryWordsPropMaterial.gold);
+    expect(kWbArchetypes[WbPropArchetype.metalGear]!.behavior,
+        WbBreakBehavior.erode);
+    expect(kWbArchetypes[WbPropArchetype.batteryCell]!.behavior,
+        WbBreakBehavior.fluidFire);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
