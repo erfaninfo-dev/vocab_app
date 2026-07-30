@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ielts_vocab_app/features/word_builder/data/prop_archetypes/wb_prop_archetype.dart';
 import 'package:ielts_vocab_app/features/word_builder/presentation/widgets/angry_words/angry_words_loadout.dart';
 
-/// Toy Box (stages 1–7) — filled in STEP 2 chapter 1.
+/// Toy Box (stages 1–7) — STEP 2 chapter 1.
 const _kToyBoxArchetypes = <WbPropArchetype>[
   WbPropArchetype.balloon,
   WbPropArchetype.candyBall,
@@ -11,6 +11,13 @@ const _kToyBoxArchetypes = <WbPropArchetype>[
   WbPropArchetype.woodCrate,
   WbPropArchetype.paperLantern,
   WbPropArchetype.piggyBank,
+];
+
+/// Street Spray (stages 8–10) — STEP 2 chapter 2.
+const _kStreetSprayArchetypes = <WbPropArchetype>[
+  WbPropArchetype.sodaCan,
+  WbPropArchetype.egg,
+  WbPropArchetype.sprayCan,
 ];
 
 void main() {
@@ -71,6 +78,34 @@ void main() {
     expect(kWbArchetypes[WbPropArchetype.piggyBank]!.recipe.secondaryShape,
         WbShardShape.coin);
     expect(kWbArchetypes[WbPropArchetype.piggyBank]!.recipe.secondaryCount, 10);
+  });
+
+  test('Street Spray chapter (3) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(10));
+    for (final id in _kStreetSprayArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.sodaCan]!.material,
+        AngryWordsPropMaterial.metal);
+    expect(kWbArchetypes[WbPropArchetype.sodaCan]!.behavior,
+        WbBreakBehavior.dentThenRupture);
+    expect(kWbArchetypes[WbPropArchetype.sodaCan]!.recipe.secondaryShape,
+        WbShardShape.droplet);
+
+    expect(kWbArchetypes[WbPropArchetype.egg]!.material,
+        AngryWordsPropMaterial.egg);
+    expect(kWbArchetypes[WbPropArchetype.egg]!.behavior,
+        WbBreakBehavior.spillContents);
+    expect(kWbArchetypes[WbPropArchetype.egg]!.recipe.shardCount, 18);
+    expect(kWbArchetypes[WbPropArchetype.egg]!.soundFamily, 'egg_crack');
+
+    expect(kWbArchetypes[WbPropArchetype.sprayCan]!.hpOverride, 2);
+    expect(kWbArchetypes[WbPropArchetype.sprayCan]!.crackStages, 1);
+    expect(kWbArchetypes[WbPropArchetype.sprayCan]!.behavior,
+        WbBreakBehavior.burstFluid);
+    expect(kWbArchetypes[WbPropArchetype.sprayCan]!.recipe.secondaryCount, 25);
+    expect(kWbArchetypes[WbPropArchetype.sprayCan]!.palette.length, 4);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
