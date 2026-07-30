@@ -48,6 +48,16 @@ const _kIceFireArchetypes = <WbPropArchetype>[
   WbPropArchetype.magmaOrb,
 ];
 
+/// Piercers (stages 27–32) — STEP 2 chapter 6.
+const _kPiercersArchetypes = <WbPropArchetype>[
+  WbPropArchetype.coconut,
+  WbPropArchetype.pumpkin,
+  WbPropArchetype.glassPane,
+  WbPropArchetype.lightBulb,
+  WbPropArchetype.steelPlate,
+  WbPropArchetype.magnetSphere,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -226,6 +236,30 @@ void main() {
     expect(kWbArchetypes[WbPropArchetype.magmaOrb]!.glows, isTrue);
     expect(kWbArchetypes[WbPropArchetype.magmaOrb]!.recipe.shapes,
         contains(WbShardShape.ember));
+  });
+
+  test('Piercers chapter (6) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(32));
+    for (final id in _kPiercersArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.coconut]!.behavior,
+        WbBreakBehavior.splitInHalf);
+    expect(kWbArchetypes[WbPropArchetype.coconut]!.recipe.shardCount, 2);
+    expect(kWbArchetypes[WbPropArchetype.pumpkin]!.behavior,
+        WbBreakBehavior.caveIn);
+    expect(kWbArchetypes[WbPropArchetype.glassPane]!.behavior,
+        WbBreakBehavior.spiderweb);
+    expect(kWbArchetypes[WbPropArchetype.glassPane]!.recipe.spreadCone,
+        lessThan(2));
+    expect(kWbArchetypes[WbPropArchetype.lightBulb]!.aspectRatio,
+        closeTo(0.7, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.lightBulb]!.behavior,
+        WbBreakBehavior.lightDeath);
+    expect(kWbArchetypes[WbPropArchetype.steelPlate]!.hpOverride, 3);
+    expect(kWbArchetypes[WbPropArchetype.magnetSphere]!.behavior,
+        WbBreakBehavior.magnetize);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
