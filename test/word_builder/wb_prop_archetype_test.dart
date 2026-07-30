@@ -29,6 +29,17 @@ const _kPelletPartyArchetypes = <WbPropArchetype>[
   WbPropArchetype.confettiBall,
 ];
 
+/// War Band (stages 16–22) — STEP 2 chapter 4.
+const _kWarBandArchetypes = <WbPropArchetype>[
+  WbPropArchetype.woodBarrel,
+  WbPropArchetype.brick,
+  WbPropArchetype.tinCan,
+  WbPropArchetype.oilDrum,
+  WbPropArchetype.sandstone,
+  WbPropArchetype.woodTarget,
+  WbPropArchetype.ceramicJug,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -159,6 +170,32 @@ void main() {
       closeTo(0.4, 0.001),
     );
     expect(kWbArchetypes[WbPropArchetype.confettiBall]!.palette.length, 6);
+  });
+
+  test('War Band chapter (7) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(22));
+    for (final id in _kWarBandArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.woodBarrel]!.behavior,
+        WbBreakBehavior.topple);
+    expect(kWbArchetypes[WbPropArchetype.brick]!.recipe.dustAmount,
+        closeTo(0.9, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.brick]!.recipe.gravityScale,
+        closeTo(1.3, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.tinCan]!.crackStages, 1);
+    expect(kWbArchetypes[WbPropArchetype.oilDrum]!.hpOverride, 3);
+    expect(kWbArchetypes[WbPropArchetype.oilDrum]!.crackStages, 2);
+    expect(kWbArchetypes[WbPropArchetype.sandstone]!.material,
+        AngryWordsPropMaterial.sand);
+    expect(kWbArchetypes[WbPropArchetype.sandstone]!.recipe.secondaryCount, 30);
+    expect(kWbArchetypes[WbPropArchetype.woodTarget]!.behavior,
+        WbBreakBehavior.shatter);
+    expect(kWbArchetypes[WbPropArchetype.ceramicJug]!.material,
+        AngryWordsPropMaterial.porcelain);
+    expect(kWbArchetypes[WbPropArchetype.ceramicJug]!.soundFamily, 'pot');
+    expect(kWbArchetypes[WbPropArchetype.ceramicJug]!.recipe.secondaryCount, 0);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
