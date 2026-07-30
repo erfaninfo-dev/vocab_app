@@ -79,6 +79,15 @@ const _kBoomBrigadeArchetypes = <WbPropArchetype>[
   WbPropArchetype.rubberTire,
 ];
 
+/// Endgame (stages 46–50) — STEP 2 chapter 9.
+const _kEndgameArchetypes = <WbPropArchetype>[
+  WbPropArchetype.goldTrophy,
+  WbPropArchetype.stoneStatue,
+  WbPropArchetype.bronzeBell,
+  WbPropArchetype.obsidianGem,
+  WbPropArchetype.graniteBlock,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -329,6 +338,36 @@ void main() {
         WbBreakBehavior.erode);
     expect(kWbArchetypes[WbPropArchetype.rubberTire]!.behavior,
         WbBreakBehavior.absorbBounce);
+  });
+
+  test('Endgame chapter (5) specs are registered', () {
+    expect(kWbArchetypes.length, WbPropArchetype.values.length);
+    for (final id in _kEndgameArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.goldTrophy]!.material,
+        AngryWordsPropMaterial.gold);
+    expect(kWbArchetypes[WbPropArchetype.goldTrophy]!.behavior,
+        WbBreakBehavior.dentThenRupture);
+    expect(kWbArchetypes[WbPropArchetype.goldTrophy]!.recipe.gravityScale,
+        closeTo(0.5, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.stoneStatue]!.behavior,
+        WbBreakBehavior.topple);
+    expect(kWbArchetypes[WbPropArchetype.stoneStatue]!.recipe.shardCount, 4);
+    expect(kWbArchetypes[WbPropArchetype.stoneStatue]!.recipe.gravityScale,
+        closeTo(1.6, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.bronzeBell]!.behavior,
+        WbBreakBehavior.ringDecay);
+    expect(kWbArchetypes[WbPropArchetype.obsidianGem]!.material,
+        AngryWordsPropMaterial.crystal);
+    expect(kWbArchetypes[WbPropArchetype.graniteBlock]!.hpOverride, 2);
+    expect(kWbArchetypes[WbPropArchetype.graniteBlock]!.behavior,
+        WbBreakBehavior.crumble);
+    expect(kWbArchetypes[WbPropArchetype.graniteBlock]!.recipe.dustAmount,
+        closeTo(1.0, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.graniteBlock]!.recipe.screenShake,
+        closeTo(1.0, 0.001));
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
