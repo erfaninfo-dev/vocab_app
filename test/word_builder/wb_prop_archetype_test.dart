@@ -20,6 +20,15 @@ const _kStreetSprayArchetypes = <WbPropArchetype>[
   WbPropArchetype.sprayCan,
 ];
 
+/// Pellet Party (stages 11–15) — STEP 2 chapter 3.
+const _kPelletPartyArchetypes = <WbPropArchetype>[
+  WbPropArchetype.pinata,
+  WbPropArchetype.watermelon,
+  WbPropArchetype.soapBubble,
+  WbPropArchetype.discoBall,
+  WbPropArchetype.confettiBall,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -106,6 +115,50 @@ void main() {
         WbBreakBehavior.burstFluid);
     expect(kWbArchetypes[WbPropArchetype.sprayCan]!.recipe.secondaryCount, 25);
     expect(kWbArchetypes[WbPropArchetype.sprayCan]!.palette.length, 4);
+  });
+
+  test('Pellet Party chapter (5) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(15));
+    for (final id in _kPelletPartyArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.pinata]!.material,
+        AngryWordsPropMaterial.wood);
+    expect(kWbArchetypes[WbPropArchetype.pinata]!.behavior,
+        WbBreakBehavior.spillContents);
+    expect(kWbArchetypes[WbPropArchetype.pinata]!.recipe.secondaryCount, 15);
+
+    expect(kWbArchetypes[WbPropArchetype.watermelon]!.material,
+        AngryWordsPropMaterial.water);
+    expect(kWbArchetypes[WbPropArchetype.watermelon]!.behavior,
+        WbBreakBehavior.burstFluid);
+    expect(kWbArchetypes[WbPropArchetype.watermelon]!.recipe.shardCount, 5);
+    expect(kWbArchetypes[WbPropArchetype.watermelon]!.recipe.secondaryShape,
+        WbShardShape.seed);
+
+    expect(kWbArchetypes[WbPropArchetype.soapBubble]!.hpOverride, 1);
+    expect(kWbArchetypes[WbPropArchetype.soapBubble]!.behavior,
+        WbBreakBehavior.pop);
+    expect(kWbArchetypes[WbPropArchetype.soapBubble]!.recipe.shardCount, 0);
+    expect(kWbArchetypes[WbPropArchetype.soapBubble]!.recipe.secondaryCount, 6);
+
+    expect(kWbArchetypes[WbPropArchetype.discoBall]!.material,
+        AngryWordsPropMaterial.crystal);
+    expect(kWbArchetypes[WbPropArchetype.discoBall]!.behavior,
+        WbBreakBehavior.shatter);
+    expect(kWbArchetypes[WbPropArchetype.discoBall]!.recipe.shardCount, 20);
+    expect(kWbArchetypes[WbPropArchetype.discoBall]!.glows, isTrue);
+
+    expect(kWbArchetypes[WbPropArchetype.confettiBall]!.behavior,
+        WbBreakBehavior.spillContents);
+    expect(kWbArchetypes[WbPropArchetype.confettiBall]!.recipe.secondaryCount,
+        40);
+    expect(
+      kWbArchetypes[WbPropArchetype.confettiBall]!.recipe.gravityScale,
+      closeTo(0.4, 0.001),
+    );
+    expect(kWbArchetypes[WbPropArchetype.confettiBall]!.palette.length, 6);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
