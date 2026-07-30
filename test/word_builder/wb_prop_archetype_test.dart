@@ -70,6 +70,15 @@ const _kEnergyAgeArchetypes = <WbPropArchetype>[
   WbPropArchetype.batteryCell,
 ];
 
+/// Boom Brigade (stages 41–45) — STEP 2 chapter 8.
+const _kBoomBrigadeArchetypes = <WbPropArchetype>[
+  WbPropArchetype.fireworkShell,
+  WbPropArchetype.powderKeg,
+  WbPropArchetype.oilLamp,
+  WbPropArchetype.concreteBlock,
+  WbPropArchetype.rubberTire,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -297,6 +306,29 @@ void main() {
         WbBreakBehavior.erode);
     expect(kWbArchetypes[WbPropArchetype.batteryCell]!.behavior,
         WbBreakBehavior.fluidFire);
+  });
+
+  test('Boom Brigade chapter (5) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(45));
+    for (final id in _kBoomBrigadeArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.fireworkShell]!.behavior,
+        WbBreakBehavior.chainExplode);
+    expect(kWbArchetypes[WbPropArchetype.fireworkShell]!.hpOverride, 1);
+    expect(kWbArchetypes[WbPropArchetype.powderKeg]!.behavior,
+        WbBreakBehavior.chainExplode);
+    expect(kWbArchetypes[WbPropArchetype.powderKeg]!.recipe.screenShake,
+        closeTo(0.8, 0.001));
+    expect(kWbArchetypes[WbPropArchetype.oilLamp]!.behavior,
+        WbBreakBehavior.fluidFire);
+    expect(kWbArchetypes[WbPropArchetype.concreteBlock]!.material,
+        AngryWordsPropMaterial.stone);
+    expect(kWbArchetypes[WbPropArchetype.concreteBlock]!.behavior,
+        WbBreakBehavior.erode);
+    expect(kWbArchetypes[WbPropArchetype.rubberTire]!.behavior,
+        WbBreakBehavior.absorbBounce);
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
