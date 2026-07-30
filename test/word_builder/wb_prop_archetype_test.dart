@@ -40,6 +40,14 @@ const _kWarBandArchetypes = <WbPropArchetype>[
   WbPropArchetype.ceramicJug,
 ];
 
+/// Ice & Fire (stages 23–26) — STEP 2 chapter 5.
+const _kIceFireArchetypes = <WbPropArchetype>[
+  WbPropArchetype.glassBottle,
+  WbPropArchetype.iceBlock,
+  WbPropArchetype.waxBall,
+  WbPropArchetype.magmaOrb,
+];
+
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
@@ -196,6 +204,28 @@ void main() {
         AngryWordsPropMaterial.porcelain);
     expect(kWbArchetypes[WbPropArchetype.ceramicJug]!.soundFamily, 'pot');
     expect(kWbArchetypes[WbPropArchetype.ceramicJug]!.recipe.secondaryCount, 0);
+  });
+
+  test('Ice & Fire chapter (4) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(26));
+    for (final id in _kIceFireArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.glassBottle]!.material,
+        AngryWordsPropMaterial.glass);
+    expect(kWbArchetypes[WbPropArchetype.glassBottle]!.soundFamily, 'pot');
+    expect(kWbArchetypes[WbPropArchetype.iceBlock]!.behavior,
+        WbBreakBehavior.crackCascade);
+    expect(kWbArchetypes[WbPropArchetype.iceBlock]!.crackStages, 2);
+    expect(kWbArchetypes[WbPropArchetype.waxBall]!.behavior,
+        WbBreakBehavior.melt);
+    expect(kWbArchetypes[WbPropArchetype.waxBall]!.recipe.shardCount, 0);
+    expect(kWbArchetypes[WbPropArchetype.magmaOrb]!.material,
+        AngryWordsPropMaterial.magma);
+    expect(kWbArchetypes[WbPropArchetype.magmaOrb]!.glows, isTrue);
+    expect(kWbArchetypes[WbPropArchetype.magmaOrb]!.recipe.shapes,
+        contains(WbShardShape.ember));
   });
 
   test('full registry completeness (passes only when all 50 filled)', () {
