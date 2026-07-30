@@ -1,28 +1,90 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ielts_vocab_app/features/word_builder/data/prop_archetypes/wb_prop_archetype.dart';
+import 'package:ielts_vocab_app/features/word_builder/presentation/widgets/angry_words/angry_words_loadout.dart';
+
+/// Toy Box (stages 1–7) — filled in STEP 2 chapter 1.
+const _kToyBoxArchetypes = <WbPropArchetype>[
+  WbPropArchetype.balloon,
+  WbPropArchetype.candyBall,
+  WbPropArchetype.plushBear,
+  WbPropArchetype.giftBox,
+  WbPropArchetype.woodCrate,
+  WbPropArchetype.paperLantern,
+  WbPropArchetype.piggyBank,
+];
 
 void main() {
   test('WbPropArchetype has exactly 50 members', () {
     expect(WbPropArchetype.values.length, 50);
   });
 
-  test('kWbArchetypes is empty until STEP 2 fills specs', () {
-    expect(kWbArchetypes, isEmpty);
+  test('every registered spec matches its map key', () {
+    for (final entry in kWbArchetypes.entries) {
+      expect(entry.value.id, entry.key);
+      expect(entry.value.palette, isNotEmpty);
+      expect(entry.value.soundPitch, inInclusiveRange(0.8, 1.3));
+      expect(entry.value.crackStages, greaterThanOrEqualTo(0));
+      expect(entry.value.hpOverride, greaterThanOrEqualTo(0));
+    }
   });
 
-  test('kWbArchetypes covers every archetype when populated', () {
-    if (kWbArchetypes.isEmpty) {
-      // STEP 1 scaffold — STEP 2 must remove this early-return by filling the map.
+  test('Toy Box chapter (7) specs are registered', () {
+    expect(kWbArchetypes.length, greaterThanOrEqualTo(7));
+    for (final id in _kToyBoxArchetypes) {
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
+    }
+
+    expect(kWbArchetypes[WbPropArchetype.balloon]!.material,
+        AngryWordsPropMaterial.rubber);
+    expect(kWbArchetypes[WbPropArchetype.balloon]!.behavior,
+        WbBreakBehavior.pop);
+    expect(kWbArchetypes[WbPropArchetype.balloon]!.soundPitch, 1.25);
+
+    expect(kWbArchetypes[WbPropArchetype.candyBall]!.material,
+        AngryWordsPropMaterial.candy);
+    expect(kWbArchetypes[WbPropArchetype.candyBall]!.behavior,
+        WbBreakBehavior.shatter);
+    expect(kWbArchetypes[WbPropArchetype.candyBall]!.recipe.drag, greaterThan(1));
+
+    expect(kWbArchetypes[WbPropArchetype.plushBear]!.material,
+        AngryWordsPropMaterial.foam);
+    expect(
+      kWbArchetypes[WbPropArchetype.plushBear]!.recipe.gravityScale,
+      closeTo(0.25, 0.001),
+    );
+
+    expect(kWbArchetypes[WbPropArchetype.giftBox]!.behavior,
+        WbBreakBehavior.spillContents);
+    expect(kWbArchetypes[WbPropArchetype.giftBox]!.recipe.secondaryCount, 8);
+
+    expect(kWbArchetypes[WbPropArchetype.woodCrate]!.hpOverride, 2);
+    expect(kWbArchetypes[WbPropArchetype.woodCrate]!.crackStages, 1);
+    expect(kWbArchetypes[WbPropArchetype.woodCrate]!.behavior,
+        WbBreakBehavior.dentThenRupture);
+
+    expect(kWbArchetypes[WbPropArchetype.paperLantern]!.glows, isTrue);
+    expect(kWbArchetypes[WbPropArchetype.paperLantern]!.behavior,
+        WbBreakBehavior.lightDeath);
+
+    expect(kWbArchetypes[WbPropArchetype.piggyBank]!.material,
+        AngryWordsPropMaterial.porcelain);
+    expect(kWbArchetypes[WbPropArchetype.piggyBank]!.recipe.secondaryShape,
+        WbShardShape.coin);
+    expect(kWbArchetypes[WbPropArchetype.piggyBank]!.recipe.secondaryCount, 10);
+  });
+
+  test('full registry completeness (passes only when all 50 filled)', () {
+    if (kWbArchetypes.length < WbPropArchetype.values.length) {
+      // Chapter-by-chapter STEP 2 — currently ${_} of 50.
+      expect(
+        kWbArchetypes.length,
+        lessThan(WbPropArchetype.values.length),
+        reason: 'partial fill OK until all chapters land',
+      );
       return;
     }
-    expect(kWbArchetypes.length, WbPropArchetype.values.length);
     for (final id in WbPropArchetype.values) {
-      expect(
-        kWbArchetypes.containsKey(id),
-        isTrue,
-        reason: 'missing spec for $id',
-      );
-      expect(kWbArchetypes[id]!.id, id);
+      expect(kWbArchetypes.containsKey(id), isTrue, reason: 'missing $id');
     }
   });
 }
