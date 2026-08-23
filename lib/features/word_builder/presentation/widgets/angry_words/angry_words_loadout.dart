@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../../data/prop_archetypes/wb_prop_archetype.dart';
 import '../../../domain/word_builder_models.dart';
 import '../../../word_builder_campaign_session_key.dart';
 
@@ -167,7 +168,6 @@ class AngryWordsLoadout {
   const AngryWordsLoadout({
     required this.profileIndex,
     required this.label,
-    required this.wallHint,
     required this.gun,
     required this.fireInterval,
     required this.bulletDamage,
@@ -183,6 +183,10 @@ class AngryWordsLoadout {
     required this.barrierRows,
     required this.fillerCount,
     required this.wallMix,
+    required this.primaryArchetype,
+    this.fillerArchetype,
+    this.primaryRatio = 0.7,
+    this.usesHammer = false,
     this.splashRadius = 0,
     this.homing = false,
     this.densityScale = 1,
@@ -191,7 +195,6 @@ class AngryWordsLoadout {
 
   final int profileIndex;
   final String label;
-  final String wallHint;
   final AngryWordsGunKind gun;
   final double fireInterval;
   final int bulletDamage;
@@ -206,7 +209,22 @@ class AngryWordsLoadout {
   final int barrierCols;
   final int barrierRows;
   final int fillerCount;
+
+  /// Kept for elemental weak spots / [rollHpFor] — prop skins use archetypes.
   final List<AngryWordsMaterialWeight> wallMix;
+
+  /// Cargo / majority wall identity (~[primaryRatio]).
+  final WbPropArchetype primaryArchetype;
+
+  /// Same-chapter filler skin; `null` = pure primary wall (locked stages).
+  final WbPropArchetype? fillerArchetype;
+
+  /// Share of props that use [primaryArchetype] (rest use filler).
+  final double primaryRatio;
+
+  /// Design flag: stage tip uses hammer (not derived from wall type).
+  final bool usesHammer;
+
   final double splashRadius;
   final bool homing;
   final double densityScale;
@@ -215,32 +233,80 @@ class AngryWordsLoadout {
   /// Not the same as [pelletCount] multi-barrel on one silhouette.
   final int gunMounts;
 
-  int get effectiveCols => (barrierCols * densityScale).round().clamp(4, 16);
-  int get effectiveRows => (barrierRows * densityScale).round().clamp(3, 12);
-  int get effectiveFillers => (fillerCount * densityScale).round().clamp(0, 56);
+  /// UI chip from archetype labels (e.g. `کوزه سفالی · ماسه‌سنگ`).
+  String get wallHint {
+    final primary = kWbArchetypes[primaryArchetype];
+    final pLabel = primary?.labelFa ?? label;
+    final fillerId = fillerArchetype;
+    if (fillerId == null) return pLabel;
+    final filler = kWbArchetypes[fillerId];
+    if (filler == null) return pLabel;
+    return '$pLabel · ${filler.labelFa}';
+  }
+
+  static const int kMaxBarrierCols = 9;
+  static const int kMaxBarrierRows = 6;
+  static const int kMaxBarrierFillers = 12;
+
+  /// Soft ceiling for total cage orbs (grid + fillers). Full board, not crushed.
+  static const int kMaxCageProps = 50;
+
+  /// Dense themed walls pack past the default soft ceiling.
+  int get maxCageProps => switch (profileIndex) {
+    3 => 62, // stage 4 soda cans
+    39 => 78, // stage 40 oil-barrel sea
+    _ => kMaxCageProps,
+  };
+
+  int get effectiveCols {
+    final cap = profileIndex == 39 ? 12 : kMaxBarrierCols;
+    return (barrierCols * densityScale).round().clamp(4, cap);
+  }
+
+  int get effectiveRows {
+    final cap = profileIndex == 39 ? 8 : kMaxBarrierRows;
+    return (barrierRows * densityScale).round().clamp(3, cap);
+  }
+
+  /// Arsenal lists climb to 56 fillers — plateau so late stages stay playable.
+  int get effectiveFillers {
+    final scaled = (fillerCount * densityScale).round();
+    final plateaued = switch (scaled) {
+      <= 8 => scaled,
+      <= 24 => 8 + ((scaled - 8) * 0.28).round(),
+      _ => 12 + ((scaled - 24) * 0.08).round(),
+    };
+    return plateaued.clamp(0, kMaxBarrierFillers);
+  }
 
   /// Early stages stay sparse; small clutter unlocks later.
   bool get allowsSmallProps => profileIndex >= 12;
 
+  /// Always leave a little air — never pack the grid 100%.
+  /// Stage 4 (soda cans) and stage 40 (oil barrels) are intentionally dense.
   double get earlySparseSkipChance => switch (profileIndex) {
-        <= 3 => 0.48,
-        <= 7 => 0.34,
-        <= 11 => 0.2,
-        <= 16 => 0.1,
-        _ => 0.0,
-      };
+    3 => 0.05,
+    39 => 0.03,
+    <= 2 => 0.48,
+    <= 7 => 0.34,
+    <= 11 => 0.22,
+    <= 19 => 0.14,
+    <= 29 => 0.09,
+    _ => 0.06,
+  };
 
   /// Stages 35–36: breakable wall orbs render as emojis (pool per stage).
   bool get usesEmojiProps => emojiPropPool != null;
 
   List<String>? get emojiPropPool => switch (profileIndex) {
-        34 => kAngryWordsStage35Emojis,
-        35 => kAngryWordsStage36AnimalEmojis,
-        _ => null,
-      };
+    34 => kAngryWordsStage35Emojis,
+    35 => kAngryWordsStage36AnimalEmojis,
+    _ => null,
+  };
 
-  /// Stage 9: cracked eggs spill yolk blobs that pool on the floor.
-  bool get spillsYolk => profileIndex == 8;
+  /// Stage 9 / egg primary: cracked eggs spill yolk blobs that pool on the floor.
+  bool get spillsYolk =>
+      profileIndex == 8 || primaryArchetype == WbPropArchetype.egg;
 
   /// Fun chapter beat for UI (pacing story, not just DPS).
   String get chapterTag => switch (profileIndex) {
@@ -254,6 +320,23 @@ class AngryWordsLoadout {
     <= 44 => 'Boom Brigade',
     _ => 'Endgame',
   };
+
+  /// Pick primary vs filler for a wall prop (cargo letters use primary).
+  WbPropArchetype rollArchetype(math.Random rng) {
+    final filler = fillerArchetype;
+    if (filler == null) return primaryArchetype;
+    if (rng.nextDouble() < primaryRatio.clamp(0.0, 1.0)) {
+      return primaryArchetype;
+    }
+    return filler;
+  }
+
+  int hpForArchetype(WbPropArchetype id, math.Random rng) {
+    final spec = kWbArchetypes[id];
+    if (spec == null) return rollHpFor(AngryWordsPropMaterial.candy, rng);
+    if (spec.hpOverride > 0) return spec.hpOverride;
+    return rollHpFor(spec.material, rng);
+  }
 
   /// Campaign stage 1..50 → unique gun; difficulty densifies wall + mount count.
   static AngryWordsLoadout forSession({
@@ -288,14 +371,10 @@ class AngryWordsLoadout {
     return kAngryWordsStageArsenal[idx];
   }
 
-  AngryWordsLoadout _scaled({
-    required double densityScale,
-    int? gunMounts,
-  }) {
+  AngryWordsLoadout _scaled({required double densityScale, int? gunMounts}) {
     return AngryWordsLoadout(
       profileIndex: profileIndex,
       label: label,
-      wallHint: wallHint,
       gun: gun,
       fireInterval: fireInterval,
       bulletDamage: bulletDamage,
@@ -311,6 +390,10 @@ class AngryWordsLoadout {
       barrierRows: barrierRows,
       fillerCount: fillerCount,
       wallMix: wallMix,
+      primaryArchetype: primaryArchetype,
+      fillerArchetype: fillerArchetype,
+      primaryRatio: primaryRatio,
+      usesHammer: usesHammer,
       splashRadius: splashRadius,
       homing: homing,
       densityScale: densityScale,
@@ -426,6 +509,7 @@ const _stoneWood = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.porcelain, 0.2),
   AngryWordsMaterialWeight(AngryWordsPropMaterial.egg, 0.14),
 ];
+
 /// Mid/late walls stay tough via HP materials, but bias candy/plastic/egg
 /// so the board reads as colorful as early toy stages (not grey metal/ice).
 const _iceWater = [
@@ -588,6 +672,7 @@ const _doomsdayWall = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.rubber, 0.1),
   AngryWordsMaterialWeight(AngryWordsPropMaterial.stone, 0.04),
 ];
+
 /// Stage 50 keeps all-stone 2-hit rules; color comes from palette tint.
 const _doomsdayMgWall = [
   AngryWordsMaterialWeight(AngryWordsPropMaterial.stone, 1.0),
@@ -595,31 +680,214 @@ const _doomsdayMgWall = [
 
 /// Diverse emoji skins for stage 35 wall orbs (one per prop via RNG).
 const kAngryWordsStage35Emojis = <String>[
-  '🍎', '🍊', '🍋', '🍇', '🍉', '🍓', '🍑', '🍒', '🥝', '🍍',
-  '🥭', '🍌', '🥥', '🍅', '🥑', '🥕', '🌽', '🍔', '🍕', '🌮',
-  '🍦', '🍩', '🍪', '🎂', '🧁', '🍫', '🍬', '🍭', '🎈', '🎯',
-  '⭐', '💫', '🔥', '❄️', '💎', '🎁', '🧸', '🎲', '🧩', '🎨',
-  '🦄', '🐱', '🐶', '🦊', '🐼', '🐸', '🦁', '🐯', '🐨', '🐮',
-  '🐷', '🐹', '🐰', '🐻', '🦉', '🦋', '🐝', '🐞', '🐢', '🐍',
-  '🦖', '🦕', '🐙', '🦑', '🦀', '🐠', '🐡', '🐬', '🐳', '🦈',
-  '🌵', '🌻', '🌸', '🌺', '🍄', '🌙', '☀️', '🌈', '⚡', '🍀',
-  '🎸', '🎺', '🥁', '🎮', '🚀', '🛸', '⚽', '🏀', '🎾', '🏐',
+  '🍎',
+  '🍊',
+  '🍋',
+  '🍇',
+  '🍉',
+  '🍓',
+  '🍑',
+  '🍒',
+  '🥝',
+  '🍍',
+  '🥭',
+  '🍌',
+  '🥥',
+  '🍅',
+  '🥑',
+  '🥕',
+  '🌽',
+  '🍔',
+  '🍕',
+  '🌮',
+  '🍦',
+  '🍩',
+  '🍪',
+  '🎂',
+  '🧁',
+  '🍫',
+  '🍬',
+  '🍭',
+  '🎈',
+  '🎯',
+  '⭐',
+  '💫',
+  '🔥',
+  '❄️',
+  '💎',
+  '🎁',
+  '🧸',
+  '🎲',
+  '🧩',
+  '🎨',
+  '🦄',
+  '🐱',
+  '🐶',
+  '🦊',
+  '🐼',
+  '🐸',
+  '🦁',
+  '🐯',
+  '🐨',
+  '🐮',
+  '🐷',
+  '🐹',
+  '🐰',
+  '🐻',
+  '🦉',
+  '🦋',
+  '🐝',
+  '🐞',
+  '🐢',
+  '🐍',
+  '🦖',
+  '🦕',
+  '🐙',
+  '🦑',
+  '🦀',
+  '🐠',
+  '🐡',
+  '🐬',
+  '🐳',
+  '🦈',
+  '🌵',
+  '🌻',
+  '🌸',
+  '🌺',
+  '🍄',
+  '🌙',
+  '☀️',
+  '🌈',
+  '⚡',
+  '🍀',
+  '🎸',
+  '🎺',
+  '🥁',
+  '🎮',
+  '🚀',
+  '🛸',
+  '⚽',
+  '🏀',
+  '🎾',
+  '🏐',
 ];
 
 /// Animal-only emoji skins for stage 36 wall orbs.
 const kAngryWordsStage36AnimalEmojis = <String>[
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨',
-  '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒',
-  '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇',
-  '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞',
-  '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍',
-  '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠',
-  '🐟', '🐬', '🐳', '🐋', '🦈', '🦭', '🐊', '🐅', '🐆', '🦓',
-  '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘',
-  '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐',
-  '🦌', '🐕', '🐩', '🦮', '🐈', '🐓', '🦃', '🦤', '🦚', '🦜',
-  '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫', '🦦', '🦥',
-  '🐁', '🐀', '🐿️', '🦔',
+  '🐶',
+  '🐱',
+  '🐭',
+  '🐹',
+  '🐰',
+  '🦊',
+  '🐻',
+  '🐼',
+  '🐻‍❄️',
+  '🐨',
+  '🐯',
+  '🦁',
+  '🐮',
+  '🐷',
+  '🐸',
+  '🐵',
+  '🙈',
+  '🙉',
+  '🙊',
+  '🐒',
+  '🐔',
+  '🐧',
+  '🐦',
+  '🐤',
+  '🐣',
+  '🐥',
+  '🦆',
+  '🦅',
+  '🦉',
+  '🦇',
+  '🐺',
+  '🐗',
+  '🐴',
+  '🦄',
+  '🐝',
+  '🪱',
+  '🐛',
+  '🦋',
+  '🐌',
+  '🐞',
+  '🐜',
+  '🪰',
+  '🪲',
+  '🪳',
+  '🦟',
+  '🦗',
+  '🕷️',
+  '🦂',
+  '🐢',
+  '🐍',
+  '🦎',
+  '🦖',
+  '🦕',
+  '🐙',
+  '🦑',
+  '🦐',
+  '🦞',
+  '🦀',
+  '🐡',
+  '🐠',
+  '🐟',
+  '🐬',
+  '🐳',
+  '🐋',
+  '🦈',
+  '🦭',
+  '🐊',
+  '🐅',
+  '🐆',
+  '🦓',
+  '🦍',
+  '🦧',
+  '🦣',
+  '🐘',
+  '🦛',
+  '🦏',
+  '🐪',
+  '🐫',
+  '🦒',
+  '🦘',
+  '🦬',
+  '🐃',
+  '🐂',
+  '🐄',
+  '🐎',
+  '🐖',
+  '🐏',
+  '🐑',
+  '🦙',
+  '🐐',
+  '🦌',
+  '🐕',
+  '🐩',
+  '🦮',
+  '🐈',
+  '🐓',
+  '🦃',
+  '🦤',
+  '🦚',
+  '🦜',
+  '🦢',
+  '🦩',
+  '🕊️',
+  '🐇',
+  '🦝',
+  '🦨',
+  '🦡',
+  '🦫',
+  '🦦',
+  '🦥',
+  '🐁',
+  '🐀',
+  '🐿️',
+  '🦔',
 ];
 
 /// Beginner stages 1..50 — index 0 = stage 1.
@@ -628,7 +896,6 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
   const AngryWordsLoadout(
     profileIndex: 0,
     label: 'Peashooter',
-    wallHint: 'candy · egg · foam',
     gun: AngryWordsGunKind.peashooter,
     fireInterval: 0.26,
     bulletDamage: 1,
@@ -645,13 +912,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 5,
     barrierRows: 4,
     fillerCount: 2,
+    primaryArchetype: WbPropArchetype.balloon,
+    fillerArchetype: WbPropArchetype.candyBall,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _toyCandy,
   ),
-  // 2 Cap Pistol — cleaner toy click
+  // 2 Cap Pistol — pure candy wall (🍬 look + bounce)
   const AngryWordsLoadout(
     profileIndex: 1,
     label: 'Cap Pistol',
-    wallHint: 'candy · plastic · egg',
     gun: AngryWordsGunKind.capPistol,
     fireInterval: 0.19,
     bulletDamage: 1,
@@ -668,13 +938,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 5,
     barrierRows: 4,
     fillerCount: 3,
+    primaryArchetype: WbPropArchetype.candyBall,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _candyPlastic,
   ),
-  // 3 Pocket Pistol — precise
+  // 3 Pocket Pistol — pure balloon wall (🎈 look + helium float)
   const AngryWordsLoadout(
     profileIndex: 2,
     label: 'Pocket Pistol',
-    wallHint: 'plastic · wood · foam',
     gun: AngryWordsGunKind.pocketPistol,
     fireInterval: 0.155,
     bulletDamage: 1,
@@ -691,13 +964,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 6,
     barrierRows: 4,
     fillerCount: 3,
-    wallMix: _plasticWood,
+    primaryArchetype: WbPropArchetype.balloon,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
+    wallMix: _toyCandy,
   ),
-  // 4 Service Pistol — firmer shot
+  // 4 Service Pistol — dense soda-can wall (assets/items/can.png)
   const AngryWordsLoadout(
     profileIndex: 3,
     label: 'Service Pistol',
-    wallHint: 'plastic · wood · foam',
     gun: AngryWordsGunKind.servicePistol,
     fireInterval: 0.135,
     bulletDamage: 1,
@@ -711,16 +987,19 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     element: AngryWordsBulletElement.normal,
     splashRadius: 0,
     homing: false,
-    barrierCols: 6,
-    barrierRows: 5,
-    fillerCount: 4,
+    barrierCols: 9,
+    barrierRows: 6,
+    fillerCount: 12,
+    primaryArchetype: WbPropArchetype.sodaCan,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _plasticWood,
   ),
-  // 5 Dual Pistols — two pellets
+  // 5 Dual Pistols — pure oil-barrel wall (assets/items/oilbarrel.png)
   const AngryWordsLoadout(
     profileIndex: 4,
     label: 'Dual Pistols',
-    wallHint: 'wood · glass · sand',
     gun: AngryWordsGunKind.dualPistols,
     fireInterval: 0.145,
     bulletDamage: 1,
@@ -734,16 +1013,19 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     element: AngryWordsBulletElement.normal,
     splashRadius: 0,
     homing: false,
-    barrierCols: 6,
+    barrierCols: 7,
     barrierRows: 5,
-    fillerCount: 4,
+    fillerCount: 6,
+    primaryArchetype: WbPropArchetype.oilDrum,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodGlass,
   ),
-  // 6 Revolver — heavy single + recoil
+  // 6 Revolver — stage-6 lamp wall, first-hit damaged sprite + split fragments.
   const AngryWordsLoadout(
     profileIndex: 5,
     label: 'Revolver',
-    wallHint: 'wood · glass · sand',
     gun: AngryWordsGunKind.revolver,
     fireInterval: 0.22,
     bulletDamage: 2,
@@ -757,16 +1039,19 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     element: AngryWordsBulletElement.normal,
     splashRadius: 0,
     homing: false,
-    barrierCols: 7,
-    barrierRows: 5,
-    fillerCount: 5,
+    barrierCols: 8,
+    barrierRows: 6,
+    fillerCount: 8,
+    primaryArchetype: WbPropArchetype.oilLamp,
+    fillerArchetype: WbPropArchetype.oilLamp,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodGlass,
   ),
   // 7 Magnum — chunkier than revolver
   const AngryWordsLoadout(
     profileIndex: 6,
     label: 'Magnum',
-    wallHint: 'wood · glass · sand',
     gun: AngryWordsGunKind.magnum,
     fireInterval: 0.28,
     bulletDamage: 2,
@@ -783,13 +1068,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 7,
     barrierRows: 5,
     fillerCount: 5,
+    primaryArchetype: WbPropArchetype.piggyBank,
+    fillerArchetype: WbPropArchetype.candyBall,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodGlass,
   ),
   // 8 Machine Pistol — enter spray chapter
   const AngryWordsLoadout(
     profileIndex: 7,
     label: 'Machine Pistol',
-    wallHint: 'plastic · glass · foam · bubbles',
     gun: AngryWordsGunKind.machinePistol,
     fireInterval: 0.09,
     bulletDamage: 1,
@@ -806,13 +1094,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 7,
     barrierRows: 6,
     fillerCount: 6,
+    primaryArchetype: WbPropArchetype.sodaCan,
+    fillerArchetype: WbPropArchetype.sprayCan,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _sprayEarly,
   ),
   // 9 Uzi — egg wall; yolks spill and pool on the floor
   const AngryWordsLoadout(
     profileIndex: 8,
     label: 'Uzi',
-    wallHint: 'eggs only · yolk pool',
     gun: AngryWordsGunKind.uzi,
     fireInterval: 0.068,
     bulletDamage: 1,
@@ -829,13 +1120,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 8,
     barrierRows: 6,
     fillerCount: 7,
+    primaryArchetype: WbPropArchetype.egg,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _eggOnlyWall,
   ),
   // 10 SMG — stable professional spray
   const AngryWordsLoadout(
     profileIndex: 9,
     label: 'SMG',
-    wallHint: 'wood · water · sand',
     gun: AngryWordsGunKind.smg,
     fireInterval: 0.074,
     bulletDamage: 1,
@@ -852,13 +1146,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 8,
     barrierRows: 6,
     fillerCount: 8,
+    primaryArchetype: WbPropArchetype.oilDrum,
+    fillerArchetype: WbPropArchetype.sodaCan,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodWater,
   ),
   // 11 Triple Burst SMG
   const AngryWordsLoadout(
     profileIndex: 10,
     label: 'Triple Burst SMG',
-    wallHint: 'wood · water · sand',
     gun: AngryWordsGunKind.tripleBurstSmg,
     fireInterval: 0.16,
     bulletDamage: 1,
@@ -875,13 +1172,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 12,
     barrierRows: 8,
     fillerCount: 26,
+    primaryArchetype: WbPropArchetype.pinata,
+    fillerArchetype: WbPropArchetype.confettiBall,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodWater,
   ),
   // 12 Compact Shotgun
   const AngryWordsLoadout(
     profileIndex: 11,
     label: 'Compact Shotgun',
-    wallHint: 'glass · wood · foam',
     gun: AngryWordsGunKind.compactShotgun,
     fireInterval: 0.3,
     bulletDamage: 1,
@@ -898,13 +1198,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 12,
     barrierRows: 9,
     fillerCount: 27,
+    primaryArchetype: WbPropArchetype.watermelon,
+    fillerArchetype: WbPropArchetype.soapBubble,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _glassWood,
   ),
   // 13 Pump Shotgun
   const AngryWordsLoadout(
     profileIndex: 12,
     label: 'Pump Shotgun',
-    wallHint: 'glass · wood · foam',
     gun: AngryWordsGunKind.pumpShotgun,
     fireInterval: 0.28,
     bulletDamage: 1,
@@ -921,13 +1224,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 12,
     barrierRows: 9,
     fillerCount: 29,
+    primaryArchetype: WbPropArchetype.soapBubble,
+    fillerArchetype: WbPropArchetype.confettiBall,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _glassWood,
   ),
   // 14 Auto Shotgun
   const AngryWordsLoadout(
     profileIndex: 13,
     label: 'Auto Shotgun',
-    wallHint: 'wood · rubber · porcelain',
     gun: AngryWordsGunKind.autoShotgun,
     fireInterval: 0.2,
     bulletDamage: 1,
@@ -944,13 +1250,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 13,
     barrierRows: 9,
     fillerCount: 30,
+    primaryArchetype: WbPropArchetype.discoBall,
+    fillerArchetype: WbPropArchetype.sodaCan,
+    primaryRatio: 0.6,
+    usesHammer: false,
     wallMix: _woodRubber,
   ),
   // 15 Quad Barrel
   const AngryWordsLoadout(
     profileIndex: 14,
     label: 'Quad Barrel',
-    wallHint: 'wood · rubber · porcelain',
     gun: AngryWordsGunKind.quadBarrel,
     fireInterval: 0.32,
     bulletDamage: 1,
@@ -967,13 +1276,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 13,
     barrierRows: 9,
     fillerCount: 32,
+    primaryArchetype: WbPropArchetype.confettiBall,
+    fillerArchetype: WbPropArchetype.soapBubble,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodRubber,
   ),
   // 16 Carbine
   const AngryWordsLoadout(
     profileIndex: 15,
     label: 'Carbine',
-    wallHint: 'rubber · stone · slime',
     gun: AngryWordsGunKind.carbine,
     fireInterval: 0.11,
     bulletDamage: 2,
@@ -990,13 +1302,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 13,
     barrierRows: 9,
     fillerCount: 32,
+    primaryArchetype: WbPropArchetype.woodBarrel,
+    fillerArchetype: WbPropArchetype.woodTarget,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _rubberStone,
   ),
   // 17 Assault Rifle
   const AngryWordsLoadout(
     profileIndex: 16,
     label: 'Assault Rifle',
-    wallHint: 'rubber · stone · slime',
     gun: AngryWordsGunKind.assault,
     fireInterval: 0.095,
     bulletDamage: 2,
@@ -1013,13 +1328,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 13,
     barrierRows: 9,
     fillerCount: 33,
+    primaryArchetype: WbPropArchetype.brick,
+    fillerArchetype: WbPropArchetype.sandstone,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _rubberStone,
   ),
   // 18 AK-47
   const AngryWordsLoadout(
     profileIndex: 17,
     label: 'AK-47',
-    wallHint: 'stone · wood · porcelain',
     gun: AngryWordsGunKind.ak47,
     fireInterval: 0.088,
     bulletDamage: 2,
@@ -1036,13 +1354,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 13,
     barrierRows: 10,
     fillerCount: 34,
+    primaryArchetype: WbPropArchetype.tinCan,
+    fillerArchetype: WbPropArchetype.oilDrum,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneWood,
   ),
   // 19 Battle Rifle
   const AngryWordsLoadout(
     profileIndex: 18,
     label: 'Battle Rifle',
-    wallHint: 'stone · wood · porcelain',
     gun: AngryWordsGunKind.battleRifle,
     fireInterval: 0.14,
     bulletDamage: 3,
@@ -1059,13 +1380,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 35,
+    primaryArchetype: WbPropArchetype.oilDrum,
+    fillerArchetype: WbPropArchetype.tinCan,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneWood,
   ),
   // 20 Burst Rifle
   const AngryWordsLoadout(
     profileIndex: 19,
     label: 'Burst Rifle',
-    wallHint: 'stone · wood · porcelain',
     gun: AngryWordsGunKind.burstRifle,
     fireInterval: 0.18,
     bulletDamage: 2,
@@ -1082,13 +1406,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 36,
+    primaryArchetype: WbPropArchetype.sandstone,
+    fillerArchetype: WbPropArchetype.brick,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneWood,
   ),
   // 21 LMG
   const AngryWordsLoadout(
     profileIndex: 20,
     label: 'Light Machine Gun',
-    wallHint: 'rubber · stone · slime',
     gun: AngryWordsGunKind.lmg,
     fireInterval: 0.066,
     bulletDamage: 2,
@@ -1105,13 +1432,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 37,
+    primaryArchetype: WbPropArchetype.woodTarget,
+    fillerArchetype: WbPropArchetype.woodBarrel,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _rubberStone,
   ),
   // 22 Heavy SMG
   const AngryWordsLoadout(
     profileIndex: 21,
     label: 'Heavy SMG',
-    wallHint: 'rubber · stone · slime',
     gun: AngryWordsGunKind.heavySmg,
     fireInterval: 0.072,
     bulletDamage: 2,
@@ -1128,13 +1458,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 39,
+    primaryArchetype: WbPropArchetype.ceramicJug,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _rubberStone,
   ),
   // 23 Ice Pistol
   const AngryWordsLoadout(
     profileIndex: 22,
     label: 'Ice Pistol',
-    wallHint: 'candy · egg · slime',
     gun: AngryWordsGunKind.icePistol,
     fireInterval: 0.19,
     bulletDamage: 1,
@@ -1151,13 +1484,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 10,
     fillerCount: 38,
+    primaryArchetype: WbPropArchetype.glassBottle,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: true,
     wallMix: _iceWater,
   ),
   // 24 Freeze Ray
   const AngryWordsLoadout(
     profileIndex: 23,
     label: 'Freeze Ray',
-    wallHint: 'candy · egg · slime',
     gun: AngryWordsGunKind.freezeRay,
     fireInterval: 0.11,
     bulletDamage: 1,
@@ -1174,13 +1510,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 11,
     fillerCount: 40,
+    primaryArchetype: WbPropArchetype.iceBlock,
+    fillerArchetype: WbPropArchetype.waxBall,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _iceWaterDense,
   ),
   // 25 Flamethrower
   const AngryWordsLoadout(
     profileIndex: 24,
     label: 'Flamethrower',
-    wallHint: 'candy · egg · slime',
     gun: AngryWordsGunKind.flamethrower,
     fireInterval: 0.092,
     bulletDamage: 1,
@@ -1197,13 +1536,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 14,
     barrierRows: 11,
     fillerCount: 41,
+    primaryArchetype: WbPropArchetype.waxBall,
+    fillerArchetype: WbPropArchetype.iceBlock,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodIce,
   ),
   // 26 Inferno Gun
   const AngryWordsLoadout(
     profileIndex: 25,
     label: 'Inferno Gun',
-    wallHint: 'candy · plastic · egg',
     gun: AngryWordsGunKind.inferno,
     fireInterval: 0.07,
     bulletDamage: 1,
@@ -1220,13 +1562,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 11,
     fillerCount: 43,
+    primaryArchetype: WbPropArchetype.magmaOrb,
+    fillerArchetype: WbPropArchetype.iceBlock,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _woodIceDense,
   ),
   // 27 Crossbow
   const AngryWordsLoadout(
     profileIndex: 26,
     label: 'Crossbow',
-    wallHint: 'stone · metal · crystal',
     gun: AngryWordsGunKind.crossbow,
     fireInterval: 0.38,
     bulletDamage: 3,
@@ -1243,13 +1588,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 11,
     fillerCount: 44,
+    primaryArchetype: WbPropArchetype.coconut,
+    fillerArchetype: WbPropArchetype.pumpkin,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneMetal,
   ),
   // 28 Repeating Crossbow
   const AngryWordsLoadout(
     profileIndex: 27,
     label: 'Repeating Crossbow',
-    wallHint: 'stone · metal · magma',
     gun: AngryWordsGunKind.repeatingCrossbow,
     fireInterval: 0.15,
     bulletDamage: 2,
@@ -1266,13 +1614,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 11,
     fillerCount: 45,
+    primaryArchetype: WbPropArchetype.pumpkin,
+    fillerArchetype: WbPropArchetype.coconut,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneMetalDense,
   ),
   // 29 Hunting Rifle
   const AngryWordsLoadout(
     profileIndex: 28,
     label: 'Hunting Rifle',
-    wallHint: 'stone · metal · magma',
     gun: AngryWordsGunKind.huntingRifle,
     fireInterval: 0.32,
     bulletDamage: 3,
@@ -1289,13 +1640,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 11,
     fillerCount: 46,
+    primaryArchetype: WbPropArchetype.glassPane,
+    fillerArchetype: WbPropArchetype.lightBulb,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _stoneMetalDense,
   ),
   // 30 Sniper Rifle
   const AngryWordsLoadout(
     profileIndex: 29,
     label: 'Sniper Rifle',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.sniper,
     fireInterval: 0.48,
     bulletDamage: 3,
@@ -1312,13 +1666,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 12,
     fillerCount: 48,
+    primaryArchetype: WbPropArchetype.lightBulb,
+    fillerArchetype: WbPropArchetype.glassPane,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalStone,
   ),
   // 31 Anti-Materiel
   const AngryWordsLoadout(
     profileIndex: 30,
     label: 'Anti-Materiel Rifle',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.antiMateriel,
     fireInterval: 0.55,
     bulletDamage: 4,
@@ -1335,13 +1692,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 12,
     fillerCount: 50,
+    primaryArchetype: WbPropArchetype.steelPlate,
+    fillerArchetype: WbPropArchetype.magnetSphere,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalStoneHeavy,
   ),
   // 32 Gauss Rifle
   const AngryWordsLoadout(
     profileIndex: 31,
     label: 'Gauss Rifle',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.gauss,
     fireInterval: 0.11,
     bulletDamage: 2,
@@ -1358,13 +1718,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 12,
     fillerCount: 51,
+    primaryArchetype: WbPropArchetype.magnetSphere,
+    fillerArchetype: WbPropArchetype.steelPlate,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalStoneHeavy,
   ),
   // 33 Laser Pointer
   const AngryWordsLoadout(
     profileIndex: 32,
     label: 'Laser Pointer',
-    wallHint: 'candy · crystal · egg',
     gun: AngryWordsGunKind.laserPointer,
     fireInterval: 0.055,
     bulletDamage: 1,
@@ -1381,13 +1744,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 15,
     barrierRows: 12,
     fillerCount: 52,
+    primaryArchetype: WbPropArchetype.crystal,
+    fillerArchetype: WbPropArchetype.neonOrb,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalGlass,
   ),
   // 34 Pulse Laser
   const AngryWordsLoadout(
     profileIndex: 33,
     label: 'Pulse Laser',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.pulseLaser,
     fireInterval: 0.048,
     bulletDamage: 1,
@@ -1404,13 +1770,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 53,
+    primaryArchetype: WbPropArchetype.oldTv,
+    fillerArchetype: WbPropArchetype.crystal,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalIce,
   ),
   // 35 Beam Laser — emoji wall (visual skin; materials still apply)
   const AngryWordsLoadout(
     profileIndex: 34,
     label: 'Beam Laser',
-    wallHint: 'emoji wall · candy · gold',
     gun: AngryWordsGunKind.beamLaser,
     fireInterval: 0.034,
     bulletDamage: 2,
@@ -1427,13 +1796,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 54,
+    primaryArchetype: WbPropArchetype.emojiVariety,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalIceDense,
   ),
   // 36 Dual Plasma — animal emoji wall (visual skin; materials still apply)
   const AngryWordsLoadout(
     profileIndex: 35,
     label: 'Dual Plasma',
-    wallHint: 'animal emoji · candy · gold',
     gun: AngryWordsGunKind.plasmaPistol,
     fireInterval: 0.125,
     bulletDamage: 2,
@@ -1450,13 +1822,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 54,
+    primaryArchetype: WbPropArchetype.emojiAnimal,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalIceDense,
   ),
   // 37 Twin Plasma Rifle
   const AngryWordsLoadout(
     profileIndex: 36,
     label: 'Twin Plasma Rifle',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.plasmaRifle,
     fireInterval: 0.085,
     bulletDamage: 2,
@@ -1473,13 +1848,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 55,
+    primaryArchetype: WbPropArchetype.neonOrb,
+    fillerArchetype: WbPropArchetype.neonTube,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _endgame,
   ),
   // 38 Triple Plasma Cannon
   const AngryWordsLoadout(
     profileIndex: 37,
     label: 'Triple Plasma Cannon',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.plasmaCannon,
     fireInterval: 0.18,
     bulletDamage: 3,
@@ -1496,13 +1874,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.neonTube,
+    fillerArchetype: WbPropArchetype.neonOrb,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _endgameDense,
   ),
   // 39 Triple Railgun
   const AngryWordsLoadout(
     profileIndex: 38,
     label: 'Triple Railgun',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.railgun,
     fireInterval: 0.5,
     bulletDamage: 4,
@@ -1519,13 +1900,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.metalGear,
+    fillerArchetype: WbPropArchetype.batteryCell,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalStoneHeavy,
   ),
-  // 40 Triple Coilgun
+  // 40 Triple Coilgun — pure oil-barrel sea (assets/items/oilbarrel.png)
   const AngryWordsLoadout(
     profileIndex: 39,
     label: 'Triple Coilgun',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.coilgun,
     fireInterval: 0.05,
     bulletDamage: 2,
@@ -1542,13 +1926,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.oilDrum,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _metalStoneHeavy,
   ),
   // 41 Grenade Launcher
   const AngryWordsLoadout(
     profileIndex: 40,
     label: 'Grenade Launcher',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.grenadeLauncher,
     fireInterval: 0.36,
     bulletDamage: 3,
@@ -1565,13 +1952,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.fireworkShell,
+    fillerArchetype: WbPropArchetype.powderKeg,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _fortress,
   ),
   // 42 RPG
   const AngryWordsLoadout(
     profileIndex: 41,
     label: 'RPG',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.rpg,
     fireInterval: 0.52,
     bulletDamage: 5,
@@ -1588,13 +1978,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.powderKeg,
+    fillerArchetype: WbPropArchetype.fireworkShell,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _fortressDense,
   ),
   // 43 Homing Rocket
   const AngryWordsLoadout(
     profileIndex: 42,
     label: 'Homing Rocket',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.homingRocket,
     fireInterval: 0.46,
     bulletDamage: 4,
@@ -1611,13 +2004,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.oilLamp,
+    fillerArchetype: WbPropArchetype.rubberTire,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _fortressDense,
   ),
   // 44 Mini-Gun
   const AngryWordsLoadout(
     profileIndex: 43,
     label: 'Mini-Gun',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.minigun,
     fireInterval: 0.034,
     bulletDamage: 2,
@@ -1634,13 +2030,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.concreteBlock,
+    fillerArchetype: WbPropArchetype.brick,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _steelCurtain,
   ),
   // 45 Gatling
   const AngryWordsLoadout(
     profileIndex: 44,
     label: 'Gatling',
-    wallHint: 'candy · gold · egg',
     gun: AngryWordsGunKind.gatling,
     fireInterval: 0.028,
     bulletDamage: 2,
@@ -1657,13 +2056,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.rubberTire,
+    fillerArchetype: WbPropArchetype.oilLamp,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _steelCurtain,
   ),
   // 46 Laser Tank Turret
   const AngryWordsLoadout(
     profileIndex: 45,
     label: 'Laser Tank Turret',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.laserTank,
     fireInterval: 0.036,
     bulletDamage: 2,
@@ -1680,13 +2082,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.goldTrophy,
+    fillerArchetype: WbPropArchetype.bronzeBell,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _endgameDense,
   ),
   // 47 Hybrid Tank — hold-to-spray dual: laser + explosive
   const AngryWordsLoadout(
     profileIndex: 46,
     label: 'Hybrid Tank',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.tankCannon,
     fireInterval: 0.1,
     bulletDamage: 4,
@@ -1703,13 +2108,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.stoneStatue,
+    fillerArchetype: WbPropArchetype.obsidianGem,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _endgameDense,
   ),
   // 48 Twin Tank Guns
   const AngryWordsLoadout(
     profileIndex: 47,
     label: 'Twin Tank Guns',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.twinTank,
     fireInterval: 0.4,
     bulletDamage: 3,
@@ -1726,13 +2134,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.bronzeBell,
+    fillerArchetype: WbPropArchetype.goldTrophy,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _doomsdayWall,
   ),
   // 49 Siege Artillery — triple barrel
   const AngryWordsLoadout(
     profileIndex: 48,
     label: 'Siege Artillery',
-    wallHint: 'candy · magma · gold',
     gun: AngryWordsGunKind.siege,
     fireInterval: 0.66,
     bulletDamage: 5,
@@ -1749,13 +2160,16 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.obsidianGem,
+    fillerArchetype: WbPropArchetype.stoneStatue,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _doomsdayWall,
   ),
   // 50 Doomsday MG — 5-barrel chaingun vs all-stone wall (2-hit crack→shatter)
   const AngryWordsLoadout(
     profileIndex: 49,
     label: 'Doomsday MG',
-    wallHint: 'all stone · 2-hit',
     gun: AngryWordsGunKind.doomsdayMg,
     fireInterval: 0.03,
     bulletDamage: 1,
@@ -1772,6 +2186,10 @@ final List<AngryWordsLoadout> kAngryWordsStageArsenal = [
     barrierCols: 16,
     barrierRows: 12,
     fillerCount: 56,
+    primaryArchetype: WbPropArchetype.graniteBlock,
+    fillerArchetype: null,
+    primaryRatio: 0.7,
+    usesHammer: false,
     wallMix: _doomsdayMgWall,
   ),
 ];

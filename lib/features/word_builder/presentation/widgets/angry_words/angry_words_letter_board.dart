@@ -1,22 +1,31 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/audio/angry_words_can_shoot_audio.dart';
+import '../../../../../core/audio/angry_words_lamp_shot_audio.dart';
 import '../../../../../core/audio/angry_words_egg_crack_audio.dart';
+import '../../../../../core/audio/angry_words_explosion_audio.dart';
 import '../../../../../core/audio/angry_words_gun_audio.dart';
 import '../../../../../core/audio/angry_words_pop_audio.dart';
+import '../../../../../core/audio/angry_words_prop_break_audio.dart';
 import '../../../../../core/audio/angry_words_sling_audio.dart';
 import '../../../../../core/audio/word_builder_sound_service.dart';
+import '../../../data/prop_archetypes/wb_prop_archetype.dart';
+import '../../../data/prop_archetypes/wb_prop_sound_family.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../application/word_builder_game_notifier.dart';
 import '../../../application/word_builder_session_audio.dart';
 import '../../../domain/word_builder_game_logic.dart';
 import '../../../domain/word_builder_models.dart';
 import '../answer_slot_key_bag.dart';
+import '../../theme/word_builder_motion.dart';
+import '../../../application/word_builder_play_mode_controller.dart';
 import 'angry_words_celebrate.dart';
 import 'angry_words_flight_overlay.dart';
 import 'angry_words_loadout.dart';
@@ -127,6 +136,7 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick)..start();
+    unawaited(_loadPropSprites());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(
@@ -139,7 +149,60 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       unawaited(ref.read(angryWordsPopAudioProvider).ensureLoaded());
       unawaited(ref.read(angryWordsSlingAudioProvider).ensureLoaded());
       unawaited(ref.read(angryWordsEggCrackAudioProvider).ensureLoaded());
+      unawaited(ref.read(angryWordsCanShootAudioProvider).ensureLoaded());
+      unawaited(ref.read(angryWordsLampShotAudioProvider).ensureLoaded());
+      unawaited(ref.read(angryWordsExplosionAudioProvider).ensureLoaded());
     });
+  }
+
+  Future<void> _loadPropSprites() async {
+    try {
+      final results = await Future.wait([
+        _decodeAssetImage('assets/items/can.png'),
+        _decodeAssetImage('assets/items/canshoot.png'),
+        _decodeAssetImage('assets/items/gun4.png'),
+        _decodeAssetImage('assets/items/oilbarrel.png'),
+        _decodeAssetImage('assets/items/oilbarrelshot.png'),
+        _decodeAssetImage('assets/items/lamp.png'),
+        _decodeAssetImage('assets/items/lampshot.png'),
+        _decodeAssetImage('assets/items/lampleftshot.png'),
+        _decodeAssetImage('assets/items/lamprightshot.png'),
+      ]);
+      if (!mounted) {
+        for (final img in results) {
+          img?.dispose();
+        }
+        return;
+      }
+      _world.sodaCanSprite?.dispose();
+      _world.sodaCanShotSprite?.dispose();
+      _world.stage4GunSprite?.dispose();
+      _world.oilBarrelSprite?.dispose();
+      _world.oilBarrelShotSprite?.dispose();
+      _world.lampSprite?.dispose();
+      _world.lampShotSprite?.dispose();
+      _world.lampLeftFragmentSprite?.dispose();
+      _world.lampRightFragmentSprite?.dispose();
+      _world.sodaCanSprite = results[0];
+      _world.sodaCanShotSprite = results[1];
+      _world.stage4GunSprite = results[2];
+      _world.oilBarrelSprite = results[3];
+      _world.oilBarrelShotSprite = results[4];
+      _world.lampSprite = results[5];
+      _world.lampShotSprite = results[6];
+      _world.lampLeftFragmentSprite = results[7];
+      _world.lampRightFragmentSprite = results[8];
+      setState(() {});
+    } catch (_) {
+      // Fallback paint in painter until assets are available.
+    }
+  }
+
+  Future<ui.Image?> _decodeAssetImage(String path) async {
+    final data = await rootBundle.load(path);
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    return frame.image;
   }
 
   @override
@@ -148,6 +211,24 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     _windButtonHeld = false;
     _world.setWindHeld(false);
     _world.setGunTrigger(false);
+    _world.sodaCanSprite?.dispose();
+    _world.sodaCanSprite = null;
+    _world.sodaCanShotSprite?.dispose();
+    _world.sodaCanShotSprite = null;
+    _world.stage4GunSprite?.dispose();
+    _world.stage4GunSprite = null;
+    _world.oilBarrelSprite?.dispose();
+    _world.oilBarrelSprite = null;
+    _world.oilBarrelShotSprite?.dispose();
+    _world.oilBarrelShotSprite = null;
+    _world.lampSprite?.dispose();
+    _world.lampSprite = null;
+    _world.lampShotSprite?.dispose();
+    _world.lampShotSprite = null;
+    _world.lampLeftFragmentSprite?.dispose();
+    _world.lampLeftFragmentSprite = null;
+    _world.lampRightFragmentSprite?.dispose();
+    _world.lampRightFragmentSprite = null;
     unawaited(ref.read(angryWordsGunAudioProvider).stop());
     unawaited(ref.read(angryWordsSlingAudioProvider).stopStretch());
     _ticker.dispose();
@@ -394,6 +475,25 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       for (final pop in propPops) {
         _spawnPropExplosion(pop, playSound: true);
       }
+      final canHits = _world.takeCanShootSfx();
+      if (canHits > 0) {
+        final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
+        final canAudio = ref.read(angryWordsCanShootAudioProvider);
+        for (var i = 0; i < canHits; i++) {
+          canAudio.play(enabled: sfx);
+        }
+      }
+      final lampHits = _world.takeLampShotSfx();
+      if (lampHits > 0) {
+        final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
+        final lampAudio = ref.read(angryWordsLampShotAudioProvider);
+        for (var i = 0; i < lampHits; i++) {
+          lampAudio.play(enabled: sfx);
+        }
+      }
+      for (final at in _world.takeOilFireFx()) {
+        _spawnOilBarrelFireBurst(at);
+      }
       while (_explosions.length > 28) {
         _explosions.removeAt(0);
       }
@@ -467,13 +567,30 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         ),
       );
       _world.explodeLetter(hit.id);
-      // Found letter-egg cracks: shell burst + yolk spills to the floor pool.
-      _world.spillYolkAt(hitPos, fromRadius: eggR, seed: hit.id);
-      _spawnEggLetterBreak(hitPos);
+      // Stage 22-style: primary holdsCargoWell + porcelain → jug shatter (no yolk).
+      final primarySpec = kWbArchetypes[_world.loadout.primaryArchetype];
+      final porcelainShell = primarySpec != null &&
+          primarySpec.holdsCargoWell &&
+          primarySpec.material == AngryWordsPropMaterial.porcelain;
+      final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
+      if (porcelainShell) {
+        _spawnPropExplosion(
+          AngryWordsPropPop(
+            at: hitPos,
+            palette: tint,
+            radius: eggR,
+            material: AngryWordsPropMaterial.porcelain,
+            archetype: _world.loadout.primaryArchetype,
+          ),
+        );
+      } else {
+        // Found letter-egg cracks: shell burst + yolk spills to the floor pool.
+        _world.spillYolkAt(hitPos, fromRadius: eggR, seed: hit.id);
+        _spawnEggLetterBreak(hitPos);
+        ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfx);
+      }
       _sparkLife = 1;
       HapticFeedback.mediumImpact();
-      final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
-      ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfx);
     } else {
       _pathAnchors.clear();
       _world.scatterFromWrongHit(hit.id);
@@ -664,13 +781,24 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       pop.palette * 31 + pop.at.dx.round() + pop.material.index * 17,
     );
     final profile = _popProfileFor(pop.material);
+    final motionScale =
+        mounted ? WbMotion.of(context).particleScale : 1.0;
+    final bitBudget = math.max(
+      2,
+      (profile.count * motionScale).round().clamp(2, 16),
+    );
+    final life = (profile.life * (0.55 + 0.45 * motionScale)).clamp(
+      0.35,
+      WbShatterRecipe.kMaxPlayableLifetimeSec,
+    );
     final bits = <AngryWordsExplosionBit>[];
     if (pop.material == AngryWordsPropMaterial.egg) {
       // Shell shards only — yolk becomes a live floor puddle.
       const shell = Color(0xFFFFF8E1);
       const shellDark = Color(0xFFE8D5B5);
-      for (var i = 0; i < 16; i++) {
-        final a = i * math.pi * 2 / 16 + rng.nextDouble() * 0.4;
+      final eggN = math.max(4, (12 * motionScale).round());
+      for (var i = 0; i < eggN; i++) {
+        final a = i * math.pi * 2 / eggN + rng.nextDouble() * 0.4;
         bits.add(
           AngryWordsExplosionBit(
             angle: a,
@@ -682,8 +810,8 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         );
       }
     } else {
-      for (var i = 0; i < profile.count; i++) {
-        final a = i * math.pi * 2 / profile.count + rng.nextDouble() * 0.55;
+      for (var i = 0; i < bitBudget; i++) {
+        final a = i * math.pi * 2 / bitBudget + rng.nextDouble() * 0.55;
         final speed = profile.speedMin +
             rng.nextDouble() * (profile.speedMax - profile.speedMin);
         final shape = profile.shapes[i % profile.shapes.length];
@@ -703,7 +831,8 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
       }
     }
     if (pop.steamy) {
-      for (var i = 0; i < 8; i++) {
+      final steamN = math.max(2, (6 * motionScale).round());
+      for (var i = 0; i < steamN; i++) {
         final a = rng.nextDouble() * math.pi * 2;
         bits.add(
           AngryWordsExplosionBit(
@@ -716,16 +845,24 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         );
       }
     }
+    final oilFire = pop.archetype == WbPropArchetype.oilDrum;
+    if (oilFire) {
+      // Bigger boom on final rupture.
+      _appendOilFireBits(bits, rng, motionScale, big: true);
+    }
     _explosions.add(
       AngryWordsLetterExplosion(
         at: pop.at,
         char: '',
-        life: profile.life,
+        life: oilFire
+            ? (0.75 + 0.25 * motionScale).clamp(0.55, 1.05)
+            : life,
         bits: bits,
-        juicy: profile.juicy,
+        juicy: profile.juicy || oilFire,
         steamy: pop.steamy,
-        ringA: profile.ringA,
-        ringB: profile.ringB,
+        fiery: oilFire,
+        ringA: oilFire ? const Color(0xFFFFAB40) : profile.ringA,
+        ringB: oilFire ? const Color(0xFFFF3D00) : profile.ringB,
         material: pop.material,
       ),
     );
@@ -734,10 +871,95 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
     if (playSound) {
       final sfx = ref.read(wordBuilderGameSfxEnabledProvider);
       if (pop.material == AngryWordsPropMaterial.egg) {
+        // Keep dedicated eggshell sample for letter/wall eggs.
         ref.read(angryWordsEggCrackAudioProvider).play(enabled: sfx);
+      } else if (pop.archetype == WbPropArchetype.sodaCan) {
+        ref.read(angryWordsCanShootAudioProvider).play(enabled: sfx);
+      } else if (pop.archetype == WbPropArchetype.oilDrum) {
+        // Final rupture: boom + fire already in juice.
+        ref.read(angryWordsExplosionAudioProvider).play(enabled: sfx);
+      } else if (pop.archetype == WbPropArchetype.oilLamp) {
+        // Same random glass-break sample as a non-lethal hit.
+        ref.read(angryWordsLampShotAudioProvider).play(enabled: sfx);
       } else {
-        ref.read(angryWordsPopAudioProvider).play(enabled: sfx);
+        final arch = pop.archetype;
+        final spec = arch != null ? kWbArchetypes[arch] : null;
+        final family =
+            spec?.soundFamily ?? wbSoundFamilyForMaterial(pop.material);
+        final pitch = spec?.soundPitch ?? family.defaultPitch;
+        ref.read(angryWordsPropBreakAudioProvider).play(
+              family: family,
+              basePitch: pitch,
+              enabled: sfx,
+              applyJitter: true,
+              priority: 0,
+            );
       }
+    }
+  }
+
+  void _spawnOilBarrelFireBurst(Offset at) {
+    final motionScale = mounted ? WbMotion.of(context).particleScale : 1.0;
+    final rng = math.Random(at.dx.round() ^ at.dy.round() ^ DateTime.now().microsecond);
+    final bits = <AngryWordsExplosionBit>[];
+    _appendOilFireBits(bits, rng, motionScale);
+    _explosions.add(
+      AngryWordsLetterExplosion(
+        at: at,
+        char: '',
+        life: (0.55 + 0.2 * motionScale).clamp(0.4, 0.85),
+        bits: bits,
+        juicy: true,
+        fiery: true,
+        ringA: const Color(0xFFFFAB40),
+        ringB: const Color(0xFFFF3D00),
+        material: AngryWordsPropMaterial.magma,
+      ),
+    );
+    while (_explosions.length > 28) {
+      _explosions.removeAt(0);
+    }
+  }
+
+  void _appendOilFireBits(
+    List<AngryWordsExplosionBit> bits,
+    math.Random rng,
+    double motionScale, {
+    bool big = false,
+  }) {
+    const colors = <Color>[
+      Color(0xFFFFF176),
+      Color(0xFFFFAB40),
+      Color(0xFFFF6D00),
+      Color(0xFFFF3D00),
+      Color(0xFFBF360C),
+    ];
+    final scale = big ? 1.55 : 1.0;
+    final n = math.max(8, ((big ? 22 : 14) * motionScale).round());
+    for (var i = 0; i < n; i++) {
+      // Bias upward (flames rise); big boom sprays wider.
+      final a = -math.pi * 0.5 + (rng.nextDouble() - 0.5) * (big ? 2.6 : 1.8);
+      bits.add(
+        AngryWordsExplosionBit(
+          angle: a,
+          speed: (70 + rng.nextDouble() * 160) * scale,
+          size: (2.8 + rng.nextDouble() * 5.5) * scale,
+          color: colors[i % colors.length],
+          shape: i.isEven ? AngryWordsBitShape.spark : AngryWordsBitShape.round,
+        ),
+      );
+    }
+    final smokeN = math.max(2, (((big ? 8 : 4) * motionScale).round()));
+    for (var i = 0; i < smokeN; i++) {
+      bits.add(
+        AngryWordsExplosionBit(
+          angle: -math.pi * 0.5 + (rng.nextDouble() - 0.5) * 1.4,
+          speed: (30 + rng.nextDouble() * 55) * scale,
+          size: (5 + rng.nextDouble() * 7) * scale,
+          color: const Color(0xFF78909C),
+          shape: AngryWordsBitShape.dust,
+        ),
+      );
     }
   }
 
@@ -1120,7 +1342,9 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
         _boardSize = size;
         _ensureLayout(size);
 
-        final punch = _world.screenPunch;
+        final motion = WbMotion.of(context);
+        final punch =
+            motion.allowScreenShake ? _world.screenPunch : 0.0;
         final shake = punch > 0.01
             ? Offset(
                 math.sin(_world.simTime * 70) * punch * 5,
@@ -1144,6 +1368,11 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           if (box == null) return;
                           final local =
                               box.globalToLocal(d.globalPosition);
+                          if (_world.usesHammer) {
+                            _world.beginHammer(local);
+                            HapticFeedback.selectionClick();
+                            return;
+                          }
                           if (_world.usesGun) {
                             _world.setGunAim(local);
                             unawaited(_setGunTrigger(true));
@@ -1168,6 +1397,10 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           if (box == null) return;
                           final local =
                               box.globalToLocal(d.globalPosition);
+                          if (_world.usesHammer) {
+                            _world.updateHammer(local);
+                            return;
+                          }
                           if (_world.usesGun) {
                             _world.setGunAim(local);
                             if (!_world.gunTriggerHeld) {
@@ -1187,6 +1420,11 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                   onPanEnd: inputBlocked
                       ? null
                       : (_) {
+                          if (_world.usesHammer) {
+                            _world.endHammer();
+                            HapticFeedback.mediumImpact();
+                            return;
+                          }
                           if (_world.usesGun) {
                             unawaited(_setGunTrigger(false));
                             _syncWindFromSources();
@@ -1216,7 +1454,9 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                           }
                         },
                   onPanCancel: () {
-                    if (_world.usesGun) {
+                    if (_world.usesHammer) {
+                      _world.cancelHammer();
+                    } else if (_world.usesGun) {
                       unawaited(_setGunTrigger(false));
                     } else if (_world.isDraggingLetter) {
                       _world.endLetterDrag();
@@ -1262,7 +1502,8 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                     ),
                   ),
                 if (!inputBlocked &&
-                    ((_world.usesGun && !_world.gunTriggerHeld) ||
+                    ((_world.usesHammer && !_world.hammerHeld) ||
+                        (_world.usesGun && !_world.gunTriggerHeld) ||
                         (_world.isFreePhase &&
                             !_world.inFlight &&
                             !_world.aiming &&
@@ -1273,7 +1514,9 @@ class _AngryWordsLetterBoardState extends ConsumerState<AngryWordsLetterBoard>
                     bottom: 10,
                     child: IgnorePointer(
                       child: Text(
-                        _world.usesGun
+                        _world.usesHammer
+                            ? 'Drag to smash bottles · ${_world.loadout.wallHint} · ${_world.revealedLetterCount} / ${_world.revealedLetterCount + _world.remainingCargoCount}'
+                            : _world.usesGun
                             ? (_world.loadout.gun ==
                                         AngryWordsGunKind.doomsdayMg ||
                                     (_world.loadout.gun ==

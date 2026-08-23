@@ -3,8 +3,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'angry_words_cargo_plaque.dart';
 import 'angry_words_loadout.dart';
 import 'angry_words_physics.dart';
+import 'atlas/wb_prop_atlas_paint.dart';
+import 'atlas/wb_stage_atlas_pack.dart';
+import '../../../data/prop_archetypes/wb_prop_archetype.dart';
 
 enum AngryWordsBitShape { round, shard, chip, drop, spark, dust, glitter }
 
@@ -16,6 +20,7 @@ class AngryWordsLetterExplosion {
     required this.bits,
     this.juicy = false,
     this.steamy = false,
+    this.fiery = false,
     this.ringA = const Color(0xFFFFD54F),
     this.ringB = const Color(0xFFFF7043),
     this.material,
@@ -27,6 +32,7 @@ class AngryWordsLetterExplosion {
   final List<AngryWordsExplosionBit> bits;
   final bool juicy;
   final bool steamy;
+  final bool fiery;
   final Color ringA;
   final Color ringB;
   final AngryWordsPropMaterial? material;
@@ -46,6 +52,22 @@ const kAngryWordsPropPalettes = <List<Color>>[
   [Color(0xFFCCFF90), Color(0xFF64DD17)],
   [Color(0xFFB388FF), Color(0xFF6200EA)],
   [Color(0xFFFF80AB), Color(0xFFC51162)],
+];
+
+/// Party balloon dyes — vivid per-prop colors (not one shared pink).
+const kAngryWordsBalloonColors = <List<Color>>[
+  [Color(0xFFFF6B9D), Color(0xFFE91E63)], // pink
+  [Color(0xFF4FC3F7), Color(0xFF0288D1)], // sky
+  [Color(0xFFFFF176), Color(0xFFF9A825)], // yellow
+  [Color(0xFF69F0AE), Color(0xFF00C853)], // lime
+  [Color(0xFFFF8A65), Color(0xFFE64A19)], // orange
+  [Color(0xFFCE93D8), Color(0xFF8E24AA)], // purple
+  [Color(0xFFFF5252), Color(0xFFC62828)], // red
+  [Color(0xFF80CBC4), Color(0xFF00897B)], // teal
+  [Color(0xFF90CAF9), Color(0xFF1565C0)], // blue
+  [Color(0xFFFFAB91), Color(0xFFFF5722)], // coral
+  [Color(0xFFE1BEE7), Color(0xFF7B1FA2)], // lilac
+  [Color(0xFFA5D6A7), Color(0xFF2E7D32)], // green
 ];
 
 /// Distinct letter-orb colors — one unique hue per letter in a stage.
@@ -224,6 +246,8 @@ class AngryWordsBoardPainter extends CustomPainter {
     required this.explosions,
     required this.isDark,
     required this.scheme,
+    this.atlasPack,
+    this.lastPropHit,
   });
 
   final AngryWordsPhysicsWorld world;
@@ -237,6 +261,12 @@ class AngryWordsBoardPainter extends CustomPainter {
   final List<AngryWordsLetterExplosion> explosions;
   final bool isDark;
   final ColorScheme scheme;
+
+  /// When non-null, cage props use [drawRawAtlas] (1 call) instead of per-orb ops.
+  final WbStageAtlasPack? atlasPack;
+
+  /// Last bullet/impact position for LOD (far props → simple slot).
+  final Offset? lastPropHit;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -279,8 +309,32 @@ class AngryWordsBoardPainter extends CustomPainter {
       );
     }
 
-    _paintProps(canvas);
+    if (atlasPack != null) {
+      paintPropsWithAtlas(
+        canvas: canvas,
+        props: world.props,
+        pack: atlasPack!,
+        simTime: world.simTime,
+        lastHit: lastPropHit,
+      );
+      for (final P in world.props) {
+        if (P.removed || !P.isSpawnVisible || P.skinEmoji == null) continue;
+        final spawn = Curves.easeOutBack.transform(P.spawnT.clamp(0.0, 1.0));
+        final r = P.radius * (0.2 + 0.8 * spawn);
+        _paintEmojiProp(
+          canvas,
+          P,
+          P.pos,
+          r,
+          spawn.clamp(0.0, 1.0),
+          P.hitFlash,
+        );
+      }
+    } else {
+      _paintProps(canvas);
+    }
     _paintYolks(canvas);
+    _paintLampFragments(canvas);
     _paintLetters(canvas);
     if (world.usesSlingshot) {
       _paintTargetLock(canvas);
@@ -928,6 +982,27 @@ class AngryWordsBoardPainter extends CustomPainter {
         continue;
       }
 
+      if (P.archetype == WbPropArchetype.balloon) {
+        _paintBalloonProp(canvas, P, c, r, spawnAlpha, flash);
+        continue;
+      }
+      if (P.archetype == WbPropArchetype.candyBall) {
+        _paintCandyProp(canvas, P, c, r, spawnAlpha, flash);
+        continue;
+      }
+      if (P.archetype == WbPropArchetype.sodaCan) {
+        _paintSodaCanProp(canvas, P, c, r, spawnAlpha, flash);
+        continue;
+      }
+      if (P.archetype == WbPropArchetype.oilDrum) {
+        _paintOilBarrelProp(canvas, P, c, r, spawnAlpha, flash);
+        continue;
+      }
+      if (P.archetype == WbPropArchetype.oilLamp) {
+        _paintOilLampProp(canvas, P, c, r, spawnAlpha, flash);
+        continue;
+      }
+
       final colors = angryWordsColorsForMaterial(P.material, P.palette);
       final glassLike =
           P.material == AngryWordsPropMaterial.glass ||
@@ -942,14 +1017,6 @@ class AngryWordsBoardPainter extends CustomPainter {
         Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
       );
 
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + const Offset(0, 3.5),
-          width: r * 2 * ovalW,
-          height: r * 2 * ovalH,
-        ),
-        Paint()..color = Colors.black.withValues(alpha: 0.16),
-      );
       canvas.drawOval(
         Rect.fromCenter(center: c, width: r * 2 * ovalW, height: r * 2 * ovalH),
         Paint()
@@ -1098,31 +1165,22 @@ class AngryWordsBoardPainter extends CustomPainter {
       if (cargo != null) {
         final cargoTint = angryWordsLetterTint(P.cargoTintIndex ?? P.palette);
         final pulseRing = 0.35 + 0.2 * math.sin(world.simTime * 5 + P.phase);
-        canvas.drawCircle(
-          c,
-          r * 0.92,
-          Paint()..color = cargoTint.withValues(alpha: 0.28),
+        final archSpec =
+            P.archetype != null ? kWbArchetypes[P.archetype!] : null;
+        AngryWordsCargoPlaque.paintBacking(
+          canvas: canvas,
+          center: c,
+          radius: r,
+          cargoTint: cargoTint,
+          pulse: pulseRing,
+          usePlaque: archSpec?.needsLetterPlaque ?? false,
         );
-        canvas.drawCircle(
-          c,
-          r + 3.5,
-          Paint()
-            ..color = cargoTint.withValues(alpha: pulseRing + 0.25)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.4,
+        AngryWordsCargoPlaque.paintGlyph(
+          canvas: canvas,
+          center: c,
+          radius: r,
+          char: cargo.char,
         );
-        final tp = TextPainter(
-          text: TextSpan(
-            text: cargo.char.toUpperCase(),
-            style: TextStyle(
-              color: const Color(0xFF4E342E).withValues(alpha: 0.5),
-              fontSize: math.min(r * 0.9, 20),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
       }
       canvas.restore();
     }
@@ -1175,6 +1233,795 @@ class AngryWordsBoardPainter extends CustomPainter {
     }
   }
 
+  /// Swirl lollipop candy — peppermint sphere + stick (ref icon + chub).
+  void _paintCandyProp(
+    Canvas canvas,
+    AngryWordsPropBubble P,
+    Offset c,
+    double r,
+    double spawnAlpha,
+    double flash,
+  ) {
+    // Peppermint swirl colors from reference icon.
+    const pink = Color(0xFFFF4D8A);
+    const pinkDeep = Color(0xFFD81B60);
+    const cream = Color(0xFFFFF0F5);
+    const stickLight = Color(0xFFFFF8E7);
+    const stickMid = Color(0xFFE8D5B5);
+    const stickDark = Color(0xFFC4A574);
+
+    final spin = world.simTime * (1.4 + P.wanderFreq * 0.25) + P.phase;
+    final wobble = math.sin(spin * 0.85) * 0.2 + math.cos(spin * 0.4) * 0.05;
+    final hop = math.sin(spin * 1.25) * r * 0.045;
+    final velTilt = (P.vel.dx * 0.0009).clamp(-0.25, 0.25);
+
+    final ballR = r * 1.12;
+    final stickH = r * 1.15;
+    final stickW = r * 0.22;
+
+    canvas.saveLayer(
+      Rect.fromCenter(
+        center: c,
+        width: ballR * 2.6,
+        height: ballR * 2.6 + stickH * 1.2,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
+    );
+    canvas.translate(c.dx, c.dy + hop - stickH * 0.2);
+    canvas.rotate(wobble + velTilt);
+
+    // Stick first (behind ball lip).
+    final stickTop = ballR * 0.72;
+    final stickRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(0, stickTop + stickH * 0.5),
+        width: stickW,
+        height: stickH,
+      ),
+      Radius.circular(stickW * 0.45),
+    );
+    canvas.drawRRect(
+      stickRect,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(-stickW * 0.5, 0),
+          Offset(stickW * 0.5, 0),
+          [stickLight, stickMid, stickDark],
+          const [0.0, 0.45, 1.0],
+        ),
+    );
+    canvas.drawRRect(
+      stickRect,
+      Paint()
+        ..color = stickDark.withValues(alpha: 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+    // Stick highlight seam.
+    canvas.drawLine(
+      Offset(-stickW * 0.18, stickTop + stickH * 0.08),
+      Offset(-stickW * 0.18, stickTop + stickH * 0.92),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final ball = Path()
+      ..addOval(Rect.fromCircle(center: Offset.zero, radius: ballR));
+
+    // Sphere base — cream with volume shading.
+    canvas.drawPath(
+      ball,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(-ballR * 0.28, -ballR * 0.32),
+          ballR * 1.35,
+          [
+            Colors.white,
+            cream,
+            Color.lerp(cream, pink, 0.18)!,
+            Color.lerp(pinkDeep, const Color(0xFF4A1028), 0.25)!,
+          ],
+          const [0.0, 0.35, 0.72, 1.0],
+        ),
+    );
+
+    // Peppermint spiral arms (clipped to sphere).
+    canvas.save();
+    canvas.clipPath(ball);
+    final swirlPaint = Paint()
+      ..color = pink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ballR * 0.38
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final swirlDeep = Paint()
+      ..color = pinkDeep.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ballR * 0.38
+      ..strokeCap = StrokeCap.round;
+    const arms = 5;
+    for (var arm = 0; arm < arms; arm++) {
+      final path = Path();
+      final startA = arm * (math.pi * 2 / arms) + P.phase * 0.15;
+      for (var i = 0; i <= 36; i++) {
+        final t = i / 36.0;
+        final a = startA + t * 3.6;
+        final rad = t * ballR * 1.08;
+        final x = math.cos(a) * rad * 0.98;
+        final y = math.sin(a) * rad * 0.98;
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      canvas.drawPath(path, arm.isEven ? swirlPaint : swirlDeep);
+    }
+    // Soft cream gaps so pink does not flood the sphere.
+    final gapPaint = Paint()
+      ..color = cream.withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ballR * 0.16
+      ..strokeCap = StrokeCap.round;
+    for (var arm = 0; arm < arms; arm++) {
+      final path = Path();
+      final startA =
+          arm * (math.pi * 2 / arms) + math.pi / arms + P.phase * 0.15;
+      for (var i = 0; i <= 36; i++) {
+        final t = i / 36.0;
+        final a = startA + t * 3.6;
+        final rad = t * ballR * 1.08;
+        final x = math.cos(a) * rad * 0.98;
+        final y = math.sin(a) * rad * 0.98;
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      canvas.drawPath(path, gapPaint);
+    }
+    // Spherical shading veil.
+    canvas.drawCircle(
+      Offset.zero,
+      ballR,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(-ballR * 0.25, -ballR * 0.3),
+          ballR * 1.2,
+          [
+            Colors.white.withValues(alpha: 0.28 + flash * 0.2),
+            Colors.transparent,
+            Colors.black.withValues(alpha: 0.22),
+          ],
+          const [0.0, 0.45, 1.0],
+        ),
+    );
+    canvas.restore();
+
+    // Rim + gloss.
+    canvas.drawPath(
+      ball,
+      Paint()
+        ..color = pinkDeep.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(-ballR * 0.28, -ballR * 0.32),
+        width: ballR * 0.55,
+        height: ballR * 0.38,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.72),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(ballR * 0.22, -ballR * 0.1),
+        width: ballR * 0.16,
+        height: ballR * 0.12,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
+
+    // Soft letter — secondary to candy look.
+    final cargo = P.cargo;
+    if (cargo != null) {
+      canvas.drawCircle(
+        Offset.zero,
+        ballR * 0.42,
+        Paint()..color = const Color(0xFF4A1028).withValues(alpha: 0.32),
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: cargo.char.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: math.min(r * 0.7, 15),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+    }
+
+    if (flash > 0.05) {
+      canvas.drawPath(
+        ball,
+        Paint()..color = Colors.white.withValues(alpha: 0.35 * flash),
+      );
+    }
+
+    canvas.restore();
+  }
+
+  /// Soda can — intact `can.png`, after hit → crushed `canshoot.png`.
+  /// No backdrop plate: only the PNG alpha.
+  void _paintSodaCanProp(
+    Canvas canvas,
+    AngryWordsPropBubble P,
+    Offset c,
+    double r,
+    double spawnAlpha,
+    double flash,
+  ) {
+    final dented = P.hp < P.maxHp;
+    final sprite = dented
+        ? (world.sodaCanShotSprite ?? world.sodaCanSprite)
+        : world.sodaCanSprite;
+    final spin = world.simTime * (1.05 + P.wanderFreq * 0.2) + P.phase;
+    final wobbleAmp = dented ? 0.28 : 0.16;
+    final wobble =
+        math.sin(spin * (dented ? 1.15 : 0.75)) * wobbleAmp +
+        math.cos(spin * 0.4) * 0.05;
+    final hop = math.sin(spin * 1.35) * r * (dented ? 0.055 : 0.035);
+    final velTilt = (P.vel.dx * 0.0007).clamp(-0.2, 0.2);
+
+    final h = r * 2.75;
+    final w = h * 0.72;
+    final dst = Rect.fromCenter(center: Offset.zero, width: w, height: h);
+
+    // Use save (not white saveLayer) so no rectangular plate shows.
+    canvas.save();
+    canvas.translate(c.dx, c.dy + hop);
+    canvas.rotate(wobble + velTilt);
+
+    if (sprite != null) {
+      paintImage(
+        canvas: canvas,
+        rect: dst,
+        image: sprite,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        opacity: spawnAlpha.clamp(0.0, 1.0),
+      );
+    } else {
+      final body = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset.zero, width: w * 0.78, height: h * 0.88),
+        Radius.circular(w * 0.18),
+      );
+      canvas.drawRRect(
+        body,
+        Paint()
+          ..color = (dented ? const Color(0xFFC62828) : const Color(0xFFE53935))
+              .withValues(alpha: spawnAlpha),
+      );
+    }
+
+    final cargo = P.cargo;
+    if (cargo != null) {
+      final badgeA = 0.35 * spawnAlpha;
+      canvas.drawCircle(
+        Offset(0, h * 0.06),
+        math.min(r * 0.48, 13.0),
+        Paint()..color = Colors.black.withValues(alpha: badgeA),
+      );
+      canvas.drawCircle(
+        Offset(0, h * 0.06),
+        math.min(r * 0.48, 13.0),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.55 * spawnAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3,
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: cargo.char.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.95 * spawnAlpha),
+            fontSize: math.min(r * 0.7, 15),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(-tp.width / 2, h * 0.06 - tp.height / 2));
+    }
+
+    canvas.restore();
+  }
+
+  /// Oil barrel — intact `oilbarrel.png`, after hit → `oilbarrelshot.png`.
+  void _paintOilBarrelProp(
+    Canvas canvas,
+    AngryWordsPropBubble P,
+    Offset c,
+    double r,
+    double spawnAlpha,
+    double flash,
+  ) {
+    final dented = P.hp < P.maxHp;
+    final sprite = dented
+        ? (world.oilBarrelShotSprite ?? world.oilBarrelSprite)
+        : world.oilBarrelSprite;
+    final spin = world.simTime * (0.9 + P.wanderFreq * 0.15) + P.phase;
+    final wobbleAmp = dented ? 0.16 : 0.1;
+    final wobble =
+        math.sin(spin * (dented ? 0.85 : 0.55)) * wobbleAmp +
+        math.cos(spin * 0.3) * 0.03;
+    final hop = math.sin(spin * 1.1) * r * (dented ? 0.04 : 0.025);
+    final velTilt = (P.vel.dx * 0.0005).clamp(-0.15, 0.15);
+
+    final h = r * 2.85;
+    final aspect = sprite != null ? sprite.width / sprite.height : 0.68;
+    final w = h * aspect;
+
+    canvas.save();
+    canvas.translate(c.dx, c.dy + hop);
+    canvas.rotate(wobble + velTilt);
+
+    final dst = Rect.fromCenter(center: Offset.zero, width: w, height: h);
+    if (sprite != null) {
+      paintImage(
+        canvas: canvas,
+        rect: dst,
+        image: sprite,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        opacity: spawnAlpha.clamp(0.0, 1.0),
+      );
+    } else {
+      final body = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset.zero, width: w * 0.82, height: h * 0.9),
+        Radius.circular(w * 0.12),
+      );
+      canvas.drawRRect(
+        body,
+        Paint()
+          ..color = const Color(0xFF546E7A).withValues(alpha: spawnAlpha),
+      );
+    }
+
+    // Burning oil after a shot — rising flame tongues near the puncture.
+    if ((dented || P.ablaze) && spawnAlpha > 0.05) {
+      _paintOilBarrelFlames(
+        canvas: canvas,
+        phase: P.phase,
+        t: world.simTime,
+        h: h,
+        w: w,
+        alpha: spawnAlpha,
+      );
+    }
+
+    final cargo = P.cargo;
+    if (cargo != null) {
+      canvas.drawCircle(
+        Offset(0, h * 0.02),
+        math.min(r * 0.48, 13.0),
+        Paint()..color = Colors.black.withValues(alpha: 0.4 * spawnAlpha),
+      );
+      canvas.drawCircle(
+        Offset(0, h * 0.02),
+        math.min(r * 0.48, 13.0),
+        Paint()
+          ..color = const Color(0xFFFFD54F).withValues(alpha: 0.65 * spawnAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: cargo.char.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.95 * spawnAlpha),
+            fontSize: math.min(r * 0.68, 15),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(-tp.width / 2, h * 0.02 - tp.height / 2));
+    }
+
+    canvas.restore();
+  }
+
+  void _paintOilBarrelFlames({
+    required Canvas canvas,
+    required double phase,
+    required double t,
+    required double h,
+    required double w,
+    required double alpha,
+  }) {
+    // Puncture on the shot art sits upper-left of the barrel.
+    final base = Offset(-w * 0.18, -h * 0.28);
+    for (var i = 0; i < 5; i++) {
+      final flicker = 0.55 + 0.45 * math.sin(t * (9 + i) + phase + i * 1.3);
+      final rise = (6 + i * 5.5) * flicker;
+      final lean = math.sin(t * 7.2 + phase + i) * (3.5 + i);
+      final tip = base + Offset(lean, -rise);
+      final flame = Path()
+        ..moveTo(base.dx - 3.5 - i * 0.4, base.dy)
+        ..quadraticBezierTo(
+          base.dx + lean * 0.4,
+          base.dy - rise * 0.55,
+          tip.dx,
+          tip.dy,
+        )
+        ..quadraticBezierTo(
+          base.dx + lean * 0.35 + 2,
+          base.dy - rise * 0.4,
+          base.dx + 3.5 + i * 0.4,
+          base.dy,
+        )
+        ..close();
+      canvas.drawPath(
+        flame,
+        Paint()
+          ..color = Color.lerp(
+            const Color(0xFFFF6D00),
+            const Color(0xFFFFF176),
+            i / 5,
+          )!
+              .withValues(alpha: (0.55 - i * 0.06) * alpha * flicker)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 1.5 + i * 0.4),
+      );
+    }
+    // Hot core + smoke wisp.
+    canvas.drawCircle(
+      base + Offset(0, -2),
+      4.5,
+      Paint()
+        ..color = const Color(0xFFFFF59D).withValues(alpha: 0.7 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    canvas.drawCircle(
+      base + Offset(math.sin(t * 3 + phase) * 4, -h * 0.22),
+      7,
+      Paint()
+        ..color = const Color(0xFFB0BEC5).withValues(alpha: 0.22 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+  }
+
+  /// Stage-6 oil lamp — intact `lamp.png`; after a non-lethal hit swaps to
+  /// the cracked `lampshot.png` (matches `_paintSodaCanProp`'s pattern). The
+  /// destroy-time flash + flung shards are painted separately by
+  /// [_paintLampFragments].
+  void _paintOilLampProp(
+    Canvas canvas,
+    AngryWordsPropBubble P,
+    Offset c,
+    double r,
+    double spawnAlpha,
+    double flash,
+  ) {
+    final dented = P.hp < P.maxHp;
+    final sprite = dented
+        ? (world.lampShotSprite ?? world.lampSprite)
+        : world.lampSprite;
+    final spin = world.simTime * (0.85 + P.wanderFreq * 0.18) + P.phase;
+    final wobbleAmp = dented ? 0.2 : 0.12;
+    final wobble =
+        math.sin(spin * (dented ? 1.0 : 0.65)) * wobbleAmp +
+        math.cos(spin * 0.35) * 0.04;
+    final hop = math.sin(spin * 1.2) * r * (dented ? 0.045 : 0.03);
+    final velTilt = (P.vel.dx * 0.0006).clamp(-0.18, 0.18);
+
+    final h = r * 2.7;
+    final aspect = sprite != null ? sprite.width / sprite.height : 0.7;
+    final w = h * aspect;
+
+    canvas.save();
+    canvas.translate(c.dx, c.dy + hop);
+    canvas.rotate(wobble + velTilt);
+
+    if (dented && spawnAlpha > 0.05) {
+      canvas.drawCircle(
+        Offset.zero,
+        r * 0.85,
+        Paint()
+          ..color = const Color(0xFFFFECB3).withValues(alpha: 0.35 * spawnAlpha)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+      );
+    }
+
+    final dst = Rect.fromCenter(center: Offset.zero, width: w, height: h);
+    if (sprite != null) {
+      paintImage(
+        canvas: canvas,
+        rect: dst,
+        image: sprite,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        opacity: spawnAlpha.clamp(0.0, 1.0),
+      );
+    } else {
+      final body = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset.zero, width: w * 0.7, height: h * 0.85),
+        Radius.circular(w * 0.3),
+      );
+      canvas.drawRRect(
+        body,
+        Paint()
+          ..color = (dented ? const Color(0xFFFFB300) : const Color(0xFFFFF8E1))
+              .withValues(alpha: spawnAlpha),
+      );
+    }
+
+    final cargo = P.cargo;
+    if (cargo != null) {
+      canvas.drawCircle(
+        Offset(0, h * 0.04),
+        math.min(r * 0.46, 13.0),
+        Paint()..color = Colors.black.withValues(alpha: 0.4 * spawnAlpha),
+      );
+      canvas.drawCircle(
+        Offset(0, h * 0.04),
+        math.min(r * 0.46, 13.0),
+        Paint()
+          ..color = const Color(0xFFFFECB3).withValues(alpha: 0.6 * spawnAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3,
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: cargo.char.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.95 * spawnAlpha),
+            fontSize: math.min(r * 0.68, 15),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(-tp.width / 2, h * 0.04 - tp.height / 2));
+    }
+
+    canvas.restore();
+  }
+
+  /// Break-moment `lampshot.png` flash + the two `lampleftshot.png` /
+  /// `lamprightshot.png` shards flung apart when a stage-6 oil lamp dies.
+  void _paintLampFragments(Canvas canvas) {
+    if (world.lampFragments.isEmpty) return;
+    for (final F in world.lampFragments) {
+      if (F.removed) continue;
+      final sprite = switch (F.kind) {
+        AngryWordsLampFragmentKind.core => world.lampShotSprite,
+        AngryWordsLampFragmentKind.left => world.lampLeftFragmentSprite,
+        AngryWordsLampFragmentKind.right => world.lampRightFragmentSprite,
+      };
+      final life = F.life.clamp(0.0, 1.0);
+      final alpha = F.kind == AngryWordsLampFragmentKind.core
+          ? life
+          : (life < 0.3 ? (life / 0.3).clamp(0.0, 1.0) : 1.0);
+      if (sprite == null || alpha <= 0.01) continue;
+
+      canvas.save();
+      canvas.translate(F.pos.dx, F.pos.dy);
+      canvas.rotate(F.angle);
+      final h = F.radius * (F.kind == AngryWordsLampFragmentKind.core ? 2.7 : 1.8);
+      final w = h * (sprite.width / sprite.height);
+      paintImage(
+        canvas: canvas,
+        rect: Rect.fromCenter(center: Offset.zero, width: w, height: h),
+        image: sprite,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        opacity: alpha,
+      );
+      canvas.restore();
+    }
+  }
+
+  /// Party balloon — teardrop body, knot, string, per-prop dye (never a disc).
+  void _paintBalloonProp(
+    Canvas canvas,
+    AngryWordsPropBubble P,
+    Offset c,
+    double r,
+    double spawnAlpha,
+    double flash,
+  ) {
+    final dye = kAngryWordsBalloonColors[
+        P.palette % kAngryWordsBalloonColors.length];
+    final light = dye[0];
+    final deep = dye[1];
+    final top = Color.lerp(light, Colors.white, 0.42 + flash * 0.2)!;
+    final mid = Color.lerp(light, deep, 0.28)!;
+    final bot = Color.lerp(deep, const Color(0xFF3E2723), 0.12)!;
+
+    // Helium sway — leans on the string.
+    final t = world.simTime;
+    final sway =
+        math.sin(t * (1.55 + P.wanderFreq * 0.3) + P.phase) * 0.22;
+    final bob = math.sin(t * 2.15 + P.phase * 1.2) * r * 0.07;
+
+    canvas.saveLayer(
+      Rect.fromCenter(center: c, width: r * 3.4, height: r * 4.6),
+      Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
+    );
+    canvas.translate(c.dx, c.dy + bob);
+    canvas.rotate(sway);
+
+    // Classic 🎈 pear / teardrop (round top, taper to knot).
+    final bodyH = r * 2.55;
+    final bodyW = r * 1.85;
+    final body = Path()
+      ..moveTo(0, -bodyH * 0.52)
+      ..cubicTo(
+        bodyW * 0.58,
+        -bodyH * 0.52,
+        bodyW * 0.68,
+        -bodyH * 0.08,
+        bodyW * 0.52,
+        bodyH * 0.18,
+      )
+      ..cubicTo(
+        bodyW * 0.32,
+        bodyH * 0.38,
+        bodyW * 0.1,
+        bodyH * 0.46,
+        0,
+        bodyH * 0.5,
+      )
+      ..cubicTo(
+        -bodyW * 0.1,
+        bodyH * 0.46,
+        -bodyW * 0.32,
+        bodyH * 0.38,
+        -bodyW * 0.52,
+        bodyH * 0.18,
+      )
+      ..cubicTo(
+        -bodyW * 0.68,
+        -bodyH * 0.08,
+        -bodyW * 0.58,
+        -bodyH * 0.52,
+        0,
+        -bodyH * 0.52,
+      )
+      ..close();
+
+    canvas.drawPath(
+      body,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(-bodyW * 0.2, -bodyH * 0.28),
+          bodyH * 0.9,
+          [
+            Colors.white.withValues(alpha: 0.98),
+            top,
+            mid,
+            bot,
+          ],
+          const [0.0, 0.2, 0.55, 1.0],
+        ),
+    );
+    canvas.drawPath(
+      body,
+      Paint()
+        ..color = deep.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+    canvas.drawPath(
+      body,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.28)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+
+    // Specular highlight (latex sheen).
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(-bodyW * 0.2, -bodyH * 0.22),
+        width: bodyW * 0.32,
+        height: bodyH * 0.24,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.78),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(bodyW * 0.12, -bodyH * 0.08),
+        width: bodyW * 0.12,
+        height: bodyH * 0.1,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
+
+    // Tied knot under the teardrop.
+    final knotY = bodyH * 0.5;
+    final knot = Path()
+      ..moveTo(0, knotY - r * 0.02)
+      ..lineTo(r * 0.16, knotY + r * 0.1)
+      ..lineTo(0, knotY + r * 0.2)
+      ..lineTo(-r * 0.16, knotY + r * 0.1)
+      ..close();
+    canvas.drawPath(knot, Paint()..color = bot);
+    canvas.drawPath(
+      knot,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.22)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9,
+    );
+
+    // Curved dangling string.
+    final string = Path()
+      ..moveTo(0, knotY + r * 0.2)
+      ..cubicTo(
+        -sway * r * 1.4,
+        knotY + r * 0.6,
+        sway * r * 1.6,
+        knotY + r * 1.05,
+        -sway * r * 0.7,
+        knotY + r * 1.45,
+      );
+    canvas.drawPath(
+      string,
+      Paint()
+        ..color = const Color(0xFF5D4037).withValues(alpha: 0.8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final cargo = P.cargo;
+    if (cargo != null) {
+      // Soft letter — secondary to balloon identity.
+      final badgeC = Offset(0, -bodyH * 0.04);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: badgeC,
+          width: bodyW * 0.55,
+          height: bodyH * 0.36,
+        ),
+        Paint()..color = Colors.white.withValues(alpha: 0.38),
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: cargo.char.toUpperCase(),
+          style: TextStyle(
+            color: deep.withValues(alpha: 0.85),
+            fontSize: math.min(r * 0.88, 20),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        Offset(-tp.width / 2, badgeC.dy - tp.height / 2),
+      );
+    }
+
+    if (flash > 0.05) {
+      canvas.drawPath(
+        body,
+        Paint()..color = Colors.white.withValues(alpha: 0.35 * flash),
+      );
+    }
+
+    canvas.restore();
+  }
+
   /// Stages 35–36: material physics stays; visual is a varied emoji instead of a disc.
   void _paintEmojiProp(
     Canvas canvas,
@@ -1190,12 +2037,6 @@ class AngryWordsBoardPainter extends CustomPainter {
     canvas.saveLayer(
       Rect.fromCircle(center: c, radius: r * 1.55 + 12),
       Paint()..color = Colors.white.withValues(alpha: spawnAlpha),
-    );
-
-    canvas.drawCircle(
-      c + const Offset(0, 2.8),
-      r * 0.72,
-      Paint()..color = Colors.black.withValues(alpha: 0.14),
     );
 
     final tp = TextPainter(
@@ -1276,33 +2117,21 @@ class AngryWordsBoardPainter extends CustomPainter {
     if (cargo != null) {
       final cargoTint = angryWordsLetterTint(P.cargoTintIndex ?? P.palette);
       final pulseRing = 0.35 + 0.2 * math.sin(world.simTime * 5 + P.phase);
-      canvas.drawCircle(
-        c,
-        r * 0.92,
-        Paint()..color = cargoTint.withValues(alpha: 0.22),
+      final archSpec =
+          P.archetype != null ? kWbArchetypes[P.archetype!] : null;
+      AngryWordsCargoPlaque.paintBacking(
+        canvas: canvas,
+        center: c,
+        radius: r,
+        cargoTint: cargoTint,
+        pulse: pulseRing,
+        usePlaque: archSpec?.needsLetterPlaque ?? true,
       );
-      canvas.drawCircle(
-        c,
-        r + 3.5,
-        Paint()
-          ..color = cargoTint.withValues(alpha: pulseRing + 0.25)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4,
-      );
-      final letterTp = TextPainter(
-        text: TextSpan(
-          text: cargo.char.toUpperCase(),
-          style: TextStyle(
-            color: const Color(0xFF4E342E).withValues(alpha: 0.55),
-            fontSize: math.min(r * 0.75, 18),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      letterTp.paint(
-        canvas,
-        c - Offset(letterTp.width / 2, letterTp.height / 2),
+      AngryWordsCargoPlaque.paintGlyph(
+        canvas: canvas,
+        center: c,
+        radius: r * 0.92,
+        char: cargo.char,
       );
     }
 
@@ -1557,15 +2386,6 @@ class AngryWordsBoardPainter extends CustomPainter {
         Paint()..color = Colors.white.withValues(alpha: alpha),
       );
 
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c + const Offset(0, 3),
-          width: rw * 2,
-          height: rh * 2,
-        ),
-        Paint()..color = Colors.black.withValues(alpha: 0.16),
-      );
-
       final baseTint = angryWordsLetterTint(L.tintIndex);
       final tint = shake > 0 ? const Color(0xFFFF5252) : baseTint;
       final shellLight = Color.lerp(
@@ -1758,6 +2578,22 @@ class AngryWordsBoardPainter extends CustomPainter {
           Paint()
             ..color = const Color(0xFFB3E5FC).withValues(alpha: 0.35 * e.life)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+        );
+      }
+      if (e.fiery) {
+        canvas.drawCircle(
+          e.at + Offset(0, -t * 18),
+          14 + t * 40,
+          Paint()
+            ..color = const Color(0xFFFF6D00).withValues(alpha: 0.42 * e.life)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
+        );
+        canvas.drawCircle(
+          e.at + Offset(0, -t * 34),
+          8 + t * 28,
+          Paint()
+            ..color = const Color(0xFFFFF176).withValues(alpha: 0.38 * e.life)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
         );
       }
       for (final bit in e.bits) {
@@ -2106,6 +2942,60 @@ class AngryWordsBoardPainter extends CustomPainter {
     _paintSlingshot(canvas);
   }
 
+  /// Stage-4 Service Pistol — exact `assets/items/gun4.png` (top-down aim view).
+  void _paintStage4GunSprite(Canvas canvas, Offset m) {
+    final sprite = world.stage4GunSprite;
+    if (sprite == null) return;
+    final angle = math.atan2(world.gunAim.dy, world.gunAim.dx);
+    final kick = world.gunRecoil * 6;
+    final flash = world.muzzleFlash;
+
+    // Soft pad under the grip (no opaque plate).
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(m.dx, m.dy + 22),
+        width: 52,
+        height: 18,
+      ),
+      Paint()..color = Colors.black.withValues(alpha: 0.2),
+    );
+
+    canvas.save();
+    canvas.translate(m.dx, m.dy);
+    // Sprite barrel points up (-Y); procedural guns fire along +X after rotate.
+    canvas.rotate(angle + math.pi / 2);
+    canvas.translate(0, kick * 0.35);
+
+    final h = 98.0;
+    final w = h * (sprite.width / sprite.height);
+    final dst = Rect.fromCenter(
+      center: Offset(0, -h * 0.12),
+      width: w,
+      height: h,
+    );
+    paintImage(
+      canvas: canvas,
+      rect: dst,
+      image: sprite,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+    );
+
+    if (flash > 0.05) {
+      canvas.drawCircle(
+        Offset(0, -h * 0.48),
+        6 + flash * 10,
+        Paint()..color = const Color(0xFFFFF59D).withValues(alpha: 0.55 * flash),
+      );
+      canvas.drawCircle(
+        Offset(0, -h * 0.48),
+        3 + flash * 5,
+        Paint()..color = Colors.white.withValues(alpha: 0.85 * flash),
+      );
+    }
+    canvas.restore();
+  }
+
   void _paintBlaster(Canvas canvas) {
     final mounts = world.gunMountCount;
     for (var i = 0; i < mounts; i++) {
@@ -2114,6 +3004,12 @@ class AngryWordsBoardPainter extends CustomPainter {
   }
 
   void _paintBlasterAt(Canvas canvas, Offset m) {
+    // Stage 4: use the exact gun4.png sprite (no procedural body).
+    if (world.loadout.profileIndex == 3 && world.stage4GunSprite != null) {
+      _paintStage4GunSprite(canvas, m);
+      return;
+    }
+
     final angle = math.atan2(world.gunAim.dy, world.gunAim.dx);
     final kick = world.gunRecoil * 6;
     final gun = world.loadout.gun;

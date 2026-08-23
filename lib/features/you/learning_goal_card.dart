@@ -25,7 +25,7 @@ class LearningGoalCard extends ConsumerWidget {
     return YouJellyShell(
       onTap: () {
         if (goal == null) {
-          _showGoalDaysDialog(context, ref);
+          _showGoalSetupDialog(context, ref);
         } else {
           _showGoalDetailsSheet(context, ref, goal);
         }
@@ -104,6 +104,7 @@ class _LearningGoalSummary extends StatelessWidget {
     final progress = goal.progress(now);
     final pct = (progress * 100).round().clamp(0, 100);
     final remaining = goal.remainingDays(now);
+    final title = goal.title.isNotEmpty ? goal.title : copy.cardTitle;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +113,7 @@ class _LearningGoalSummary extends StatelessWidget {
           children: [
             YouJellyIconBubble(
               color: scheme.primary,
-              child: Icon(Icons.auto_awesome_rounded, color: scheme.onPrimary),
+              child: Icon(Icons.flag_rounded, color: scheme.onPrimary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -120,7 +121,9 @@ class _LearningGoalSummary extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    copy.cardTitle,
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: tt.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -151,75 +154,179 @@ class _LearningGoalSummary extends StatelessWidget {
   }
 }
 
-Future<void> _showGoalDaysDialog(BuildContext context, WidgetRef ref) async {
+Future<void> _showGoalSetupDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  LearningGoal? initial,
+}) async {
   final copy = _GoalCopy.of(context);
 
-  final days = await showDialog<int>(
+  final result = await showDialog<(int, String)>(
     context: context,
-    builder: (ctx) => _GoalDaysDialog(copy: copy),
+    builder: (ctx) => _GoalSetupDialog(copy: copy, initial: initial),
   );
 
-  if (days == null) return;
+  if (result == null) return;
   if (!context.mounted) return;
-  await ref.read(learningGoalProvider.notifier).setGoalDays(days);
+  final (days, title) = result;
+  await ref.read(learningGoalProvider.notifier).setGoal(days, title);
 }
 
-class _GoalDaysDialog extends StatefulWidget {
-  const _GoalDaysDialog({required this.copy});
+class _GoalSetupDialog extends StatefulWidget {
+  const _GoalSetupDialog({required this.copy, this.initial});
 
   final _GoalCopy copy;
+  final LearningGoal? initial;
 
   @override
-  State<_GoalDaysDialog> createState() => _GoalDaysDialogState();
+  State<_GoalSetupDialog> createState() => _GoalSetupDialogState();
 }
 
-class _GoalDaysDialogState extends State<_GoalDaysDialog> {
-  final _controller = TextEditingController();
+class _GoalSetupDialogState extends State<_GoalSetupDialog> {
+  late final TextEditingController _titleController = TextEditingController(
+    text: widget.initial?.title ?? '',
+  );
+  late final TextEditingController _daysController = TextEditingController(
+    text: widget.initial?.totalDays.toString() ?? '',
+  );
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _titleController.dispose();
+    _daysController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (_formKey.currentState?.validate() != true) return;
-    Navigator.of(context).pop(int.parse(_controller.text));
+    Navigator.of(
+      context,
+    ).pop((int.parse(_daysController.text), _titleController.text.trim()));
   }
 
   @override
   Widget build(BuildContext context) {
     final copy = widget.copy;
-    return AlertDialog(
-      title: Text(copy.dialogTitle),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          controller: _controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-            labelText: copy.dialogFieldLabel,
-            hintText: '90',
+    final scheme = Theme.of(context).colorScheme;
+    final fieldFill = scheme.surfaceContainerHighest.withValues(alpha: 0.4);
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    );
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  YouJellyIconBubble(
+                    color: scheme.primary,
+                    size: 40,
+                    child: Icon(
+                      Icons.flag_rounded,
+                      size: 20,
+                      color: scheme.onPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      copy.dialogTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _titleController,
+                autofocus: true,
+                minLines: 1,
+                maxLines: 2,
+                maxLength: 60,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: copy.dialogGoalLabel,
+                  hintText: copy.dialogGoalHint,
+                  filled: true,
+                  fillColor: fieldFill,
+                  border: fieldBorder,
+                  enabledBorder: fieldBorder,
+                  focusedBorder: fieldBorder.copyWith(
+                    borderSide: BorderSide(color: scheme.primary, width: 1.6),
+                  ),
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: Icon(Icons.edit_rounded),
+                  ),
+                  counterText: '',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return copy.dialogGoalRequired;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _daysController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: copy.dialogFieldLabel,
+                  hintText: '90',
+                  filled: true,
+                  fillColor: fieldFill,
+                  border: fieldBorder,
+                  enabledBorder: fieldBorder,
+                  focusedBorder: fieldBorder.copyWith(
+                    borderSide: BorderSide(color: scheme.primary, width: 1.6),
+                  ),
+                  prefixIcon: const Icon(Icons.calendar_month_rounded),
+                ),
+                validator: (value) {
+                  final parsed = int.tryParse(value ?? '');
+                  if (parsed == null || parsed <= 0) return copy.dialogInvalid;
+                  if (parsed > 3650) return copy.dialogTooLong;
+                  return null;
+                },
+                onFieldSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(copy.cancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _submit,
+                    style: FilledButton.styleFrom(
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                    ),
+                    child: Text(copy.save),
+                  ),
+                ],
+              ),
+            ],
           ),
-          validator: (value) {
-            final parsed = int.tryParse(value ?? '');
-            if (parsed == null || parsed <= 0) return copy.dialogInvalid;
-            if (parsed > 3650) return copy.dialogTooLong;
-            return null;
-          },
-          onFieldSubmitted: (_) => _submit(),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(copy.cancel),
-        ),
-        FilledButton(onPressed: _submit, child: Text(copy.save)),
-      ],
     );
   }
 }
@@ -331,7 +438,7 @@ Future<void> _showGoalDetailsSheet(
                     scrollController: scrollController,
                     onEdit: () async {
                       Navigator.of(ctx).pop();
-                      await _showGoalDaysDialog(context, ref);
+                      await _showGoalSetupDialog(context, ref, initial: goal);
                     },
                     onClear: () async {
                       await ref.read(learningGoalProvider.notifier).clearGoal();
@@ -372,6 +479,7 @@ class _LearningGoalDetails extends StatelessWidget {
     final remaining = goal.remainingDays(now);
     final pct = (goal.progress(now) * 100).round().clamp(0, 100);
     final dateFormat = DateFormat.yMMMd();
+    final title = goal.title.isNotEmpty ? goal.title : copy.cardTitle;
 
     return ListView(
       controller: scrollController,
@@ -404,6 +512,15 @@ class _LearningGoalDetails extends StatelessWidget {
                 children: [
                   Text(
                     copy.detailsTitle,
+                    style: tt.labelLarge?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
                     style: tt.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.4,
@@ -900,6 +1017,9 @@ class _GoalCopy {
     required this.cardTitle,
     required this.cardPromptSubtitle,
     required this.dialogTitle,
+    required this.dialogGoalLabel,
+    required this.dialogGoalHint,
+    required this.dialogGoalRequired,
     required this.dialogFieldLabel,
     required this.dialogInvalid,
     required this.dialogTooLong,
@@ -920,6 +1040,9 @@ class _GoalCopy {
   final String cardTitle;
   final String cardPromptSubtitle;
   final String dialogTitle;
+  final String dialogGoalLabel;
+  final String dialogGoalHint;
+  final String dialogGoalRequired;
   final String dialogFieldLabel;
   final String dialogInvalid;
   final String dialogTooLong;
@@ -945,8 +1068,11 @@ class _GoalCopy {
   static final _en = _GoalCopy(
     sectionTitle: 'Goal',
     cardTitle: 'Language mastery goal',
-    cardPromptSubtitle: 'How many days from now do you want to be fluent?',
+    cardPromptSubtitle: 'Write down what you\'re working towards.',
     dialogTitle: 'Set your goal',
+    dialogGoalLabel: 'What\'s your goal?',
+    dialogGoalHint: 'e.g. IELTS band 7, fluent conversation, 500 new words',
+    dialogGoalRequired: 'Enter your goal',
     dialogFieldLabel: 'Days until fluency',
     dialogInvalid: 'Enter a valid number of days',
     dialogTooLong: 'Choose 3650 days or fewer',
@@ -967,8 +1093,11 @@ class _GoalCopy {
   static final _fa = _GoalCopy(
     sectionTitle: 'هدف',
     cardTitle: 'هدف تسلط به زبان',
-    cardPromptSubtitle: 'می‌خواهی تا چند روز دیگر به زبان مسلط شده باشی؟',
+    cardPromptSubtitle: 'بنویس هدفت از یادگیری این زبان چیه.',
     dialogTitle: 'هدف خودت را مشخص کن',
+    dialogGoalLabel: 'هدفت چیه؟',
+    dialogGoalHint: 'مثلاً: نمره ۷ آیلتس، مکالمه روان، ۵۰۰ واژه جدید',
+    dialogGoalRequired: 'هدفت رو بنویس',
     dialogFieldLabel: 'تعداد روز تا تسلط',
     dialogInvalid: 'یک تعداد روز معتبر وارد کن',
     dialogTooLong: 'حداکثر ۳۶۵۰ روز را انتخاب کن',

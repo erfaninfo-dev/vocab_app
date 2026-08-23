@@ -12,7 +12,10 @@ import '../data/word_builder_progress_repository.dart';
 import '../data/word_builder_vocab.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_campaign_constants.dart';
+import '../data/word_builder_theme_categories.dart';
+import '../word_builder_theme_session_key.dart';
 import 'word_builder_campaign_providers.dart';
+import 'word_builder_theme_categories_provider.dart';
 import '../domain/tray_prison_constants.dart';
 import '../domain/tray_prison_moment.dart';
 import '../domain/tray_scenario_kind.dart';
@@ -243,6 +246,16 @@ class WordBuilderGameNotifier
       out[lemma] = targetFromVocab(e, lemma);
     }
     return out;
+  }
+
+  /// Full-book catalog for bonus-word matching; skipped for theme sessions.
+  Future<Map<String, WordBuilderTargetWord>> _tryLoadGlobalTargetsByLemma() async {
+    try {
+      final globalCatalog = await ref.read(apiAllWordsCatalogProvider.future);
+      return _targetsByLemma(globalCatalog);
+    } catch (_) {
+      return const {};
+    }
   }
 
   bool _wasSolvedAnywhere(
@@ -915,10 +928,10 @@ class WordBuilderGameNotifier
     ref.onDispose(() => _passiveWaterTimer?.cancel());
 
     final persisted = await _repo.load();
-    final globalCatalog = await ref.read(apiAllWordsCatalogProvider.future);
-    _globalTargetsByLemma = _targetsByLemma(globalCatalog);
+    _globalTargetsByLemma = const {};
     final campaign = decodeWordBuilderCampaignSessionKey(bookKey);
     if (campaign != null) {
+      _globalTargetsByLemma = await _tryLoadGlobalTargetsByLemma();
       final plan = await ref.read(wordBuilderCampaignPlanProvider.future);
       final stageLists = plan.stagesFor(campaign.difficulty);
       final idx = campaign.stage1Based - 1;
@@ -953,9 +966,58 @@ class WordBuilderGameNotifier
       return initial;
     }
 
-    final entries = bookKey == kWordBuilderAllBooksKey
-        ? globalCatalog
-        : await ref.read(apiAllWordsForBookProvider(bookKey).future);
+    final themeStage = decodeWordBuilderThemeStageSessionKey(bookKey);
+    if (themeStage != null) {
+      final themeIndex = themeStage.categoryIndex;
+      final stage1Based = themeStage.stage1Based;
+      final categories =
+          await ref.read(wordBuilderThemeCategoriesProvider.future);
+      if (themeIndex < 0 || themeIndex >= categories.length) {
+        throw StateError('NO_WORDS');
+      }
+      final category = categories[themeIndex];
+      final entries = wordBuilderThemeCategoryEntries(category, themeIndex);
+      if (entries.isEmpty) {
+        throw StateError('NO_WORDS');
+      }
+      final levels = buildThemeCategoryStageLevels(
+        entries: entries,
+        categoryIndex: themeIndex,
+        categoryLabel: 'theme_${category.id}',
+        random: _random,
+      );
+      if (stage1Based < 1 || stage1Based > levels.length) {
+        throw StateError('NO_WORDS');
+      }
+      final level = levels[stage1Based - 1];
+      if (level.targetWords.isEmpty) {
+        throw StateError('NO_WORDS');
+      }
+      _globalTargetsByLemma = _targetsByLemma(entries);
+      final initial = WordBuilderViewState.createInitial(
+        persisted: persisted,
+        sessionLevels: [level],
+        levelIndex: 0,
+        random: _random,
+        scenarioOverride: trayScenarioForLevelIndex(stage1Based - 1),
+      );
+      _startPassiveWaterTimer();
+      return initial;
+    }
+
+    final themeIndex = decodeWordBuilderThemeSessionKey(bookKey);
+    if (themeIndex != null) {
+      throw StateError('NO_WORDS');
+    }
+
+    final List<VocabEntry> entries;
+    if (bookKey == kWordBuilderAllBooksKey) {
+      entries = await ref.read(apiAllWordsCatalogProvider.future);
+      _globalTargetsByLemma = _targetsByLemma(entries);
+    } else {
+      _globalTargetsByLemma = await _tryLoadGlobalTargetsByLemma();
+      entries = await ref.read(apiAllWordsForBookProvider(bookKey).future);
+    }
 
     String categoryLabel = '__LOCAL_ALL__';
     if (bookKey != kWordBuilderAllBooksKey) {

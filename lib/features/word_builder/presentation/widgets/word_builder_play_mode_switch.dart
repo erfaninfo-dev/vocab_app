@@ -6,7 +6,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../application/word_builder_play_mode_controller.dart';
 import '../../domain/word_builder_play_mode.dart';
 
-/// Lobby / settings control to switch Classic Tray ↔ Arkanoid ↔ Angry Words ↔ Puzzle.
+/// Lobby / settings control to switch Classic Tray ↔ Angry Words.
 class WordBuilderPlayModeSwitch extends ConsumerWidget {
   const WordBuilderPlayModeSwitch({super.key});
 
@@ -72,41 +72,12 @@ class WordBuilderPlayModeSwitch extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _ModeCard(
-                    selected: mode == WordBuilderPlayMode.arkanoid,
-                    icon: Icons.sports_esports_rounded,
-                    title: l10n.wordBuilderPlayModeArkanoid,
-                    subtitle: l10n.wordBuilderPlayModeArkanoidSubtitle,
-                    onTap: () =>
-                        notifier.setMode(WordBuilderPlayMode.arkanoid),
-                    isDark: isDark,
-                    scheme: scheme,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _ModeCard(
                     selected: mode == WordBuilderPlayMode.angryWords,
                     icon: Icons.gps_fixed_rounded,
                     title: l10n.wordBuilderPlayModeAngryWords,
                     subtitle: l10n.wordBuilderPlayModeAngryWordsSubtitle,
                     onTap: () =>
                         notifier.setMode(WordBuilderPlayMode.angryWords),
-                    isDark: isDark,
-                    scheme: scheme,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _ModeCard(
-                    selected: mode == WordBuilderPlayMode.puzzle,
-                    icon: Icons.grid_view_rounded,
-                    title: l10n.wordBuilderPlayModePuzzle,
-                    subtitle: l10n.wordBuilderPlayModePuzzleSubtitle,
-                    onTap: () => notifier.setMode(WordBuilderPlayMode.puzzle),
                     isDark: isDark,
                     scheme: scheme,
                   ),

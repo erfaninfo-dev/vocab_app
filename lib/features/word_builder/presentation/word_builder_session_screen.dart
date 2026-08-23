@@ -1,7 +1,8 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/word_builder_campaign_providers.dart';
+import '../application/word_builder_theme_categories_provider.dart';
 import '../application/word_builder_coins_provider.dart';
 import '../application/word_builder_game_notifier.dart';
 import '../application/word_builder_league_sync.dart';
@@ -20,9 +22,12 @@ import '../application/word_builder_tray_water_audio.dart';
 import '../domain/word_builder_game_logic.dart';
 import '../domain/word_builder_models.dart';
 import '../domain/word_builder_play_mode.dart';
+import '../data/word_builder_theme_categories.dart';
+import '../word_builder_theme_session_key.dart';
 import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
 import '../word_builder_coin_constants.dart';
+import 'theme/word_builder_chapter_theme.dart';
 import 'word_builder_feedback.dart';
 import 'word_builder_session_ambience.dart';
 import 'widgets/angry_words/angry_words_letter_board.dart';
@@ -203,6 +208,35 @@ class _WordBuilderSessionScreenState
       context.pushReplacement('/word-builder/session?bookId=$nextKey');
       return;
     }
+
+    final themeStage = decodeWordBuilderThemeStageSessionKey(key);
+    if (themeStage != null) {
+      if (!mounted) return;
+      final categories =
+          ref.read(wordBuilderThemeCategoriesProvider).valueOrNull ??
+          const <WordBuilderThemeCategory>[];
+      final catIndex = themeStage.categoryIndex;
+      var totalStages = 0;
+      if (catIndex >= 0 && catIndex < categories.length) {
+        final wordCount = themeCategoryPlayableWordCount(
+          categories[catIndex],
+          catIndex,
+        );
+        totalStages = themeCategoryStageCount(wordCount);
+      }
+      ref.invalidate(wordBuilderGameProvider(key));
+      if (themeStage.stage1Based >= totalStages) {
+        context.pop();
+        return;
+      }
+      final nextKey = encodeWordBuilderThemeStageSessionKey(
+        catIndex,
+        themeStage.stage1Based + 1,
+      );
+      context.pushReplacement('/word-builder/session?bookId=$nextKey');
+      return;
+    }
+
     await ref.read(wordBuilderGameProvider(key).notifier).goToNextLevel();
   }
 
@@ -220,6 +254,7 @@ class _WordBuilderSessionScreenState
     final async = ref.watch(wordBuilderGameProvider(key));
     final coinsAsync = ref.watch(wordBuilderCoinsProvider);
     final playMode = ref.watch(wordBuilderPlayModeProvider);
+    final stage14Weapon = ref.watch(stage14WeaponProvider);
     ref.watch(wordBuilderSessionAudioLifecycleProvider(key));
 
     ref.listen(wordBuilderPlayModeProvider, (prev, next) {
@@ -275,15 +310,25 @@ class _WordBuilderSessionScreenState
     );
 
     final trayGameOver = async.valueOrNull?.isTrayGameOver ?? false;
+    final camp = decodeWordBuilderCampaignSessionKey(key);
+    final stage1Based =
+        camp?.stage1Based ?? ((async.valueOrNull?.levelIndex ?? 0) + 1);
+    final chapterTheme = playMode == WordBuilderPlayMode.angryWords
+        ? WbChapterTheme.forStage(stage1Based)
+        : null;
+    final chromeDark =
+        chapterTheme?.chromeBrightness == Brightness.dark || isDark;
+    final chromeOn = chapterTheme?.chromeOnSurface ??
+        (isDark ? scheme.onSurface : const Color(0xFF5D4037));
 
-    return Theme(
+    Widget session = Theme(
       data: funTheme,
       child: PopScope(
         canPop: !trayGameOver,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            MagicBackground(isDark: isDark),
+            MagicBackground(isDark: chromeDark),
             Scaffold(
               backgroundColor: Colors.transparent,
               appBar: AppBar(
@@ -302,9 +347,7 @@ class _WordBuilderSessionScreenState
                     : IconButton(
                         icon: Icon(
                           Icons.arrow_back_rounded,
-                          color: isDark
-                              ? scheme.onSurface
-                              : const Color(0xFF5D4037),
+                          color: chromeOn,
                         ),
                         tooltip: MaterialLocalizations.of(
                           context,
@@ -331,23 +374,21 @@ class _WordBuilderSessionScreenState
                             width: playMode.usesCompactLetterBoard ? 34 : 44,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isDark
-                                  ? scheme.surfaceContainerHighest.withValues(
-                                      alpha: 0.55,
-                                    )
-                                  : const Color(
-                                      0xFF5D4037,
-                                    ).withValues(alpha: 0.12),
+                              color: chromeDark
+                                  ? (chapterTheme?.chromeSurface ??
+                                          scheme.surfaceContainerHighest)
+                                      .withValues(alpha: 0.55)
+                                  : chromeOn.withValues(alpha: 0.12),
                               border: Border.all(
-                                color: const Color(
-                                  0xFFFFB300,
-                                ).withValues(alpha: isDark ? 0.45 : 0.65),
+                                color: (chapterTheme?.accent ??
+                                        const Color(0xFFFFB300))
+                                    .withValues(alpha: chromeDark ? 0.45 : 0.65),
                                 width: 1.8,
                               ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(
-                                    alpha: isDark ? 0.28 : 0.08,
+                                    alpha: chromeDark ? 0.28 : 0.08,
                                   ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
@@ -358,9 +399,7 @@ class _WordBuilderSessionScreenState
                               child: Icon(
                                 Icons.settings_rounded,
                                 size: playMode.usesCompactLetterBoard ? 18 : 24,
-                                color: isDark
-                                    ? scheme.onSurface
-                                    : const Color(0xFF5D4037),
+                                color: chromeOn,
                               ),
                             ),
                           ),
@@ -374,9 +413,12 @@ class _WordBuilderSessionScreenState
                       child: coinsAsync.when(
                         data: (c) => WordBuilderCoinsChip(
                           balanceLabel: l10n.wordBuilderCoinsBalance(c),
-                          isDark: isDark,
+                          isDark: chromeDark,
                           scheme: scheme,
                           compact: playMode.usesCompactLetterBoard,
+                          chromeSurface: chapterTheme?.chromeSurface,
+                          chromeOnSurface: chapterTheme?.chromeOnSurface,
+                          accent: chapterTheme?.accent,
                         ),
                         loading: () =>
                             WordBuilderCoinsChipLoading(scheme: scheme),
@@ -1035,6 +1077,14 @@ class _WordBuilderSessionScreenState
         ),
       ),
     );
+
+    if (chapterTheme != null) {
+      session = AnnotatedRegion<SystemUiOverlayStyle>(
+        value: chapterTheme.systemUiOverlayStyle,
+        child: WbChapterThemeScope(theme: chapterTheme, child: session),
+      );
+    }
+    return session;
   }
 }
 

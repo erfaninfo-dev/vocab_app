@@ -32,6 +32,30 @@ Toggle: **Settings → Sound → Startup chime**.
 | `sling_snap.wav` | Elastic snap on sling release | ~0.15–0.4 s |
 | `sling_whoosh.wav` | Flight whoosh after a strong release | ~0.15–0.4 s |
 | `egg_crack.wav` | Eggshell crack when a letter-egg / egg prop breaks | ~0.15–0.4 s |
+| `canshoot.mp3` | Soda can dent / rupture; oil barrel first hit | ~0.2–0.6 s |
+| `items/explosion.mp3` | Oil barrel final boom (second hit) | ~0.4–1.2 s |
+| `pot.mp3` | Ceramic / glass / metal clang family (`breakCeramic`, `shatterGlass`, `clangMetal`) | ~0.2–0.5 s |
+
+### Angry Words prop break families (`WbPropSoundFamily`)
+
+All eight families remap onto existing assets (no new APK files required). Pitch stays inside each family's band; archetype `soundPitch` must fall in range. Cap concurrent plays in `AngryWordsPropBreakAudio` (6 / Windows 3).
+
+| Family | Asset | Pitch range | Typical archetypes |
+|--------|-------|-------------|--------------------|
+| `popSoft` | `pop.WAV` | 1.1–1.35 | balloon, foam, plastic |
+| `shatterGlass` | `pot.mp3` | 1.0–1.3 | glassBottle, iceBlock, crystal |
+| `breakCeramic` | `pot.mp3` | 0.85–1.0 | ceramicJug, brick |
+| `thudWood` | `pop.WAV` | 0.7–0.9 | woodCrate, woodBarrel, powderKeg |
+| `clangMetal` | `pot.mp3` | 0.65–0.9 | tinCan, bronzeBell, steelPlate, goldTrophy |
+| `crumbleStone` | `pop.WAV` | 0.5–0.7 | sandstone, concreteBlock, graniteBlock, stoneStatue |
+| `splashFluid` | `pop.WAV` | 0.9–1.1 | watermelon, egg, magmaOrb, oilLamp |
+| `sparkEnergy` | `shot2.WAV` | 1.1–1.4 | neonOrb, fireworkShell, discoBall |
+
+**Special:** `bronzeBell` `ringDecay` hit pitches are fixed **1.2 / 1.0 / 0.8** by remaining HP (no jitter) so the player can hear HP.
+
+Egg props still use dedicated `egg_crack.wav` via `AngryWordsEggCrackAudio`, not the family table.
+
+Soda cans (`sodaCan`) use `canshoot.mp3` via `AngryWordsCanShootAudio` on dent and final pop. Oil drums (`oilDrum`) use `canshoot.mp3` on the first dent and `items/explosion.mp3` via `AngryWordsExplosionAudio` on the final boom.
 
 ### Train-escape tray scenario (odd levels)
 

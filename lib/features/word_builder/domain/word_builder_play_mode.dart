@@ -12,8 +12,22 @@ enum WordBuilderPlayMode {
   puzzle,
 }
 
+/// Play modes shown in lobby / session play-mode picker.
+const kWordBuilderPlayModesInPicker = <WordBuilderPlayMode>[
+  WordBuilderPlayMode.classic,
+  WordBuilderPlayMode.angryWords,
+];
+
 extension WordBuilderPlayModeX on WordBuilderPlayMode {
   String get prefsValue => name;
+
+  bool get isPickerVisible => kWordBuilderPlayModesInPicker.contains(this);
+
+  /// Maps hidden / legacy prefs values to a picker-visible mode.
+  static WordBuilderPlayMode normalizeForPicker(WordBuilderPlayMode mode) {
+    if (mode.isPickerVisible) return mode;
+    return kWordBuilderPlayModesInPicker.first;
+  }
 
   /// Compact physics boards that skip tray tension / game-over water.
   bool get usesPhysicsLetterBoard =>
@@ -31,7 +45,7 @@ extension WordBuilderPlayModeX on WordBuilderPlayMode {
 
   static WordBuilderPlayMode fromPrefs(String? raw) {
     for (final mode in WordBuilderPlayMode.values) {
-      if (raw == mode.name) return mode;
+      if (raw == mode.name) return normalizeForPicker(mode);
     }
     return WordBuilderPlayMode.classic;
   }

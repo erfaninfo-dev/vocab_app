@@ -3,7 +3,9 @@ import 'dart:math';
 import '../../../data/models/vocab_entry.dart';
 import '../domain/word_builder_game_logic.dart';
 import '../domain/word_builder_models.dart';
+import '../word_builder_campaign_constants.dart';
 import '../word_builder_constants.dart';
+import '../word_builder_theme_session_key.dart';
 
 /// English lemma for Word Builder: only when [VocabEntry.word] is **entirely**
 /// letters `a`–`z` / `A`–`Z` (length 2…7). Rejects `"21st"`, `"pre-order"`, etc.
@@ -433,6 +435,83 @@ List<WordBuilderLevel> buildWordBuilderLevelsFromEntries(
         ),
       );
     }
+  }
+
+  return levels;
+}
+
+/// Splits a themed category word bank into sequential campaign-style stages
+/// (3 target words per stage). Stage count = ceil(wordCount / 3), e.g. 121
+/// playable words → 41 stages (last stage may have 1–2 words).
+List<WordBuilderLevel> buildThemeCategoryStageLevels({
+  required List<VocabEntry> entries,
+  required int categoryIndex,
+  required String categoryLabel,
+  Random? random,
+}) {
+  final rnd = random ?? Random();
+  final usable = <VocabEntry>[];
+  final seen = <String>{};
+  for (final e in entries) {
+    final h = wordBuilderGameLemma(e);
+    if (h == null || h.isEmpty || seen.contains(h)) continue;
+    seen.add(h);
+    usable.add(e);
+  }
+  if (usable.isEmpty) return const [];
+
+  const difficulty = WordBuilderDifficulty.beginner;
+  final levels = <WordBuilderLevel>[];
+  final stageCount =
+      (usable.length + kWordBuilderCampaignWordsPerStage - 1) ~/
+      kWordBuilderCampaignWordsPerStage;
+
+  for (var stage = 0; stage < stageCount; stage++) {
+    final start = stage * kWordBuilderCampaignWordsPerStage;
+    final end = start + kWordBuilderCampaignWordsPerStage;
+    final chunk = usable.sublist(
+      start,
+      end > usable.length ? usable.length : end,
+    );
+    final stage1Based = stage + 1;
+
+    WordBuilderLevel level;
+    if (chunk.length == kWordBuilderCampaignWordsPerStage) {
+      level = buildCampaignStageLevel(
+        entries: chunk,
+        difficulty: difficulty,
+        categoryLabel: categoryLabel,
+        stage1Based: stage1Based,
+        random: rnd,
+      );
+      if (level.targetWords.isEmpty) {
+        level = _levelFromCampaignEntries(
+          chunk,
+          difficulty,
+          categoryLabel,
+          stage1Based,
+        );
+      }
+    } else {
+      level = _levelFromCampaignEntries(
+        chunk,
+        difficulty,
+        categoryLabel,
+        stage1Based,
+      );
+    }
+
+    if (level.targetWords.isEmpty) continue;
+
+    levels.add(
+      WordBuilderLevel(
+        levelId: wordBuilderThemeLevelId(categoryIndex, stage1Based),
+        difficulty: level.difficulty,
+        category: level.category,
+        letters: level.letters,
+        targetWords: level.targetWords,
+      ),
+    );
   }
 
   return levels;

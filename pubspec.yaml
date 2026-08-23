@@ -81,6 +81,18 @@ flutter:
     - assets/branding/logo.png
     - assets/audio/
     - assets/audio/page_flip.mp3
+    - assets/items/can.png
+    - assets/items/canshoot.png
+    - assets/items/gun4.png
+    - assets/items/oilbarrel.png
+    - assets/items/oilbarrelshot.png
+    - assets/items/lamp.png
+    - assets/items/lampshot.png
+    - assets/items/lampleftshot.png
+    - assets/items/lamprightshot.png
+    - assets/items/explosion.mp3
+    - assets/audio/lampshot1.WAV
+    - assets/audio/lampshot3.WAV
 
   fonts:
     - family: Calibri
@@ -89,6 +101,17 @@ flutter:
     - family: Rudaw
       fonts:
         - asset: assets/fonts/rudawbold.ttf
+          weight: 700
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend.ttf
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Vazirmatn-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Vazirmatn-Bold.ttf
           weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see

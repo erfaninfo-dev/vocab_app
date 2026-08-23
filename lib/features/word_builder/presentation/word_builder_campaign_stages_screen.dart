@@ -10,6 +10,8 @@ import '../data/word_builder_campaign_progress_repository.dart';
 import '../domain/word_builder_models.dart';
 import '../word_builder_campaign_constants.dart';
 import '../word_builder_campaign_session_key.dart';
+import 'theme/word_builder_chapter_theme.dart';
+import 'theme/word_builder_tokens.dart';
 import 'widgets/magic_background.dart';
 
 class WordBuilderCampaignStagesScreen extends ConsumerStatefulWidget {
@@ -54,7 +56,7 @@ class _WordBuilderCampaignStagesScreenState
       Scrollable.ensureVisible(
         context,
         alignment: 0.35,
-        duration: const Duration(milliseconds: 420),
+        duration: WbTokens.dSlow,
         curve: Curves.easeOutCubic,
       );
     });
@@ -153,69 +155,99 @@ class _WordBuilderCampaignStagesScreenState
                   final stages = plan.stagesFor(difficulty);
                   return SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                      padding: const EdgeInsets.fromLTRB(
+                        WbTokens.s4,
+                        WbTokens.s2,
+                        WbTokens.s4,
+                        WbTokens.s5,
+                      ),
                       child: LayoutBuilder(
                         builder: (context, c) {
-                          const spacing = 12.0;
-                          const runSpacing = 14.0;
+                          const spacing = WbTokens.s3;
                           const cols = 5;
                           final cell =
                               (c.maxWidth - spacing * (cols - 1)) / cols;
                           final side = cell.clamp(52.0, 72.0);
+                          final rowExtent = side + WbTokens.s2;
                           _scheduleScrollToStage(progress: progress);
-                          return SingleChildScrollView(
+
+                          Widget stageCell(int i) => KeyedSubtree(
+                                key: _stageKeyFor(i),
+                                child: _StageCell(
+                                  side: side,
+                                  index: i,
+                                  difficulty: difficulty,
+                                  progress: progress,
+                                  unlockAll: adminUnlockAll,
+                                  stagePoolEmpty:
+                                      i <= stages.length &&
+                                      stages[i - 1].isEmpty,
+                                  l10n: l10n,
+                                  onLockedTap: () {
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).hideCurrentSnackBar();
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          l10n.wordBuilderCampaignStageLockedSnackbar,
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  onOpenTap: () {
+                                    final k =
+                                        encodeWordBuilderCampaignSessionKey(
+                                      difficulty,
+                                      i,
+                                    );
+                                    context.push(
+                                      '/word-builder/session?bookId=$k',
+                                    );
+                                  },
+                                ),
+                              );
+
+                          return CustomScrollView(
                             controller: _scrollController,
-                            child: Wrap(
-                              spacing: spacing,
-                              runSpacing: runSpacing,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                for (
-                                  var i = 1;
-                                  i <= kWordBuilderStagesPerTier;
-                                  i++
-                                )
-                                  KeyedSubtree(
-                                    key: _stageKeyFor(i),
-                                    child: _StageCell(
-                                      side: side,
-                                      index: i,
-                                      difficulty: difficulty,
-                                      progress: progress,
-                                      unlockAll: adminUnlockAll,
-                                      stagePoolEmpty:
-                                          i <= stages.length &&
-                                          stages[i - 1].isEmpty,
-                                      l10n: l10n,
-                                      onLockedTap: () {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).hideCurrentSnackBar();
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              l10n.wordBuilderCampaignStageLockedSnackbar,
-                                            ),
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
+                            slivers: [
+                              for (final chapter in WbChapterTheme.all) ...[
+                                SliverToBoxAdapter(
+                                  child: _ChapterIntroCard(theme: chapter),
+                                ),
+                                SliverPadding(
+                                  padding: const EdgeInsets.only(
+                                    top: WbTokens.s2,
+                                    bottom: WbTokens.s4,
+                                  ),
+                                  sliver: SliverGrid(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: cols,
+                                      mainAxisSpacing: WbTokens.s2,
+                                      crossAxisSpacing: spacing,
+                                      mainAxisExtent: rowExtent,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        final stage =
+                                            chapter.firstStage + index;
+                                        return Align(
+                                          alignment: Alignment.center,
+                                          child: stageCell(stage),
                                         );
                                       },
-                                      onOpenTap: () {
-                                        final k =
-                                            encodeWordBuilderCampaignSessionKey(
-                                              difficulty,
-                                              i,
-                                            );
-                                        context.push(
-                                          '/word-builder/session?bookId=$k',
-                                        );
-                                      },
+                                      childCount: chapter.lastStage -
+                                          chapter.firstStage +
+                                          1,
                                     ),
                                   ),
+                                ),
                               ],
-                            ),
+                            ],
                           );
                         },
                       ),
@@ -473,6 +505,69 @@ class _GlossyTile extends StatelessWidget {
           ),
           Center(child: child),
         ],
+      ),
+    );
+  }
+}
+
+class _ChapterIntroCard extends StatelessWidget {
+  const _ChapterIntroCard({required this.theme});
+
+  final WbChapterTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = theme.chromeBrightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(top: WbTokens.s2, bottom: WbTokens.s1),
+      child: Material(
+        color: theme.chromeSurface.withValues(alpha: 0.96),
+        elevation: 1,
+        borderRadius: BorderRadius.circular(WbTokens.rSm),
+        child: SizedBox(
+          height: 48,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: WbTokens.s3),
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.accent,
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.accent.withValues(alpha: 0.45),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: WbTokens.s3),
+                Expanded(
+                  child: Text(
+                    theme.name,
+                    style: WbTokens.textStyle(
+                      fontSize: WbTokens.tMd,
+                      fontWeight: FontWeight.w700,
+                      color: theme.chromeOnSurface,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${theme.firstStage}–${theme.lastStage}',
+                  style: WbTokens.textStyle(
+                    fontSize: WbTokens.tSm,
+                    fontWeight: FontWeight.w500,
+                    color: theme.chromeOnSurface
+                        .withValues(alpha: dark ? 0.7 : 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

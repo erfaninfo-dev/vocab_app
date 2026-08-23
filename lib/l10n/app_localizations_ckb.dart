@@ -2684,6 +2684,36 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get wordBuilderCampaignStageReplayHint => 'کرتە بکە بۆ دووبارەکردنەوە';
 
   @override
+  String get wordBuilderCategoryPickerTitle => 'بابەتێک هەڵبژێرە';
+
+  @override
+  String get wordBuilderCategoryPickerSubtitle =>
+      'بە تێم یاری بکە، یان کەمپەینی ئاسایی دەست پێ بکە.';
+
+  @override
+  String get wordBuilderCategorySearchHint => 'گەڕان بەدوای بابەت';
+
+  @override
+  String get wordBuilderNormalTitle => 'ئاسایی';
+
+  @override
+  String get wordBuilderNormalSubtitle => 'کەمپەینی IELTS لەگەڵ هەموو ئاستەکان';
+
+  @override
+  String get wordBuilderCategorySectionTitle => 'تێمەکان';
+
+  @override
+  String get wordBuilderCategoryEmptyResults =>
+      'هیچ بابەتێک لەگەڵ گەڕانەکەت نەهاتەوە.';
+
+  @override
+  String get wordBuilderCategoryNoWordsYet => 'هێشتا وشە لەم بابەتەدا نییە.';
+
+  @override
+  String get wordBuilderCategoryTopicsLoadFailed =>
+      'بابەتەکان بارنەکران. بۆ دووبارە هەوڵ بدەەوە ڕاکێشە.';
+
+  @override
   String get adminEditUserSheetTitle => 'دەستکاری دەستپێگەیشتن';
 
   @override

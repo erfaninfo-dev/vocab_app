@@ -10,6 +10,7 @@ import '../models/admin_story.dart';
 import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
+import '../models/game_word_category.dart';
 import '../models/section_info.dart';
 import '../models/unit_sample.dart';
 import '../models/grammar_book.dart';
@@ -244,6 +245,35 @@ class ApiService {
               VocabEntry.fromJson(e as Map<String, dynamic>, bookId: bookIdStr),
         )
         .toList();
+  }
+
+  // ── GET /game_word_categories.php ─────────────────────────────────────────
+  Future<List<GameWordCategory>> fetchGameWordCategories() async {
+    final uri = Uri.parse('$baseUrl/game_word_categories.php');
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'game word categories');
+      final data = jsonDecode(response.body) as List<dynamic>;
+      final list = data
+          .map((e) => GameWordCategory.fromJson(e as Map<String, dynamic>))
+          .toList();
+      // Never persist an empty catalog — avoids locking the UI when the
+      // endpoint was missing or returned [] before categories were seeded.
+      if (list.isNotEmpty) {
+        await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      }
+      return list;
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        final list = data
+            .map((e) => GameWordCategory.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (list.isNotEmpty) return list;
+      }
+      rethrow;
+    }
   }
 
   // ── GET /grammar_topics.php ───────────────────────────────────────────────
@@ -917,14 +947,23 @@ class ApiService {
     final uri = Uri.parse(
       '$baseUrl/words.php',
     ).replace(queryParameters: {'global': '1'});
-    final response = await http.get(uri, headers: _mergeHeaders());
-    _assertOk(response, 'words (global)');
-    final data = jsonDecode(response.body) as List<dynamic>;
-    return data.map((e) {
-      final m = e as Map<String, dynamic>;
-      final bid = (m['book_id'] as num?)?.toInt() ?? 0;
-      return VocabEntry.fromJson(m, bookId: bid.toString());
-    }).toList();
+    const attempts = 3;
+    for (var i = 0; i < attempts; i++) {
+      try {
+        final response = await http.get(uri, headers: _mergeHeaders());
+        _assertOk(response, 'words (global)');
+        final data = jsonDecode(response.body) as List<dynamic>;
+        return data.map((e) {
+          final m = e as Map<String, dynamic>;
+          final bid = (m['book_id'] as num?)?.toInt() ?? 0;
+          return VocabEntry.fromJson(m, bookId: bid.toString());
+        }).toList();
+      } on http.ClientException {
+        if (i == attempts - 1) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 500 * (i + 1)));
+      }
+    }
+    throw StateError('fetchAllWordsGlobally failed after $attempts attempts');
   }
 
   // ── Auth (no bearer token on login/register) ─────────────────────────────

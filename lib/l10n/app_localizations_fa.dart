@@ -2668,6 +2668,35 @@ class AppLocalizationsFa extends AppLocalizations {
   String get wordBuilderCampaignStageReplayHint => 'برای تکرار این مرحله بزنید';
 
   @override
+  String get wordBuilderCategoryPickerTitle => 'یک موضوع انتخاب کن';
+
+  @override
+  String get wordBuilderCategoryPickerSubtitle =>
+      'با تم بازی کن، یا کمپین معمولی را شروع کن.';
+
+  @override
+  String get wordBuilderCategorySearchHint => 'جستجوی موضوع';
+
+  @override
+  String get wordBuilderNormalTitle => 'عادی';
+
+  @override
+  String get wordBuilderNormalSubtitle => 'کمپین آیلتس با همهٔ سطح‌ها';
+
+  @override
+  String get wordBuilderCategorySectionTitle => 'تم‌ها';
+
+  @override
+  String get wordBuilderCategoryEmptyResults => 'موضوعی با این جستجو پیدا نشد.';
+
+  @override
+  String get wordBuilderCategoryNoWordsYet => 'هنوز لغتی در این موضوع نیست.';
+
+  @override
+  String get wordBuilderCategoryTopicsLoadFailed =>
+      'موضوعات بارگذاری نشدند. برای تلاش دوباره پایین بکشید.';
+
+  @override
   String get adminEditUserSheetTitle => 'ویرایش دسترسی';
 
   @override

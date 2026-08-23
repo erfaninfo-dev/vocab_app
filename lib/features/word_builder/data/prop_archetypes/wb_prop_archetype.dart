@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../presentation/widgets/angry_words/angry_words_loadout.dart';
+import 'wb_prop_sound_family.dart';
 
 /// Visual identity for a breakable wall item (Angry Words).
 ///
@@ -148,6 +149,25 @@ class WbShatterRecipe {
   final int secondaryCount;
   final WbShardShape? secondaryShape;
   final double screenShake;
+
+  /// Soft cap so shards leave the board before the next letter read (~900ms).
+  /// Persistent fluid pools are separate and ignore this.
+  static const double kMaxPlayableLifetimeSec = 0.9;
+
+  (double, double) get playableLifetime => (
+        lifetime.$1.clamp(0.15, kMaxPlayableLifetimeSec),
+        lifetime.$2.clamp(0.2, kMaxPlayableLifetimeSec),
+      );
+
+  /// Soft visual budget — crowded recipes trim before spawn.
+  static const int kMaxPlayableShards = 16;
+  static const int kMaxPlayableSecondary = 18;
+
+  int get playableShardCount =>
+      shardCount.clamp(0, kMaxPlayableShards);
+
+  int get playableSecondaryCount =>
+      secondaryCount.clamp(0, kMaxPlayableSecondary);
 }
 
 /// Full archetype identity — visual / audio / break metadata only.
@@ -160,7 +180,7 @@ class WbArchetypeSpec {
     required this.material,
     required this.hpOverride,
     required this.crackStages,
-    required this.behavior,
+    required this.behaviors,
     required this.recipe,
     required this.palette,
     required this.soundFamily,
@@ -168,6 +188,7 @@ class WbArchetypeSpec {
     required this.aspectRatio,
     required this.glows,
     required this.holdsCargoWell,
+    this.simplifiedBelowRadius = 16,
   });
 
   final WbPropArchetype id;
@@ -180,15 +201,45 @@ class WbArchetypeSpec {
   /// `0` → use [AngryWordsLoadout.rollHpFor] for [material].
   final int hpOverride;
   final int crackStages;
-  final WbBreakBehavior behavior;
+
+  /// One or more break strategies (e.g. neon tube = split + lightDeath).
+  final List<WbBreakBehavior> behaviors;
   final WbShatterRecipe recipe;
   final List<Color> palette;
-  final String soundFamily;
+  final WbPropSoundFamily soundFamily;
   final double soundPitch;
   final double aspectRatio;
   final bool glows;
   final bool holdsCargoWell;
+
+  /// Below this radius (px), paint circle/box fallback instead of detail.
+  /// Default 16 — tighter LOD for dense late stages (Doomsday wall).
+  final double simplifiedBelowRadius;
+
+  /// Primary (first) behavior — convenience for single-behavior props.
+  WbBreakBehavior get behavior => behaviors.first;
+
+  /// Flat plaque behind cargo glyph on narrow / busy silhouettes.
+  bool get needsLetterPlaque {
+    if (!holdsCargoWell) return true;
+    if (aspectRatio < 0.75) return true;
+    return switch (id) {
+      WbPropArchetype.metalGear ||
+      WbPropArchetype.neonTube ||
+      WbPropArchetype.batteryCell ||
+      WbPropArchetype.sprayCan ||
+      WbPropArchetype.sodaCan ||
+      WbPropArchetype.tinCan ||
+      WbPropArchetype.oilDrum ||
+      WbPropArchetype.glassBottle ||
+      WbPropArchetype.stoneStatue ||
+      WbPropArchetype.neonOrb =>
+        true,
+      _ => false,
+    };
+  }
 }
+
 
 /// Registry — filled chapter-by-chapter in STEP 2 (gameplay still unwired).
 const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
@@ -200,7 +251,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.rubber,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.pop,
+    behaviors: [WbBreakBehavior.pop],
     recipe: WbShatterRecipe(
       shardCount: 4,
       shapes: [WbShardShape.scrap, WbShardShape.ribbon],
@@ -216,9 +267,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.12,
     ),
     palette: [Color(0xFFFF6B9D), Color(0xFFFF8FB8), Color(0xFFFFE0EC)],
-    soundFamily: 'pop',
+    soundFamily: WbPropSoundFamily.popSoft,
     soundPitch: 1.25,
-    aspectRatio: 0.88,
+    aspectRatio: 0.72,
     glows: false,
     holdsCargoWell: true,
   ),
@@ -229,7 +280,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.candy,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 12,
       shapes: [WbShardShape.shard, WbShardShape.glint, WbShardShape.crumb],
@@ -245,11 +296,11 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       secondaryShape: WbShardShape.spark,
       screenShake: 0.18,
     ),
-    palette: [Color(0xFFFF80AB), Color(0xFFE91E63), Color(0xFFFFF3F8)],
-    soundFamily: 'shatter_candy',
-    soundPitch: 1.15,
-    aspectRatio: 1.0,
-    glows: false,
+    palette: [Color(0xFFFF8AB8), Color(0xFFE84A86), Color(0xFFFFF7FA)],
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.2,
+    aspectRatio: 0.78,
+    glows: true,
     holdsCargoWell: true,
   ),
   WbPropArchetype.plushBear: WbArchetypeSpec(
@@ -259,7 +310,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.foam,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.pop,
+    behaviors: [WbBreakBehavior.pop],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.scrap, WbShardShape.fluff],
@@ -276,8 +327,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.08,
     ),
     palette: [Color(0xFFFFCC80), Color(0xFFFFA726), Color(0xFFFFF3E0)],
-    soundFamily: 'poof_soft',
-    soundPitch: 0.95,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.15,
     aspectRatio: 0.92,
     glows: false,
     holdsCargoWell: true,
@@ -289,7 +340,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.spillContents,
+    behaviors: [WbBreakBehavior.spillContents],
     recipe: WbShatterRecipe(
       shardCount: 4,
       shapes: [WbShardShape.plate, WbShardShape.ribbon],
@@ -306,8 +357,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.2,
     ),
     palette: [Color(0xFFE53935), Color(0xFFFFD54F), Color(0xFFFFF8E1)],
-    soundFamily: 'wood_open',
-    soundPitch: 1.05,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.85,
     aspectRatio: 1.05,
     glows: false,
     holdsCargoWell: true,
@@ -319,7 +370,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.dentThenRupture,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.plate, WbShardShape.sliver],
@@ -336,8 +387,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.28,
     ),
     palette: [Color(0xFFD7CCC8), Color(0xFF8D6E63), Color(0xFF5D4037)],
-    soundFamily: 'wood_crack',
-    soundPitch: 0.9,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.8,
     aspectRatio: 1.08,
     glows: false,
     holdsCargoWell: true,
@@ -349,7 +400,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.plastic,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.lightDeath,
+    behaviors: [WbBreakBehavior.lightDeath],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.scrap],
@@ -365,8 +416,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.1,
     ),
     palette: [Color(0xFFFFF59D), Color(0xFFFFB300), Color(0xFFFFECB3)],
-    soundFamily: 'paper_tear',
-    soundPitch: 1.1,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.3,
     aspectRatio: 0.85,
     glows: true,
     holdsCargoWell: true,
@@ -378,7 +429,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.porcelain,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.spillContents,
+    behaviors: [WbBreakBehavior.spillContents],
     recipe: WbShatterRecipe(
       shardCount: 14,
       shapes: [WbShardShape.shard, WbShardShape.chunk],
@@ -395,8 +446,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.35,
     ),
     palette: [Color(0xFFF8BBD0), Color(0xFFEC407A), Color(0xFFFFF0F5)],
-    soundFamily: 'porcelain_coin',
-    soundPitch: 1.0,
+    soundFamily: WbPropSoundFamily.breakCeramic,
+    soundPitch: 0.95,
     aspectRatio: 1.12,
     glows: false,
     holdsCargoWell: true,
@@ -408,9 +459,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     labelFa: 'قوطی نوشابه',
     labelEn: 'Soda Can',
     material: AngryWordsPropMaterial.metal,
-    hpOverride: 1,
-    crackStages: 0,
-    behavior: WbBreakBehavior.dentThenRupture,
+    hpOverride: 2,
+    crackStages: 1,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 4,
       shapes: [WbShardShape.plate, WbShardShape.scrap],
@@ -427,8 +478,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.22,
     ),
     palette: [Color(0xFFE53935), Color(0xFFB0BEC5), Color(0xFFFFFFFF)],
-    soundFamily: 'metal_thin',
-    soundPitch: 1.15,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.85,
     aspectRatio: 0.72,
     glows: false,
     holdsCargoWell: true,
@@ -441,7 +492,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.egg,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.spillContents,
+    behaviors: [WbBreakBehavior.spillContents],
     recipe: WbShatterRecipe(
       shardCount: 18,
       shapes: [WbShardShape.shard, WbShardShape.halfShell],
@@ -458,7 +509,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.2,
     ),
     palette: [Color(0xFFFFF8E1), Color(0xFFE8D5B5), Color(0xFFFFFDE7)],
-    soundFamily: 'egg_crack',
+    soundFamily: WbPropSoundFamily.splashFluid,
     soundPitch: 1.0,
     aspectRatio: 0.86,
     glows: false,
@@ -471,7 +522,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.burstFluid,
+    behaviors: [WbBreakBehavior.burstFluid],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.scrap, WbShardShape.plate],
@@ -493,8 +544,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFF00E5FF),
       Color(0xFF76FF03),
     ],
-    soundFamily: 'spray_burst',
-    soundPitch: 0.95,
+    soundFamily: WbPropSoundFamily.splashFluid,
+    soundPitch: 1.05,
     aspectRatio: 0.7,
     glows: false,
     holdsCargoWell: true,
@@ -508,7 +559,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.spillContents,
+    behaviors: [WbBreakBehavior.spillContents],
     recipe: WbShatterRecipe(
       shardCount: 12,
       shapes: [WbShardShape.streamer, WbShardShape.scrap],
@@ -530,8 +581,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFFFFF176),
       Color(0xFF69F0AE),
     ],
-    soundFamily: 'pinata_burst',
-    soundPitch: 1.1,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.82,
     aspectRatio: 0.95,
     glows: false,
     holdsCargoWell: true,
@@ -543,7 +594,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.water,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.burstFluid,
+    behaviors: [WbBreakBehavior.burstFluid],
     recipe: WbShatterRecipe(
       shardCount: 5,
       shapes: [WbShardShape.chunk],
@@ -565,7 +616,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFF1B5E20),
       Color(0xFF212121),
     ],
-    soundFamily: 'wet_burst',
+    soundFamily: WbPropSoundFamily.splashFluid,
     soundPitch: 0.95,
     aspectRatio: 1.15,
     glows: false,
@@ -578,7 +629,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.water,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.pop,
+    behaviors: [WbBreakBehavior.pop],
     recipe: WbShatterRecipe(
       shardCount: 0,
       shapes: [WbShardShape.droplet],
@@ -600,8 +651,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFFE8F5E9),
       Color(0xFFFFF9C4),
     ],
-    soundFamily: 'bubble_pop',
-    soundPitch: 1.3,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.35,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -613,7 +664,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.crystal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 20,
       shapes: [WbShardShape.glint, WbShardShape.prism],
@@ -635,7 +686,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFFFFF59D),
       Color(0xFFCE93D8),
     ],
-    soundFamily: 'glass_mirror',
+    soundFamily: WbPropSoundFamily.shatterGlass,
     soundPitch: 1.2,
     aspectRatio: 1.0,
     glows: true,
@@ -648,7 +699,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.plastic,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.spillContents,
+    behaviors: [WbBreakBehavior.spillContents],
     recipe: WbShatterRecipe(
       shardCount: 2,
       shapes: [WbShardShape.scrap],
@@ -672,8 +723,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFFE040FB),
       Color(0xFFFFAB40),
     ],
-    soundFamily: 'confetti_burst',
-    soundPitch: 1.15,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.28,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -687,7 +738,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.topple,
+    behaviors: [WbBreakBehavior.topple],
     recipe: WbShatterRecipe(
       shardCount: 8,
       shapes: [WbShardShape.plate, WbShardShape.scrap],
@@ -703,9 +754,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       secondaryShape: WbShardShape.scrap,
       screenShake: 0.32,
     ),
-    palette: [Color(0xFFA1887F), Color(0xFF6D4C41), Color(0xFF90A4AE)],
-    soundFamily: 'wood_heavy',
-    soundPitch: 0.85,
+    palette: [Color(0xFFD7CCC8), Color(0xFFA1887F), Color(0xFF5D4037)],
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.75,
     aspectRatio: 0.88,
     glows: false,
     holdsCargoWell: true,
@@ -717,7 +768,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.stone,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.crumble,
+    behaviors: [WbBreakBehavior.crumble],
     recipe: WbShatterRecipe(
       shardCount: 3,
       shapes: [WbShardShape.chunk, WbShardShape.crumb],
@@ -733,9 +784,10 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       secondaryShape: WbShardShape.crumb,
       screenShake: 0.36,
     ),
-    palette: [Color(0xFFC62828), Color(0xFF8D6E63), Color(0xFFB71C1C)],
-    soundFamily: 'stone_crumble',
-    soundPitch: 0.88,
+    // Warm terracotta — not raw #C62828 (Boom Brigade mid-sky camouflage).
+    palette: [Color(0xFFFFAB91), Color(0xFFE64A19), Color(0xFFFFCCBC)],
+    soundFamily: WbPropSoundFamily.breakCeramic,
+    soundPitch: 0.9,
     aspectRatio: 1.25,
     glows: false,
     holdsCargoWell: true,
@@ -747,7 +799,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.dentThenRupture,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 8,
       shapes: [WbShardShape.scrap, WbShardShape.sliver, WbShardShape.plate],
@@ -764,8 +816,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.3,
     ),
     palette: [Color(0xFFB0BEC5), Color(0xFF78909C), Color(0xFFECEFF1)],
-    soundFamily: 'metal_ring',
-    soundPitch: 1.05,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.8,
     aspectRatio: 0.78,
     glows: false,
     holdsCargoWell: true,
@@ -775,9 +827,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     labelFa: 'بشکه فلزی',
     labelEn: 'Oil Drum',
     material: AngryWordsPropMaterial.metal,
-    hpOverride: 3,
-    crackStages: 2,
-    behavior: WbBreakBehavior.dentThenRupture,
+    hpOverride: 2,
+    crackStages: 1,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.plate, WbShardShape.scrap],
@@ -794,8 +846,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.42,
     ),
     palette: [Color(0xFF546E7A), Color(0xFF37474F), Color(0xFF3E2723)],
-    soundFamily: 'metal_drum',
-    soundPitch: 0.82,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.7,
     aspectRatio: 0.75,
     glows: false,
     holdsCargoWell: true,
@@ -807,7 +859,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.sand,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.crumble,
+    behaviors: [WbBreakBehavior.crumble],
     recipe: WbShatterRecipe(
       shardCount: 0,
       shapes: [WbShardShape.crumb, WbShardShape.dust],
@@ -824,8 +876,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.28,
     ),
     palette: [Color(0xFFFFCC80), Color(0xFFD4A574), Color(0xFFFFE0B2)],
-    soundFamily: 'sand_pour',
-    soundPitch: 0.92,
+    soundFamily: WbPropSoundFamily.crumbleStone,
+    soundPitch: 0.6,
     aspectRatio: 1.1,
     glows: false,
     holdsCargoWell: true,
@@ -837,7 +889,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 12,
       shapes: [WbShardShape.sliver, WbShardShape.scrap, WbShardShape.plate],
@@ -859,8 +911,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       Color(0xFFFFF8E1),
       Color(0xFF8D6E63),
     ],
-    soundFamily: 'wood_target',
-    soundPitch: 1.0,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.78,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -873,7 +925,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.porcelain,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 22,
       shapes: [WbShardShape.shard, WbShardShape.dust],
@@ -889,8 +941,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.28,
     ),
     palette: [Color(0xFFD7CCC8), Color(0xFFA1887F), Color(0xFFEEEEEE)],
-    soundFamily: 'pot',
-    soundPitch: 1.0,
+    soundFamily: WbPropSoundFamily.breakCeramic,
+    soundPitch: 0.92,
     aspectRatio: 0.82,
     glows: false,
     holdsCargoWell: true,
@@ -905,16 +957,16 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.glass,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
-      shardCount: 28,
+      shardCount: 16,
       shapes: [WbShardShape.shard, WbShardShape.glint, WbShardShape.spark],
       sizeRange: (0.15, 0.42),
       speedRange: (140, 340),
       spreadCone: _kFullSpread,
       gravityScale: 1.05,
       drag: 0.3,
-      lifetime: (0.5, 0.9),
+      lifetime: (0.45, 0.8),
       spinRange: (8, 16),
       dustAmount: 0.2,
       secondaryCount: 4,
@@ -922,7 +974,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.3,
     ),
     palette: [Color(0xFF81C784), Color(0xFFA5D6A7), Color(0xFFE8F5E9)],
-    soundFamily: 'pot',
+    soundFamily: WbPropSoundFamily.shatterGlass,
     soundPitch: 1.1,
     aspectRatio: 0.55,
     glows: false,
@@ -933,9 +985,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     labelFa: 'قالب یخ',
     labelEn: 'Ice Block',
     material: AngryWordsPropMaterial.ice,
-    hpOverride: 2,
+    hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.crackCascade,
+    behaviors: [WbBreakBehavior.crackCascade],
     recipe: WbShatterRecipe(
       shardCount: 10,
       shapes: [WbShardShape.chunk, WbShardShape.prism],
@@ -951,8 +1003,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       secondaryShape: WbShardShape.dust,
       screenShake: 0.34,
     ),
-    palette: [Color(0xFFE1F5FE), Color(0xFF81D4FA), Color(0xFFB3E5FC)],
-    soundFamily: 'ice_crack',
+    palette: [Color(0xFFB3E5FC), Color(0xFF4FC3F7), Color(0xFFE1F5FE)],
+    soundFamily: WbPropSoundFamily.shatterGlass,
     soundPitch: 1.15,
     aspectRatio: 1.05,
     glows: false,
@@ -965,7 +1017,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.foam,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.melt,
+    behaviors: [WbBreakBehavior.melt],
     recipe: WbShatterRecipe(
       shardCount: 0,
       shapes: [WbShardShape.droplet],
@@ -982,8 +1034,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.1,
     ),
     palette: [Color(0xFFFFF8E1), Color(0xFFFFE082), Color(0xFFFFECB3)],
-    soundFamily: 'wax_melt',
-    soundPitch: 0.9,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.12,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -995,7 +1047,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.magma,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 14,
       shapes: [WbShardShape.ember, WbShardShape.chunk],
@@ -1012,8 +1064,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.4,
     ),
     palette: [Color(0xFFBF360C), Color(0xFFFF6D00), Color(0xFFFFAB00)],
-    soundFamily: 'magma_burst',
-    soundPitch: 0.85,
+    soundFamily: WbPropSoundFamily.splashFluid,
+    soundPitch: 0.98,
     aspectRatio: 1.0,
     glows: true,
     holdsCargoWell: true,
@@ -1027,7 +1079,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.splitInHalf,
+    behaviors: [WbBreakBehavior.splitInHalf],
     recipe: WbShatterRecipe(
       shardCount: 2,
       shapes: [WbShardShape.halfShell],
@@ -1044,8 +1096,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.3,
     ),
     palette: [Color(0xFF6D4C41), Color(0xFFFFF8E1), Color(0xFF8D6E63)],
-    soundFamily: 'coconut_split',
-    soundPitch: 0.9,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.72,
     aspectRatio: 1.05,
     glows: false,
     holdsCargoWell: true,
@@ -1057,7 +1109,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.caveIn,
+    behaviors: [WbBreakBehavior.caveIn],
     recipe: WbShatterRecipe(
       shardCount: 6,
       shapes: [WbShardShape.chunk, WbShardShape.ribbon],
@@ -1074,8 +1126,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.32,
     ),
     palette: [Color(0xFFEF6C00), Color(0xFFFFA726), Color(0xFFFFE0B2)],
-    soundFamily: 'pumpkin_cave',
-    soundPitch: 0.95,
+    soundFamily: WbPropSoundFamily.splashFluid,
+    soundPitch: 0.92,
     aspectRatio: 1.15,
     glows: false,
     holdsCargoWell: true,
@@ -1087,7 +1139,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.glass,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.spiderweb,
+    behaviors: [WbBreakBehavior.spiderweb],
     recipe: WbShatterRecipe(
       shardCount: 8,
       shapes: [WbShardShape.shard, WbShardShape.plate],
@@ -1103,8 +1155,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.28,
     ),
     palette: [Color(0xFFE3F2FD), Color(0xFFBBDEFB), Color(0xFFFFFFFF)],
-    soundFamily: 'glass_pane',
-    soundPitch: 1.2,
+    soundFamily: WbPropSoundFamily.shatterGlass,
+    soundPitch: 1.25,
     aspectRatio: 1.35,
     glows: false,
     holdsCargoWell: true,
@@ -1116,7 +1168,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.glass,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.lightDeath,
+    behaviors: [WbBreakBehavior.lightDeath],
     recipe: WbShatterRecipe(
       shardCount: 25,
       shapes: [WbShardShape.crumb, WbShardShape.sliver],
@@ -1133,7 +1185,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.18,
     ),
     palette: [Color(0xFFFFFDE7), Color(0xFFFFECB3), Color(0xFF90A4AE)],
-    soundFamily: 'bulb_ting',
+    soundFamily: WbPropSoundFamily.shatterGlass,
     soundPitch: 1.3,
     aspectRatio: 0.7,
     glows: true,
@@ -1146,7 +1198,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.dentThenRupture,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 3,
       shapes: [WbShardShape.plate],
@@ -1163,8 +1215,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.45,
     ),
     palette: [Color(0xFF90A4AE), Color(0xFF546E7A), Color(0xFFCFD8DC)],
-    soundFamily: 'steel_breach',
-    soundPitch: 0.8,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.68,
     aspectRatio: 1.4,
     glows: false,
     holdsCargoWell: true,
@@ -1176,7 +1228,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.magnetize,
+    behaviors: [WbBreakBehavior.magnetize],
     recipe: WbShatterRecipe(
       shardCount: 16,
       shapes: [WbShardShape.scrap, WbShardShape.chunk],
@@ -1192,9 +1244,9 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       secondaryShape: WbShardShape.spark,
       screenShake: 0.38,
     ),
-    palette: [Color(0xFF455A64), Color(0xFFE53935), Color(0xFF1565C0)],
-    soundFamily: 'magnet_pulse',
-    soundPitch: 0.88,
+    palette: [Color(0xFF90A4AE), Color(0xFFE53935), Color(0xFF42A5F5)],
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.75,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -1208,7 +1260,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.crystal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.refract,
+    behaviors: [WbBreakBehavior.refract],
     recipe: WbShatterRecipe(
       shardCount: 16,
       shapes: [WbShardShape.prism, WbShardShape.glint],
@@ -1225,8 +1277,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.32,
     ),
     palette: [Color(0xFFE1BEE7), Color(0xFFCE93D8), Color(0xFF80DEEA)],
-    soundFamily: 'crystal_refract',
-    soundPitch: 1.2,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.25,
     aspectRatio: 0.9,
     glows: true,
     holdsCargoWell: true,
@@ -1238,7 +1290,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.plastic,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 12,
       shapes: [WbShardShape.shard, WbShardShape.scrap, WbShardShape.plate],
@@ -1255,8 +1307,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.38,
     ),
     palette: [Color(0xFF5D4037), Color(0xFF90A4AE), Color(0xFF263238)],
-    soundFamily: 'tv_implode',
-    soundPitch: 0.9,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.15,
     aspectRatio: 1.25,
     glows: false,
     holdsCargoWell: true,
@@ -1269,7 +1321,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.candy,
     hpOverride: 0,
     crackStages: 0,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 10,
       shapes: [WbShardShape.crumb, WbShardShape.spark],
@@ -1285,11 +1337,11 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.2,
     ),
     palette: [Color(0xFFFF80AB), Color(0xFFFFF176), Color(0xFF82B1FF)],
-    soundFamily: 'emoji_pop',
-    soundPitch: 1.15,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.2,
     aspectRatio: 1.0,
     glows: false,
-    holdsCargoWell: true,
+    holdsCargoWell: false,
   ),
   /// Locked stage-36 animal emojis — same as variety; animal emoji pool.
   WbPropArchetype.emojiAnimal: WbArchetypeSpec(
@@ -1299,7 +1351,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.candy,
     hpOverride: 0,
     crackStages: 0,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 10,
       shapes: [WbShardShape.crumb, WbShardShape.spark],
@@ -1315,11 +1367,11 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.2,
     ),
     palette: [Color(0xFFFFCC80), Color(0xFFA5D6A7), Color(0xFFFFF8E1)],
-    soundFamily: 'emoji_pop',
-    soundPitch: 1.1,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.18,
     aspectRatio: 1.0,
     glows: false,
-    holdsCargoWell: true,
+    holdsCargoWell: false,
   ),
   WbPropArchetype.neonOrb: WbArchetypeSpec(
     id: WbPropArchetype.neonOrb,
@@ -1328,7 +1380,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.crystal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 18,
       shapes: [WbShardShape.spark, WbShardShape.glint],
@@ -1344,8 +1396,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.35,
     ),
     palette: [Color(0xFFE040FB), Color(0xFF18FFFF), Color(0xFF7C4DFF)],
-    soundFamily: 'energy_implode',
-    soundPitch: 1.15,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.3,
     aspectRatio: 1.0,
     glows: true,
     holdsCargoWell: true,
@@ -1358,7 +1410,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.glass,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.splitInHalf,
+    behaviors: [WbBreakBehavior.splitInHalf, WbBreakBehavior.lightDeath],
     recipe: WbShatterRecipe(
       shardCount: 2,
       shapes: [WbShardShape.halfShell, WbShardShape.spark],
@@ -1375,8 +1427,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.28,
     ),
     palette: [Color(0xFF18FFFF), Color(0xFFFF4081), Color(0xFF76FF03)],
-    soundFamily: 'neon_split',
-    soundPitch: 1.25,
+    soundFamily: WbPropSoundFamily.shatterGlass,
+    soundPitch: 1.22,
     aspectRatio: 0.35,
     glows: true,
     holdsCargoWell: true,
@@ -1388,7 +1440,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.gold,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.erode,
+    behaviors: [WbBreakBehavior.erode],
     recipe: WbShatterRecipe(
       shardCount: 3,
       shapes: [WbShardShape.chunk, WbShardShape.scrap],
@@ -1405,8 +1457,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.4,
     ),
     palette: [Color(0xFFFFD54F), Color(0xFFFFA000), Color(0xFF795548)],
-    soundFamily: 'gear_erode',
-    soundPitch: 0.85,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.72,
     aspectRatio: 1.0,
     glows: false,
     holdsCargoWell: true,
@@ -1418,7 +1470,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.fluidFire,
+    behaviors: [WbBreakBehavior.fluidFire],
     recipe: WbShatterRecipe(
       shardCount: 8,
       shapes: [WbShardShape.scrap, WbShardShape.spark],
@@ -1435,8 +1487,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.36,
     ),
     palette: [Color(0xFF37474F), Color(0xFF76FF03), Color(0xFFFFEA00)],
-    soundFamily: 'battery_zap',
-    soundPitch: 1.05,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.35,
     aspectRatio: 0.65,
     glows: true,
     holdsCargoWell: true,
@@ -1451,7 +1503,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.plastic,
     hpOverride: 1,
     crackStages: 0,
-    behavior: WbBreakBehavior.chainExplode,
+    behaviors: [WbBreakBehavior.chainExplode],
     recipe: WbShatterRecipe(
       shardCount: 20,
       shapes: [WbShardShape.spark, WbShardShape.glint],
@@ -1467,8 +1519,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.45,
     ),
     palette: [Color(0xFFFF5252), Color(0xFFFFEA00), Color(0xFF40C4FF)],
-    soundFamily: 'firework_fuse',
-    soundPitch: 1.2,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.28,
     aspectRatio: 0.85,
     glows: true,
     holdsCargoWell: false,
@@ -1481,7 +1533,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.wood,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.chainExplode,
+    behaviors: [WbBreakBehavior.chainExplode],
     recipe: WbShatterRecipe(
       shardCount: 10,
       shapes: [WbShardShape.chunk, WbShardShape.scrap],
@@ -1498,8 +1550,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.8,
     ),
     palette: [Color(0xFF5D4037), Color(0xFF212121), Color(0xFFFF6F00)],
-    soundFamily: 'powder_blast',
-    soundPitch: 0.85,
+    soundFamily: WbPropSoundFamily.thudWood,
+    soundPitch: 0.7,
     aspectRatio: 0.9,
     glows: false,
     holdsCargoWell: true,
@@ -1512,7 +1564,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.glass,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.fluidFire,
+    behaviors: [WbBreakBehavior.fluidFire],
     recipe: WbShatterRecipe(
       shardCount: 8,
       shapes: [WbShardShape.shard, WbShardShape.sliver],
@@ -1529,8 +1581,8 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.35,
     ),
     palette: [Color(0xFF80DEEA), Color(0xFFFF8F00), Color(0xFFBF360C)],
-    soundFamily: 'oil_spill_fire',
-    soundPitch: 0.95,
+    soundFamily: WbPropSoundFamily.splashFluid,
+    soundPitch: 1.0,
     aspectRatio: 0.7,
     glows: true,
     holdsCargoWell: true,
@@ -1542,7 +1594,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.stone,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.erode,
+    behaviors: [WbBreakBehavior.erode],
     recipe: WbShatterRecipe(
       shardCount: 4,
       shapes: [WbShardShape.chunk, WbShardShape.crumb],
@@ -1551,16 +1603,16 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       spreadCone: _kFullSpread,
       gravityScale: 1.35,
       drag: 0.25,
-      lifetime: (0.9, 1.4),
+      lifetime: (0.55, 0.85),
       spinRange: (2, 6),
-      dustAmount: 1.0,
-      secondaryCount: 25,
+      dustAmount: 0.85,
+      secondaryCount: 14,
       secondaryShape: WbShardShape.dust,
       screenShake: 0.5,
     ),
-    palette: [Color(0xFF9E9E9E), Color(0xFF757575), Color(0xFFBDBDBD)],
-    soundFamily: 'concrete_erode',
-    soundPitch: 0.8,
+    palette: [Color(0xFFB0BEC5), Color(0xFF78909C), Color(0xFFECEFF1)],
+    soundFamily: WbPropSoundFamily.crumbleStone,
+    soundPitch: 0.55,
     aspectRatio: 1.15,
     glows: false,
     holdsCargoWell: true,
@@ -1572,7 +1624,7 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.rubber,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.absorbBounce,
+    behaviors: [WbBreakBehavior.absorbBounce],
     recipe: WbShatterRecipe(
       shardCount: 3,
       shapes: [WbShardShape.chunk, WbShardShape.scrap],
@@ -1589,14 +1641,16 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.3,
     ),
     palette: [Color(0xFF212121), Color(0xFF424242), Color(0xFF37474F)],
-    soundFamily: 'tire_bounce',
-    soundPitch: 0.9,
+    soundFamily: WbPropSoundFamily.popSoft,
+    soundPitch: 1.1,
     aspectRatio: 1.2,
     glows: false,
     holdsCargoWell: true,
   ),
 
   // ── Chapter 9 · Endgame (stages 46–50) ────────────────────────────────────
+  // Feel: majestic, heavy, gold-on-dark. Few large shards — not fine swarms.
+  /// Stage 46 — dents shift highlight; break = 10 spinning plates + 20 floaty glints.
   WbPropArchetype.goldTrophy: WbArchetypeSpec(
     id: WbPropArchetype.goldTrophy,
     labelFa: 'جام طلایی',
@@ -1604,10 +1658,10 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.gold,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.dentThenRupture,
+    behaviors: [WbBreakBehavior.dentThenRupture],
     recipe: WbShatterRecipe(
       shardCount: 10,
-      shapes: [WbShardShape.plate, WbShardShape.glint],
+      shapes: [WbShardShape.plate],
       sizeRange: (0.25, 0.55),
       speedRange: (80, 180),
       spreadCone: _kFullSpread,
@@ -1621,43 +1675,45 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.4,
     ),
     palette: [Color(0xFFFFD700), Color(0xFFFFA000), Color(0xFFFFECB3)],
-    soundFamily: 'gold_rupture',
-    soundPitch: 1.1,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.88,
     aspectRatio: 0.75,
     glows: true,
     holdsCargoWell: true,
   ),
+  /// Stage 47 — fault-line cracks (preset Path); 4 huge slow chunks = weight.
   WbPropArchetype.stoneStatue: WbArchetypeSpec(
     id: WbPropArchetype.stoneStatue,
-    labelFa: 'مجسمه سنگی',
+    labelFa: 'مجسمهٔ سنگی',
     labelEn: 'Stone Statue',
     material: AngryWordsPropMaterial.stone,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.topple,
+    behaviors: [WbBreakBehavior.topple],
     recipe: WbShatterRecipe(
       shardCount: 4,
       shapes: [WbShardShape.chunk],
-      sizeRange: (0.55, 0.9),
+      sizeRange: (0.55, 0.95),
       speedRange: (50, 120),
       spreadCone: 2.2,
       gravityScale: 1.6,
       drag: 0.2,
       lifetime: (1.0, 1.5),
       spinRange: (1, 3),
-      dustAmount: 0.9,
-      secondaryCount: 8,
+      dustAmount: 0.95,
+      secondaryCount: 6,
       secondaryShape: WbShardShape.dust,
       screenShake: 0.55,
     ),
     palette: [Color(0xFF78909C), Color(0xFF546E7A), Color(0xFFB0BEC5)],
-    soundFamily: 'statue_topple',
-    soundPitch: 0.85,
+    soundFamily: WbPropSoundFamily.crumbleStone,
+    soundPitch: 0.58,
     aspectRatio: 0.55,
     glows: false,
     holdsCargoWell: true,
   ),
-  /// Pitch tracks HP: 1.2 / 1.0 / 0.8 — only archetype with HP-by-ear feedback.
+  /// Stage 48 — only HP-by-ear item: hit pitch 1.2 / 1.0 / 0.8 (see ringDecay).
+  /// Break: 3 bronze pieces + clapper (secondary scrap) + long fading ring.
   WbPropArchetype.bronzeBell: WbArchetypeSpec(
     id: WbPropArchetype.bronzeBell,
     labelFa: 'زنگ برنزی',
@@ -1665,10 +1721,10 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.metal,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.ringDecay,
+    behaviors: [WbBreakBehavior.ringDecay],
     recipe: WbShatterRecipe(
       shardCount: 3,
-      shapes: [WbShardShape.chunk, WbShardShape.scrap],
+      shapes: [WbShardShape.chunk],
       sizeRange: (0.4, 0.7),
       speedRange: (70, 150),
       spreadCone: _kFullSpread,
@@ -1682,12 +1738,13 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       screenShake: 0.35,
     ),
     palette: [Color(0xFFCD7F32), Color(0xFF8D6E63), Color(0xFFFFCC80)],
-    soundFamily: 'bell_ring',
-    soundPitch: 1.2,
+    soundFamily: WbPropSoundFamily.clangMetal,
+    soundPitch: 0.85,
     aspectRatio: 0.85,
     glows: false,
     holdsCargoWell: true,
   ),
+  /// Stage 49 — dark gloss + purple inner flash; 14 fast tight slivers = cutting.
   WbPropArchetype.obsidianGem: WbArchetypeSpec(
     id: WbPropArchetype.obsidianGem,
     labelFa: 'جواهر اوبسیدین',
@@ -1695,10 +1752,10 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.crystal,
     hpOverride: 3,
     crackStages: 2,
-    behavior: WbBreakBehavior.shatter,
+    behaviors: [WbBreakBehavior.shatter],
     recipe: WbShatterRecipe(
       shardCount: 14,
-      shapes: [WbShardShape.sliver, WbShardShape.shard],
+      shapes: [WbShardShape.sliver],
       sizeRange: (0.2, 0.5),
       speedRange: (180, 360),
       spreadCone: 1.6,
@@ -1706,19 +1763,19 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
       drag: 0.3,
       lifetime: (0.6, 1.0),
       spinRange: (8, 16),
-      dustAmount: 0.4,
-      secondaryCount: 10,
-      secondaryShape: WbShardShape.glint,
+      dustAmount: 0.45,
+      secondaryCount: 12,
+      secondaryShape: WbShardShape.dust,
       screenShake: 0.45,
     ),
     palette: [Color(0xFF1A001A), Color(0xFF4A148C), Color(0xFFE040FB)],
-    soundFamily: 'obsidian_shatter',
-    soundPitch: 1.15,
+    soundFamily: WbPropSoundFamily.sparkEnergy,
+    soundPitch: 1.22,
     aspectRatio: 0.9,
     glows: true,
     holdsCargoWell: true,
   ),
-  /// Locked stage-50 finale — HP exactly 2; deepest dust cloud + max shake.
+  /// Locked stage-50 finale — HP exactly 2; heavy dust under playable cap.
   WbPropArchetype.graniteBlock: WbArchetypeSpec(
     id: WbPropArchetype.graniteBlock,
     labelFa: 'بلوک گرانیت',
@@ -1726,28 +1783,28 @@ const Map<WbPropArchetype, WbArchetypeSpec> kWbArchetypes = {
     material: AngryWordsPropMaterial.stone,
     hpOverride: 2,
     crackStages: 1,
-    behavior: WbBreakBehavior.crumble,
+    behaviors: [WbBreakBehavior.crumble],
     recipe: WbShatterRecipe(
       shardCount: 5,
-      shapes: [WbShardShape.chunk, WbShardShape.crumb],
-      sizeRange: (0.45, 0.8),
+      shapes: [WbShardShape.chunk],
+      sizeRange: (0.5, 0.85),
       speedRange: (60, 140),
       spreadCone: _kFullSpread,
       gravityScale: 1.5,
       drag: 0.25,
-      lifetime: (1.0, 1.5),
+      lifetime: (0.7, 0.9),
       spinRange: (2, 5),
       dustAmount: 1.0,
-      secondaryCount: 30,
-      secondaryShape: WbShardShape.dust,
+      secondaryCount: 18,
+      secondaryShape: WbShardShape.crumb,
       screenShake: 1.0,
     ),
-    palette: [Color(0xFF616161), Color(0xFF424242), Color(0xFF9E9E9E)],
-    soundFamily: 'granite_crumble',
-    soundPitch: 0.8,
+    palette: [Color(0xFF757575), Color(0xFF424242), Color(0xFFBDBDBD)],
+    soundFamily: WbPropSoundFamily.crumbleStone,
+    soundPitch: 0.5,
     aspectRatio: 1.1,
     glows: false,
-    holdsCargoWell: true,
+    holdsCargoWell: false,
   ),
 };
 

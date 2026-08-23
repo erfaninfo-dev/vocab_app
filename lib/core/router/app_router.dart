@@ -6,10 +6,12 @@ import '../tts/tts_service.dart';
 import '../../data/models/league.dart';
 import '../../features/favorites/favorites_screen.dart';
 import '../../features/word_builder/word_builder_constants.dart';
+import '../../features/word_builder/presentation/word_builder_category_picker_screen.dart';
 import '../../features/word_builder/presentation/word_builder_lobby_screen.dart';
 import '../../features/word_builder/presentation/word_builder_ltr_scope.dart';
 import '../../features/word_builder/presentation/word_builder_session_screen.dart';
 import '../../features/word_builder/presentation/word_builder_campaign_stages_screen.dart';
+import '../../features/word_builder/presentation/word_builder_theme_stages_screen.dart';
 import '../../features/word_builder/domain/word_builder_models.dart';
 import '../../features/grammar/grammar_quiz_screen.dart';
 import '../../features/grammar/grammar_book_units_screen.dart';
@@ -242,6 +244,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           GoRoute(
             path: '/word-builder',
+            builder: (_, __) => const WordBuilderLtrScope(
+              child: WordBuilderCategoryPickerScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/word-builder/normal',
             builder: (_, __) =>
                 const WordBuilderLtrScope(child: WordBuilderLobbyScreen()),
           ),
@@ -256,6 +264,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               };
               return WordBuilderLtrScope(
                 child: WordBuilderCampaignStagesScreen(difficulty: d),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/word-builder/theme',
+            builder: (context, state) {
+              final index =
+                  int.tryParse(state.uri.queryParameters['index'] ?? '') ?? 0;
+              return WordBuilderLtrScope(
+                child: WordBuilderThemeStagesScreen(categoryIndex: index),
               );
             },
           ),

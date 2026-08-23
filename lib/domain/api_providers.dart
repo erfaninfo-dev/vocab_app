@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
+import '../data/models/game_word_category.dart';
 import '../data/models/grammar_book.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
@@ -42,6 +43,16 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 final apiBooksProvider = FutureProvider<List<Book>>((ref) {
   ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchBooks(scope: 'public');
+});
+
+// ─── Word Builder theme categories ────────────────────────────────────────────
+// Corresponds to: GET /game_word_categories.php
+
+final apiGameWordCategoriesProvider = FutureProvider<List<GameWordCategory>>((
+  ref,
+) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchGameWordCategories();
 });
 
 // ─── Units ────────────────────────────────────────────────────────────────────

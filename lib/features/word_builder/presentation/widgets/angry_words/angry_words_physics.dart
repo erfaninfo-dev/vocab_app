@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../../../domain/word_builder_models.dart';
+import '../../../data/prop_archetypes/wb_prop_archetype.dart';
 import 'angry_words_loadout.dart';
 
 /// Cage breach → free slingshot letter hunt.
@@ -93,6 +94,7 @@ class AngryWordsPropBubble {
     this.cargoTintIndex,
     this.spawnT = 1,
     this.skinEmoji,
+    this.archetype,
   }) : hp = maxHp;
 
   final int id;
@@ -124,6 +126,12 @@ class AngryWordsPropBubble {
   /// Stage 35/36: draw this emoji instead of a material circle (physics unchanged).
   String? skinEmoji;
 
+  /// Optional archetype skin (atlas / silhouette). Null → infer from material.
+  WbPropArchetype? archetype;
+
+  /// Oil drum ignited after a shot — paint rising flames while alive.
+  bool ablaze = false;
+
   /// 0..1 pop-in when wall orbs refill after a solved word.
   double spawnT;
   bool removed = false;
@@ -139,6 +147,7 @@ class AngryWordsPropPop {
     required this.palette,
     required this.radius,
     required this.material,
+    this.archetype,
     this.revealedChar,
     this.steamy = false,
   });
@@ -147,6 +156,7 @@ class AngryWordsPropPop {
   final int palette;
   final double radius;
   final AngryWordsPropMaterial material;
+  final WbPropArchetype? archetype;
   final String? revealedChar;
 
   /// Short steam puff (e.g. ice/water vs magma).
@@ -166,6 +176,35 @@ class AngryWordsYolkBlob {
   double radius;
   bool removed = false;
   bool onFloor = false;
+}
+
+/// Which lamp break sprite a fragment renders (stage 6 oil lamp).
+enum AngryWordsLampFragmentKind { core, left, right }
+
+/// Broken-glass piece from a destroyed oil lamp (stage 6). The [core] piece
+/// is a brief `lampshot.png` flash near the break point; [left]/[right] arc
+/// away using `lampleftshot.png` / `lamprightshot.png` with gravity + spin.
+class AngryWordsLampFragment {
+  AngryWordsLampFragment({
+    required this.pos,
+    required this.vel,
+    required this.spin,
+    required this.kind,
+    required this.radius,
+    required this.maxLife,
+  });
+
+  Offset pos;
+  Offset vel;
+  double angle = 0;
+  double spin;
+  final AngryWordsLampFragmentKind kind;
+  final double radius;
+  final double maxLife;
+
+  /// 1 → 0 over [maxLife] seconds.
+  double life = 1.0;
+  bool removed = false;
 }
 
 /// Live aim preview while the player pulls the slingshot.
@@ -213,10 +252,12 @@ class AngryWordsPhysicsWorld {
   static const ballRadius = 11.0;
   static const gravity = 1280.0;
   static const substeps = 6;
+
   /// Shorter full-draw so MID/MAX arrive with less finger travel.
   static const maxPull = 98.0;
   static const minPull = 12.0;
   static const minLaunchSpeed = 780.0;
+
   /// Full draw: very fast, heavy hit.
   static const maxLaunchSpeed = 2680.0;
   static const restitution = 0.92;
@@ -230,8 +271,10 @@ class AngryWordsPhysicsWorld {
   /// Pull distance → 0..1 after [pullPowerCurve].
   static double powerNormFromPullDistance(double dist) {
     final linear =
-        ((dist.clamp(minPull, maxPull) - minPull) / (maxPull - minPull))
-            .clamp(0.0, 1.0);
+        ((dist.clamp(minPull, maxPull) - minPull) / (maxPull - minPull)).clamp(
+          0.0,
+          1.0,
+        );
     return pullPowerCurve(linear);
   }
 
@@ -261,6 +304,33 @@ class AngryWordsPhysicsWorld {
 
   AngryWordsLoadout loadout = AngryWordsLoadout.forProgress(0);
 
+  /// Intact soda can (`assets/items/can.png`).
+  Image? sodaCanSprite;
+
+  /// Shot/dented soda can (`assets/items/canshoot.png`).
+  Image? sodaCanShotSprite;
+
+  /// Stage-4 Service Pistol sprite (`assets/items/gun4.png`).
+  Image? stage4GunSprite;
+
+  /// Stage-5 oil barrel sprite (`assets/items/oilbarrel.png`).
+  Image? oilBarrelSprite;
+
+  /// Shot oil barrel (`assets/items/oilbarrelshot.png`).
+  Image? oilBarrelShotSprite;
+
+  /// Stage-6 intact oil lamp (`assets/items/lamp.png`).
+  Image? lampSprite;
+
+  /// Shot/cracked oil lamp — also the break-moment flash (`assets/items/lampshot.png`).
+  Image? lampShotSprite;
+
+  /// Left glass fragment flung on destroy (`assets/items/lampleftshot.png`).
+  Image? lampLeftFragmentSprite;
+
+  /// Right glass fragment flung on destroy (`assets/items/lamprightshot.png`).
+  Image? lampRightFragmentSprite;
+
   double get gunFireInterval => loadout.fireInterval;
 
   /// Set by [tryFireGun] each frame; board plays shot SFX then clears it.
@@ -269,8 +339,17 @@ class AngryWordsPhysicsWorld {
   final List<AngryWordsLetterTarget> letters = [];
   final List<AngryWordsPropBubble> props = [];
   final List<AngryWordsPropPop> _pendingPropPops = [];
+  /// Non-lethal soda-can / oil-drum dents that should play [canshoot.mp3].
+  int _pendingCanShootSfx = 0;
+  /// Any bullet hit on a stage-6 oil lamp (dent or kill) — plays a random
+  /// `lampshot1/2/3.WAV`.
+  int _pendingLampShotSfx = 0;
+  /// Oil-barrel hit positions that should spawn a fire burst.
+  final List<Offset> _pendingOilFireFx = [];
   final List<AngryWordsBullet> bullets = [];
   final List<AngryWordsYolkBlob> yolks = [];
+  /// Flung/flash glass pieces from destroyed stage-6 oil lamps.
+  final List<AngryWordsLampFragment> lampFragments = [];
   double simTime = 0;
 
   /// Floor line where spilled yolk puddles rest and slide.
@@ -394,8 +473,25 @@ class AngryWordsPhysicsWorld {
 
   bool get isCagePhase => phase == AngryWordsPhase.cage;
   bool get isFreePhase => phase == AngryWordsPhase.free;
-  bool get usesGun => phase == AngryWordsPhase.cage;
+
+  /// Cage blaster — off when [AngryWordsLoadout.usesHammer].
+  bool get usesGun =>
+      phase == AngryWordsPhase.cage && !loadout.usesHammer;
+
+  /// Stage tip: drag-to-smash (explicit loadout flag, not wall material).
+  bool get usesHammer =>
+      phase == AngryWordsPhase.cage && loadout.usesHammer;
+
   bool get usesSlingshot => phase == AngryWordsPhase.free;
+
+  /// Finger / hammer tip while smashing (cage hammer stages).
+  Offset? hammerPos;
+  bool hammerHeld = false;
+
+  /// 0..1 strike pulse.
+  double hammerSwing = 0;
+  double hammerSmashCooldown = 0;
+  int? _lastHammerHitPropId;
 
   /// Active aim target: while pulling, purely the letter under the aim angle.
   int? get lockedLetterId => aiming ? softLockLetterId : focusedLetterId;
@@ -510,8 +606,7 @@ class AngryWordsPhysicsWorld {
     final clamped = dist.clamp(minPull, maxPull);
     final dir = delta / dist;
     final t = powerNormFromPullDistance(clamped);
-    final speed =
-        minLaunchSpeed + (maxLaunchSpeed - minLaunchSpeed) * t;
+    final speed = minLaunchSpeed + (maxLaunchSpeed - minLaunchSpeed) * t;
     return -dir * speed;
   }
 
@@ -552,6 +647,11 @@ class AngryWordsPhysicsWorld {
     screenPunch = 0;
     cageCombo = 0;
     gunAim = const Offset(0, -1);
+    hammerPos = null;
+    hammerHeld = false;
+    hammerSwing = 0;
+    hammerSmashCooldown = 0;
+    _lastHammerHitPropId = null;
     _freeUnlockTimer = 0;
     bullets.clear();
     letters.clear();
@@ -574,8 +674,16 @@ class AngryWordsPhysicsWorld {
         P.spawnT = 0;
       }
     }
-    _assignLetterCargos(props, source, math.Random(layoutSeed ^ 0xC4A60));
+    _assignLetterCargos(
+      props,
+      source,
+      math.Random(layoutSeed ^ 0xC4A60),
+      loadout: this.loadout,
+    );
     _pendingPropPops.clear();
+    _pendingCanShootSfx = 0;
+    _pendingLampShotSfx = 0;
+    _pendingOilFireFx.clear();
     clearLetterFocus();
     resetToCannon();
     if (gradualProps) {
@@ -639,12 +747,47 @@ class AngryWordsPhysicsWorld {
     return out;
   }
 
+  /// Count of soda-can dent hits since last take (for [canshoot.mp3]).
+  int takeCanShootSfx() {
+    final n = _pendingCanShootSfx;
+    _pendingCanShootSfx = 0;
+    return n;
+  }
+
+  int takeLampShotSfx() {
+    final n = _pendingLampShotSfx;
+    _pendingLampShotSfx = 0;
+    return n;
+  }
+
+  void _queueCanShootSfx(AngryWordsPropBubble P) {
+    if (P.archetype == WbPropArchetype.sodaCan ||
+        P.archetype == WbPropArchetype.oilDrum) {
+      _pendingCanShootSfx++;
+    }
+    if (P.archetype == WbPropArchetype.oilDrum) {
+      P.ablaze = true;
+      _pendingOilFireFx.add(P.pos);
+    }
+    if (P.archetype == WbPropArchetype.oilLamp) {
+      _pendingLampShotSfx++;
+    }
+  }
+
+  List<Offset> takeOilFireFx() {
+    if (_pendingOilFireFx.isEmpty) return const [];
+    final out = List<Offset>.of(_pendingOilFireFx);
+    _pendingOilFireFx.clear();
+    return out;
+  }
+
   /// Hide each stage letter in a random wall orb.
   static void _assignLetterCargos(
     List<AngryWordsPropBubble> props,
     List<LetterInstance> source,
-    math.Random rng,
-  ) {
+    math.Random rng, {
+    required AngryWordsLoadout loadout,
+  }) {
     if (props.isEmpty || source.isEmpty) return;
     final ranked = List<AngryWordsPropBubble>.of(props)
       ..sort((a, b) => b.radius.compareTo(a.radius));
@@ -656,14 +799,26 @@ class AngryWordsPhysicsWorld {
     // Unique tint per letter — shuffle palette slots so neighbors differ.
     const tintCount = 24;
     final tintSlots = List<int>.generate(tintCount, (i) => i)..shuffle(rng);
+    final cargoArch = loadout.primaryArchetype;
+    final cargoSpec = kWbArchetypes[cargoArch];
+    // holdsCargoWell: keep primary skin (jug/egg/…) instead of forcing egg ovals.
+    final keepShell = cargoSpec?.holdsCargoWell ?? false;
     for (var i = 0; i < n; i++) {
       final P = pool[i];
       P.cargo = letters[i];
       P.cargoTintIndex = tintSlots[i % tintCount];
-      // Letters always live in eggs — cream shell + yolk spill on crack.
-      P.material = AngryWordsPropMaterial.egg;
-      P.maxHp = 1;
-      P.hp = 1;
+      if (keepShell && cargoSpec != null) {
+        P.archetype = cargoArch;
+        P.material = cargoSpec.material;
+        final hp = loadout.hpForArchetype(cargoArch, rng);
+        P.maxHp = hp;
+        P.hp = hp;
+      } else {
+        P.archetype = WbPropArchetype.egg;
+        P.material = AngryWordsPropMaterial.egg;
+        P.maxHp = 1;
+        P.hp = 1;
+      }
       P.skinEmoji = null;
       P.radius = math.max(P.radius, 15.5);
     }
@@ -730,17 +885,43 @@ class AngryWordsPhysicsWorld {
     }
 
     void addAt(Offset pos) {
-      final material = loadout.rollMaterial(rng);
+      final archId = loadout.rollArchetype(rng);
+      final spec = kWbArchetypes[archId];
+      final material = spec?.material ?? loadout.rollMaterial(rng);
       final angle = rng.nextDouble() * math.pi * 2;
       final speed = 4.0 + rng.nextDouble() * 12.0;
-      final hp = loadout.rollHpFor(material, rng);
-      final r =
+      final hp = loadout.hpForArchetype(archId, rng);
+      var r =
           rollRadius(material) *
           (hp >= 3
               ? 1.15
               : hp == 2
               ? 1.06
               : 1.0);
+      // Balloons / candy read larger on screen.
+      if (archId == WbPropArchetype.balloon) {
+        final floor = loadout.allowsSmallProps ? 8.0 : 12.5;
+        r = (r * 1.22).clamp(floor, 26.0);
+      } else if (archId == WbPropArchetype.candyBall) {
+        final floor = loadout.allowsSmallProps ? 8.5 : 13.0;
+        r = (r * 1.28).clamp(floor, 26.0);
+      } else if (archId == WbPropArchetype.sodaCan) {
+        // Slightly smaller so the dense stage-4 wall still reads as cans.
+        final floor = loadout.allowsSmallProps ? 7.5 : 10.5;
+        r = (r * 1.12).clamp(floor, 22.0);
+      } else if (archId == WbPropArchetype.oilDrum) {
+        // Stage 40: every barrel is large (no small/medium mix).
+        if (loadout.profileIndex == 39) {
+          r = 20.5 + rng.nextDouble() * 2.0; // ~20.5…22.5
+        } else {
+          final floor = loadout.allowsSmallProps ? 8.0 : 11.5;
+          r = (r * 1.2).clamp(floor, 24.0);
+        }
+      } else if (archId == WbPropArchetype.oilLamp) {
+        // Stage 6: lamps read large — no tiny bulbs lost in the wall.
+        final floor = loadout.allowsSmallProps ? 11.0 : 15.0;
+        r = (r * 1.35).clamp(floor, 27.0);
+      }
       String? skinEmoji;
       final emojiPool = loadout.emojiPropPool;
       if (emojiPool != null && emojiPool.isNotEmpty) {
@@ -759,13 +940,23 @@ class AngryWordsPhysicsWorld {
           material: material,
           maxHp: hp,
           skinEmoji: skinEmoji,
+          archetype: archId,
         ),
       );
     }
 
     final skipChance = loadout.earlySparseSkipChance;
+    final maxCage = loadout.maxCageProps;
+    final fillerBudget = loadout.effectiveFillers;
+    final gridBudget = math.max(
+      letterCount + 6,
+      maxCage - fillerBudget,
+    );
+
+    outer:
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
+        if (out.length >= gridBudget) break outer;
         if (skipChance > 0 && rng.nextDouble() < skipChance) continue;
         final xOff = (r.isOdd ? 0.5 : 0.0) * cellW * 0.5;
         final jitter = Offset(
@@ -779,10 +970,13 @@ class AngryWordsPhysicsWorld {
       }
     }
 
-    final fillers = loadout.profileIndex <= 7
-        ? math.min(loadout.effectiveFillers, 4 + loadout.profileIndex)
-        : loadout.effectiveFillers;
-    for (var i = 0; i < fillers; i++) {
+    final fillers = loadout.profileIndex == 3
+        ? fillerBudget
+        : loadout.profileIndex <= 7
+        ? math.min(fillerBudget, 4 + loadout.profileIndex)
+        : fillerBudget;
+    final fillerSlots = math.min(fillers, maxCage - out.length);
+    for (var i = 0; i < fillerSlots; i++) {
       addAt(
         Offset(
           left + rng.nextDouble() * (right - left),
@@ -1066,8 +1260,7 @@ class AngryWordsPhysicsWorld {
     if (L == null) return null;
     final power = (raw - muzzle).distance.clamp(minPull, maxPull);
     final t = powerNormFromPullDistance(power);
-    final speed =
-        minLaunchSpeed + (maxLaunchSpeed - minLaunchSpeed) * t;
+    final speed = minLaunchSpeed + (maxLaunchSpeed - minLaunchSpeed) * t;
     var aim = L.pos;
     for (var i = 0; i < 4; i++) {
       final dist = (aim - muzzle).distance;
@@ -1153,6 +1346,62 @@ class AngryWordsPhysicsWorld {
       return;
     }
     gunTriggerHeld = held;
+  }
+
+  void beginHammer(Offset local) {
+    if (!usesHammer) return;
+    hammerHeld = true;
+    hammerPos = local;
+    _lastHammerHitPropId = null;
+    _tryHammerSmash(local, force: true);
+  }
+
+  void updateHammer(Offset local) {
+    if (!usesHammer || !hammerHeld) return;
+    hammerPos = local;
+    _tryHammerSmash(local, force: false);
+  }
+
+  void endHammer() {
+    hammerHeld = false;
+    if (hammerPos != null) {
+      _tryHammerSmash(hammerPos!, force: true);
+    }
+    hammerPos = null;
+    _lastHammerHitPropId = null;
+  }
+
+  void cancelHammer() {
+    hammerHeld = false;
+    hammerPos = null;
+    _lastHammerHitPropId = null;
+  }
+
+  /// Smash any prop under the hammer tip (drag-to-hit).
+  bool _tryHammerSmash(Offset at, {required bool force}) {
+    if (!usesHammer) return false;
+    if (!force && hammerSmashCooldown > 0) return false;
+    const hitR = 38.0;
+    AngryWordsPropBubble? best;
+    var bestD = hitR * hitR;
+    for (final P in props) {
+      if (P.removed || P.spawnT < 0.45) continue;
+      final d = (P.pos - at).distanceSquared;
+      final reach = (P.radius + hitR) * (P.radius + hitR);
+      if (d > reach || d >= bestD) continue;
+      if (!force && P.id == _lastHammerHitPropId) continue;
+      best = P;
+      bestD = d;
+    }
+    if (best == null) return false;
+    _lastHammerHitPropId = best.id;
+    hammerSmashCooldown = 0.09;
+    hammerSwing = 1;
+    screenPunch = (screenPunch + 0.4).clamp(0.0, 1.0);
+    best.hp = 0;
+    best.hitFlash = 1;
+    _popProp(best);
+    return true;
   }
 
   /// Returns true when a round was actually fired (for juice).
@@ -1491,6 +1740,10 @@ class AngryWordsPhysicsWorld {
     muzzleFlash = (muzzleFlash - dt * 9).clamp(0.0, 1.0);
     gunRecoil = (gunRecoil - dt * 7).clamp(0.0, 1.0);
     screenPunch = (screenPunch - dt * 11).clamp(0.0, 1.0);
+    hammerSwing = (hammerSwing - dt * 4.2).clamp(0.0, 1.0);
+    if (hammerSmashCooldown > 0) {
+      hammerSmashCooldown = (hammerSmashCooldown - dt).clamp(0.0, 1.0);
+    }
     if (fireCooldown > 0) {
       fireCooldown = (fireCooldown - dt).clamp(0.0, 2.0);
     }
@@ -1509,6 +1762,7 @@ class AngryWordsPhysicsWorld {
 
     tickLetterShake(dt);
     _stepYolks(dt);
+    _stepLampFragments(dt);
 
     if (phase == AngryWordsPhase.cage) {
       shotsFiredThisFrame = 0;
@@ -1625,24 +1879,87 @@ class AngryWordsPhysicsWorld {
       final sticky =
           P.freezeT > 0 ||
           (P.material == AngryWordsPropMaterial.slime && P.hitFlash > 0.2);
+      final isBalloon = P.archetype == WbPropArchetype.balloon;
+      final isCandy = P.archetype == WbPropArchetype.candyBall;
+      final isCan = P.archetype == WbPropArchetype.sodaCan;
       final speedScale = sticky
           ? (P.material == AngryWordsPropMaterial.slime ? 0.35 : 0.22)
-          : 1.0;
+          : (isBalloon
+                ? 1.22
+                : isCandy
+                ? 0.95
+                : isCan
+                ? 0.88
+                : 1.0);
+      final freq = isBalloon
+          ? P.wanderFreq * 0.62
+          : isCandy
+          ? P.wanderFreq * 0.85
+          : isCan
+          ? P.wanderFreq * 0.7
+          : P.wanderFreq;
+      final base = isBalloon
+          ? P.baseSpeed * 1.35
+          : isCandy
+          ? P.baseSpeed * 0.95
+          : isCan
+          ? P.baseSpeed * 0.9
+          : P.baseSpeed;
       _integrateLetter(
         pos: P.pos,
         vel: P.vel,
         radius: P.radius,
         phase: P.phase,
-        baseSpeed: P.baseSpeed * speedScale,
-        wanderFreq: P.wanderFreq,
+        baseSpeed: base * speedScale,
+        wanderFreq: freq,
         dt: dt,
         t: simTime,
-        wind: wind * speedScale,
+        wind: wind *
+            speedScale *
+            (isBalloon
+                ? 1.65
+                : isCandy
+                ? 0.55
+                : isCan
+                ? 0.7
+                : 1.0),
         windBoost: windBoost * 0.35 * speedScale,
         bounds: bounds,
         onUpdate: (p, v) {
-          P.pos = p;
-          P.vel = v * (P.freezeT > 0 ? 0.78 : 0.92);
+          var next = p;
+          var vel = v *
+              (P.freezeT > 0
+                  ? 0.78
+                  : isBalloon
+                  ? 0.97
+                  : isCandy
+                  ? 0.94
+                  : isCan
+                  ? 0.9
+                  : 0.92);
+          if (!sticky) {
+            if (isBalloon) {
+              // Helium: upward drift + soft pendulum sway.
+              final bob = math.sin(simTime * 1.9 + P.phase) * 16;
+              final sway = math.cos(simTime * 1.35 + P.phase * 0.85) * 26;
+              vel += Offset(sway, bob - 38) * dt;
+              next += Offset(sway * 0.45, (bob - 18) * 0.4) * dt;
+            } else if (isCandy) {
+              // Soft candy float — gentle bob + slow sway (readable candy).
+              final hop = math.sin(simTime * 2.2 + P.phase) * 14;
+              final jig = math.sin(simTime * 1.6 + P.phase * 1.2) * 16;
+              vel += Offset(jig, hop - 10) * dt;
+              next += Offset(jig * 0.35, hop * 0.2) * dt;
+            } else if (isCan) {
+              // Metal can tumble — heavier, short wobble.
+              final roll = math.sin(simTime * 1.8 + P.phase) * 12;
+              final bob = math.cos(simTime * 2.4 + P.phase * 0.7) * 8;
+              vel += Offset(roll, bob + 6) * dt;
+              next += Offset(roll * 0.3, bob * 0.15) * dt;
+            }
+          }
+          P.pos = next;
+          P.vel = vel;
         },
       );
     }
@@ -1662,6 +1979,7 @@ class AngryWordsPhysicsWorld {
     if (phase != AngryWordsPhase.cage) return;
     phase = AngryWordsPhase.freeing;
     gunTriggerHeld = false;
+    cancelHammer();
     bullets.clear();
     _freeUnlockTimer = 0;
     cageCombo = 0;
@@ -1795,6 +2113,7 @@ class AngryWordsPhysicsWorld {
         if (P.material == AngryWordsPropMaterial.slime) {
           P.freezeT = math.max(P.freezeT, 0.85);
         }
+        _queueCanShootSfx(P);
         final d = delta.distance;
         final n = d < 0.001
             ? const Offset(0, -1)
@@ -1943,6 +2262,8 @@ class AngryWordsPhysicsWorld {
           P,
           steamy: freeze && P.material == AngryWordsPropMaterial.magma,
         );
+      } else {
+        _queueCanShootSfx(P);
       }
     }
   }
@@ -1972,12 +2293,20 @@ class AngryWordsPhysicsWorld {
     if (P.material == AngryWordsPropMaterial.egg) {
       _spawnYolkFromEgg(P);
     }
+    if (P.archetype == WbPropArchetype.oilDrum) {
+      P.ablaze = true;
+      _pendingOilFireFx.add(P.pos);
+    }
+    if (P.archetype == WbPropArchetype.oilLamp) {
+      _spawnLampBreakFx(P);
+    }
     _pendingPropPops.add(
       AngryWordsPropPop(
         at: P.pos,
         palette: P.palette,
         radius: P.radius,
         material: P.material,
+        archetype: P.archetype,
         revealedChar: cargo?.char,
         steamy: steam || P.material == AngryWordsPropMaterial.magma && steamy,
       ),
@@ -1986,6 +2315,79 @@ class AngryWordsPhysicsWorld {
 
   void _spawnYolkFromEgg(AngryWordsPropBubble P) {
     spillYolkAt(P.pos, fromRadius: P.radius, seed: P.id);
+  }
+
+  /// Break-moment `lampshot.png` flash plus two shards per side (four total)
+  /// flung apart with independently randomized angles/speeds — natural break
+  /// for the stage-6 oil lamp, regardless of whether the killing shot passed
+  /// through a "dented" (still-alive) stage first.
+  void _spawnLampBreakFx(AngryWordsPropBubble P) {
+    final rng = math.Random(P.id ^ (simTime * 1000).round());
+    lampFragments.add(
+      AngryWordsLampFragment(
+        pos: P.pos,
+        vel: Offset((rng.nextDouble() - 0.5) * 40, -30 - rng.nextDouble() * 20),
+        spin: (rng.nextDouble() - 0.5) * 2,
+        kind: AngryWordsLampFragmentKind.core,
+        radius: P.radius,
+        maxLife: 0.22,
+      ),
+    );
+    for (var i = 0; i < 2; i++) {
+      lampFragments.add(
+        _rollLampShard(P, rng, AngryWordsLampFragmentKind.left),
+      );
+      lampFragments.add(
+        _rollLampShard(P, rng, AngryWordsLampFragmentKind.right),
+      );
+    }
+  }
+
+  /// One shard flung with a random lean toward [kind]'s side — never the
+  /// same angle/speed twice, so the two shards per side don't look mirrored.
+  AngryWordsLampFragment _rollLampShard(
+    AngryWordsPropBubble P,
+    math.Random rng,
+    AngryWordsLampFragmentKind kind,
+  ) {
+    final side = kind == AngryWordsLampFragmentKind.left ? -1.0 : 1.0;
+    final speed = 190.0 + rng.nextDouble() * 150.0;
+    final lateral = side * (0.4 + rng.nextDouble() * 0.85);
+    return AngryWordsLampFragment(
+      pos: P.pos,
+      vel: Offset(
+        speed * lateral,
+        -100 - rng.nextDouble() * 140,
+      ),
+      spin: side * (4.5 + rng.nextDouble() * 4.5),
+      kind: kind,
+      radius: P.radius,
+      maxLife: 0.6 + rng.nextDouble() * 0.4,
+    );
+  }
+
+  void _stepLampFragments(double dt) {
+    if (lampFragments.isEmpty) return;
+    final g = gravity * 0.8;
+    for (final F in lampFragments) {
+      if (F.removed) continue;
+      if (F.kind == AngryWordsLampFragmentKind.core) {
+        F.pos += F.vel * dt;
+        F.vel = F.vel * math.exp(-dt * 6);
+      } else {
+        F.vel = Offset(F.vel.dx * math.exp(-dt * 0.4), F.vel.dy + g * dt);
+        F.pos += F.vel * dt;
+        F.angle += F.spin * dt;
+      }
+      F.life -= dt / F.maxLife;
+      if (F.life <= 0 ||
+          F.pos.dy > height + 60 ||
+          F.pos.dx < -60 ||
+          F.pos.dx > width + 60) {
+        F.removed = true;
+      }
+    }
+    lampFragments.removeWhere((F) => F.removed);
   }
 
   /// Spill a yolk puddle (cracked letter-egg or wall egg).

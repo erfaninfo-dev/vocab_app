@@ -10,6 +10,7 @@ on:
       - feature/stories
       - feature/word-builder-game
       - leauge
+      - release/1.0.10
   workflow_dispatch:
 
 env:

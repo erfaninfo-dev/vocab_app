@@ -2675,6 +2675,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordBuilderCampaignStageReplayHint => 'Tap to replay this stage';
 
   @override
+  String get wordBuilderCategoryPickerTitle => 'Choose a topic';
+
+  @override
+  String get wordBuilderCategoryPickerSubtitle =>
+      'Play by theme, or start the regular campaign.';
+
+  @override
+  String get wordBuilderCategorySearchHint => 'Search topics';
+
+  @override
+  String get wordBuilderNormalTitle => 'Normal';
+
+  @override
+  String get wordBuilderNormalSubtitle =>
+      'IELTS campaign with all difficulty levels';
+
+  @override
+  String get wordBuilderCategorySectionTitle => 'Themes';
+
+  @override
+  String get wordBuilderCategoryEmptyResults => 'No topics match your search.';
+
+  @override
+  String get wordBuilderCategoryNoWordsYet => 'No words in this topic yet.';
+
+  @override
+  String get wordBuilderCategoryTopicsLoadFailed =>
+      'Topics could not be loaded. Pull down to refresh.';
+
+  @override
   String get adminEditUserSheetTitle => 'Edit access';
 
   @override

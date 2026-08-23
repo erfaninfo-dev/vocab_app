@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/word_builder_game_logic.dart';
 import '../../domain/word_builder_models.dart';
+import '../theme/word_builder_chapter_theme.dart';
 import 'angry_words/angry_words_celebrate.dart';
 import 'answer_slot_key_bag.dart';
 
@@ -164,6 +165,17 @@ class _SlotCell extends StatelessWidget {
 
     final solvedStyle = solvedWord && show;
     final hintStyle = hintRevealed && show && !solvedStyle;
+    final chapter = WbChapterThemeScope.maybeOf(context);
+    final emptyFill = chapter != null
+        ? chapter.chromeSurface.withValues(
+            alpha: chapter.chromeBrightness == Brightness.dark ? 0.45 : 0.55,
+          )
+        : Colors.white.withValues(alpha: 0.35);
+    final emptyBorder = chapter != null
+        ? chapter.chromeOnSurface.withValues(alpha: 0.35)
+        : Colors.white.withValues(alpha: 0.55);
+    final emptyText = chapter?.chromeOnSurface.withValues(alpha: 0.55) ??
+        scheme.onSurfaceVariant.withValues(alpha: 0.5);
 
     final cell = AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -179,7 +191,7 @@ class _SlotCell extends StatelessWidget {
               ? _solvedBorder.withValues(alpha: 0.85)
               : hintStyle
               ? _hintGreenBorder.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.55),
+              : emptyBorder,
           width: show || awaitingFlight ? 2.0 : 1.5,
         ),
         gradient: solvedStyle
@@ -204,9 +216,7 @@ class _SlotCell extends StatelessWidget {
                 ],
               )
             : null,
-        color: solvedStyle || hintStyle || awaitingFlight
-            ? null
-            : Colors.white.withValues(alpha: 0.35),
+        color: solvedStyle || hintStyle || awaitingFlight ? null : emptyFill,
         boxShadow: [
           BoxShadow(
             color:
@@ -232,7 +242,11 @@ class _SlotCell extends StatelessWidget {
         ],
       ),
       child: Text(
-        show ? letter! : awaitingFlight ? '' : '·',
+        show
+            ? letter!
+            : awaitingFlight
+            ? ''
+            : '·',
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
@@ -241,7 +255,7 @@ class _SlotCell extends StatelessWidget {
               ? Colors.white
               : hintStyle
               ? _hintGreenText
-              : scheme.onSurfaceVariant.withValues(alpha: 0.5),
+              : emptyText,
         ),
       ),
     );

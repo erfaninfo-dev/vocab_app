@@ -4720,6 +4720,60 @@ abstract class AppLocalizations {
   /// **'Tap to replay this stage'**
   String get wordBuilderCampaignStageReplayHint;
 
+  /// No description provided for @wordBuilderCategoryPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a topic'**
+  String get wordBuilderCategoryPickerTitle;
+
+  /// No description provided for @wordBuilderCategoryPickerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play by theme, or start the regular campaign.'**
+  String get wordBuilderCategoryPickerSubtitle;
+
+  /// No description provided for @wordBuilderCategorySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search topics'**
+  String get wordBuilderCategorySearchHint;
+
+  /// No description provided for @wordBuilderNormalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get wordBuilderNormalTitle;
+
+  /// No description provided for @wordBuilderNormalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'IELTS campaign with all difficulty levels'**
+  String get wordBuilderNormalSubtitle;
+
+  /// No description provided for @wordBuilderCategorySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Themes'**
+  String get wordBuilderCategorySectionTitle;
+
+  /// No description provided for @wordBuilderCategoryEmptyResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics match your search.'**
+  String get wordBuilderCategoryEmptyResults;
+
+  /// No description provided for @wordBuilderCategoryNoWordsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No words in this topic yet.'**
+  String get wordBuilderCategoryNoWordsYet;
+
+  /// No description provided for @wordBuilderCategoryTopicsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics could not be loaded. Pull down to refresh.'**
+  String get wordBuilderCategoryTopicsLoadFailed;
+
   /// No description provided for @adminEditUserSheetTitle.
   ///
   /// In en, this message translates to:
