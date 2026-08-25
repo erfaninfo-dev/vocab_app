@@ -190,8 +190,11 @@
   },
   "aboutDownloadApkUpdate": "داگرتنی نوێکردنەوە",
   "aboutDownloadingApk": "داگرتن…",
+  "aboutDownloadingWindowsUpdate": "داگرتنی نوێکردنەوەی ویندۆز…",
   "aboutDownloadApkFailed": "داگرتن سەرکەوتوو نەبوو. پەیوەندی بپشکنە و دووبارە هەوڵ بدە.",
   "aboutInstallApkHint": "ئەگەر داواکرا، لە ڕێکخستنەکاندا ڕێگە بدە بە دامەزراندن لەم ئەپەوە.",
+  "aboutInstallWindowsHint": "ئەپ بۆ نوێکردنەوەی فایلەکان کەمێک داخرێت و دووبارە دەکرێتەوە. ئەگەر نەکرایەوە، erfan_academy_update.log لە هەمان پۆڵەی exe بکەرەوە.",
+  "aboutInstallWindowsReadyMessage": "نوێکردنەوەکە داگیراوە. بۆ نوێکردنەوەی Erfan Academy کلیک لەسەر «دامەزراندن» بکە. هەژمار و داتاکەت پاراستراو دەبێت.",
   "aboutDownloadComplete": "داگرتن تەواو بوو",
   "aboutInstallReadyMessage": "نوێکردنەوەکە داگیراوە. بۆ نوێکردنەوەی Erfan Academy کلیک لەسەر «دامەزراندن» بکە. هەژمار و داتاکەت پاراستراو دەبێت.",
   "aboutInstallNow": "دامەزراندن",
@@ -731,6 +734,17 @@
       "count": {"type": "int"}
     }
   },
+  "grammarTopicsMore": "+{count} بابەتی تر",
+  "@grammarTopicsMore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarReactionSignInRequired": "بۆ وەڵامدانەوە بە ئەنجامەکانی کۆمەڵگا بچۆ ژوورەوە.",
+  "grammarResultDetailTopicsTitle": "بابەتە ڕاهێنراوەکان",
+  "grammarResultDetailTopicsEmpty": "هیچ ناونیشانێکی بابەت بۆ ئەم ئەنجامە نییە.",
+  "grammarResultDetailReactionsTitle": "وەڵامدانەوەکان",
+  "grammarResultDetailOpenReview": "کردنەوەی پێداچوونەوەی پرسیارەکان",
   "guestUser": "میوان",
   "profileBioEmpty": "هێشتا بایۆیەک نەنووسراوە.",
   "resultVisibilityPublic": "گشتی",

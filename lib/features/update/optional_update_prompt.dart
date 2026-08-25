@@ -1,11 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/update/apk_download_dialog.dart';
+import '../../core/update/platform_update_download_dialog.dart';
 import '../../domain/app_update_provider.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -31,19 +30,15 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
   void initState() {
     super.initState();
 
-    // Listen once the widget is mounted; show dialog only when an optional
-    // update is available. Forced updates are handled by [ForcedUpdateBarrier].
     _updateSub = ref.listenManual<AsyncValue<AppUpdateCheck>>(
       appUpdateCheckProvider,
       (previous, next) {
         final check = next.valueOrNull;
         if (check == null) return;
 
-        final isAndroid =
-            !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-        if (!isAndroid || !check.androidEligible) return;
+        if (!check.updateEligible) return;
         if (!check.updateAvailable || check.forceUpdate) return;
-        if (check.apkUrl == null || check.apkUrl!.isEmpty) return;
+        if (check.downloadUrl == null || check.downloadUrl!.isEmpty) return;
 
         final alreadyShown = ref.read(_optionalUpdateShownThisSessionProvider);
         if (alreadyShown) return;
@@ -73,7 +68,6 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
     if (!mounted) return;
     ref.read(_optionalUpdateShownThisSessionProvider.notifier).state = true;
 
-    // Avoid showing a dialog during build/layout.
     await Future<void>.delayed(Duration.zero);
     if (!mounted) return;
 
@@ -81,13 +75,16 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
     final verLabel = (check.remoteVersionName ?? '').trim().isNotEmpty
         ? check.remoteVersionName!.trim()
         : '${check.remoteVersionCode ?? ''}';
+    final hint = check.windowsEligible
+        ? l10n.aboutInstallWindowsHint
+        : l10n.aboutInstallApkHint;
 
     final result = await showDialog<_OptionalUpdateAction>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.aboutUpdateAvailableVersion(verLabel)),
-        content: Text(l10n.aboutInstallApkHint),
+        content: Text(hint),
         actions: [
           TextButton(
             onPressed: () =>
@@ -107,13 +104,17 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
     if (!mounted) return;
     switch (result) {
       case _OptionalUpdateAction.download:
-        showApkDownloadProgressDialog(context, check.apkUrl!);
+        showPlatformUpdateDownloadDialog(
+          context,
+          check.downloadUrl!,
+          androidEligible: check.androidEligible,
+          windowsEligible: check.windowsEligible,
+        );
         return;
       case _OptionalUpdateAction.later:
         await prefs.setInt(_kDismissedOptionalUpdateVersionCodeKey, remoteCode);
         return;
       case null:
-        // User dismissed by tapping outside / back.
         return;
     }
   }
@@ -123,4 +124,3 @@ class _OptionalUpdatePromptState extends ConsumerState<OptionalUpdatePrompt> {
 }
 
 enum _OptionalUpdateAction { download, later }
-

@@ -78,6 +78,36 @@ function auth_user_from_token($db, $token)
 }
 
 /**
+ * @return array<string,mixed>|null
+ */
+function auth_optional_user(PDO $db)
+{
+    $raw = auth_bearer_token();
+    if ($raw === null || $raw === '') {
+        return null;
+    }
+
+    return auth_user_from_token($db, $raw);
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function auth_require_user(PDO $db)
+{
+    $raw = auth_bearer_token();
+    if ($raw === null || $raw === '') {
+        sendError('Missing token', 401);
+    }
+    $user = auth_user_from_token($db, $raw);
+    if ($user === null) {
+        sendError('Invalid or expired token', 401);
+    }
+
+    return $user;
+}
+
+/**
  * App admins get teacher panel access by default (is_teacher = 1).
  * Teachers are not promoted to admin automatically.
  *

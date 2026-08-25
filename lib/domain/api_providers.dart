@@ -17,6 +17,7 @@ import '../data/models/teacher_upcoming_slot.dart';
 import '../data/models/temporary_class_schedule_slot.dart';
 import '../features/teacher/teacher_week_upcoming.dart';
 import '../data/models/grammar_result.dart';
+import '../data/models/grammar_result_reaction.dart';
 import '../data/models/grammar_result_detail.dart';
 import '../data/models/league.dart';
 import '../data/models/unit_model.dart';
@@ -327,6 +328,44 @@ class PublicGrammarCommunityNotifier
     } catch (_) {
       state = AsyncData(cur.copyWith(isLoadingMore: false));
     }
+  }
+}
+
+/// Reactions for visible grammar community cards (`grammar_result_reactions.php`).
+final grammarResultReactionsProvider =
+    NotifierProvider.autoDispose<
+      GrammarResultReactionsNotifier,
+      Map<int, GrammarResultReactionSummary>
+    >(GrammarResultReactionsNotifier.new);
+
+class GrammarResultReactionsNotifier
+    extends AutoDisposeNotifier<Map<int, GrammarResultReactionSummary>> {
+  @override
+  Map<int, GrammarResultReactionSummary> build() => const {};
+
+  Future<void> loadForResultIds(List<int> resultIds) async {
+    final ids = resultIds.where((id) => id > 0).toSet().toList();
+    if (ids.isEmpty) return;
+    try {
+      final batch = await ref
+          .read(apiServiceProvider)
+          .fetchGrammarResultReactions(ids);
+      state = {...state, ...batch.byResultId};
+    } catch (_) {}
+  }
+
+  Future<void> toggleReaction({
+    required int resultId,
+    required String emoji,
+  }) async {
+    if (resultId < 1) return;
+    final current = state[resultId];
+    final nextEmoji = current?.myEmoji == emoji ? '' : emoji;
+    final summary = await ref.read(apiServiceProvider).setGrammarResultReaction(
+      resultId: resultId,
+      emoji: nextEmoji,
+    );
+    state = {...state, resultId: summary};
   }
 }
 

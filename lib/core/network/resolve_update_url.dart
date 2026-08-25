@@ -10,7 +10,7 @@ Uri _joinedWithApiOriginAndPath(Uri base, String relativePath) {
   return base.replace(path: normalized);
 }
 
-/// Normalizes URLs from [app_update.php] (`apk_url`) for launcher or downloader.
+/// Normalizes URLs from [app_update.php] (`apk_url` / `windows_url`) for launcher or downloader.
 ///
 /// Handles relative paths against [kApiBaseUrl], URLs without scheme, and
 /// protocol-relative URLs (`//example.com/...`).

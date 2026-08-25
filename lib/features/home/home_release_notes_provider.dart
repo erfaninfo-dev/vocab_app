@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,9 +30,12 @@ final homeReleaseNotesProvider =
   }
 
   final api = ref.watch(apiServiceProvider);
+  final isWindows =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
   final manifest = await api.fetchAppUpdateManifest(
     installedVersion: build,
     installedVersionName: pkg.version,
+    platform: isWindows ? 'windows' : 'android',
   );
   if (manifest == null) return null;
 

@@ -210,8 +210,11 @@
   },
   "aboutDownloadApkUpdate": "Download update",
   "aboutDownloadingApk": "Downloading update…",
+  "aboutDownloadingWindowsUpdate": "Downloading Windows update…",
   "aboutDownloadApkFailed": "Download failed. Check your connection and try again.",
   "aboutInstallApkHint": "If prompted, allow installing updates from this app in system settings.",
+  "aboutInstallWindowsHint": "The app will close briefly while files are updated, then reopen automatically. If it does not reopen, open erfan_academy_update.log in the same folder as the app exe.",
+  "aboutInstallWindowsReadyMessage": "The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.",
   "aboutDownloadComplete": "Download complete",
   "aboutInstallReadyMessage": "The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.",
   "aboutInstallNow": "Install now",
@@ -912,6 +915,17 @@
       "count": {"type": "int"}
     }
   },
+  "grammarTopicsMore": "+{count} more",
+  "@grammarTopicsMore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarReactionSignInRequired": "Sign in to react to community results.",
+  "grammarResultDetailTopicsTitle": "Topics practiced",
+  "grammarResultDetailTopicsEmpty": "No topic labels for this result.",
+  "grammarResultDetailReactionsTitle": "Reactions",
+  "grammarResultDetailOpenReview": "Open question review",
   "guestUser": "Guest",
   "profileBioEmpty": "No bio yet.",
   "resultVisibilityPublic": "Public",

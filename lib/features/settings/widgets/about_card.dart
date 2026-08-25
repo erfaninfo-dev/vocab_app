@@ -7,7 +7,7 @@ import '../../../core/widgets/app_jelly_style.dart';
 import '../../../core/app_info/package_info_provider.dart';
 import '../../../core/branding/app_brand_logo.dart';
 import '../../../core/network/resolve_update_url.dart';
-import '../../../core/update/apk_download_dialog.dart';
+import '../../../core/update/platform_update_download_dialog.dart';
 import '../../../domain/app_update_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -633,14 +633,17 @@ class AboutUpdateSection extends ConsumerWidget {
                   );
                 }
 
-                if (check.androidEligible) {
+                if (check.updateEligible) {
                   if (check.updateAvailable &&
-                      check.apkUrl != null &&
-                      check.apkUrl!.isNotEmpty) {
+                      check.downloadUrl != null &&
+                      check.downloadUrl!.isNotEmpty) {
                     final verLabel =
                         (check.remoteVersionName ?? '').trim().isNotEmpty
                             ? check.remoteVersionName!.trim()
                             : '${check.remoteVersionCode ?? ''}';
+                    final installHint = check.windowsEligible
+                        ? l10n.aboutInstallWindowsHint
+                        : l10n.aboutInstallApkHint;
                     return panel(
                       children: [
                         Text(
@@ -658,10 +661,13 @@ class AboutUpdateSection extends ConsumerWidget {
                             runSpacing: 8,
                             children: [
                               FilledButton.icon(
-                                onPressed: () => showApkDownloadProgressDialog(
-                                  context,
-                                  check.apkUrl!,
-                                ),
+                                onPressed: () =>
+                                    showPlatformUpdateDownloadDialog(
+                                      context,
+                                      check.downloadUrl!,
+                                      androidEligible: check.androidEligible,
+                                      windowsEligible: check.windowsEligible,
+                                    ),
                                 icon: const Icon(Icons.download_rounded),
                                 label: Text(l10n.aboutDownloadApkUpdate),
                               ),
@@ -680,7 +686,7 @@ class AboutUpdateSection extends ConsumerWidget {
                         Text(
                           check.forceUpdate
                               ? l10n.aboutForcedUpdateNote
-                              : l10n.aboutInstallApkHint,
+                              : installHint,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
@@ -708,45 +714,6 @@ class AboutUpdateSection extends ConsumerWidget {
                   );
                 }
 
-                if (check.apkUrl == null || check.apkUrl!.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                if (check.updateAvailable) {
-                  final verLabel =
-                      (check.remoteVersionName ?? '').trim().isNotEmpty
-                          ? check.remoteVersionName!.trim()
-                          : '${check.remoteVersionCode ?? ''}';
-                  return panel(
-                    children: [
-                      Text(
-                        l10n.aboutUpdateAvailableVersion(verLabel),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (check.forceUpdate) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.aboutForcedUpdateNote,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      FilledButton.tonalIcon(
-                        onPressed: () => openAboutLatestDownloadLink(
-                          context,
-                          check.apkUrl!,
-                        ),
-                        icon: const Icon(Icons.system_update_rounded),
-                        label: Text(l10n.aboutUpdateFromPlayStore),
-                      ),
-                    ],
-                  );
-                }
                 return const SizedBox.shrink();
               },
               loading: () => const SizedBox(

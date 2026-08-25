@@ -21,6 +21,7 @@ import '../models/grammar_topic_summary.dart';
 import '../models/grammar_unit.dart';
 import '../models/grammar_unit_text.dart';
 import '../models/grammar_result.dart';
+import '../models/grammar_result_reaction.dart';
 import '../models/grammar_result_detail.dart';
 import '../models/league.dart';
 import '../models/unit_model.dart';
@@ -145,14 +146,16 @@ class ApiService {
     return data.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  /// GET /app_update.php — sideload APK manifest (no auth, not disk-cached).
+  /// GET /app_update.php — sideload update manifest (no auth, not disk-cached).
   ///
   /// Pass [installedVersion] (buildNumber / versionCode) to receive
   /// `release_notes` for the Home banner for that installed build.
+  /// [platform] — `android` or `windows` for release-notes lookup.
   /// When logged in, Bearer + version fields report the user's installed build.
   Future<AppUpdateManifest?> fetchAppUpdateManifest({
     int? installedVersion,
     String? installedVersionName,
+    String? platform,
   }) async {
     final query = <String, String>{};
     if (installedVersion != null && installedVersion > 0) {
@@ -161,6 +164,10 @@ class ApiService {
       if (name != null && name.isNotEmpty) {
         query['installed_version_name'] = name;
       }
+    }
+    final platformKey = platform?.trim().toLowerCase();
+    if (platformKey == 'windows' || platformKey == 'android') {
+      query['platform'] = platformKey!;
     }
     final uri = Uri.parse(
       '$baseUrl/app_update.php',
@@ -593,6 +600,41 @@ class ApiService {
           .toList(),
       hasMore: hasMore,
     );
+  }
+
+  /// GET /grammar_result_reactions.php?result_ids=1,2,3
+  Future<GrammarResultReactionsBatch> fetchGrammarResultReactions(
+    List<int> resultIds,
+  ) async {
+    final ids = resultIds.where((id) => id > 0).toSet().toList()..sort();
+    if (ids.isEmpty) {
+      return const GrammarResultReactionsBatch(byResultId: {});
+    }
+    final uri = Uri.parse('$baseUrl/grammar_result_reactions.php').replace(
+      queryParameters: {'result_ids': ids.join(',')},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertOk(response, 'grammar result reactions');
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return GrammarResultReactionsBatch.fromJson(map);
+  }
+
+  /// POST /grammar_result_reactions.php — set or toggle off the user's reaction.
+  Future<GrammarResultReactionSummary> setGrammarResultReaction({
+    required int resultId,
+    required String emoji,
+  }) async {
+    final uri = Uri.parse('$baseUrl/grammar_result_reactions.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'result_id': resultId, 'emoji': emoji}),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return GrammarResultReactionSummary.fromJson(map);
   }
 
   /// POST /legacy_grammar_result_link.php — admin only.

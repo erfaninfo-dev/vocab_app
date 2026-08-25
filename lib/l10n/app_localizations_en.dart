@@ -524,12 +524,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutDownloadingApk => 'Downloading update…';
 
   @override
+  String get aboutDownloadingWindowsUpdate => 'Downloading Windows update…';
+
+  @override
   String get aboutDownloadApkFailed =>
       'Download failed. Check your connection and try again.';
 
   @override
   String get aboutInstallApkHint =>
       'If prompted, allow installing updates from this app in system settings.';
+
+  @override
+  String get aboutInstallWindowsHint =>
+      'The app will close briefly while files are updated, then reopen automatically. If it does not reopen, open erfan_academy_update.log in the same folder as the app exe.';
+
+  @override
+  String get aboutInstallWindowsReadyMessage =>
+      'The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.';
 
   @override
   String get aboutDownloadComplete => 'Download complete';
@@ -2197,6 +2208,28 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String grammarTopicsMore(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String get grammarReactionSignInRequired =>
+      'Sign in to react to community results.';
+
+  @override
+  String get grammarResultDetailTopicsTitle => 'Topics practiced';
+
+  @override
+  String get grammarResultDetailTopicsEmpty =>
+      'No topic labels for this result.';
+
+  @override
+  String get grammarResultDetailReactionsTitle => 'Reactions';
+
+  @override
+  String get grammarResultDetailOpenReview => 'Open question review';
 
   @override
   String get guestUser => 'Guest';

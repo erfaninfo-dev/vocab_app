@@ -988,6 +988,12 @@ abstract class AppLocalizations {
   /// **'Downloading update…'**
   String get aboutDownloadingApk;
 
+  /// No description provided for @aboutDownloadingWindowsUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading Windows update…'**
+  String get aboutDownloadingWindowsUpdate;
+
   /// No description provided for @aboutDownloadApkFailed.
   ///
   /// In en, this message translates to:
@@ -999,6 +1005,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'If prompted, allow installing updates from this app in system settings.'**
   String get aboutInstallApkHint;
+
+  /// No description provided for @aboutInstallWindowsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will close briefly while files are updated, then reopen automatically. If it does not reopen, open erfan_academy_update.log in the same folder as the app exe.'**
+  String get aboutInstallWindowsHint;
+
+  /// No description provided for @aboutInstallWindowsReadyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The update has been downloaded. Tap Install to update Erfan Academy. Your account and data will be preserved.'**
+  String get aboutInstallWindowsReadyMessage;
 
   /// No description provided for @aboutDownloadComplete.
   ///
@@ -3921,6 +3939,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 grammar quiz completed} other{{count} grammar quizzes completed}}'**
   String grammarCommunityQuizTotal(int count);
+
+  /// No description provided for @grammarTopicsMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String grammarTopicsMore(int count);
+
+  /// No description provided for @grammarReactionSignInRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to react to community results.'**
+  String get grammarReactionSignInRequired;
+
+  /// No description provided for @grammarResultDetailTopicsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics practiced'**
+  String get grammarResultDetailTopicsTitle;
+
+  /// No description provided for @grammarResultDetailTopicsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No topic labels for this result.'**
+  String get grammarResultDetailTopicsEmpty;
+
+  /// No description provided for @grammarResultDetailReactionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactions'**
+  String get grammarResultDetailReactionsTitle;
+
+  /// No description provided for @grammarResultDetailOpenReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Open question review'**
+  String get grammarResultDetailOpenReview;
 
   /// No description provided for @guestUser.
   ///

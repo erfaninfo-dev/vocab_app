@@ -6,12 +6,14 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/grammar_result.dart';
+import '../../data/models/grammar_result_reaction.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import 'grammar_practice_result_card.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'grammar_practice_leaderboard_merge.dart';
+import 'grammar_result_detail_sheet.dart';
 
 class GrammarResultsScreen extends ConsumerStatefulWidget {
   const GrammarResultsScreen({super.key});
@@ -281,6 +283,7 @@ class _MyResultsTab extends ConsumerWidget {
                 child: GrammarPracticeResultCard(
                   r: r,
                   style: GrammarPracticeResultCardStyle.personal,
+                  communityColorIndex: i,
                 ),
               );
             },
@@ -291,8 +294,15 @@ class _MyResultsTab extends ConsumerWidget {
   }
 }
 
-class _PublicResultsTab extends ConsumerWidget {
+class _PublicResultsTab extends ConsumerStatefulWidget {
   const _PublicResultsTab();
+
+  @override
+  ConsumerState<_PublicResultsTab> createState() => _PublicResultsTabState();
+}
+
+class _PublicResultsTabState extends ConsumerState<_PublicResultsTab> {
+  final Set<int> _loadedReactionIds = {};
 
   void _showCommunityProfile(
     BuildContext context,
@@ -353,8 +363,40 @@ class _PublicResultsTab extends ConsumerWidget {
     ref.read(publicGrammarCommunityProvider.notifier).loadMore();
   }
 
+  void _syncReactions(List<GrammarResult> items) {
+    final ids = items.map((r) => r.id).where((id) => id > 0).toSet();
+    final missing = ids.difference(_loadedReactionIds);
+    if (missing.isEmpty) return;
+    _loadedReactionIds.addAll(missing);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(grammarResultReactionsProvider.notifier)
+          .loadForResultIds(missing.toList());
+    });
+  }
+
+  void _openResultDetail(
+    BuildContext context,
+    GrammarResult result, {
+    required String? practiceTotalsLabel,
+    required bool canOpenReview,
+    GrammarResultReactionSummary? reactionSummary,
+  }) {
+    if (result.id < 1) return;
+    showGrammarResultDetailSheet(
+      context: context,
+      result: result,
+      reactionSummary: reactionSummary,
+      practiceTotalsLabel: practiceTotalsLabel,
+      onOpenReview: canOpenReview
+          ? () => context.push('/grammar/result/${result.id}')
+          : null,
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final async = ref.watch(publicGrammarCommunityProvider);
@@ -387,8 +429,12 @@ class _PublicResultsTab extends ConsumerWidget {
             subtitle: l10n.grammarCommunityEmptyBody,
           );
         }
+        _syncReactions(items);
+        final reactionsMap = ref.watch(grammarResultReactionsProvider);
         return RefreshIndicator(
           onRefresh: () async {
+            _loadedReactionIds.clear();
+            ref.invalidate(grammarResultReactionsProvider);
             await refreshAllRemoteApiData(ref);
             ref.invalidate(publicGrammarCommunityProvider);
             try {
@@ -459,17 +505,20 @@ class _PublicResultsTab extends ConsumerWidget {
                       ? l10n.grammarCommunityQuizTotal(r.grammarQuizTotal!)
                       : null;
                   final legacyName = (r.userName ?? '').trim();
-                  final canOpenDetail = session != null &&
+                  final canOpenReview = !practiceMode &&
+                      session != null &&
                       _canOpenPublicGrammarResultDetail(
                         session: session,
                         result: r,
                         teacherStudentIds: teacherStudentIds,
                         practiceMode: practiceMode,
                       );
+                  final reactionSummary = reactionsMap[r.id];
                   final card = GrammarPracticeResultCard(
                     r: r,
                     style: GrammarPracticeResultCardStyle.community,
                     rank: rank,
+                    communityColorIndex: i,
                     leaderboardMedal: medal,
                     practiceTotalsLabel: totalsLabel,
                     onUserTap: r.userId != null
@@ -477,12 +526,23 @@ class _PublicResultsTab extends ConsumerWidget {
                         : isAdmin && legacyName.isNotEmpty
                         ? () => _showLegacyLinkSheet(context, ref, r)
                         : null,
+                    showReactions: r.id > 0,
+                    reactionSummary: reactionSummary,
                   );
-                  if (!canOpenDetail) return card;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => context.push('/grammar/result/${r.id}'),
-                    child: card,
+                  if (r.id < 1) return card;
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _openResultDetail(
+                        context,
+                        r,
+                        practiceTotalsLabel: totalsLabel,
+                        canOpenReview: canOpenReview,
+                        reactionSummary: reactionSummary,
+                      ),
+                      child: card,
+                    ),
                   );
                 },
               ),

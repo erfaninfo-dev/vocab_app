@@ -190,8 +190,11 @@
   },
   "aboutDownloadApkUpdate": "دانلود آپدیت",
   "aboutDownloadingApk": "در حال دانلود…",
+  "aboutDownloadingWindowsUpdate": "در حال دانلود آپدیت ویندوز…",
   "aboutDownloadApkFailed": "دانلود انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید.",
   "aboutInstallApkHint": "در صورت درخواست، در تنظیمات اجازهٔ نصب از این برنامه را بدهید.",
+  "aboutInstallWindowsHint": "اپ برای به‌روزرسانی فایل‌ها کمی بسته می‌شود و دوباره باز می‌شود. اگر باز نشد، فایل erfan_academy_update.log را در همان پوشهٔ exe ببینید.",
+  "aboutInstallWindowsReadyMessage": "آپدیت دانلود شد. برای به‌روزرسانی Erfan Academy روی «نصب» بزنید. حساب و اطلاعات شما حفظ می‌شود.",
   "aboutDownloadComplete": "دانلود کامل شد",
   "aboutInstallReadyMessage": "آپدیت دانلود شد. برای به‌روزرسانی Erfan Academy روی «نصب» بزنید. حساب و اطلاعات شما حفظ می‌شود.",
   "aboutInstallNow": "نصب",
@@ -731,6 +734,17 @@
       "count": {"type": "int"}
     }
   },
+  "grammarTopicsMore": "+{count} موضوع دیگر",
+  "@grammarTopicsMore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarReactionSignInRequired": "برای واکنش به نتایج جامعه وارد شوید.",
+  "grammarResultDetailTopicsTitle": "موضوعات تمرین‌شده",
+  "grammarResultDetailTopicsEmpty": "برچسب موضوعی برای این نتیجه نیست.",
+  "grammarResultDetailReactionsTitle": "واکنش‌ها",
+  "grammarResultDetailOpenReview": "باز کردن مرور سؤالات",
   "guestUser": "مهمان",
   "profileBioEmpty": "هنوز بیویی نوشته نشده است.",
   "resultVisibilityPublic": "عمومی",

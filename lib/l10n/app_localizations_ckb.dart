@@ -525,12 +525,23 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get aboutDownloadingApk => 'داگرتن…';
 
   @override
+  String get aboutDownloadingWindowsUpdate => 'داگرتنی نوێکردنەوەی ویندۆز…';
+
+  @override
   String get aboutDownloadApkFailed =>
       'داگرتن سەرکەوتوو نەبوو. پەیوەندی بپشکنە و دووبارە هەوڵ بدە.';
 
   @override
   String get aboutInstallApkHint =>
       'ئەگەر داواکرا، لە ڕێکخستنەکاندا ڕێگە بدە بە دامەزراندن لەم ئەپەوە.';
+
+  @override
+  String get aboutInstallWindowsHint =>
+      'ئەپ بۆ نوێکردنەوەی فایلەکان کەمێک داخرێت و دووبارە دەکرێتەوە. ئەگەر نەکرایەوە، erfan_academy_update.log لە هەمان پۆڵەی exe بکەرەوە.';
+
+  @override
+  String get aboutInstallWindowsReadyMessage =>
+      'نوێکردنەوەکە داگیراوە. بۆ نوێکردنەوەی Erfan Academy کلیک لەسەر «دامەزراندن» بکە. هەژمار و داتاکەت پاراستراو دەبێت.';
 
   @override
   String get aboutDownloadComplete => 'داگرتن تەواو بوو';
@@ -2207,6 +2218,29 @@ class AppLocalizationsCkb extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String grammarTopicsMore(int count) {
+    return '+$count بابەتی تر';
+  }
+
+  @override
+  String get grammarReactionSignInRequired =>
+      'بۆ وەڵامدانەوە بە ئەنجامەکانی کۆمەڵگا بچۆ ژوورەوە.';
+
+  @override
+  String get grammarResultDetailTopicsTitle => 'بابەتە ڕاهێنراوەکان';
+
+  @override
+  String get grammarResultDetailTopicsEmpty =>
+      'هیچ ناونیشانێکی بابەت بۆ ئەم ئەنجامە نییە.';
+
+  @override
+  String get grammarResultDetailReactionsTitle => 'وەڵامدانەوەکان';
+
+  @override
+  String get grammarResultDetailOpenReview =>
+      'کردنەوەی پێداچوونەوەی پرسیارەکان';
 
   @override
   String get guestUser => 'میوان';

@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/grammar_result.dart';
+import '../../data/models/grammar_result_reaction.dart';
 import '../../l10n/app_localizations.dart';
+import 'grammar_community_card_theme.dart';
+import 'grammar_result_reactions_bar.dart';
 
 enum GrammarLeaderboardMedal { gold, silver, bronze }
 
@@ -18,6 +21,8 @@ enum GrammarPracticeResultCardStyle {
   community,
 }
 
+const int kGrammarTopicChipPreviewCount = 3;
+
 class GrammarPracticeResultCard extends StatelessWidget {
   const GrammarPracticeResultCard({
     super.key,
@@ -27,6 +32,9 @@ class GrammarPracticeResultCard extends StatelessWidget {
     this.leaderboardMedal,
     this.practiceTotalsLabel,
     this.onUserTap,
+    this.reactionSummary,
+    this.showReactions = false,
+    this.communityColorIndex,
   });
 
   final GrammarResult r;
@@ -35,6 +43,10 @@ class GrammarPracticeResultCard extends StatelessWidget {
   final GrammarLeaderboardMedal? leaderboardMedal;
   final String? practiceTotalsLabel;
   final VoidCallback? onUserTap;
+  final GrammarResultReactionSummary? reactionSummary;
+  final bool showReactions;
+  /// Rotates card accent colors (6 themes) in My results and Users tabs.
+  final int? communityColorIndex;
 
   /// Topic labels: JSON [selectedGrammarsRaw] or `quizName` split by ` + `.
   static List<String> topicLabelsForResult(GrammarResult r) {
@@ -47,7 +59,6 @@ class GrammarPracticeResultCard extends StatelessWidget {
           return decoded
               .map((e) => e.toString().trim())
               .where((e) => e.isNotEmpty)
-              .take(16)
               .toList();
         }
       } catch (_) {
@@ -60,12 +71,20 @@ class GrammarPracticeResultCard extends StatelessWidget {
         .split(RegExp(r'\s*\+\s*'))
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
-        .take(16)
         .toList();
     if (parts.isNotEmpty) {
       return parts;
     }
     return [q];
+  }
+
+  static String formatCreatedAt(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return '—';
+    final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
+    final dt = DateTime.tryParse(normalized);
+    if (dt == null) return raw;
+    return _formatGrammarDisplayDateTime(dt);
   }
 
   @override
@@ -92,11 +111,27 @@ class GrammarPracticeResultCard extends StatelessWidget {
     final showCommunityHeader =
         style == GrammarPracticeResultCardStyle.community;
     final showPrivacyPill = style == GrammarPracticeResultCardStyle.personal;
+    final compactTopics = showCommunityHeader;
+    final usesColorTheme =
+        style == GrammarPracticeResultCardStyle.community ||
+        style == GrammarPracticeResultCardStyle.personal;
+    final cardTheme = usesColorTheme
+        ? grammarCommunityCardThemeForIndex(
+            communityColorIndex ?? ((rank ?? r.id) - 1),
+          )
+        : null;
 
     return Material(
       color: Colors.transparent,
       child: Container(
-        decoration: appJellyCardDecoration(context),
+        decoration: cardTheme != null
+            ? appJellyAccentCardDecoration(
+                context,
+                accent: cardTheme.accent,
+                accentEnd: cardTheme.end,
+                intensity: 0.30,
+              )
+            : appJellyCardDecoration(context),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           child: Row(
@@ -106,6 +141,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
                 _CommunityRankBadge(
                   rank: rank!,
                   medal: leaderboardMedal,
+                  accent: cardTheme?.accent,
                   scheme: scheme,
                 ),
                 const SizedBox(width: 6),
@@ -142,7 +178,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
                                       displayName,
                                       style: tt.labelLarge?.copyWith(
                                         fontWeight: FontWeight.w800,
-                                        color: scheme.primary,
+                                        color: scheme.onSurface,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -167,7 +203,8 @@ class GrammarPracticeResultCard extends StatelessWidget {
                                 Icon(
                                   Icons.account_circle_outlined,
                                   size: 18,
-                                  color: scheme.primary,
+                                  color:
+                                      cardTheme?.accent ?? scheme.primary,
                                 ),
                               ],
                             ],
@@ -177,7 +214,22 @@ class GrammarPracticeResultCard extends StatelessWidget {
                     if (showCommunityHeader && chips.isNotEmpty)
                       const SizedBox(height: 8),
                     if (chips.isNotEmpty)
-                      _GrammarTopicChipsWrap(labels: chips, scheme: scheme),
+                      GrammarTopicChipsDisplay(
+                        labels: chips,
+                        scheme: scheme,
+                        accent: cardTheme?.accent,
+                        expanded: !compactTopics,
+                        previewCount: kGrammarTopicChipPreviewCount,
+                      ),
+                    if (showReactions && r.id > 0) ...[
+                      const SizedBox(height: 10),
+                      GrammarResultReactionsBar(
+                        resultId: r.id,
+                        summary: reactionSummary,
+                        compact: true,
+                        accentColor: cardTheme?.accent,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -189,7 +241,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            _formatCreatedAtRaw(r.createdAt),
+                            formatCreatedAt(r.createdAt),
                             style: tt.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,
@@ -210,6 +262,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
                 ratio: ratio,
                 hasScore: hasScore,
                 scheme: scheme,
+                accent: cardTheme?.accent,
               ),
             ],
           ),
@@ -229,58 +282,54 @@ String _formatGrammarDisplayDateTime(DateTime dt) {
   return '$y/$m/$d · $h:$min';
 }
 
-String _formatCreatedAtRaw(String raw) {
-  final t = raw.trim();
-  if (t.isEmpty) return '—';
-  final normalized = t.contains('T') ? t : t.replaceFirst(' ', 'T');
-  final dt = DateTime.tryParse(normalized);
-  if (dt == null) return raw;
-  return _formatGrammarDisplayDateTime(dt);
-}
-
-class _GrammarTopicChipsWrap extends StatelessWidget {
-  const _GrammarTopicChipsWrap({required this.labels, required this.scheme});
+class GrammarTopicChipsDisplay extends StatelessWidget {
+  const GrammarTopicChipsDisplay({
+    super.key,
+    required this.labels,
+    required this.scheme,
+    this.accent,
+    this.expanded = false,
+    this.previewCount = kGrammarTopicChipPreviewCount,
+  });
 
   final List<String> labels;
   final ColorScheme scheme;
+  final Color? accent;
+  final bool expanded;
+  final int previewCount;
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
+    final visible = expanded || labels.length <= previewCount
+        ? labels
+        : labels.take(previewCount).toList();
+    final hiddenCount = expanded || labels.length <= previewCount
+        ? 0
+        : labels.length - previewCount;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxTag = (constraints.maxWidth * 0.48).clamp(72.0, 148.0);
+        final maxTag = expanded
+            ? constraints.maxWidth
+            : (constraints.maxWidth * 0.48).clamp(88.0, 160.0);
 
         return Wrap(
-          spacing: 4,
-          runSpacing: 4,
+          spacing: 6,
+          runSpacing: 6,
           alignment: WrapAlignment.start,
           children: [
-            for (final c in labels)
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxTag),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    c,
-                    style: tt.labelSmall?.copyWith(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    softWrap: true,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+            for (final label in visible)
+              _TopicChip(
+                label: label,
+                scheme: scheme,
+                accent: accent,
+                maxWidth: maxTag,
+              ),
+            if (hiddenCount > 0)
+              _TopicMoreChip(
+                label: l10n.grammarTopicsMore(hiddenCount),
+                scheme: scheme,
               ),
           ],
         );
@@ -289,15 +338,91 @@ class _GrammarTopicChipsWrap extends StatelessWidget {
   }
 }
 
+class _TopicChip extends StatelessWidget {
+  const _TopicChip({
+    required this.label,
+    required this.scheme,
+    this.accent,
+    required this.maxWidth,
+  });
+
+  final String label;
+  final ColorScheme scheme;
+  final Color? accent;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final chipAccent = accent ?? scheme.primary;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: chipAccent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: chipAccent.withValues(alpha: 0.22),
+          ),
+        ),
+        child: Text(
+          label,
+          style: tt.labelSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+            color: scheme.onSurface,
+          ),
+          maxLines: expandedChipMaxLines(maxWidth),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  int expandedChipMaxLines(double maxWidth) => maxWidth > 140 ? 2 : 1;
+}
+
+class _TopicMoreChip extends StatelessWidget {
+  const _TopicMoreChip({required this.label, required this.scheme});
+
+  final String label;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Text(
+        label,
+        style: tt.labelSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
 class _CommunityRankBadge extends StatelessWidget {
   const _CommunityRankBadge({
     required this.rank,
     required this.scheme,
+    this.accent,
     this.medal,
   });
 
   final int rank;
   final ColorScheme scheme;
+  final Color? accent;
   final GrammarLeaderboardMedal? medal;
 
   Color? _medalColor() {
@@ -317,6 +442,7 @@ class _CommunityRankBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     final mc = _medalColor();
+    final rankColor = accent ?? mc ?? scheme.primary;
     return SizedBox(
       width: 40,
       child: Column(
@@ -326,14 +452,14 @@ class _CommunityRankBadge extends StatelessWidget {
             Icon(
               Icons.emoji_events_rounded,
               size: 22,
-              color: mc ?? scheme.primary,
+              color: mc ?? rankColor,
             ),
           Text(
             '$rank',
             textAlign: TextAlign.center,
-            style: tt.titleSmall?.copyWith(
+            style: tt.titleMedium?.copyWith(
               fontWeight: FontWeight.w900,
-              color: scheme.onSurface,
+              color: rankColor,
               height: 1.0,
             ),
           ),
@@ -419,6 +545,7 @@ class _ScoreRing extends StatelessWidget {
     required this.ratio,
     required this.hasScore,
     required this.scheme,
+    this.accent,
   });
 
   final int? score;
@@ -426,10 +553,12 @@ class _ScoreRing extends StatelessWidget {
   final double ratio;
   final bool hasScore;
   final ColorScheme scheme;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
+    final ringColor = accent ?? scheme.primary;
     final pct = hasScore ? (ratio * 100).round() : null;
     final ratioLabel = hasScore ? '$score/$total' : '';
     final totalQ = total;
@@ -449,10 +578,8 @@ class _ScoreRing extends StatelessWidget {
             child: CircularProgressIndicator(
               value: hasScore ? ratio.clamp(0.0, 1.0) : null,
               strokeWidth: 4,
-              backgroundColor: scheme.surfaceContainerHighest.withValues(
-                alpha: 0.9,
-              ),
-              color: scheme.primary,
+              backgroundColor: ringColor.withValues(alpha: 0.12),
+              color: ringColor,
               strokeCap: StrokeCap.round,
             ),
           ),
@@ -476,8 +603,8 @@ class _ScoreRing extends StatelessWidget {
                       '$pct%',
                       style: tt.labelSmall?.copyWith(
                         fontSize: compact ? 8.5 : 10,
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
+                        color: ringColor,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ] else

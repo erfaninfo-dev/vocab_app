@@ -523,12 +523,23 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aboutDownloadingApk => 'در حال دانلود…';
 
   @override
+  String get aboutDownloadingWindowsUpdate => 'در حال دانلود آپدیت ویندوز…';
+
+  @override
   String get aboutDownloadApkFailed =>
       'دانلود انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
 
   @override
   String get aboutInstallApkHint =>
       'در صورت درخواست، در تنظیمات اجازهٔ نصب از این برنامه را بدهید.';
+
+  @override
+  String get aboutInstallWindowsHint =>
+      'اپ برای به‌روزرسانی فایل‌ها کمی بسته می‌شود و دوباره باز می‌شود. اگر باز نشد، فایل erfan_academy_update.log را در همان پوشهٔ exe ببینید.';
+
+  @override
+  String get aboutInstallWindowsReadyMessage =>
+      'آپدیت دانلود شد. برای به‌روزرسانی Erfan Academy روی «نصب» بزنید. حساب و اطلاعات شما حفظ می‌شود.';
 
   @override
   String get aboutDownloadComplete => 'دانلود کامل شد';
@@ -2193,6 +2204,28 @@ class AppLocalizationsFa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String grammarTopicsMore(int count) {
+    return '+$count موضوع دیگر';
+  }
+
+  @override
+  String get grammarReactionSignInRequired =>
+      'برای واکنش به نتایج جامعه وارد شوید.';
+
+  @override
+  String get grammarResultDetailTopicsTitle => 'موضوعات تمرین‌شده';
+
+  @override
+  String get grammarResultDetailTopicsEmpty =>
+      'برچسب موضوعی برای این نتیجه نیست.';
+
+  @override
+  String get grammarResultDetailReactionsTitle => 'واکنش‌ها';
+
+  @override
+  String get grammarResultDetailOpenReview => 'باز کردن مرور سؤالات';
 
   @override
   String get guestUser => 'مهمان';

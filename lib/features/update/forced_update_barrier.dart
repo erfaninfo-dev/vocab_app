@@ -1,16 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/update/apk_download_dialog.dart';
+import '../../core/update/platform_update_download_dialog.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../domain/app_update_provider.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Blocks the entire app when the server requires an update (Android sideload flow).
-///
-/// The server row must have `force_update = 1`, a non-empty `apk_url`, and
-/// `version_code` greater than the installed Android `versionCode` (pubspec +build).
+/// Blocks the entire app when the server requires an update (Android / Windows sideload).
 class ForcedUpdateBarrier extends ConsumerWidget {
   const ForcedUpdateBarrier({super.key, required this.child});
 
@@ -23,13 +19,11 @@ class ForcedUpdateBarrier extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final isAndroid =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     final block = check != null &&
-        isAndroid &&
+        check.updateEligible &&
         check.forceUpdate &&
         check.updateAvailable &&
-        (check.apkUrl != null && check.apkUrl!.isNotEmpty);
+        (check.downloadUrl != null && check.downloadUrl!.isNotEmpty);
 
     return PopScope(
       canPop: !block,
@@ -59,7 +53,9 @@ class ForcedUpdateBarrier extends ConsumerWidget {
                               const SizedBox(height: 16),
                               Text(
                                 l10n.aboutUpdateAvailableVersion(
-                                  (check.remoteVersionName ?? '').trim().isNotEmpty
+                                  (check.remoteVersionName ?? '')
+                                      .trim()
+                                      .isNotEmpty
                                       ? check.remoteVersionName!.trim()
                                       : '${check.remoteVersionCode ?? ''}',
                                 ),
@@ -78,9 +74,14 @@ class ForcedUpdateBarrier extends ConsumerWidget {
                               const SizedBox(height: 24),
                               FilledButton.icon(
                                 onPressed: () {
-                                  final url = check.apkUrl;
+                                  final url = check.downloadUrl;
                                   if (url == null || url.isEmpty) return;
-                                  showApkDownloadProgressDialog(context, url);
+                                  showPlatformUpdateDownloadDialog(
+                                    context,
+                                    url,
+                                    androidEligible: check.androidEligible,
+                                    windowsEligible: check.windowsEligible,
+                                  );
                                 },
                                 icon: const Icon(Icons.download_rounded),
                                 label: Text(l10n.aboutDownloadApkUpdate),
