@@ -1640,6 +1640,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'No grammar topics yet.\nAdd rows to your questions table (column content = topic name).';
 
   @override
+  String get grammarStudyPdfTooltip => 'Study material (PDF)';
+
+  @override
+  String get grammarStudyPdfOpenError => 'Couldn\'t open the study PDF.';
+
+  @override
+  String get grammarStudyPdfOpenExternally => 'Open externally';
+
+  @override
   String grammarNotEnoughInBank(int minRequired) {
     return 'Not enough questions in the bank for this selection (need at least $minRequired).';
   }

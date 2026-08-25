@@ -691,6 +691,9 @@
   },
   "grammarCouldNotLoadTopics": "Could not load grammar topics. Please try again.",
   "grammarNoTopicsEmpty": "No grammar topics yet.\nAdd rows to your questions table (column content = topic name).",
+  "grammarStudyPdfTooltip": "Study material (PDF)",
+  "grammarStudyPdfOpenError": "Couldn't open the study PDF.",
+  "grammarStudyPdfOpenExternally": "Open externally",
   "grammarNotEnoughInBank": "Not enough questions in the bank for this selection (need at least {minRequired}).",
   "@grammarNotEnoughInBank": {
     "placeholders": {

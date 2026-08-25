@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
 import '../data/models/game_word_category.dart';
+import '../data/models/grammar_topic_pdf.dart';
 import '../data/models/grammar_book.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
@@ -131,6 +132,22 @@ final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
 ) {
   ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchGrammarTopics();
+});
+
+// ─── Grammar topic study PDFs ─────────────────────────────────────────────────
+// Corresponds to: GET /grammar_topic_pdfs.php
+// Exposed pre-indexed by topic name for O(1) lookup from the topics screen.
+
+final apiGrammarTopicPdfsProvider = FutureProvider<Map<String, String>>((
+  ref,
+) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final pdfs = await ref.read(apiServiceProvider).fetchGrammarTopicPdfs();
+  return {
+    for (final p in pdfs)
+      if (p.topic.trim().isNotEmpty && p.pdfUrl.trim().isNotEmpty)
+        p.topic.trim(): p.pdfUrl.trim(),
+  };
 });
 
 final apiGrammarBooksProvider = FutureProvider<List<GrammarBook>>((ref) {

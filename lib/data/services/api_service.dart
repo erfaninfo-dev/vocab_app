@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -11,6 +12,7 @@ import '../models/auth_user.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
 import '../models/game_word_category.dart';
+import '../models/grammar_topic_pdf.dart';
 import '../models/section_info.dart';
 import '../models/unit_sample.dart';
 import '../models/grammar_book.dart';
@@ -34,6 +36,7 @@ import '../models/temporary_class_schedule_slot.dart';
 // Example: 'https://yourdomain.com/api'
 const String kApiBaseUrl = 'https://erfaninfo.com/wordsapi';
 const Duration _storyUploadTimeout = Duration(seconds: 45);
+const Duration _storyVideoUploadTimeout = Duration(seconds: 90);
 const Duration _storyCreateTimeout = Duration(seconds: 20);
 
 /// Thrown when the server explicitly rejects the current bearer token (HTTP
@@ -271,6 +274,29 @@ class ApiService {
             .map((e) => GameWordCategory.fromJson(e as Map<String, dynamic>))
             .toList();
         if (list.isNotEmpty) return list;
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /grammar_topic_pdfs.php ───────────────────────────────────────────
+  Future<List<GrammarTopicPdf>> fetchGrammarTopicPdfs() async {
+    final uri = Uri.parse('$baseUrl/grammar_topic_pdfs.php');
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'grammar topic pdfs');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => GrammarTopicPdf.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => GrammarTopicPdf.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       rethrow;
     }
@@ -1264,7 +1290,72 @@ class ApiService {
     return path;
   }
 
-  /// POST /admin_stories.php — admin creates text or image story.
+  /// POST /admin_story_upload.php — admin multipart video upload.
+  Future<String> uploadStoryVideo(
+    String filePath, {
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    final uri = Uri.parse('$baseUrl/admin_story_upload.php');
+    final req = http.MultipartRequest('POST', uri);
+    final t = authToken;
+    if (t != null && t.isNotEmpty) {
+      req.headers['Authorization'] = 'Bearer $t';
+    }
+    final lower = filePath.toLowerCase();
+    final filename = lower.endsWith('.mov')
+        ? 'story.mov'
+        : lower.endsWith('.webm')
+        ? 'story.webm'
+        : lower.endsWith('.3gp') || lower.endsWith('.3gpp')
+        ? 'story.3gp'
+        : lower.endsWith('.m4v')
+        ? 'story.m4v'
+        : 'story.mp4';
+    final file = File(filePath);
+    final totalBytes = await file.length();
+    Stream<List<int>> uploadStream;
+    if (onProgress != null) {
+      var sent = 0;
+      uploadStream = file.openRead().map((chunk) {
+        sent += chunk.length;
+        onProgress(sent, totalBytes);
+        return chunk;
+      });
+    } else {
+      uploadStream = file.openRead();
+    }
+    req.files.add(
+      http.MultipartFile('video', uploadStream, totalBytes, filename: filename),
+    );
+    final streamed = await req.send().timeout(
+      _storyVideoUploadTimeout,
+      onTimeout: () {
+        throw TimeoutException(
+          'Story video upload timed out. Please try a shorter clip or a better connection.',
+        );
+      },
+    );
+    final response = await http.Response.fromStream(streamed).timeout(
+      _storyCreateTimeout,
+      onTimeout: () {
+        throw TimeoutException(
+          'Story upload response timed out. Please try again.',
+        );
+      },
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    if (map['ok'] != true) {
+      throw Exception(map['error']?.toString() ?? 'Upload failed');
+    }
+    final path = (map['image_path'] as String?)?.trim() ?? '';
+    if (path.isEmpty) {
+      throw Exception('Upload succeeded but video path was empty');
+    }
+    return path;
+  }
+
+  /// POST /admin_stories.php — admin creates text, image, or video story.
   Future<int> createAdminStory({
     required String clientRequestId,
     required String contentType,

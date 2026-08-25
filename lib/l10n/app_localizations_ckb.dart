@@ -1649,6 +1649,15 @@ class AppLocalizationsCkb extends AppLocalizations {
       'هێشتا بابەتی ڕێزمان نییە.\nڕیزەکان بۆ خشتەی پرسیارەکان زیاد بکە (ستوونی ناوەڕۆک = ناوی بابەت).';
 
   @override
+  String get grammarStudyPdfTooltip => 'بابەتی خوێندن (PDF)';
+
+  @override
+  String get grammarStudyPdfOpenError => 'نەتوانرا PDF ی خوێندن بکرێتەوە.';
+
+  @override
+  String get grammarStudyPdfOpenExternally => 'کردنەوە لە دەرەوەی ئەپ';
+
+  @override
   String grammarNotEnoughInBank(int minRequired) {
     return 'پرسیاری پێویست لە بانکدا نییە بۆ ئەم هەڵبژاردنە (کەمترین $minRequired پێویستە).';
   }

@@ -2944,6 +2944,24 @@ abstract class AppLocalizations {
   /// **'No grammar topics yet.\nAdd rows to your questions table (column content = topic name).'**
   String get grammarNoTopicsEmpty;
 
+  /// No description provided for @grammarStudyPdfTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Study material (PDF)'**
+  String get grammarStudyPdfTooltip;
+
+  /// No description provided for @grammarStudyPdfOpenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the study PDF.'**
+  String get grammarStudyPdfOpenError;
+
+  /// No description provided for @grammarStudyPdfOpenExternally.
+  ///
+  /// In en, this message translates to:
+  /// **'Open externally'**
+  String get grammarStudyPdfOpenExternally;
+
   /// No description provided for @grammarNotEnoughInBank.
   ///
   /// In en, this message translates to:

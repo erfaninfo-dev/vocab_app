@@ -46,9 +46,11 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photos to set your profile picture.</string>
+	<string>We need access to your photos and videos so you can post Stories and set a profile picture.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>We use the camera to take a profile picture.</string>
+	<string>We use the camera to take a profile picture or record a Story.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We use the microphone when recording a Story video.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tel</string>

@@ -1639,6 +1639,15 @@ class AppLocalizationsFa extends AppLocalizations {
       'هنوز موضوع گرامی نیست.\nبه جدول سؤالات ردیف اضافه کنید (ستون content = نام موضوع).';
 
   @override
+  String get grammarStudyPdfTooltip => 'مطالب آموزشی (PDF)';
+
+  @override
+  String get grammarStudyPdfOpenError => 'باز کردن PDF آموزشی ممکن نشد.';
+
+  @override
+  String get grammarStudyPdfOpenExternally => 'باز کردن بیرون از اپ';
+
+  @override
   String grammarNotEnoughInBank(int minRequired) {
     return 'سؤال کافی در بانک برای این انتخاب نیست (حداقل $minRequired لازم است).';
   }

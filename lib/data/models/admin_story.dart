@@ -10,6 +10,7 @@ class StoryTextStyle {
     this.imageTransform = const StoryImageTransform(),
     this.poll,
     this.grammarGame,
+    this.videoDurationMs = 0,
   });
 
   final double fontSize;
@@ -22,6 +23,7 @@ class StoryTextStyle {
   final StoryImageTransform imageTransform;
   final StoryPoll? poll;
   final StoryGrammarGame? grammarGame;
+  final int videoDurationMs;
 
   factory StoryTextStyle.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const StoryTextStyle();
@@ -49,6 +51,10 @@ class StoryTextStyle {
       grammarGame: StoryGrammarGame.fromJsonOrNull(
         (json['grammar_game'] ?? json['grammarGame']) as Map<String, dynamic>?,
       ),
+      videoDurationMs:
+          ((json['video_duration_ms'] ?? json['videoDurationMs']) as num?)
+              ?.toInt() ??
+          0,
     );
   }
 
@@ -64,6 +70,7 @@ class StoryTextStyle {
     if (!imageTransform.isIdentity) 'image_transform': imageTransform.toJson(),
     if (poll != null) 'poll': poll!.toJson(),
     if (grammarGame != null) 'grammar_game': grammarGame!.toJson(),
+    if (videoDurationMs > 0) 'video_duration_ms': videoDurationMs,
   };
 
   StoryTextStyle copyWith({
@@ -77,6 +84,7 @@ class StoryTextStyle {
     StoryImageTransform? imageTransform,
     StoryPoll? poll,
     StoryGrammarGame? grammarGame,
+    int? videoDurationMs,
     bool clearPoll = false,
     bool clearGrammarGame = false,
   }) {
@@ -91,6 +99,7 @@ class StoryTextStyle {
       imageTransform: imageTransform ?? this.imageTransform,
       poll: clearPoll ? null : poll ?? this.poll,
       grammarGame: clearGrammarGame ? null : grammarGame ?? this.grammarGame,
+      videoDurationMs: videoDurationMs ?? this.videoDurationMs,
     );
   }
 
@@ -561,6 +570,11 @@ class StoryItem {
 
   bool get isImage => contentType.trim().toLowerCase() == 'image';
   bool get isText => contentType.trim().toLowerCase() == 'text';
+  bool get isVideo {
+    if (contentType.trim().toLowerCase() == 'video') return true;
+    return looksLikeStoryVideoPath(imagePath);
+  }
+
   bool get hasGrammarGame => textStyle.grammarGame != null;
 
   factory StoryItem.fromJson(Map<String, dynamic> json) {
@@ -634,6 +648,17 @@ Map<String, dynamic>? _mergeStoryExtrasIntoTextStyleJson(
     style['grammar_game'] = rawGrammarGame;
   }
   return style.isEmpty ? null : style;
+}
+
+bool looksLikeStoryVideoPath(String? path) {
+  final lower = (path ?? '').trim().toLowerCase();
+  if (lower.isEmpty) return false;
+  return lower.endsWith('.mp4') ||
+      lower.endsWith('.mov') ||
+      lower.endsWith('.m4v') ||
+      lower.endsWith('.webm') ||
+      lower.endsWith('.3gp') ||
+      lower.endsWith('.3gpp');
 }
 
 class StoryAudienceUser {

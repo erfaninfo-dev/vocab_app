@@ -17,10 +17,19 @@ import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
+import 'grammar_pdf_viewer_screen.dart';
 
 /// Set to `true` to show the Grammar League banner above books again.
 const bool kGrammarShowLeagueBannerOnTopicsScreen = true;
 const bool kGrammarShowBooksOnTopicsScreen = false;
+
+void _openGrammarTopicPdf(BuildContext context, String topic, String pdfUrl) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => GrammarPdfViewerScreen(title: topic, pdfUrl: pdfUrl),
+    ),
+  );
+}
 
 class GrammarTopicsScreen extends ConsumerStatefulWidget {
   const GrammarTopicsScreen({super.key});
@@ -243,6 +252,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(apiGrammarTopicsProvider);
+    final topicPdfs =
+        ref.watch(apiGrammarTopicPdfsProvider).valueOrNull ?? const {};
     final booksAsync = kGrammarShowBooksOnTopicsScreen
         ? ref.watch(apiGrammarBooksProvider)
         : null;
@@ -476,6 +487,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                             _adminNewToggleFadingOut.contains(
                                               t.topic,
                                             ));
+                                    final pdfUrl = topicPdfs[t.topic.trim()];
                                     return Directionality(
                                       textDirection: TextDirection.ltr,
                                       child: _TopicCard(
@@ -504,6 +516,13 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                                 isNew: value,
                                               )
                                             : null,
+                                        onOpenPdf: pdfUrl == null
+                                            ? null
+                                            : () => _openGrammarTopicPdf(
+                                                context,
+                                                t.topic,
+                                                pdfUrl,
+                                              ),
                                       ),
                                     );
                                   },
@@ -1644,6 +1663,37 @@ class _AdminNewToggleChip extends StatelessWidget {
   }
 }
 
+class _StudyPdfButton extends StatelessWidget {
+  const _StudyPdfButton({
+    required this.onTap,
+    required this.accent,
+    required this.tooltip,
+  });
+
+  final VoidCallback onTap;
+  final Color accent;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.14),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.menu_book_rounded, size: 26, color: accent),
+        ),
+      ),
+    );
+  }
+}
+
 class _TopicCard extends StatelessWidget {
   const _TopicCard({
     required this.title,
@@ -1658,6 +1708,7 @@ class _TopicCard extends StatelessWidget {
     this.adminNewSaving = false,
     this.onLongPress,
     this.onAdminNewToggle,
+    this.onOpenPdf,
   });
 
   final String title;
@@ -1672,6 +1723,10 @@ class _TopicCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final ValueChanged<bool>? onAdminNewToggle;
+
+  /// Opens the topic's study PDF. Null when the topic has no PDF attached —
+  /// the study button is hidden in that case.
+  final VoidCallback? onOpenPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -1769,19 +1824,34 @@ class _TopicCard extends StatelessWidget {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: appJellyInsetDecoration(context),
-                      child: Text(
-                        '$questionCount question${questionCount == 1 ? '' : 's'}',
-                        style: textTheme.labelMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onOpenPdf != null) ...[
+                          _StudyPdfButton(
+                            onTap: onOpenPdf!,
+                            accent: accents.first,
+                            tooltip: AppLocalizations.of(
+                              context,
+                            )!.grammarStudyPdfTooltip,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: appJellyInsetDecoration(context),
+                          child: Text(
+                            '$questionCount question${questionCount == 1 ? '' : 's'}',
+                            style: textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                   if (showNewBadge)

@@ -18,6 +18,8 @@ import 'story_fonts.dart';
 import 'story_image_scale.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
+import 'story_video_prepare.dart';
+import 'story_video_widgets.dart';
 
 enum _TextStyleTool { lineHeight, font, color, alignment }
 
@@ -82,12 +84,19 @@ class _AdminStoryCreateScreenState
 
   var _mode = 'text';
   var _submitting = false;
+  var _preparingVideo = false;
+  var _videoPrepareLabel = 'Preparing video...';
+  double? _videoPrepareProgress;
+  var _videoUploadLabel = 'Sharing...';
+  double? _videoUploadProgress;
   var _shareCanChoose = false;
   Timer? _shareChoiceTimer;
   Completer<void>? _shareStopCompleter;
   int _shareOperationId = 0;
   final _storyClientRequestId = _newStoryClientRequestId();
   Uint8List? _imageBytes;
+  String? _videoPath;
+  Duration _videoDuration = Duration.zero;
   var _imageTransform = const StoryImageTransform();
   var _layers = <StoryTextLayer>[];
   StoryPoll? _poll;
@@ -124,14 +133,18 @@ class _AdminStoryCreateScreenState
     layers: _layers,
     imageTransform: _imageTransform,
     poll: _poll,
+    videoDurationMs: _videoDuration.inMilliseconds,
   );
 
   bool get _storyIsValid {
-    if (_isEditingText || _submitting) return false;
+    if (_isEditingText || _submitting || _preparingVideo) return false;
     if (_mode == 'image') return _imageBytes != null;
+    if (_mode == 'video') return _videoPath != null;
     return _layers.any((layer) => layer.text.trim().isNotEmpty) ||
         _poll != null;
   }
+
+  bool get _isMediaMode => _mode == 'image' || _mode == 'video';
 
   @override
   void dispose() {
@@ -142,6 +155,7 @@ class _AdminStoryCreateScreenState
     }
     _editingCtrl.dispose();
     _editingFocus.dispose();
+    unawaited(disposeStoryVideoCache());
     super.dispose();
   }
 
@@ -167,11 +181,92 @@ class _AdminStoryCreateScreenState
     if (!mounted) return;
     setState(() {
       _imageBytes = compressed;
+      _videoPath = null;
+      _videoDuration = Duration.zero;
       _mode = 'image';
       _imageTransform = StoryImageTransform(
         aspectRatio: _storyImageAspectRatio(compressed),
       );
     });
+  }
+
+  Future<void> _pickVideo() async {
+    if (_submitting || _preparingVideo || _isEditingText) return;
+    final x = await ImagePicker().pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: kStoryVideoMaxDuration,
+    );
+    if (x == null) return;
+    setState(() {
+      _preparingVideo = true;
+      _videoPrepareLabel = 'Preparing video...';
+      _videoPrepareProgress = null;
+    });
+    try {
+      void onPrepareProgress({required String label, double? fraction}) {
+        if (!mounted) return;
+        setState(() {
+          _videoPrepareLabel = label;
+          _videoPrepareProgress = fraction;
+        });
+      }
+
+      final sourcePath = await materializePickedStoryVideo(
+        pickPath: x.path,
+        pickBytes: x.openRead(),
+        onProgress: onPrepareProgress,
+      );
+      final prepared = await prepareStoryVideo(
+        sourcePath,
+        onProgress: onPrepareProgress,
+      );
+      if (!mounted) return;
+      setState(() {
+        _videoPath = prepared.filePath;
+        _videoDuration = prepared.duration;
+        _imageBytes = null;
+        _mode = 'video';
+        _imageTransform = StoryImageTransform(
+          aspectRatio: prepared.aspectRatio,
+        );
+        _preparingVideo = false;
+        _videoPrepareProgress = null;
+      });
+      if (prepared.trimmedToMax) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Using the first 60 seconds of this video.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _preparingVideo = false;
+        _videoPrepareProgress = null;
+      });
+      final message = _cleanStoryError(e, 'Could not prepare video');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Could not prepare video'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _cycleVisibilityDuration() {
@@ -463,7 +558,12 @@ class _AdminStoryCreateScreenState
   }
 
   void _startImageTransform(ScaleStartDetails details) {
-    if (_mode != 'image' || _imageBytes == null || _isEditingText) return;
+    if (!_isMediaMode ||
+        (_mode == 'image' && _imageBytes == null) ||
+        (_mode == 'video' && _videoPath == null) ||
+        _isEditingText) {
+      return;
+    }
     setState(() {
       _imageStartFocal = details.focalPoint;
       _imageStartTransform = _imageTransform;
@@ -474,8 +574,9 @@ class _AdminStoryCreateScreenState
   void _updateImageTransform(ScaleUpdateDetails details, Size canvasSize) {
     final start = _imageStartTransform;
     final focal = _imageStartFocal;
-    if (_mode != 'image' ||
-        _imageBytes == null ||
+    if (!_isMediaMode ||
+        (_mode == 'image' && _imageBytes == null) ||
+        (_mode == 'video' && _videoPath == null) ||
         _isEditingText ||
         start == null ||
         focal == null) {
@@ -507,6 +608,8 @@ class _AdminStoryCreateScreenState
     setState(() {
       if (_deleteTargetActive) {
         _imageBytes = null;
+        _videoPath = null;
+        _videoDuration = Duration.zero;
         _mode = 'text';
         _imageTransform = const StoryImageTransform();
       }
@@ -599,6 +702,40 @@ class _AdminStoryCreateScreenState
         targetUserIds: targetUserIds,
         visibilityHours: _visibilityDuration.hours,
       );
+    } else if (_mode == 'video') {
+      if (mounted) {
+        setState(() {
+          _videoUploadLabel = 'Uploading video...';
+          _videoUploadProgress = 0;
+        });
+      }
+      final path = await api.uploadStoryVideo(
+        _videoPath!,
+        onProgress: (sent, total) {
+          if (!mounted || total <= 0) return;
+          final fraction = (sent / total).clamp(0.0, 1.0);
+          setState(() {
+            _videoUploadProgress = fraction * 0.92;
+            _videoUploadLabel = 'Uploading ${(fraction * 100).round()}%';
+          });
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _videoUploadLabel = 'Publishing...';
+          _videoUploadProgress = 0.96;
+        });
+      }
+      await api.createAdminStory(
+        clientRequestId: _storyClientRequestId,
+        contentType: 'video',
+        imagePath: path,
+        textContent: textContent.isEmpty ? null : textContent,
+        textStyle: _style,
+        targetMode: targetMode,
+        targetUserIds: targetUserIds,
+        visibilityHours: _visibilityDuration.hours,
+      );
     } else {
       await api.createAdminStory(
         clientRequestId: _storyClientRequestId,
@@ -623,12 +760,18 @@ class _AdminStoryCreateScreenState
     final operationId = ++_shareOperationId;
     final stopCompleter = Completer<void>();
     _shareStopCompleter = stopCompleter;
-    final timeout = _mode == 'image'
+    final timeout = _mode == 'video'
+        ? kStoryVideoShareTimeout
+        : _mode == 'image'
         ? _imageStoryShareTimeout
         : _textStoryShareTimeout;
     setState(() {
       _submitting = true;
       _shareCanChoose = false;
+      if (_mode == 'video') {
+        _videoUploadLabel = 'Uploading video...';
+        _videoUploadProgress = 0;
+      }
     });
     _scheduleShareChoices(operationId);
     final submitFuture = _performSubmitStory(
@@ -642,7 +785,9 @@ class _AdminStoryCreateScreenState
         stopCompleter.future.then((_) => false),
         Future<void>.delayed(timeout).then<bool>((_) {
           throw TimeoutException(
-            _mode == 'image'
+            _mode == 'video'
+                ? 'Video story sharing is taking too long. Please check your connection and try a shorter clip.'
+                : _mode == 'image'
                 ? 'Image story sharing is taking too long. Please check your connection and try again.'
                 : 'Story sharing is taking too long. Please check your connection and try again.',
           );
@@ -662,6 +807,7 @@ class _AdminStoryCreateScreenState
         setState(() {
           _submitting = false;
           _shareCanChoose = false;
+          _videoUploadProgress = null;
         });
       }
     }
@@ -715,6 +861,7 @@ class _AdminStoryCreateScreenState
               child: _StoryEditorCanvas(
                 mode: _mode,
                 imageBytes: _imageBytes,
+                videoPath: _videoPath,
                 imageTransform: _imageTransform,
                 layers: _layers,
                 poll: _poll,
@@ -725,9 +872,15 @@ class _AdminStoryCreateScreenState
                 style: _style,
                 submitting: _submitting,
                 submittingCanChoose: _shareCanChoose,
+                preparingVideo: _preparingVideo,
+                preparingVideoLabel: _videoPrepareLabel,
+                preparingVideoProgress: _videoPrepareProgress,
+                shareProgressLabel: _mode == 'video' ? _videoUploadLabel : null,
+                shareProgress: _mode == 'video' ? _videoUploadProgress : null,
                 onSubmittingOverlayTap: _showShareLoadingChoices,
                 onBack: () => context.pop(),
                 onPickImage: _pickImage,
+                onPickVideo: _pickVideo,
                 visibilityDurationLabel: _visibilityDuration.label,
                 onCycleVisibilityDuration: _cycleVisibilityDuration,
                 onCanvasTap: _startNewText,
@@ -811,6 +964,7 @@ class _StoryEditorCanvas extends StatelessWidget {
   const _StoryEditorCanvas({
     required this.mode,
     required this.imageBytes,
+    required this.videoPath,
     required this.imageTransform,
     required this.layers,
     required this.poll,
@@ -821,9 +975,15 @@ class _StoryEditorCanvas extends StatelessWidget {
     required this.style,
     required this.submitting,
     required this.submittingCanChoose,
+    required this.preparingVideo,
+    required this.preparingVideoLabel,
+    required this.preparingVideoProgress,
+    required this.shareProgressLabel,
+    required this.shareProgress,
     required this.onSubmittingOverlayTap,
     required this.onBack,
     required this.onPickImage,
+    required this.onPickVideo,
     required this.visibilityDurationLabel,
     required this.onCycleVisibilityDuration,
     required this.onCanvasTap,
@@ -864,6 +1024,7 @@ class _StoryEditorCanvas extends StatelessWidget {
 
   final String mode;
   final Uint8List? imageBytes;
+  final String? videoPath;
   final StoryImageTransform imageTransform;
   final List<StoryTextLayer> layers;
   final StoryPoll? poll;
@@ -874,9 +1035,15 @@ class _StoryEditorCanvas extends StatelessWidget {
   final StoryTextStyle style;
   final bool submitting;
   final bool submittingCanChoose;
+  final bool preparingVideo;
+  final String preparingVideoLabel;
+  final double? preparingVideoProgress;
+  final String? shareProgressLabel;
+  final double? shareProgress;
   final VoidCallback onSubmittingOverlayTap;
   final VoidCallback onBack;
   final VoidCallback onPickImage;
+  final VoidCallback onPickVideo;
   final String visibilityDurationLabel;
   final VoidCallback onCycleVisibilityDuration;
   final void Function(Offset localPosition, Size canvasSize) onCanvasTap;
@@ -944,6 +1111,7 @@ class _StoryEditorCanvas extends StatelessWidget {
                 child: _StoryBackground(
                   mode: mode,
                   imageBytes: imageBytes,
+                  videoPath: videoPath,
                   imageTransform: imageTransform,
                   style: style,
                   onPickImage: onPickImage,
@@ -1047,6 +1215,7 @@ class _StoryEditorCanvas extends StatelessWidget {
                         bgEnd: bgEnd,
                         backgroundSelected: showCanvasBackgroundPicker,
                         onPickImage: onPickImage,
+                        onPickVideo: onPickVideo,
                         visibilityDurationLabel: visibilityDurationLabel,
                         onCycleVisibilityDuration: onCycleVisibilityDuration,
                         onAddPoll: onAddPoll,
@@ -1077,11 +1246,20 @@ class _StoryEditorCanvas extends StatelessWidget {
                     onAlignment: onAlignment,
                   ),
                 ),
+              if (preparingVideo)
+                Positioned.fill(
+                  child: _PreparingVideoOverlay(
+                    label: preparingVideoLabel,
+                    progress: preparingVideoProgress,
+                  ),
+                ),
               if (submitting)
                 Positioned.fill(
                   child: _ShareLoadingOverlay(
                     canChoose: submittingCanChoose,
                     onTap: onSubmittingOverlayTap,
+                    label: shareProgressLabel,
+                    progress: shareProgress,
                   ),
                 ),
             ],
@@ -1093,13 +1271,21 @@ class _StoryEditorCanvas extends StatelessWidget {
 }
 
 class _ShareLoadingOverlay extends StatelessWidget {
-  const _ShareLoadingOverlay({required this.canChoose, required this.onTap});
+  const _ShareLoadingOverlay({
+    required this.canChoose,
+    required this.onTap,
+    this.label,
+    this.progress,
+  });
 
   final bool canChoose;
   final VoidCallback onTap;
+  final String? label;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
+    final hasProgress = progress != null && progress! > 0;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: canChoose ? onTap : null,
@@ -1116,11 +1302,27 @@ class _ShareLoadingOverlay extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.8,
+                      value: hasProgress ? progress!.clamp(0.0, 1.0) : null,
+                      color: Colors.white,
+                    ),
                   ),
+                  if (label != null && label!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      label!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                   if (canChoose) ...[
                     const SizedBox(height: 10),
                     const Text(
@@ -1142,10 +1344,73 @@ class _ShareLoadingOverlay extends StatelessWidget {
   }
 }
 
+class _PreparingVideoOverlay extends StatelessWidget {
+  const _PreparingVideoOverlay({required this.label, this.progress});
+
+  final String label;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasProgress = progress != null && progress! > 0;
+    final percent = hasProgress ? (progress!.clamp(0.0, 1.0) * 100).round() : null;
+    return ColoredBox(
+      color: const Color(0x66000000),
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.42),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.8,
+                    value: hasProgress ? progress!.clamp(0.0, 1.0) : null,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (percent != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '$percent%',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StoryBackground extends StatelessWidget {
   const _StoryBackground({
     required this.mode,
     required this.imageBytes,
+    required this.videoPath,
     required this.imageTransform,
     required this.style,
     required this.onPickImage,
@@ -1153,12 +1418,25 @@ class _StoryBackground extends StatelessWidget {
 
   final String mode;
   final Uint8List? imageBytes;
+  final String? videoPath;
   final StoryImageTransform imageTransform;
   final StoryTextStyle style;
   final VoidCallback onPickImage;
 
   @override
   Widget build(BuildContext context) {
+    if (mode == 'video') {
+      final path = videoPath;
+      if (path == null || path.isEmpty) {
+        return const ColoredBox(color: Color(0xFF1B1D24));
+      }
+      return StoryLoopingVideoPreview(
+        key: ValueKey(path),
+        path: path,
+        transform: imageTransform,
+        style: style,
+      );
+    }
     if (mode == 'image') {
       if (imageBytes == null) {
         return Material(
@@ -1676,6 +1954,7 @@ class _IdleToolRail extends StatelessWidget {
     required this.bgEnd,
     required this.backgroundSelected,
     required this.onPickImage,
+    required this.onPickVideo,
     required this.visibilityDurationLabel,
     required this.onCycleVisibilityDuration,
     required this.onAddPoll,
@@ -1686,6 +1965,7 @@ class _IdleToolRail extends StatelessWidget {
   final int bgEnd;
   final bool backgroundSelected;
   final VoidCallback onPickImage;
+  final VoidCallback onPickVideo;
   final String visibilityDurationLabel;
   final VoidCallback onCycleVisibilityDuration;
   final VoidCallback onAddPoll;
@@ -1698,10 +1978,9 @@ class _IdleToolRail extends StatelessWidget {
       children: [
         _RoundToolButton(icon: Icons.poll_rounded, onTap: onAddPoll),
         const SizedBox(height: 10),
-        _RoundToolButton(
-          icon: Icons.photo_library_rounded,
-          onTap: onPickImage,
-        ),
+        _RoundToolButton(icon: Icons.photo_library_rounded, onTap: onPickImage),
+        const SizedBox(height: 10),
+        _RoundToolButton(icon: Icons.videocam_rounded, onTap: onPickVideo),
         const SizedBox(height: 10),
         _GradientToolButton(
           start: bgStart,

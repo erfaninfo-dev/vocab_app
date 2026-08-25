@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
@@ -14,6 +15,8 @@ import 'story_fonts.dart';
 import 'story_image_scale.dart';
 import 'story_poll_sticker.dart';
 import 'story_providers.dart';
+import 'story_video_prepare.dart';
+import 'story_video_widgets.dart';
 
 /// Story message replies in the viewer (re-enable when product is ready).
 const kStoryReplyEnabled = false;
@@ -51,8 +54,19 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   int? _answeringGrammarGameId;
   String? _answeringGrammarOptionId;
   List<StoryItem>? _sessionStories;
-  final TransformationController _storyZoomController = TransformationController();
+  final TransformationController _storyZoomController =
+      TransformationController();
   var _storyZoomInteracting = false;
+  VideoPlayerController? _videoController;
+  var _boundVideoStoryId = -1;
+  var _videoBindToken = 0;
+  var _videoReady = false;
+  var _videoFailed = false;
+  var _videoBuffering = false;
+  var _videosMuted = false;
+  var _playbackHeld = false;
+  var _videoAdvanceLocked = false;
+  var _pausedByLifecycle = false;
 
   static const _storyMaxZoom = 4.0;
 
@@ -63,7 +77,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     _progress =
         AnimationController(vsync: this, duration: const Duration(seconds: 6))
           ..addStatusListener((status) {
-            if (status == AnimationStatus.completed) _next();
+            if (status != AnimationStatus.completed) return;
+            final story = _currentStoryOrNull();
+            if (story != null && story.isVideo) return;
+            _next();
           });
     _replyFocusNode.addListener(_handleReplyFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,7 +97,21 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     _replyController.dispose();
     _replyFocusNode.dispose();
     _progress.dispose();
+    _releaseVideoSync();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _pausedByLifecycle = true;
+      _pauseProgress();
+    } else if (state == AppLifecycleState.resumed && _pausedByLifecycle) {
+      _pausedByLifecycle = false;
+      _resumeProgress();
+    }
   }
 
   void _handleReplyFocusChanged() {
@@ -452,8 +483,17 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   void _syncProgressForStory(StoryItem story, {required bool imageReady}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_shouldKeepProgressPaused(story: story, imageReady: imageReady)) {
+      if (_playbackHeld) return;
+      final mediaReady = story.isVideo ? _isStoryVideoReady(story) : imageReady;
+      if (_shouldKeepProgressPaused(story: story, imageReady: mediaReady)) {
         _progress.stop();
+      } else if (story.isVideo) {
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
+            !_videoController!.value.isPlaying) {
+          final play = _videoController!.play();
+          unawaited(play);
+        }
       } else if (!_progress.isAnimating && !_progress.isCompleted) {
         _progress.forward();
       }
@@ -461,11 +501,24 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   bool _storyHasLoadableImage(StoryItem story) {
+    if (story.isVideo) return false;
     return (story.imagePath ?? '').trim().isNotEmpty;
   }
 
   bool _storyExpectsImage(StoryItem story) {
+    if (story.isVideo) return false;
     return story.isImage || _storyHasLoadableImage(story);
+  }
+
+  bool _storyExpectsVideo(StoryItem story) => story.isVideo;
+
+  bool _isStoryVideoReady(StoryItem story) {
+    return _boundVideoStoryId == story.id && _videoReady && !_videoFailed;
+  }
+
+  bool _isStoryMediaReady(StoryItem story) {
+    if (story.isVideo) return _isStoryVideoReady(story);
+    return _isStoryImageReady(story);
   }
 
   bool _isStoryImageReady(StoryItem story) {
@@ -533,16 +586,38 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   void _startStoryProgress(StoryItem story) {
+    _videoAdvanceLocked = false;
+    _playbackHeld = false;
+    _progress.stop();
+    if (story.isVideo) {
+      _progress.value = 0;
+      unawaited(_bindVideo(story));
+      return;
+    }
+    unawaited(_releaseVideo());
+    _progress.duration = const Duration(seconds: 6);
     _progress.forward(from: 0);
     if (!_isStoryImageReady(story)) _progress.stop();
   }
 
   void _pauseProgress() {
+    _playbackHeld = true;
     if (_progress.isAnimating) _progress.stop();
+    final pause = _videoController?.pause();
+    if (pause != null) unawaited(pause);
   }
 
   void _resumeProgress() {
     if (_shouldKeepProgressPaused()) return;
+    _playbackHeld = false;
+    final story = _currentStoryOrNull();
+    if (story != null && story.isVideo) {
+      if (_isStoryVideoReady(story)) {
+        final play = _videoController?.play();
+        if (play != null) unawaited(play);
+      }
+      return;
+    }
     if (!_progress.isCompleted && !_progress.isAnimating) {
       _progress.forward();
     }
@@ -550,16 +625,176 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   bool _shouldKeepProgressPaused({StoryItem? story, bool? imageReady}) {
     if (!mounted) return false;
-    if (_isReplyComposerOpen(context) ||
-        _sendingReply ||
-        _isStoryZoomActive) {
+    if (_isReplyComposerOpen(context) || _sendingReply || _isStoryZoomActive) {
       return true;
     }
     if (_votingPollId != null || _answeringGrammarGameId != null) return true;
     final currentStory = story ?? _currentStoryOrNull();
     if (currentStory == null) return false;
     if (currentStory.hasGrammarGame) return true;
+    if (currentStory.isVideo) {
+      return !(imageReady ?? _isStoryVideoReady(currentStory));
+    }
     return !(imageReady ?? _isStoryImageReady(currentStory));
+  }
+
+  Future<void> _bindVideo(StoryItem story) async {
+    final path = (story.imagePath ?? '').trim();
+    if (path.isEmpty) {
+      setState(() {
+        _videoFailed = true;
+        _videoReady = false;
+        _boundVideoStoryId = story.id;
+      });
+      return;
+    }
+    if (_boundVideoStoryId == story.id &&
+        _videoController != null &&
+        _videoReady &&
+        !_videoFailed) {
+      if (!_playbackHeld && !_shouldKeepProgressPaused(story: story)) {
+        await _videoController?.play();
+      }
+      return;
+    }
+
+    final token = ++_videoBindToken;
+    await _releaseVideo(keepToken: true);
+    if (!mounted || token != _videoBindToken) return;
+
+    setState(() {
+      _boundVideoStoryId = story.id;
+      _videoReady = false;
+      _videoFailed = false;
+      _videoBuffering = true;
+      _progress.value = 0;
+    });
+
+    final url = apiAbsoluteMediaUrl(path);
+    late final VideoPlayerController controller;
+    try {
+      controller = await createStoryVideoController(url).timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => throw TimeoutException('Video load timed out'),
+      );
+      if (!mounted || token != _videoBindToken) {
+        unawaited(controller.dispose());
+        return;
+      }
+      await controller.initialize().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('Video load timed out'),
+      );
+      await controller.setLooping(false);
+      await controller.setVolume(_videosMuted ? 0 : 1);
+    } catch (_) {
+      try {
+        unawaited(controller.dispose());
+      } catch (_) {}
+      if (!mounted || token != _videoBindToken) return;
+      setState(() {
+        _videoFailed = true;
+        _videoReady = false;
+        _videoBuffering = false;
+      });
+      return;
+    }
+    if (!mounted || token != _videoBindToken) {
+      unawaited(controller.dispose());
+      return;
+    }
+
+    controller.addListener(_handleVideoTick);
+    _videoController = controller;
+    setState(() {
+      _videoReady = true;
+      _videoFailed = false;
+      _videoBuffering = controller.value.isBuffering;
+    });
+    if (!_shouldKeepProgressPaused(story: story, imageReady: true) &&
+        !_playbackHeld) {
+      await controller.play();
+    }
+  }
+
+  void _handleVideoTick() {
+    final controller = _videoController;
+    if (controller == null || !mounted) return;
+    final value = controller.value;
+    if (value.hasError) {
+      if (!_videoFailed) {
+        setState(() {
+          _videoFailed = true;
+          _videoReady = false;
+          _videoBuffering = false;
+        });
+      }
+      return;
+    }
+    if (!value.isInitialized) return;
+
+    if (_videoBuffering != value.isBuffering) {
+      _videoBuffering = value.isBuffering;
+      setState(() {});
+    }
+
+    final totalMs = value.duration.inMilliseconds;
+    if (totalMs <= 0) return;
+    final t = (value.position.inMilliseconds / totalMs).clamp(0.0, 1.0);
+    if ((_progress.value - t).abs() >= 0.002) {
+      _progress.value = t;
+    }
+
+    final nearEnd = value.position.inMilliseconds >= totalMs - 80;
+    if (nearEnd &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        !_playbackHeld &&
+        !_videoAdvanceLocked) {
+      _finishCurrentVideo();
+    }
+  }
+
+  void _finishCurrentVideo() {
+    if (_videoAdvanceLocked || _playbackHeld) return;
+    _videoAdvanceLocked = true;
+    _next();
+  }
+
+  Future<void> _releaseVideo({bool keepToken = false}) async {
+    final controller = _videoController;
+    _videoController = null;
+    _boundVideoStoryId = -1;
+    _videoReady = false;
+    _videoFailed = false;
+    _videoBuffering = false;
+    if (!keepToken) _videoBindToken++;
+    if (controller == null) return;
+    controller.removeListener(_handleVideoTick);
+    try {
+      unawaited(controller.pause());
+    } catch (_) {}
+    unawaited(controller.dispose());
+  }
+
+  void _releaseVideoSync() {
+    final controller = _videoController;
+    _videoController = null;
+    if (controller == null) return;
+    controller.removeListener(_handleVideoTick);
+    controller.dispose();
+  }
+
+  void _retryStoryVideo(StoryItem story) {
+    _videoReady = false;
+    _videoFailed = false;
+    unawaited(_bindVideo(story));
+  }
+
+  Future<void> _toggleVideoMuted() async {
+    _videosMuted = !_videosMuted;
+    await _videoController?.setVolume(_videosMuted ? 0 : 1);
+    if (mounted) setState(() {});
   }
 
   StoryItem? _currentStoryOrNull() {
@@ -670,16 +905,20 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
               session?.user.isAdmin == true &&
               session?.user.id == story.adminUserId;
           final imageReady = _isStoryImageReady(story);
+          final videoReady = _isStoryVideoReady(story);
+          final mediaReady = _isStoryMediaReady(story);
           final expectsImage = _storyExpectsImage(story);
+          final expectsVideo = _storyExpectsVideo(story);
           final canReply =
               kStoryReplyEnabled && session != null && story.adminUserId > 0;
           final zoomEnabled = story.textStyle.grammarGame == null;
-          _syncProgressForStory(story, imageReady: imageReady);
+          _syncProgressForStory(story, imageReady: mediaReady);
           final replyPanelHeight =
               (kStoryReplyEnabled ? 70.0 : 52.0) +
               MediaQuery.paddingOf(context).bottom;
-          final keyboardInset =
-              kStoryReplyEnabled ? MediaQuery.viewInsetsOf(context).bottom : 0.0;
+          final keyboardInset = kStoryReplyEnabled
+              ? MediaQuery.viewInsetsOf(context).bottom
+              : 0.0;
           return GestureDetector(
             onVerticalDragEnd: (details) {
               final velocity = details.primaryVelocity ?? 0;
@@ -706,6 +945,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                         _StoryBody(
                           story: story,
                           imageReady: imageReady,
+                          videoController: story.isVideo && videoReady
+                              ? _videoController
+                              : null,
                           imageLoadProgress:
                               _imageLoadProgressByStoryId[story.id],
                           onImageLoadProgress: (progress) =>
@@ -716,7 +958,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                           imageLoadRetryToken:
                               _imageLoadRetryTokenByStoryId[story.id] ?? 0,
                         ),
-                        if (imageReady && story.textStyle.poll != null)
+                        if (mediaReady && story.textStyle.poll != null)
                           _ViewerPollOverlay(
                             story: story,
                             poll: story.textStyle.poll!,
@@ -767,6 +1009,37 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                       ],
                     ),
                   ),
+                if (expectsVideo && !videoReady)
+                  Positioned.fill(
+                    bottom: replyPanelHeight,
+                    child: _videoFailed
+                        ? Center(
+                            child: _StoryImageErrorFrame(
+                              style: story.textStyle,
+                              message: 'Video did not load. Tap to retry.',
+                              onRetry: () => _retryStoryVideo(story),
+                            ),
+                          )
+                        : const _StoryImageBlockingLoadingOverlay(
+                            progress: null,
+                          ),
+                  ),
+                if (expectsVideo && videoReady && _videoBuffering)
+                  Positioned.fill(
+                    bottom: replyPanelHeight,
+                    child: const IgnorePointer(
+                      child: Center(
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.6,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (expectsImage && !imageReady)
                   Positioned.fill(
                     bottom: replyPanelHeight,
@@ -781,7 +1054,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                             progress: _imageLoadProgressByStoryId[story.id],
                           ),
                   ),
-                if (imageReady && story.textStyle.grammarGame != null)
+                if (mediaReady && story.textStyle.grammarGame != null)
                   Positioned.fill(
                     bottom: replyPanelHeight,
                     child: _ViewerGrammarGameOverlay(
@@ -813,6 +1086,11 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                           padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
                           child: _StoryHeader(
                             story: story,
+                            muted: _videosMuted,
+                            showMute: story.isVideo,
+                            onMuteToggle: story.isVideo
+                                ? () => unawaited(_toggleVideoMuted())
+                                : null,
                             onClose: () => context.pop(),
                           ),
                         ),
@@ -1006,9 +1284,7 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
                           : Colors.transparent,
                       suffixIcon: showInlineSend
                           ? Padding(
-                              padding: const EdgeInsetsDirectional.only(
-                                end: 4,
-                              ),
+                              padding: const EdgeInsetsDirectional.only(end: 4),
                               child: _InlineReplySendButton(
                                 enabled:
                                     widget.enabled &&
@@ -1116,18 +1392,13 @@ class _StoryReplyPanelState extends State<_StoryReplyPanel> {
             IconButton(
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(
-                width: 30,
-                height: 38,
-              ),
+              constraints: const BoxConstraints.tightFor(width: 30, height: 38),
               onPressed: widget.onLike,
               icon: Icon(
                 widget.liked
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                color: widget.liked
-                    ? const Color(0xFFFF2D55)
-                    : Colors.white,
+                color: widget.liked ? const Color(0xFFFF2D55) : Colors.white,
                 size: 27,
               ),
             ),
@@ -1247,6 +1518,7 @@ class _StoryBody extends StatelessWidget {
   const _StoryBody({
     required this.story,
     required this.imageReady,
+    required this.videoController,
     required this.imageLoadProgress,
     required this.onImageLoadProgress,
     required this.onImageLoadComplete,
@@ -1256,6 +1528,7 @@ class _StoryBody extends StatelessWidget {
 
   final StoryItem story;
   final bool imageReady;
+  final VideoPlayerController? videoController;
   final double? imageLoadProgress;
   final ValueChanged<double?> onImageLoadProgress;
   final VoidCallback onImageLoadComplete;
@@ -1269,11 +1542,15 @@ class _StoryBody extends StatelessWidget {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final layers = story.textStyle.layers;
         final imagePath = (story.imagePath ?? '').trim();
+        final showImage = !story.isVideo && imagePath.isNotEmpty && imageReady;
+        final prefetchImage =
+            !story.isVideo && imagePath.isNotEmpty && !imageReady;
+        final mediaReady = story.isVideo ? videoController != null : imageReady;
         return Stack(
           fit: StackFit.expand,
           children: [
             _StoryTextBackground(style: story.textStyle),
-            if (imagePath.isNotEmpty && !imageReady)
+            if (prefetchImage)
               Offstage(
                 child: _StoryImagePrefetch(
                   key: ValueKey(
@@ -1285,16 +1562,21 @@ class _StoryBody extends StatelessWidget {
                   onFailed: onImageLoadFailed,
                 ),
               ),
-            if (imagePath.isNotEmpty && imageReady)
+            if (story.isVideo && videoController != null)
+              StoryTransformedVideo(
+                controller: videoController!,
+                transform: story.textStyle.imageTransform,
+              ),
+            if (showImage)
               _StoryImageDisplay(
                 imagePath: imagePath,
                 transform: story.textStyle.imageTransform,
                 style: story.textStyle,
               ),
-            if (imageReady && layers.isNotEmpty)
+            if (mediaReady && layers.isNotEmpty)
               for (final layer in layers)
                 _StoryLayerView(layer: layer, canvasSize: size)
-            else if (imageReady && (story.textContent ?? '').trim().isNotEmpty)
+            else if (mediaReady && (story.textContent ?? '').trim().isNotEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
@@ -1778,10 +2060,15 @@ class _StoryImageDisplayState extends State<_StoryImageDisplay> {
 }
 
 class _StoryImageErrorFrame extends StatelessWidget {
-  const _StoryImageErrorFrame({required this.style, required this.onRetry});
+  const _StoryImageErrorFrame({
+    required this.style,
+    required this.onRetry,
+    this.message = 'Image did not load. Tap to retry.',
+  });
 
   final StoryTextStyle style;
   final VoidCallback onRetry;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -1800,17 +2087,21 @@ class _StoryImageErrorFrame extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(22),
             onTap: onRetry,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, color: Colors.white, size: 28),
-                  SizedBox(height: 8),
+                  const Icon(
+                    Icons.refresh_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    'Image did not load. Tap to retry.',
+                    message,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                     ),
@@ -2359,10 +2650,19 @@ class _ProgressBars extends StatelessWidget {
 }
 
 class _StoryHeader extends StatelessWidget {
-  const _StoryHeader({required this.story, required this.onClose});
+  const _StoryHeader({
+    required this.story,
+    required this.onClose,
+    this.showMute = false,
+    this.muted = false,
+    this.onMuteToggle,
+  });
 
   final StoryItem story;
   final VoidCallback onClose;
+  final bool showMute;
+  final bool muted;
+  final VoidCallback? onMuteToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -2394,6 +2694,15 @@ class _StoryHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (showMute)
+          IconButton(
+            tooltip: muted ? 'Unmute' : 'Mute',
+            onPressed: onMuteToggle,
+            icon: Icon(
+              muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+              color: Colors.white,
+            ),
+          ),
         IconButton(
           onPressed: onClose,
           icon: const Icon(Icons.close_rounded, color: Colors.white),
