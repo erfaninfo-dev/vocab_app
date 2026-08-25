@@ -183,7 +183,11 @@ class _WindowsInstallReadyDialogState extends State<_WindowsInstallReadyDialog> 
       _launching = true;
       _failed = false;
     });
-    final status = await launchWindowsUpdate(widget.packagePath);
+    final status = await launchWindowsUpdate(widget.packagePath)
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => WindowsUpdateLaunchStatus.failed,
+        );
     if (!mounted) return;
     if (status == WindowsUpdateLaunchStatus.launched) {
       Navigator.of(context, rootNavigator: true).pop();

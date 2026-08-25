@@ -11,11 +11,10 @@ const _kDownloadUserAgent =
 
 const _kWindowsZipFileName = 'erfan_academy_update.zip';
 const _kWindowsExeFileName = 'erfan_academy_update.exe';
-const _kUpdaterScriptName = 'erfan_academy_updater.ps1';
 const _kUpdaterBatchName = 'erfan_academy_updater.cmd';
 const _kUpdaterLogName = 'erfan_academy_update.log';
 
-/// Primary log: next to the running exe (easy to find). Fallback: system temp.
+/// Primary log: next to the running exe. Fallback: system temp.
 Future<List<String>> windowsUpdateLogPaths() async {
   final exeDir = File(Platform.resolvedExecutable).parent.path;
   final temp = await getTemporaryDirectory();
@@ -144,7 +143,6 @@ Future<WindowsUpdateLaunchStatus> _launchZipUpdater(String zipPath) async {
   final processId = pid;
 
   final tempDir = await getTemporaryDirectory();
-  final scriptPath = '${tempDir.path}\\$_kUpdaterScriptName';
   final batchPath = '${tempDir.path}\\$_kUpdaterBatchName';
   final logPaths = await windowsUpdateLogPaths();
   final logPath = logPaths.first;
@@ -155,168 +153,99 @@ Future<WindowsUpdateLaunchStatus> _launchZipUpdater(String zipPath) async {
   await _appendUpdaterLog(logPath, 'Dart: exe=$exePath');
   await _appendUpdaterLog(logPath, 'Dart: pid=$processId');
 
-  const scriptTemplate = r'''
-param(
-  [string]$ZipPath,
-  [string]$TargetDir,
-  [string]$ExePath,
-  [int]$WaitPid,
-  [string]$LogFile
+  // Single batch file — no separate .ps1 (avoids -File param / encoding issues).
+  const batchTemplate = r'''
+@echo off
+setlocal EnableDelayedExpansion
+set "LOG=%~1"
+set "ZIP=%~2"
+set "DIR=%~3"
+set "EXE=%~4"
+set "WAITPID=%~5"
+call :WriteLog "Updater.cmd started"
+call :WriteLog "ZIP=%ZIP%"
+call :WriteLog "DIR=%DIR%"
+call :WriteLog "EXE=%EXE%"
+call :WriteLog "WAITPID=%WAITPID%"
+
+set /a WAITSEC=0
+:WaitLoop
+tasklist /FI "PID eq %WAITPID%" 2>NUL | find /I "%WAITPID%" >NUL
+if not errorlevel 1 (
+  timeout /t 1 /nobreak >NUL
+  set /a WAITSEC+=1
+  if !WAITSEC! lss 90 goto WaitLoop
+)
+call :WriteLog "Wait loop done (%WAITSEC%s)"
+timeout /t 3 /nobreak >NUL
+
+set "EXTRACT=%TEMP%\erfan_academy_update_extract"
+if exist "%EXTRACT%" rd /s /q "%EXTRACT%"
+mkdir "%EXTRACT%" 2>NUL
+call :WriteLog "Expanding archive..."
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -Path '%ZIP%' -DestinationPath '%EXTRACT%' -Force; exit 0 } catch { Write-Error $_; exit 1 }" >> "%LOG%" 2>&1
+if errorlevel 1 (
+  call :WriteLog "Expand-Archive FAILED"
+  goto Relaunch
 )
 
-function Log([string]$Msg) {
-  try {
-    Add-Content -LiteralPath $LogFile -Value "$(Get-Date -Format o) $Msg"
-  } catch {}
-}
+set "SRC=%EXTRACT%"
+if exist "%EXTRACT%\Release\" set "SRC=%EXTRACT%\Release"
+call :WriteLog "Copy source=%SRC%"
 
-$ErrorActionPreference = "Continue"
-Log "PowerShell updater started"
-Log "Zip=$ZipPath"
-Log "Target=$TargetDir"
-Log "Exe=$ExePath"
-Log "WaitPid=$WaitPid"
+set /a COPYTRY=0
+:CopyLoop
+set /a COPYTRY+=1
+robocopy "%SRC%" "%DIR%" /E /COPY:DAT /R:3 /W:2 /NFL /NDL /NJH /NJS /NP >> "%LOG%" 2>&1
+set RC=!ERRORLEVEL!
+if !RC! geq 0 if !RC! leq 7 (
+  call :WriteLog "robocopy ok code=!RC! try=!COPYTRY!"
+  goto Relaunch
+)
+call :WriteLog "robocopy code=!RC! try=!COPYTRY!"
+if !COPYTRY! lss 6 (
+  timeout /t 2 /nobreak >NUL
+  goto CopyLoop
+)
 
-try {
-  Wait-Process -Id $WaitPid -ErrorAction SilentlyContinue
-} catch {
-  Log "Wait-Process: $_"
-}
+:Relaunch
+call :WriteLog "Starting app..."
+start "" /D "%DIR%" "%EXE%"
+call :WriteLog "Updater.cmd finished"
+exit /b 0
 
-$exeName = [System.IO.Path]::GetFileNameWithoutExtension($ExePath)
-for ($i = 0; $i -lt 45; $i++) {
-  $running = Get-Process -Name $exeName -ErrorAction SilentlyContinue
-  if (-not $running) { break }
-  Start-Sleep -Seconds 1
-}
-Start-Sleep -Seconds 3
-Log "App process ended"
-
-$temp = Join-Path $env:TEMP "erfan_academy_update_extract"
-try {
-  if (Test-Path -LiteralPath $temp) {
-    Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
-  }
-  New-Item -ItemType Directory -Path $temp -Force | Out-Null
-  Expand-Archive -LiteralPath $ZipPath -DestinationPath $temp -Force
-  $src = $temp
-  $releaseDir = Join-Path $temp "Release"
-  if (Test-Path -LiteralPath $releaseDir) { $src = $releaseDir }
-  Log "Extracted to $src"
-
-  $copied = $false
-  for ($attempt = 1; $attempt -le 8; $attempt++) {
-    $robocopy = Get-Command robocopy -ErrorAction SilentlyContinue
-    if ($robocopy) {
-      $null = & robocopy $src $TargetDir /E /COPY:DAT /R:5 /W:2 /NFL /NDL /NJH /NJS /NP
-      $code = $LASTEXITCODE
-      if ($code -ge 0 -and $code -le 7) {
-        Log "robocopy ok (code $code) attempt $attempt"
-        $copied = $true
-        break
-      }
-      Log "robocopy code $code attempt $attempt"
-    } else {
-      try {
-        Copy-Item -Path (Join-Path $src '*') -Destination $TargetDir -Recurse -Force -ErrorAction Stop
-        Log "Copy-Item ok attempt $attempt"
-        $copied = $true
-        break
-      } catch {
-        Log "Copy-Item failed attempt $attempt: $_"
-      }
-    }
-    Start-Sleep -Seconds 2
-  }
-  if (-not $copied) {
-    Log "Copy did not succeed; will still try relaunch"
-  }
-} catch {
-  Log "Extract/copy error: $_"
-}
-
-Log "Relaunching $ExePath"
-$relaunched = $false
-try {
-  Start-Process -LiteralPath $ExePath -WorkingDirectory $TargetDir
-  Log "Start-Process ok"
-  $relaunched = $true
-} catch {
-  Log "Start-Process failed: $_"
-}
-
-if (-not $relaunched) {
-  try {
-    $arg = 'start "" /D "' + $TargetDir + '" "' + $ExePath + '"'
-    Start-Process -FilePath "cmd.exe" -ArgumentList '/c', $arg -WindowStyle Hidden
-    Log "cmd start ok"
-    $relaunched = $true
-  } catch {
-    Log "cmd start failed: $_"
-  }
-}
-
-if (-not $relaunched) {
-  try {
-    $shell = New-Object -ComObject WScript.Shell
-    $shell.WorkingDirectory = $TargetDir
-    $null = $shell.Run('"' + $ExePath + '"', 1, $false)
-    Log "WScript.Shell Run ok"
-  } catch {
-    Log "WScript.Shell failed: $_"
-  }
-}
-
-try {
-  if (Test-Path -LiteralPath $temp) {
-    Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
-  }
-} catch {}
-
-Log "Updater finished"
+:WriteLog
+echo [%date% %time%] %~1 >> "%LOG%"
+exit /b 0
 ''';
 
-  await File(scriptPath).writeAsString(scriptTemplate, flush: true);
-
-  // Batch wrapper logs immediately and spawns PowerShell via quoted paths (spaces-safe).
-  final batchContent = '''
-@echo off
-set "LOG=$logPath"
-set "PS1=$scriptPath"
-set "ZIP=$zipPath"
-set "DIR=$installDir"
-set "EXE=$exePath"
-echo [%date% %time%] Updater.cmd started >> "%LOG%"
-powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%PS1%" -ZipPath "%ZIP%" -TargetDir "%DIR%" -ExePath "%EXE%" -WaitPid $processId -LogFile "%LOG%"
-echo [%date% %time%] Updater.cmd finished (exit %ERRORLEVEL%) >> "%LOG%"
-''';
-
-  await File(batchPath).writeAsString(batchContent, flush: true);
-  await _appendUpdaterLog(logPath, 'Dart: wrote script and batch');
+  await File(batchPath).writeAsString(batchTemplate, flush: true);
+  await _appendUpdaterLog(logPath, 'Dart: wrote batch $batchPath');
 
   try {
-  // `start` creates a process that survives parent exit (unlike detached PowerShell alone).
-    final result = await Process.run(
+    // Detached child — do not wait (Process.run + start was blocking UI).
+    await Process.start(
       'cmd.exe',
       [
         '/c',
         'start',
         '""',
         '/min',
+        'cmd.exe',
+        '/c',
         batchPath,
+        logPath,
+        zipPath,
+        installDir,
+        exePath,
+        '$processId',
       ],
-      runInShell: false,
+      mode: ProcessStartMode.detached,
     );
-    await _appendUpdaterLog(
-      logPath,
-      'Dart: cmd start exit=${result.exitCode} stderr=${result.stderr}',
-    );
-    if (result.exitCode != 0) {
-      return WindowsUpdateLaunchStatus.failed;
-    }
+    await _appendUpdaterLog(logPath, 'Dart: updater spawned (detached)');
     return WindowsUpdateLaunchStatus.launched;
   } catch (e) {
-    await _appendUpdaterLog(logPath, 'Dart: cmd start failed: $e');
+    await _appendUpdaterLog(logPath, 'Dart: spawn failed: $e');
     return WindowsUpdateLaunchStatus.failed;
   }
 }
