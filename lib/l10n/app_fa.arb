@@ -550,8 +550,28 @@
   "grammarCouldNotLoadTopics": "بارگذاری موضوعات گرامر ممکن نشد. دوباره تلاش کنید.",
   "grammarNoTopicsEmpty": "هنوز موضوع گرامی نیست.\nبه جدول سؤالات ردیف اضافه کنید (ستون content = نام موضوع).",
   "grammarStudyPdfTooltip": "مطالب آموزشی (PDF)",
+  "grammarStudyPdfDownloading": "در حال دانلود PDF آموزشی…",
   "grammarStudyPdfOpenError": "باز کردن PDF آموزشی ممکن نشد.",
   "grammarStudyPdfOpenExternally": "باز کردن بیرون از اپ",
+  "grammarStudyPdfPickerTitle": "آموزش: {topic}",
+  "@grammarStudyPdfPickerTitle": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "grammarStudyPdfPickerSubtitle": "{count, plural, =1{۱ فایل موجود است} other{{count} فایل موجود است}}",
+  "@grammarStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "grammarStudyPdfView": "مشاهده",
+  "grammarStudyPdfPartLabel": "بخش",
+  "grammarStudyPdfUnavailable": "فایل آموزشی هنوز آماده نیست",
   "grammarNotEnoughInBank": "سؤال کافی در بانک برای این انتخاب نیست (حداقل {minRequired} لازم است).",
   "grammarNoQuestions": "برای موضوعات انتخاب‌شده سؤالی یافت نشد.",
   "grammarTopicsPick": "موضوعات و طول جلسه را انتخاب کنید",

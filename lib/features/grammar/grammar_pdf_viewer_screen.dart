@@ -2,21 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/cache/grammar_topic_pdf_cache.dart';
 import '../../l10n/app_localizations.dart';
+import 'grammar_pdf_document_source.dart';
 
 /// Full-screen in-app PDF viewer for a grammar topic's study material.
 ///
-/// Supports pinch-to-zoom (built into [SfPdfViewer] by default) plus an
-/// explicit +/- zoom control for users who prefer tapping over pinching.
+/// The PDF is downloaded once and stored on device; later opens load from cache.
 class GrammarPdfViewerScreen extends StatefulWidget {
   const GrammarPdfViewerScreen({
     super.key,
     required this.title,
     required this.pdfUrl,
+    this.cacheVersion,
   });
 
   final String title;
   final String pdfUrl;
+  final String? cacheVersion;
 
   @override
   State<GrammarPdfViewerScreen> createState() =>
@@ -31,12 +34,58 @@ class _GrammarPdfViewerScreenState extends State<GrammarPdfViewerScreen> {
   final _pdfController = PdfViewerController();
   bool _loadFailed = false;
   bool _isReady = false;
+  bool _preparing = true;
+  String? _localPath;
+  int _loadAttempt = 0;
   double _zoomLevel = _minZoom;
+
+  @override
+  void initState() {
+    super.initState();
+    _preparePdf();
+  }
 
   @override
   void dispose() {
     _pdfController.dispose();
     super.dispose();
+  }
+
+  Future<void> _preparePdf() async {
+    setState(() {
+      _preparing = true;
+      _loadFailed = false;
+      _isReady = false;
+      _localPath = null;
+    });
+
+    try {
+      final path = await GrammarTopicPdfCache.instance.ensureCached(
+        pdfUrl: widget.pdfUrl,
+        contentVersion: widget.cacheVersion,
+      );
+      if (!mounted) return;
+      setState(() {
+        _localPath = path;
+        _preparing = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _preparing = false;
+        _loadFailed = true;
+      });
+    }
+  }
+
+  Future<void> _retry() async {
+    await GrammarTopicPdfCache.instance.invalidate(
+      pdfUrl: widget.pdfUrl,
+      contentVersion: widget.cacheVersion,
+    );
+    if (!mounted) return;
+    setState(() => _loadAttempt++);
+    await _preparePdf();
   }
 
   Future<void> _openExternally() async {
@@ -74,33 +123,52 @@ class _GrammarPdfViewerScreenState extends State<GrammarPdfViewerScreen> {
           ),
         ],
       ),
-      body: _loadFailed
+      body: _preparing
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.grammarStudyPdfDownloading,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            )
+          : _loadFailed
           ? _PdfLoadError(
               message: l10n.grammarStudyPdfOpenError,
               retryLabel: l10n.retry,
               openExternallyLabel: l10n.grammarStudyPdfOpenExternally,
-              onRetry: () => setState(() => _loadFailed = false),
+              onRetry: _retry,
               onOpenExternally: _openExternally,
             )
           : Stack(
               children: [
-                SfPdfViewer.network(
-                  widget.pdfUrl,
-                  controller: _pdfController,
-                  canShowPaginationDialog: true,
-                  maxZoomLevel: _maxZoom,
-                  onZoomLevelChanged: (details) {
-                    if (!mounted) return;
-                    setState(() => _zoomLevel = details.newZoomLevel);
-                  },
-                  onDocumentLoadFailed: (details) {
-                    if (!mounted) return;
-                    setState(() => _loadFailed = true);
-                  },
-                  onDocumentLoaded: (details) {
-                    if (!mounted) return;
-                    setState(() => _isReady = true);
-                  },
+                KeyedSubtree(
+                  key: ValueKey<String>(
+                    '${_localPath ?? widget.pdfUrl}|$_loadAttempt',
+                  ),
+                  child: buildGrammarPdfDocument(
+                    localPath: _localPath,
+                    pdfUrl: widget.pdfUrl,
+                    controller: _pdfController,
+                    maxZoomLevel: _maxZoom,
+                    onZoomLevelChanged: (details) {
+                      if (!mounted) return;
+                      setState(() => _zoomLevel = details.newZoomLevel);
+                    },
+                    onDocumentLoadFailed: (details) {
+                      if (!mounted) return;
+                      setState(() => _loadFailed = true);
+                    },
+                    onDocumentLoaded: (details) {
+                      if (!mounted) return;
+                      setState(() => _isReady = true);
+                    },
+                  ),
                 ),
                 if (!_isReady)
                   const Center(child: CircularProgressIndicator()),

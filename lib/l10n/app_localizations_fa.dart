@@ -1642,10 +1642,38 @@ class AppLocalizationsFa extends AppLocalizations {
   String get grammarStudyPdfTooltip => 'مطالب آموزشی (PDF)';
 
   @override
+  String get grammarStudyPdfDownloading => 'در حال دانلود PDF آموزشی…';
+
+  @override
   String get grammarStudyPdfOpenError => 'باز کردن PDF آموزشی ممکن نشد.';
 
   @override
   String get grammarStudyPdfOpenExternally => 'باز کردن بیرون از اپ';
+
+  @override
+  String grammarStudyPdfPickerTitle(String topic) {
+    return 'آموزش: $topic';
+  }
+
+  @override
+  String grammarStudyPdfPickerSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count فایل موجود است',
+      one: '۱ فایل موجود است',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get grammarStudyPdfView => 'مشاهده';
+
+  @override
+  String get grammarStudyPdfPartLabel => 'بخش';
+
+  @override
+  String get grammarStudyPdfUnavailable => 'فایل آموزشی هنوز آماده نیست';
 
   @override
   String grammarNotEnoughInBank(int minRequired) {

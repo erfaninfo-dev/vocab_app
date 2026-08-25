@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/cache/api_disk_cache.dart';
+import 'core/cache/grammar_topic_pdf_cache.dart';
 import 'core/auth/auth_provider.dart';
 import 'data/models/auth_user.dart';
 import 'core/locale/app_localizations_proxy_delegate.dart';
@@ -27,6 +28,7 @@ import 'l10n/app_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiDiskCache.instance.init();
+  await GrammarTopicPdfCache.instance.init();
   await initNotifications();
   runApp(const ProviderScope(child: IeltsVocabApp()));
 }

@@ -2950,6 +2950,12 @@ abstract class AppLocalizations {
   /// **'Study material (PDF)'**
   String get grammarStudyPdfTooltip;
 
+  /// No description provided for @grammarStudyPdfDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading study PDF…'**
+  String get grammarStudyPdfDownloading;
+
   /// No description provided for @grammarStudyPdfOpenError.
   ///
   /// In en, this message translates to:
@@ -2961,6 +2967,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open externally'**
   String get grammarStudyPdfOpenExternally;
+
+  /// No description provided for @grammarStudyPdfPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Study: {topic}'**
+  String grammarStudyPdfPickerTitle(String topic);
+
+  /// No description provided for @grammarStudyPdfPickerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file available} other{{count} files available}}'**
+  String grammarStudyPdfPickerSubtitle(int count);
+
+  /// No description provided for @grammarStudyPdfView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get grammarStudyPdfView;
+
+  /// No description provided for @grammarStudyPdfPartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Part'**
+  String get grammarStudyPdfPartLabel;
+
+  /// No description provided for @grammarStudyPdfUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Study material not available yet'**
+  String get grammarStudyPdfUnavailable;
 
   /// No description provided for @grammarNotEnoughInBank.
   ///

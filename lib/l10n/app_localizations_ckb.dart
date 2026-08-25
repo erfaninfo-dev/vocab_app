@@ -1652,10 +1652,38 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get grammarStudyPdfTooltip => 'بابەتی خوێندن (PDF)';
 
   @override
+  String get grammarStudyPdfDownloading => 'PDF ی خوێندن دادەگیرێت…';
+
+  @override
   String get grammarStudyPdfOpenError => 'نەتوانرا PDF ی خوێندن بکرێتەوە.';
 
   @override
   String get grammarStudyPdfOpenExternally => 'کردنەوە لە دەرەوەی ئەپ';
+
+  @override
+  String grammarStudyPdfPickerTitle(String topic) {
+    return 'خوێندن: $topic';
+  }
+
+  @override
+  String grammarStudyPdfPickerSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count فایل بەردەستە',
+      one: '١ فایل بەردەستە',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get grammarStudyPdfView => 'بینین';
+
+  @override
+  String get grammarStudyPdfPartLabel => 'بەش';
+
+  @override
+  String get grammarStudyPdfUnavailable => 'فایلی خوێندن هێشتا ئامادە نییە';
 
   @override
   String grammarNotEnoughInBank(int minRequired) {

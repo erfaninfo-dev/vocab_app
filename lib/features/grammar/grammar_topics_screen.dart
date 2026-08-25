@@ -13,21 +13,55 @@ import '../../data/models/admin_story.dart';
 import '../../data/models/grammar_book.dart';
 import '../../data/models/grammar_question.dart';
 import '../../data/models/grammar_topic_summary.dart';
+import '../../data/models/grammar_topic_pdf.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
 import 'grammar_pdf_viewer_screen.dart';
+import 'grammar_topic_pdf_picker_sheet.dart';
 
 /// Set to `true` to show the Grammar League banner above books again.
 const bool kGrammarShowLeagueBannerOnTopicsScreen = true;
 const bool kGrammarShowBooksOnTopicsScreen = false;
 
-void _openGrammarTopicPdf(BuildContext context, String topic, String pdfUrl) {
+void _openGrammarTopicPdf(
+  BuildContext context, {
+  required GrammarTopicPdf pdf,
+}) {
+  final l10n = AppLocalizations.of(context)!;
   Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => GrammarPdfViewerScreen(title: topic, pdfUrl: pdfUrl),
+      builder: (_) => GrammarPdfViewerScreen(
+        title: pdf.displayTitle(
+          fallbackPrefix: l10n.grammarStudyPdfPartLabel,
+        ),
+        pdfUrl: pdf.pdfUrl,
+        cacheVersion: pdf.cacheVersion,
+      ),
     ),
+  );
+}
+
+Future<void> _openTopicStudyPdfs({
+  required BuildContext context,
+  required String topic,
+  required List<GrammarTopicPdf> pdfs,
+  required Color accent,
+}) async {
+  if (pdfs.isEmpty) return;
+
+  if (pdfs.length == 1) {
+    _openGrammarTopicPdf(context, pdf: pdfs.first);
+    return;
+  }
+
+  await GrammarTopicPdfPickerSheet.show(
+    context: context,
+    topic: topic,
+    pdfs: pdfs,
+    accent: accent,
+    onPdfSelected: (pdf) => _openGrammarTopicPdf(context, pdf: pdf),
   );
 }
 
@@ -487,7 +521,12 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                             _adminNewToggleFadingOut.contains(
                                               t.topic,
                                             ));
-                                    final pdfUrl = topicPdfs[t.topic.trim()];
+                                    final pdfRows = topicPdfs[t.topic.trim()];
+                                    final accents = _cardAccents(index);
+                                    final hasPdfRow = pdfRows != null;
+                                    final pdfs =
+                                        pdfRows?.where((p) => p.hasValidUrl).toList() ??
+                                        const <GrammarTopicPdf>[];
                                     return Directionality(
                                       textDirection: TextDirection.ltr,
                                       child: _TopicCard(
@@ -516,12 +555,14 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                                 isNew: value,
                                               )
                                             : null,
-                                        onOpenPdf: pdfUrl == null
+                                        showStudyPdfButton: hasPdfRow,
+                                        onOpenPdf: pdfs.isEmpty
                                             ? null
-                                            : () => _openGrammarTopicPdf(
-                                                context,
-                                                t.topic,
-                                                pdfUrl,
+                                            : () => _openTopicStudyPdfs(
+                                                context: context,
+                                                topic: t.topic,
+                                                pdfs: pdfs,
+                                                accent: accents.first,
                                               ),
                                       ),
                                     );
@@ -1665,29 +1706,44 @@ class _AdminNewToggleChip extends StatelessWidget {
 
 class _StudyPdfButton extends StatelessWidget {
   const _StudyPdfButton({
+    required this.enabled,
     required this.onTap,
     required this.accent,
     required this.tooltip,
   });
 
-  final VoidCallback onTap;
+  final bool enabled;
+  final VoidCallback? onTap;
   final Color accent;
   final String tooltip;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final iconColor = enabled ? accent : scheme.onSurfaceVariant;
+
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.14),
-            shape: BoxShape.circle,
+        onTap: enabled ? onTap : null,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.42,
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: enabled
+                  ? accent.withValues(alpha: 0.14)
+                  : scheme.surfaceContainerHighest.withValues(alpha: 0.72),
+              shape: BoxShape.circle,
+              border: enabled
+                  ? null
+                  : Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.55),
+                    ),
+            ),
+            child: Icon(Icons.menu_book_rounded, size: 26, color: iconColor),
           ),
-          child: Icon(Icons.menu_book_rounded, size: 26, color: accent),
         ),
       ),
     );
@@ -1709,6 +1765,7 @@ class _TopicCard extends StatelessWidget {
     this.onLongPress,
     this.onAdminNewToggle,
     this.onOpenPdf,
+    this.showStudyPdfButton = false,
   });
 
   final String title;
@@ -1724,8 +1781,10 @@ class _TopicCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final ValueChanged<bool>? onAdminNewToggle;
 
-  /// Opens the topic's study PDF. Null when the topic has no PDF attached —
-  /// the study button is hidden in that case.
+  /// Row exists in grammar_topic_pdfs; button shown enabled/disabled accordingly.
+  final bool showStudyPdfButton;
+
+  /// Opens the topic's study PDF when enabled. Null = disabled (empty pdf_url).
   final VoidCallback? onOpenPdf;
 
   @override
@@ -1827,13 +1886,18 @@ class _TopicCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (onOpenPdf != null) ...[
+                        if (showStudyPdfButton) ...[
                           _StudyPdfButton(
-                            onTap: onOpenPdf!,
+                            enabled: onOpenPdf != null,
+                            onTap: onOpenPdf,
                             accent: accents.first,
-                            tooltip: AppLocalizations.of(
-                              context,
-                            )!.grammarStudyPdfTooltip,
+                            tooltip: onOpenPdf != null
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.grammarStudyPdfTooltip
+                                : AppLocalizations.of(
+                                    context,
+                                  )!.grammarStudyPdfUnavailable,
                           ),
                           const SizedBox(width: 8),
                         ],

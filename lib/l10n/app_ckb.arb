@@ -550,8 +550,28 @@
   "grammarCouldNotLoadTopics": "بارکردنی بابەتەکانی ڕێزمان سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.",
   "grammarNoTopicsEmpty": "هێشتا بابەتی ڕێزمان نییە.\nڕیزەکان بۆ خشتەی پرسیارەکان زیاد بکە (ستوونی ناوەڕۆک = ناوی بابەت).",
   "grammarStudyPdfTooltip": "بابەتی خوێندن (PDF)",
+  "grammarStudyPdfDownloading": "PDF ی خوێندن دادەگیرێت…",
   "grammarStudyPdfOpenError": "نەتوانرا PDF ی خوێندن بکرێتەوە.",
   "grammarStudyPdfOpenExternally": "کردنەوە لە دەرەوەی ئەپ",
+  "grammarStudyPdfPickerTitle": "خوێندن: {topic}",
+  "@grammarStudyPdfPickerTitle": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "grammarStudyPdfPickerSubtitle": "{count, plural, =1{١ فایل بەردەستە} other{{count} فایل بەردەستە}}",
+  "@grammarStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "grammarStudyPdfView": "بینین",
+  "grammarStudyPdfPartLabel": "بەش",
+  "grammarStudyPdfUnavailable": "فایلی خوێندن هێشتا ئامادە نییە",
   "grammarNotEnoughInBank": "پرسیاری پێویست لە بانکدا نییە بۆ ئەم هەڵبژاردنە (کەمترین {minRequired} پێویستە).",
   "grammarNoQuestions": "بۆ بابەتە هەڵبژێردراوەکان پرسیار نەدۆزرایەوە.",
   "grammarTopicsPick": "بابەت و درێژی دانیشتن هەڵبژێرە",

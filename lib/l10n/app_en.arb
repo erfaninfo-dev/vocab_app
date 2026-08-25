@@ -692,8 +692,28 @@
   "grammarCouldNotLoadTopics": "Could not load grammar topics. Please try again.",
   "grammarNoTopicsEmpty": "No grammar topics yet.\nAdd rows to your questions table (column content = topic name).",
   "grammarStudyPdfTooltip": "Study material (PDF)",
+  "grammarStudyPdfDownloading": "Downloading study PDF…",
   "grammarStudyPdfOpenError": "Couldn't open the study PDF.",
   "grammarStudyPdfOpenExternally": "Open externally",
+  "grammarStudyPdfPickerTitle": "Study: {topic}",
+  "@grammarStudyPdfPickerTitle": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "grammarStudyPdfPickerSubtitle": "{count, plural, =1{1 file available} other{{count} files available}}",
+  "@grammarStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "grammarStudyPdfView": "View",
+  "grammarStudyPdfPartLabel": "Part",
+  "grammarStudyPdfUnavailable": "Study material not available yet",
   "grammarNotEnoughInBank": "Not enough questions in the bank for this selection (need at least {minRequired}).",
   "@grammarNotEnoughInBank": {
     "placeholders": {

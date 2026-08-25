@@ -1643,10 +1643,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grammarStudyPdfTooltip => 'Study material (PDF)';
 
   @override
+  String get grammarStudyPdfDownloading => 'Downloading study PDF…';
+
+  @override
   String get grammarStudyPdfOpenError => 'Couldn\'t open the study PDF.';
 
   @override
   String get grammarStudyPdfOpenExternally => 'Open externally';
+
+  @override
+  String grammarStudyPdfPickerTitle(String topic) {
+    return 'Study: $topic';
+  }
+
+  @override
+  String grammarStudyPdfPickerSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files available',
+      one: '1 file available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get grammarStudyPdfView => 'View';
+
+  @override
+  String get grammarStudyPdfPartLabel => 'Part';
+
+  @override
+  String get grammarStudyPdfUnavailable => 'Study material not available yet';
 
   @override
   String grammarNotEnoughInBank(int minRequired) {

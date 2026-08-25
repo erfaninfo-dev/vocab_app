@@ -136,18 +136,29 @@ final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
 
 // ─── Grammar topic study PDFs ─────────────────────────────────────────────────
 // Corresponds to: GET /grammar_topic_pdfs.php
-// Exposed pre-indexed by topic name for O(1) lookup from the topics screen.
+// Grouped by topic name; each value is sorted by sort_order.
 
-final apiGrammarTopicPdfsProvider = FutureProvider<Map<String, String>>((
-  ref,
-) async {
+final apiGrammarTopicPdfsProvider =
+    FutureProvider<Map<String, List<GrammarTopicPdf>>>((ref) async {
   ref.watch(apiRemoteDataEpochProvider);
   final pdfs = await ref.read(apiServiceProvider).fetchGrammarTopicPdfs();
-  return {
-    for (final p in pdfs)
-      if (p.topic.trim().isNotEmpty && p.pdfUrl.trim().isNotEmpty)
-        p.topic.trim(): p.pdfUrl.trim(),
-  };
+  final map = <String, List<GrammarTopicPdf>>{};
+  for (final pdf in pdfs) {
+    final topic = pdf.topic.trim();
+    if (topic.isEmpty) continue;
+    map.putIfAbsent(topic, () => []);
+    if (pdf.hasValidUrl) {
+      map[topic]!.add(pdf);
+    }
+  }
+  for (final list in map.values) {
+    list.sort((a, b) {
+      final byOrder = a.sortOrder.compareTo(b.sortOrder);
+      if (byOrder != 0) return byOrder;
+      return a.id.compareTo(b.id);
+    });
+  }
+  return map;
 });
 
 final apiGrammarBooksProvider = FutureProvider<List<GrammarBook>>((ref) {
