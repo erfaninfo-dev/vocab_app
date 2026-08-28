@@ -126,6 +126,27 @@
   "unitPlural": "یونیت",
   "loadingEllipsis": "در حال بارگذاری…",
   "tapToOpen": "برای باز کردن بزنید",
+  "bookStudyPdfTooltip": "مطالب آموزشی (PDF)",
+  "bookStudyPdfOpen": "PDF",
+  "bookStudyPdfPickerTitle": "آموزش: {bookTitle}",
+  "@bookStudyPdfPickerTitle": {
+    "placeholders": {
+      "bookTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "bookStudyPdfPickerSubtitle": "{count, plural, =1{۱ فایل موجود است} other{{count} فایل موجود است}}",
+  "@bookStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookStudyPdfView": "مشاهده",
+  "bookStudyPdfPartLabel": "بخش",
+  "bookStudyPdfUnavailable": "فایل آموزشی هنوز آماده نیست",
   "grammarPracticeTitle": "تمرین گرامر",
   "grammarPracticeSubtitle": "سؤالات چندگزینه‌ای بر اساس موضوع گرامر",
   "reviewWordsDue": "{count, plural, =1{۱ لغت برای مرور!} other{{count} لغت برای مرور!}}",
@@ -339,7 +360,57 @@
   "teacherPanelSubtitle": "مشاهدهٔ تمرین لغات و گرامر شاگردان و ثبت جلسات کلاس.",
   "teacherOpenPanel": "پنل استاد",
   "teacherStudentsEmpty": "هنوز شاگردی متصل نیست. روی سرور، کدهای دانش‌آموزی را به حساب استاد خودتان وصل کنید؛ با همان کد ثبت‌نام کنند تا اینجا بیایند.",
+  "teacherStudentsSearchHint": "جستجوی شاگرد با نام یا ایمیل…",
+  "teacherStudentsSearchNoResults": "شاگردی با این جستجو پیدا نشد.",
   "teacherPanelTabStudents": "شاگردان",
+  "teacherClassGroupsTitle": "کلاس‌های گروهی",
+  "teacherClassGroupsStudentsEntryHint": "کلاس بسازید، عضو اضافه کنید و یک جلسه برای همه ثبت کنید.",
+  "teacherClassGroupsCreateButton": "کلاس جدید",
+  "teacherClassGroupsNameLabel": "نام کلاس",
+  "teacherClassGroupsNoteLabel": "یادداشت (اختیاری)",
+  "teacherClassGroupsEmpty": "هنوز کلاس گروهی ندارید. برای شاگردانی که با هم کلاس دارند یک کلاس بسازید.",
+  "teacherClassGroupsMemberCount": "{count} عضو",
+  "@teacherClassGroupsMemberCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsAddSessionButton": "ثبت جلسه برای همه",
+  "teacherClassGroupsAddSessionHint": "هر عضو یک جلسه در ترم فعلی خود می‌گیرد (مثل دکمه + در پروفایل هر شاگرد).",
+  "teacherClassGroupsMembersSection": "اعضا",
+  "teacherClassGroupsAddMemberButton": "افزودن عضو",
+  "teacherClassGroupsAddMemberTitle": "افزودن شاگرد به کلاس",
+  "teacherClassGroupsMembersEmpty": "هنوز عضوی ندارید. شاگردانی که با هم کلاس دارند را اضافه کنید.",
+  "teacherClassGroupsNoStudentsToAdd": "همهٔ شاگردان شما در این کلاس هستند.",
+  "teacherClassGroupsSessionAdded": "جلسه برای {count} شاگرد ثبت شد",
+  "@teacherClassGroupsSessionAdded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsSessionPartial": "برای {added} شاگرد ثبت شد؛ {failed} مورد ناموفق بود",
+  "@teacherClassGroupsSessionPartial": {
+    "placeholders": {
+      "added": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberTitle": "حذف از کلاس؟",
+  "teacherClassGroupsRemoveMemberBody": "{name} از این گروه حذف شود؟ جلسات قبلی در کارنامهٔ خودش می‌ماند.",
+  "@teacherClassGroupsRemoveMemberBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberConfirm": "حذف",
+  "teacherClassGroupsDeleteTitle": "حذف کلاس؟",
+  "teacherClassGroupsDeleteBody": "«{name}» حذف شود؟ اعضا از گروه خارج می‌شوند؛ تاریخچهٔ جلسات فردی حفظ می‌شود.",
+  "@teacherClassGroupsDeleteBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsDeleteConfirm": "حذف",
   "teacherPanelTabSchedule": "برنامه کلاس",
   "teacherPanelTabMessages": "پیام‌ها",
   "teacherScheduleEmpty": "در ۷ روز آینده چیزی نیست. برای هر شاگرد در تب «برنامه هفتگی» زمان بگذارید، یا همهٔ زمان‌های پیشِ رو قبلاً در «جلسات کلاس» ثبت شده‌اند.",
@@ -407,6 +478,14 @@
   "teacherClassSessionTimeFieldLabel": "ساعت",
   "youClassSessionsTitle": "جلسات کلاس",
   "youClassSessionsSubtitle": "جلسه‌هایی که استاد در پروندهٔ شما ثبت می‌کند",
+  "studentPersonalClassTab": "کلاس شخصی",
+  "studentGroupClassSubtitle": "جلسات این کلاس گروهی که استاد ثبت کرده",
+  "studentClassGroupsPreviewHint": "همچنین {count} کلاس گروهی دارید — برای تب‌های جدا باز کنید.",
+  "@studentClassGroupsPreviewHint": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "youClassSessionsEmpty": "هنوز جلسه‌ای ثبت نشده است.",
   "studentPanelTitle": "پنل کلاس",
   "studentPanelFabTooltip": "باز کردن پنل کلاس",
@@ -415,6 +494,7 @@
   "studentPanelStatUnread": "خوانده‌نشده",
   "teacherClassSessionsHintEmpty": "با زدن + هر جلسهٔ کلاس را ثبت کنید؛ زمان به‌صورت خودکار ذخیره می‌شود.",
   "teacherClassSessionsTabSubtitleTerms": "ترم بسازید و برای هر ترم حداکثر تعداد جلسه را مشخص کنید؛ جلسات را زیر همان ترم ثبت کنید؛ شاگرد همان گروه‌بندی را می‌بیند.",
+  "teacherGroupClassSessionsTeacherHint": "جلسات گروهی اینجا فقط خواندنی است. جلسهٔ جدید گروهی را از «کلاس‌های گروهی» در تب شاگردان ثبت کنید.",
   "teacherClassTermsSection": "ترم‌ها",
   "teacherClassTermTitle": "ترم {number}",
   "@teacherClassTermTitle": {
@@ -575,6 +655,29 @@
   "grammarStudyPdfView": "مشاهده",
   "grammarStudyPdfPartLabel": "بخش",
   "grammarStudyPdfUnavailable": "فایل آموزشی هنوز آماده نیست",
+  "grammarTopicsIntroTitle": "Grammar Practice & Learning",
+  "grammarTopicsIntroBody": "Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.",
+  "grammarTopicsIntroHint": "Select one or more topics to create your own quiz",
+  "grammarTopicsActionHint": "Tap Quiz to practice • Tap Learn to study",
+  "grammarTopicsCardQuizTitle": "Quiz",
+  "grammarTopicsCardQuizDesc": "Practice questions and test yourself",
+  "grammarTopicsCardLearnTitle": "Learn",
+  "grammarTopicsCardLearnDesc": "Study rules, examples and PDF lessons",
+  "grammarTopicsSelectedCount": "{count, plural, =0{0 topics selected} =1{1 topic selected} other{{count} topics selected}}",
+  "@grammarTopicsSelectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarTopicsSelectionEmptyHint": "Select one or more topics to begin",
+  "grammarTopicsSelectionReadyHint": "Choose your challenge and start practicing",
+  "grammarTopicsStartQuiz": "Start Quiz",
+  "grammarTopicsQuestionsCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@grammarTopicsQuestionsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "grammarNotEnoughInBank": "سؤال کافی در بانک برای این انتخاب نیست (حداقل {minRequired} لازم است).",
   "grammarNoQuestions": "برای موضوعات انتخاب‌شده سؤالی یافت نشد.",
   "grammarTopicsPick": "موضوعات و طول جلسه را انتخاب کنید",

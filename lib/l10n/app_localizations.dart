@@ -670,6 +670,48 @@ abstract class AppLocalizations {
   /// **'Tap to open'**
   String get tapToOpen;
 
+  /// No description provided for @bookStudyPdfTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Study material (PDF)'**
+  String get bookStudyPdfTooltip;
+
+  /// No description provided for @bookStudyPdfOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get bookStudyPdfOpen;
+
+  /// No description provided for @bookStudyPdfPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Study: {bookTitle}'**
+  String bookStudyPdfPickerTitle(String bookTitle);
+
+  /// No description provided for @bookStudyPdfPickerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file available} other{{count} files available}}'**
+  String bookStudyPdfPickerSubtitle(int count);
+
+  /// No description provided for @bookStudyPdfView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get bookStudyPdfView;
+
+  /// No description provided for @bookStudyPdfPartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Part'**
+  String get bookStudyPdfPartLabel;
+
+  /// No description provided for @bookStudyPdfUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Study material not available yet'**
+  String get bookStudyPdfUnavailable;
+
   /// No description provided for @grammarPracticeTitle.
   ///
   /// In en, this message translates to:
@@ -1780,11 +1822,155 @@ abstract class AppLocalizations {
   /// **'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.'**
   String get teacherStudentsEmpty;
 
+  /// No description provided for @teacherStudentsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search students by name or email…'**
+  String get teacherStudentsSearchHint;
+
+  /// No description provided for @teacherStudentsSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No students match this search.'**
+  String get teacherStudentsSearchNoResults;
+
   /// No description provided for @teacherPanelTabStudents.
   ///
   /// In en, this message translates to:
   /// **'Students'**
   String get teacherPanelTabStudents;
+
+  /// No description provided for @teacherClassGroupsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group classes'**
+  String get teacherClassGroupsTitle;
+
+  /// No description provided for @teacherClassGroupsStudentsEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a class, add members, and log one session for everyone at once.'**
+  String get teacherClassGroupsStudentsEntryHint;
+
+  /// No description provided for @teacherClassGroupsCreateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New class'**
+  String get teacherClassGroupsCreateButton;
+
+  /// No description provided for @teacherClassGroupsNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Class name'**
+  String get teacherClassGroupsNameLabel;
+
+  /// No description provided for @teacherClassGroupsNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get teacherClassGroupsNoteLabel;
+
+  /// No description provided for @teacherClassGroupsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No group classes yet. Create one for students who share the same class time.'**
+  String get teacherClassGroupsEmpty;
+
+  /// No description provided for @teacherClassGroupsMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String teacherClassGroupsMemberCount(int count);
+
+  /// No description provided for @teacherClassGroupsAddSessionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Log session for all members'**
+  String get teacherClassGroupsAddSessionButton;
+
+  /// No description provided for @teacherClassGroupsAddSessionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each member gets one session in their current term (same as tapping + on each student).'**
+  String get teacherClassGroupsAddSessionHint;
+
+  /// No description provided for @teacherClassGroupsMembersSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get teacherClassGroupsMembersSection;
+
+  /// No description provided for @teacherClassGroupsAddMemberButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get teacherClassGroupsAddMemberButton;
+
+  /// No description provided for @teacherClassGroupsAddMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add student to class'**
+  String get teacherClassGroupsAddMemberTitle;
+
+  /// No description provided for @teacherClassGroupsMembersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No members yet. Add students who attend this class together.'**
+  String get teacherClassGroupsMembersEmpty;
+
+  /// No description provided for @teacherClassGroupsNoStudentsToAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'All your students are already in this class.'**
+  String get teacherClassGroupsNoStudentsToAdd;
+
+  /// No description provided for @teacherClassGroupsSessionAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Session logged for {count} students'**
+  String teacherClassGroupsSessionAdded(int count);
+
+  /// No description provided for @teacherClassGroupsSessionPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged for {added} students; {failed} could not be added'**
+  String teacherClassGroupsSessionPartial(int added, int failed);
+
+  /// No description provided for @teacherClassGroupsRemoveMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from class?'**
+  String get teacherClassGroupsRemoveMemberTitle;
+
+  /// No description provided for @teacherClassGroupsRemoveMemberBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from this group? Their past sessions stay on their record.'**
+  String teacherClassGroupsRemoveMemberBody(String name);
+
+  /// No description provided for @teacherClassGroupsRemoveMemberConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get teacherClassGroupsRemoveMemberConfirm;
+
+  /// No description provided for @teacherClassGroupsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete class?'**
+  String get teacherClassGroupsDeleteTitle;
+
+  /// No description provided for @teacherClassGroupsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Members are removed from the group; individual session history is kept.'**
+  String teacherClassGroupsDeleteBody(String name);
+
+  /// No description provided for @teacherClassGroupsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get teacherClassGroupsDeleteConfirm;
 
   /// No description provided for @teacherPanelTabSchedule.
   ///
@@ -2158,6 +2344,24 @@ abstract class AppLocalizations {
   /// **'Sessions your teacher records in your profile'**
   String get youClassSessionsSubtitle;
 
+  /// No description provided for @studentPersonalClassTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get studentPersonalClassTab;
+
+  /// No description provided for @studentGroupClassSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group class sessions recorded by your teacher'**
+  String get studentGroupClassSubtitle;
+
+  /// No description provided for @studentClassGroupsPreviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You also have {count} group class(es) — open for separate tabs.'**
+  String studentClassGroupsPreviewHint(int count);
+
   /// No description provided for @youClassSessionsEmpty.
   ///
   /// In en, this message translates to:
@@ -2205,6 +2409,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.'**
   String get teacherClassSessionsTabSubtitleTerms;
+
+  /// No description provided for @teacherGroupClassSessionsTeacherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Group sessions are read-only here. Log new group sessions from Group classes on the Students tab.'**
+  String get teacherGroupClassSessionsTeacherHint;
 
   /// No description provided for @teacherClassTermsSection.
   ///
@@ -3015,6 +3225,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Study material not available yet'**
   String get grammarStudyPdfUnavailable;
+
+  /// No description provided for @grammarTopicsIntroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grammar Practice & Learning'**
+  String get grammarTopicsIntroTitle;
+
+  /// No description provided for @grammarTopicsIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.'**
+  String get grammarTopicsIntroBody;
+
+  /// No description provided for @grammarTopicsIntroHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select one or more topics to create your own quiz'**
+  String get grammarTopicsIntroHint;
+
+  /// No description provided for @grammarTopicsActionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Quiz to practice • Tap Learn to study'**
+  String get grammarTopicsActionHint;
+
+  /// No description provided for @grammarTopicsCardQuizTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz'**
+  String get grammarTopicsCardQuizTitle;
+
+  /// No description provided for @grammarTopicsCardQuizDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice questions and test yourself'**
+  String get grammarTopicsCardQuizDesc;
+
+  /// No description provided for @grammarTopicsCardLearnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get grammarTopicsCardLearnTitle;
+
+  /// No description provided for @grammarTopicsCardLearnDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Study rules, examples and PDF lessons'**
+  String get grammarTopicsCardLearnDesc;
+
+  /// No description provided for @grammarTopicsSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{0 topics selected} =1{1 topic selected} other{{count} topics selected}}'**
+  String grammarTopicsSelectedCount(int count);
+
+  /// No description provided for @grammarTopicsSelectionEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select one or more topics to begin'**
+  String get grammarTopicsSelectionEmptyHint;
+
+  /// No description provided for @grammarTopicsSelectionReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your challenge and start practicing'**
+  String get grammarTopicsSelectionReadyHint;
+
+  /// No description provided for @grammarTopicsStartQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Quiz'**
+  String get grammarTopicsStartQuiz;
+
+  /// No description provided for @grammarTopicsQuestionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}}'**
+  String grammarTopicsQuestionsCount(int count);
 
   /// No description provided for @grammarNotEnoughInBank.
   ///

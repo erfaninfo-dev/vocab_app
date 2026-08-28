@@ -344,6 +344,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToOpen => 'Tap to open';
 
   @override
+  String get bookStudyPdfTooltip => 'Study material (PDF)';
+
+  @override
+  String get bookStudyPdfOpen => 'PDF';
+
+  @override
+  String bookStudyPdfPickerTitle(String bookTitle) {
+    return 'Study: $bookTitle';
+  }
+
+  @override
+  String bookStudyPdfPickerSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files available',
+      one: '1 file available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bookStudyPdfView => 'View';
+
+  @override
+  String get bookStudyPdfPartLabel => 'Part';
+
+  @override
+  String get bookStudyPdfUnavailable => 'Study material not available yet';
+
+  @override
   String get grammarPracticeTitle => 'Grammar practice';
 
   @override
@@ -1003,7 +1034,95 @@ class AppLocalizationsEn extends AppLocalizations {
       'No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.';
 
   @override
+  String get teacherStudentsSearchHint => 'Search students by name or email…';
+
+  @override
+  String get teacherStudentsSearchNoResults => 'No students match this search.';
+
+  @override
   String get teacherPanelTabStudents => 'Students';
+
+  @override
+  String get teacherClassGroupsTitle => 'Group classes';
+
+  @override
+  String get teacherClassGroupsStudentsEntryHint =>
+      'Create a class, add members, and log one session for everyone at once.';
+
+  @override
+  String get teacherClassGroupsCreateButton => 'New class';
+
+  @override
+  String get teacherClassGroupsNameLabel => 'Class name';
+
+  @override
+  String get teacherClassGroupsNoteLabel => 'Note (optional)';
+
+  @override
+  String get teacherClassGroupsEmpty =>
+      'No group classes yet. Create one for students who share the same class time.';
+
+  @override
+  String teacherClassGroupsMemberCount(int count) {
+    return '$count members';
+  }
+
+  @override
+  String get teacherClassGroupsAddSessionButton =>
+      'Log session for all members';
+
+  @override
+  String get teacherClassGroupsAddSessionHint =>
+      'Each member gets one session in their current term (same as tapping + on each student).';
+
+  @override
+  String get teacherClassGroupsMembersSection => 'Members';
+
+  @override
+  String get teacherClassGroupsAddMemberButton => 'Add member';
+
+  @override
+  String get teacherClassGroupsAddMemberTitle => 'Add student to class';
+
+  @override
+  String get teacherClassGroupsMembersEmpty =>
+      'No members yet. Add students who attend this class together.';
+
+  @override
+  String get teacherClassGroupsNoStudentsToAdd =>
+      'All your students are already in this class.';
+
+  @override
+  String teacherClassGroupsSessionAdded(int count) {
+    return 'Session logged for $count students';
+  }
+
+  @override
+  String teacherClassGroupsSessionPartial(int added, int failed) {
+    return 'Logged for $added students; $failed could not be added';
+  }
+
+  @override
+  String get teacherClassGroupsRemoveMemberTitle => 'Remove from class?';
+
+  @override
+  String teacherClassGroupsRemoveMemberBody(String name) {
+    return 'Remove $name from this group? Their past sessions stay on their record.';
+  }
+
+  @override
+  String get teacherClassGroupsRemoveMemberConfirm => 'Remove';
+
+  @override
+  String get teacherClassGroupsDeleteTitle => 'Delete class?';
+
+  @override
+  String teacherClassGroupsDeleteBody(String name) {
+    return 'Delete \"$name\"? Members are removed from the group; individual session history is kept.';
+  }
+
+  @override
+  String get teacherClassGroupsDeleteConfirm => 'Delete';
 
   @override
   String get teacherPanelTabSchedule => 'Schedule';
@@ -1204,6 +1323,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sessions your teacher records in your profile';
 
   @override
+  String get studentPersonalClassTab => 'Personal';
+
+  @override
+  String get studentGroupClassSubtitle =>
+      'Group class sessions recorded by your teacher';
+
+  @override
+  String studentClassGroupsPreviewHint(int count) {
+    return 'You also have $count group class(es) — open for separate tabs.';
+  }
+
+  @override
   String get youClassSessionsEmpty => 'No sessions recorded yet.';
 
   @override
@@ -1229,6 +1360,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get teacherClassSessionsTabSubtitleTerms =>
       'Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.';
+
+  @override
+  String get teacherGroupClassSessionsTeacherHint =>
+      'Group sessions are read-only here. Log new group sessions from Group classes on the Students tab.';
 
   @override
   String get teacherClassTermsSection => 'Terms';
@@ -1686,6 +1821,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get grammarStudyPdfUnavailable => 'Study material not available yet';
+
+  @override
+  String get grammarTopicsIntroTitle => 'Grammar Practice & Learning';
+
+  @override
+  String get grammarTopicsIntroBody =>
+      'Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.';
+
+  @override
+  String get grammarTopicsIntroHint =>
+      'Select one or more topics to create your own quiz';
+
+  @override
+  String get grammarTopicsActionHint =>
+      'Tap Quiz to practice • Tap Learn to study';
+
+  @override
+  String get grammarTopicsCardQuizTitle => 'Quiz';
+
+  @override
+  String get grammarTopicsCardQuizDesc =>
+      'Practice questions and test yourself';
+
+  @override
+  String get grammarTopicsCardLearnTitle => 'Learn';
+
+  @override
+  String get grammarTopicsCardLearnDesc =>
+      'Study rules, examples and PDF lessons';
+
+  @override
+  String grammarTopicsSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count topics selected',
+      one: '1 topic selected',
+      zero: '0 topics selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get grammarTopicsSelectionEmptyHint =>
+      'Select one or more topics to begin';
+
+  @override
+  String get grammarTopicsSelectionReadyHint =>
+      'Choose your challenge and start practicing';
+
+  @override
+  String get grammarTopicsStartQuiz => 'Start Quiz';
+
+  @override
+  String grammarTopicsQuestionsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0';
+  }
 
   @override
   String grammarNotEnoughInBank(int minRequired) {

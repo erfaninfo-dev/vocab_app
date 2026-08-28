@@ -45,7 +45,7 @@ class GrammarPracticeResultCard extends StatelessWidget {
   final VoidCallback? onUserTap;
   final GrammarResultReactionSummary? reactionSummary;
   final bool showReactions;
-  /// Rotates card accent colors (6 themes) in My results and Users tabs.
+  /// Optional list index when the result has no score to color from.
   final int? communityColorIndex;
 
   /// Topic labels: JSON [selectedGrammarsRaw] or `quizName` split by ` + `.
@@ -116,8 +116,11 @@ class GrammarPracticeResultCard extends StatelessWidget {
         style == GrammarPracticeResultCardStyle.community ||
         style == GrammarPracticeResultCardStyle.personal;
     final cardTheme = usesColorTheme
-        ? grammarCommunityCardThemeForIndex(
-            communityColorIndex ?? ((rank ?? r.id) - 1),
+        ? grammarCommunityCardThemeForAccuracy(
+            ratio: ratio,
+            hasScore: hasScore,
+            fallbackIndex:
+                communityColorIndex ?? ((rank ?? r.id) - 1),
           )
         : null;
 

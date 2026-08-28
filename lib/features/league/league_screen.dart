@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/errors/user_friendly_error.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../core/profile/profile_avatar.dart';
+import '../word_builder/presentation/pvp/pvp_challenge_profile_button.dart';
 import '../../data/models/league.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -1392,6 +1393,11 @@ class _LeagueProfileDialog extends StatelessWidget {
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    PvpChallengeProfileButton(
+                      opponentUserId: entry.userId,
+                      opponentName: entry.displayName,
                     ),
                     const SizedBox(height: 10),
                     GridView.count(

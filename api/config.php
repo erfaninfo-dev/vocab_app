@@ -1,40 +1,74 @@
 <?php
 
-// ─── Database configuration ────────────────────────────────────────────────
-// Update these values to match your server environment.
-
+/**
+ * Shared DB + JSON helpers for all API scripts.
+ * Compatible with PHP 7.4+ (avoid PHP 8-only syntax so shared hosting works).
+ *
+ * On the LIVE server: set DB_USER / DB_PASS / DB_NAME to the MySQL user from your
+ * hosting panel (cPanel → MySQL Databases). Do NOT use root with an empty password
+ * unless your server is configured for that — otherwise you get:
+ *   SQLSTATE[HY000] [1045] Access denied ... (using password: NO)
+ *
+ * Local XAMPP often uses root + empty password + database ielts_vocab — adjust as needed.
+ */
 define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
+define('DB_USER', 'apiuser');
 define('DB_PASS', '');
-define('DB_NAME', 'ielts_vocab');
+define('DB_NAME', 'erfaninfocom_appbooks');
+
+// ─── Password reset email settings ───────────────────────────────────────────
+// NOTE: This uses PHP's `mail()` by default (shared hosting friendly).
+// If your host blocks outbound mail, configure SMTP at the server level or
+// switch to an SMTP library later.
+define('APP_NAME', 'IELTS Essential Words');
+define('MAIL_FROM', 'no-reply@erfaninfo.com');
+define('MAIL_FROM_NAME', APP_NAME);
 
 /**
  * Returns a PDO connection to the database.
+ *
+ * @return PDO
  */
-function getDb(): PDO
+function getDb()
 {
     static $pdo = null;
     if ($pdo === null) {
-        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
+        try {
+            $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+            $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+        } catch (PDOException $e) {
+            if (is_file(__DIR__ . '/api_log.php')) {
+                require_once __DIR__ . '/api_log.php';
+                api_log_error(
+                    'database',
+                    'PDO connection failed in getDb()',
+                    [
+                        'code' => $e->getCode(),
+                        'msg'  => $e->getMessage(),
+                    ]
+                );
+            }
+            sendError('Database connection failed: ' . $e->getMessage(), 500);
+        }
     }
+
     return $pdo;
 }
 
 /**
- * Encodes $data as JSON, sets CORS + content-type headers, and exits.
+ * @param mixed $data
  */
-function sendJson(mixed $data): never
+function sendJson($data)
 {
     header('Content-Type: application/json; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(204);
         exit;
     }
@@ -44,9 +78,9 @@ function sendJson(mixed $data): never
 }
 
 /**
- * Sends a JSON error response and exits.
+ * @param int $code HTTP status
  */
-function sendError(string $message, int $code = 400): never
+function sendError($message, $code = 400)
 {
     http_response_code($code);
     sendJson(['error' => $message]);

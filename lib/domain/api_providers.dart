@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/book_model.dart';
 import '../data/models/game_word_category.dart';
+import '../data/models/book_pdf.dart';
 import '../data/models/grammar_topic_pdf.dart';
 import '../data/models/grammar_book.dart';
 import '../data/models/grammar_question.dart';
@@ -25,6 +26,7 @@ import '../data/models/section_info.dart';
 import '../data/models/unit_sample.dart';
 import '../data/models/vocab_entry.dart';
 import '../data/models/vocab_quiz_result.dart';
+import '../data/models/teacher_class_group.dart';
 import '../data/models/teacher_student.dart';
 import '../data/models/teacher_message.dart';
 import '../core/auth/auth_provider.dart';
@@ -133,6 +135,33 @@ final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
 ) {
   ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchGrammarTopics();
+});
+
+// ─── Vocabulary book study PDFs ───────────────────────────────────────────────
+// Corresponds to: GET /book_pdfs.php
+// Grouped by book_id; each value is sorted by sort_order.
+
+final apiBookPdfsProvider =
+    FutureProvider<Map<int, List<BookPdf>>>((ref) async {
+  ref.watch(apiRemoteDataEpochProvider);
+  final pdfs = await ref.read(apiServiceProvider).fetchBookPdfs();
+  final map = <int, List<BookPdf>>{};
+  for (final pdf in pdfs) {
+    final bookId = pdf.bookId;
+    if (bookId <= 0) continue;
+    map.putIfAbsent(bookId, () => []);
+    if (pdf.hasValidUrl) {
+      map[bookId]!.add(pdf);
+    }
+  }
+  for (final list in map.values) {
+    list.sort((a, b) {
+      final byOrder = a.sortOrder.compareTo(b.sortOrder);
+      if (byOrder != 0) return byOrder;
+      return a.id.compareTo(b.id);
+    });
+  }
+  return map;
 });
 
 // ─── Grammar topic study PDFs ─────────────────────────────────────────────────
@@ -456,13 +485,31 @@ final teacherStudentGrammarResultsProvider =
           .fetchTeacherStudentGrammarResults(studentId);
     });
 
-/// Class session list (teacher panel — per-student).
+/// Class session list (teacher panel — per-student, personal + group classes).
 final teacherStudentSessionsProvider =
-    FutureProvider.family<TeacherSessionInfo, int>((ref, studentId) {
+    FutureProvider.family<StudentMyClassSessionsResponse, int>((ref, studentId) {
       ref.watch(apiRemoteDataEpochProvider);
       return ref
           .read(apiServiceProvider)
           .fetchTeacherStudentSessions(studentId);
+    });
+
+/// Named multi-student group classes (teacher panel).
+final teacherClassGroupsProvider =
+    FutureProvider<List<TeacherClassGroupSummary>>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null ||
+          (!session.user.isTeacher && !session.user.isAdmin)) {
+        return [];
+      }
+      return ref.read(apiServiceProvider).fetchTeacherClassGroups();
+    });
+
+final teacherClassGroupProvider =
+    FutureProvider.family<TeacherClassGroupDetail, int>((ref, groupId) {
+      ref.watch(apiRemoteDataEpochProvider);
+      return ref.read(apiServiceProvider).fetchTeacherClassGroup(groupId);
     });
 
 final teacherStudentPricingProvider =
@@ -489,23 +536,26 @@ final teacherFinancialSummaryProvider =
           );
     });
 
-/// Student: read-only class sessions recorded by their teacher ([my_class_sessions.php]).
-final myClassSessionsProvider = FutureProvider<TeacherSessionInfo>((ref) async {
-  ref.watch(apiRemoteDataEpochProvider);
-  final session = ref.watch(authProvider).valueOrNull;
-  if (session == null ||
-      session.user.isTeacher ||
-      session.user.isAdmin ||
-      session.user.teacherUserId == null) {
-    return const TeacherSessionInfo(
-      sessionCount: 0,
-      sessions: [],
-      terms: [],
-      usesTermsTable: false,
-    );
-  }
-  return ref.read(apiServiceProvider).fetchMyClassSessions();
-});
+/// Student: read-only class sessions ([my_class_sessions.php]).
+final myClassSessionsProvider =
+    FutureProvider<StudentMyClassSessionsResponse>((ref) async {
+      ref.watch(apiRemoteDataEpochProvider);
+      final session = ref.watch(authProvider).valueOrNull;
+      if (session == null ||
+          session.user.isTeacher ||
+          session.user.isAdmin ||
+          session.user.teacherUserId == null) {
+        return const StudentMyClassSessionsResponse(
+          personal: TeacherSessionInfo(
+            sessionCount: 0,
+            sessions: [],
+            terms: [],
+            usesTermsTable: false,
+          ),
+        );
+      }
+      return ref.read(apiServiceProvider).fetchMyClassSessions();
+    });
 
 /// Teacher / admin: weekly schedule slots for one student.
 final teacherStudentScheduleProvider =
@@ -555,12 +605,12 @@ final teacherWeekUpcomingProvider =
             final slots = await api.fetchTeacherStudentSchedule(stu.id);
             final info = await api.fetchTeacherStudentSessions(stu.id);
             slotsByStudent[stu.id] = slots;
-            sessionsByStudent[stu.id] = info.sessions;
+            sessionsByStudent[stu.id] = info.allSessions;
             return computeTeacherWeekUpcomingForStudent(
               nowLocal: nowLocal,
               student: stu,
               slots: slots,
-              sessions: info.sessions,
+              sessions: info.allSessions,
             );
           } catch (_) {
             return <TeacherUpcomingSlotItem>[];

@@ -10,6 +10,7 @@ import '../../core/financial/financial_format.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../core/widgets/term_payment_status_chip.dart';
 import '../../core/widgets/term_title_card.dart';
+import '../../data/models/teacher_class_group.dart';
 import '../../data/models/teacher_student.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -45,9 +46,16 @@ List<MapEntry<DateTime, List<ClassSessionEntry>>> _groupByDay(
 }
 
 class TeacherClassSessionsPanel extends ConsumerStatefulWidget {
-  const TeacherClassSessionsPanel({super.key, required this.studentId});
+  const TeacherClassSessionsPanel({
+    super.key,
+    required this.studentId,
+    this.groupView,
+  });
 
   final int studentId;
+
+  /// When set, shows read-only sessions for one group class.
+  final StudentGroupClassSessionsView? groupView;
 
   @override
   ConsumerState<TeacherClassSessionsPanel> createState() =>
@@ -127,7 +135,10 @@ class _TeacherClassSessionsPanelState
   }
 
   Future<void> _showAddTermDialog(AppLocalizations l10n) async {
-    final info = ref.read(teacherStudentSessionsProvider(widget.studentId)).valueOrNull;
+    final info = ref
+        .read(teacherStudentSessionsProvider(widget.studentId))
+        .valueOrNull
+        ?.personal;
     final defaultFee = info?.effectiveDefaultTermFee ?? 0;
     final capController = TextEditingController(text: '12');
     final feeController = TextEditingController(
@@ -511,6 +522,7 @@ class _TeacherClassSessionsPanelState
     required TextTheme tt,
     required AppLocalizations l10n,
     required String loc,
+    bool readOnly = false,
   }) {
     final sortedForIndex = List<ClassSessionEntry>.from(sessions);
     sortedForIndex.sort((a, b) {
@@ -577,8 +589,8 @@ class _TeacherClassSessionsPanelState
               tt: tt,
               l10n: l10n,
               busy: busy,
-              onEdit: busy ? null : () => _edit(e, l10n, idx),
-              onDelete: busy ? null : () => _delete(e, l10n),
+              onEdit: readOnly || busy ? null : () => _edit(e, l10n, idx),
+              onDelete: readOnly || busy ? null : () => _delete(e, l10n),
             ),
           ),
         );
@@ -594,6 +606,7 @@ class _TeacherClassSessionsPanelState
     required TextTheme tt,
     required AppLocalizations l10n,
     required String loc,
+    bool readOnly = false,
   }) {
     if (termSessions.isEmpty) {
       return [];
@@ -635,8 +648,8 @@ class _TeacherClassSessionsPanelState
               tt: tt,
               l10n: l10n,
               busy: busy,
-              onEdit: busy ? null : () => _edit(e, l10n, idx),
-              onDelete: busy ? null : () => _delete(e, l10n),
+              onEdit: readOnly || busy ? null : () => _edit(e, l10n, idx),
+              onDelete: readOnly || busy ? null : () => _delete(e, l10n),
             ),
           ),
         );
@@ -664,17 +677,23 @@ class _TeacherClassSessionsPanelState
           ),
         ),
       ),
-      data: (info) {
+      data: (split) {
+        final readOnly = widget.groupView != null;
+        final info = widget.groupView?.sessionInfo ?? split.personal;
         final sessions = info.sessions;
         final useTermsUi = info.usesTermsTable;
         final terms = info.terms;
 
-        final headerSubtitle = useTermsUi
-            ? l10n.teacherClassSessionsTabSubtitleTerms
-            : l10n.teacherClassSessionsTabSubtitle;
+        final headerSubtitle = readOnly
+            ? l10n.teacherGroupClassSessionsTeacherHint
+            : useTermsUi
+                ? l10n.teacherClassSessionsTabSubtitleTerms
+                : l10n.teacherClassSessionsTabSubtitle;
+        final headerTitle =
+            widget.groupView?.name ?? l10n.teacherClassSessions;
 
         final children = <Widget>[
-          if (!info.pricingAvailable) ...[
+          if (!readOnly && !info.pricingAvailable) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -695,7 +714,7 @@ class _TeacherClassSessionsPanelState
               ),
             ),
           ],
-          if (info.financialSummary != null) ...[
+          if (!readOnly && info.financialSummary != null) ...[
             const SizedBox(height: 10),
             Row(
               children: [
@@ -751,7 +770,7 @@ class _TeacherClassSessionsPanelState
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          l10n.teacherClassSessions,
+                          headerTitle,
                           style: tt.titleMedium,
                         ),
                       ),
@@ -784,7 +803,7 @@ class _TeacherClassSessionsPanelState
                       height: 1.45,
                     ),
                   ),
-                  if (!useTermsUi) ...[
+                  if (!readOnly && !useTermsUi) ...[
                     const SizedBox(height: 16),
                     FilledButton.tonalIcon(
                       onPressed: _addingLegacy
@@ -811,34 +830,45 @@ class _TeacherClassSessionsPanelState
 
         if (useTermsUi) {
           children.add(const SizedBox(height: 18));
-          children.add(
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.teacherClassTermsSection,
-                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          if (!readOnly) {
+            children.add(
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.teacherClassTermsSection,
+                      style:
+                          tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    ),
                   ),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: _addingTerm ? null : () => _showAddTermDialog(l10n),
-                  icon: _addingTerm
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: scheme.primary,
-                          ),
-                        )
-                      : const Icon(Icons.add_rounded, size: 20),
-                  label: Text(l10n.teacherClassTermsAddButton),
-                ),
-              ],
-            ),
-          );
+                  FilledButton.tonalIcon(
+                    onPressed:
+                        _addingTerm ? null : () => _showAddTermDialog(l10n),
+                    icon: _addingTerm
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: scheme.primary,
+                            ),
+                          )
+                        : const Icon(Icons.add_rounded, size: 20),
+                    label: Text(l10n.teacherClassTermsAddButton),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            children.add(
+              Text(
+                l10n.teacherClassTermsSection,
+                style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            );
+          }
 
-          if (terms.isEmpty) {
+          if (!readOnly && terms.isEmpty) {
             children.addAll([
               const SizedBox(height: 16),
               Text(
@@ -854,6 +884,9 @@ class _TeacherClassSessionsPanelState
           for (final term in terms) {
             final termSessions =
                 sessions.where((s) => s.termId == term.id).toList();
+            if (readOnly && termSessions.isEmpty) {
+              continue;
+            }
             final termBusy = _busyTermIds.contains(term.id);
             final addingHere = _addingForTermId == term.id;
             children.add(const SizedBox(height: 14));
@@ -886,7 +919,7 @@ class _TeacherClassSessionsPanelState
                                     TermPaymentStatusChip(
                                       isPaid: term.isPaid,
                                       l10n: l10n,
-                                      onTap: termBusy
+                                      onTap: readOnly || termBusy
                                           ? null
                                           : () => _toggleTermPayment(
                                                 term,
@@ -936,33 +969,38 @@ class _TeacherClassSessionsPanelState
                               ],
                             ),
                           ),
-                          IconButton(
-                            tooltip: l10n.teacherTermFeeEdit,
-                            onPressed: termBusy
-                                ? null
-                                : () => _editTermFee(term, info, l10n),
-                            icon: Icon(
-                              Icons.payments_outlined,
-                              color: scheme.primary,
+                          if (!readOnly) ...[
+                            IconButton(
+                              tooltip: l10n.teacherTermFeeEdit,
+                              onPressed: termBusy
+                                  ? null
+                                  : () => _editTermFee(term, info, l10n),
+                              icon: Icon(
+                                Icons.payments_outlined,
+                                color: scheme.primary,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            tooltip: l10n.teacherClassSessionEdit,
-                            onPressed: termBusy
-                                ? null
-                                : () => _editTermCap(term, l10n),
-                            icon: Icon(Icons.edit_outlined, color: scheme.primary),
-                          ),
-                          IconButton(
-                            tooltip: l10n.teacherClassSessionDelete,
-                            onPressed: termBusy
-                                ? null
-                                : () => _deleteTerm(term, l10n),
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: scheme.error,
+                            IconButton(
+                              tooltip: l10n.teacherClassSessionEdit,
+                              onPressed: termBusy
+                                  ? null
+                                  : () => _editTermCap(term, l10n),
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                color: scheme.primary,
+                              ),
                             ),
-                          ),
+                            IconButton(
+                              tooltip: l10n.teacherClassSessionDelete,
+                              onPressed: termBusy
+                                  ? null
+                                  : () => _deleteTerm(term, l10n),
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: scheme.error,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       ..._termsSessionList(
@@ -971,24 +1009,27 @@ class _TeacherClassSessionsPanelState
                         tt: tt,
                         l10n: l10n,
                         loc: loc,
+                        readOnly: readOnly,
                       ),
-                      const SizedBox(height: 8),
-                      FilledButton.tonalIcon(
-                        onPressed: (term.isFull || addingHere)
-                            ? null
-                            : () => _addSessionForTerm(term.id, l10n),
-                        icon: addingHere
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: scheme.primary,
-                                ),
-                              )
-                            : const Icon(Icons.add_rounded, size: 20),
-                        label: Text(l10n.teacherClassTermAddSessionButton),
-                      ),
+                      if (!readOnly) ...[
+                        const SizedBox(height: 8),
+                        FilledButton.tonalIcon(
+                          onPressed: (term.isFull || addingHere)
+                              ? null
+                              : () => _addSessionForTerm(term.id, l10n),
+                          icon: addingHere
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: scheme.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.add_rounded, size: 20),
+                          label: Text(l10n.teacherClassTermAddSessionButton),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1033,6 +1074,7 @@ class _TeacherClassSessionsPanelState
               tt: tt,
               l10n: l10n,
               loc: loc,
+              readOnly: readOnly,
             ),
           );
         }
@@ -1040,6 +1082,100 @@ class _TeacherClassSessionsPanelState
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: children,
+        );
+      },
+    );
+  }
+}
+
+/// Tabs for personal vs group class sessions on the teacher student detail screen.
+class TeacherStudentClassSessionsTab extends ConsumerStatefulWidget {
+  const TeacherStudentClassSessionsTab({super.key, required this.studentId});
+
+  final int studentId;
+
+  @override
+  ConsumerState<TeacherStudentClassSessionsTab> createState() =>
+      _TeacherStudentClassSessionsTabState();
+}
+
+class _TeacherStudentClassSessionsTabState
+    extends ConsumerState<TeacherStudentClassSessionsTab>
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  void _syncTabController(int length) {
+    if (_tabController != null && _tabController!.length == length) {
+      return;
+    }
+    _tabController?.dispose();
+    _tabController = TabController(length: length, vsync: this);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final async = ref.watch(teacherStudentSessionsProvider(widget.studentId));
+
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            userFriendlyErrorMessage(e, l10n),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+      data: (split) {
+        if (split.classGroups.isEmpty) {
+          return TeacherClassSessionsPanel(studentId: widget.studentId);
+        }
+
+        final tabCount = 1 + split.classGroups.length;
+        _syncTabController(tabCount);
+        final controller = _tabController!;
+
+        final tabs = <Widget>[
+          Tab(text: l10n.studentPersonalClassTab),
+          ...split.classGroups.map((g) => Tab(text: g.name)),
+        ];
+
+        final views = <Widget>[
+          TeacherClassSessionsPanel(studentId: widget.studentId),
+          ...split.classGroups.map(
+            (g) => TeacherClassSessionsPanel(
+              studentId: widget.studentId,
+              groupView: g,
+            ),
+          ),
+        ];
+
+        return Column(
+          children: [
+            Material(
+              color: scheme.surface,
+              child: TabBar(
+                controller: controller,
+                isScrollable: true,
+                labelColor: scheme.primary,
+                unselectedLabelColor: scheme.onSurfaceVariant,
+                indicatorColor: scheme.primary,
+                tabs: tabs,
+              ),
+            ),
+            Expanded(
+              child: TabBarView(controller: controller, children: views),
+            ),
+          ],
         );
       },
     );

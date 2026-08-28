@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -66,15 +68,18 @@ class LearningGoalController extends Notifier<LearningGoal?> {
 
   @override
   LearningGoal? build() {
-    _hydrate();
+    unawaited(_hydrate());
     return null;
   }
 
   Future<void> _hydrate() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
-    if (raw == null) return;
-    state = LearningGoal.decode(raw);
+    if (raw != null) {
+      final decoded = LearningGoal.decode(raw);
+      if (decoded != null) state = decoded;
+    }
+    ref.read(learningGoalHydratedProvider.notifier).state = true;
   }
 
   Future<void> setGoal(int days, String title) async {
@@ -103,3 +108,7 @@ final learningGoalProvider =
     NotifierProvider<LearningGoalController, LearningGoal?>(
       LearningGoalController.new,
     );
+
+/// Becomes true after [learningGoalProvider] finishes reading prefs.
+/// Starts false so Home does not flash the first-run prompt before hydrate.
+final learningGoalHydratedProvider = StateProvider<bool>((ref) => false);

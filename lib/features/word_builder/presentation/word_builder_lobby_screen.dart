@@ -21,6 +21,8 @@ import '../word_builder_campaign_session_key.dart';
 import 'widgets/magic_background.dart';
 import 'widgets/word_builder_coins_chip.dart';
 import 'widgets/word_builder_play_mode_switch.dart';
+import '../application/pvp_challenge_providers.dart';
+import 'pvp/pvp_challenge_profile_button.dart';
 
 class WordBuilderLobbyScreen extends ConsumerStatefulWidget {
   const WordBuilderLobbyScreen({super.key});
@@ -44,6 +46,7 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
     ref.invalidate(wordBuilderCampaignPlanProvider);
     ref.invalidate(wordBuilderCoinsProvider);
     ref.invalidate(wordBuilderLeagueProvider);
+    ref.invalidate(pvpChallengesProvider);
 
     final futures = <Future<Object?>>[
       ref.read(wordBuilderCampaignProgressProvider.future),
@@ -68,6 +71,8 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
     final auth = ref.watch(authProvider).valueOrNull;
     final adminUnlockAll = auth?.user.isAdmin ?? false;
     final leagueAsync = ref.watch(wordBuilderLeagueProvider);
+    final challengesAsync = ref.watch(pvpChallengesProvider);
+    final challengeBadge = challengesAsync.valueOrNull?.actionCount ?? 0;
     final canPop = context.canPop();
 
     final funTheme = Theme.of(context).copyWith(
@@ -113,6 +118,26 @@ class _WordBuilderLobbyScreenState extends ConsumerState<WordBuilderLobbyScreen>
                     )
                   : null,
           actions: [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(top: 14, end: 4),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: IconButton(
+                      tooltip: 'Challenges',
+                      onPressed: () => context.push('/word-builder/challenges'),
+                      icon: Badge(
+                        isLabelVisible: challengeBadge > 0,
+                        label: Text('$challengeBadge'),
+                        child: Icon(
+                          Icons.sports_martial_arts_rounded,
+                          color: isDark
+                              ? scheme.onSurface
+                              : const Color(0xFF5D4037),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsetsDirectional.only(top: 14, end: 8),
                   child: Align(
@@ -1552,6 +1577,11 @@ class _WordBuilderLeagueProfileDialog extends StatelessWidget {
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 18),
+                    PvpChallengeProfileButton(
+                      opponentUserId: entry.userId,
+                      opponentName: entry.displayName,
                     ),
                     const SizedBox(height: 18),
                     DecoratedBox(

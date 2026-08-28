@@ -5,6 +5,7 @@ import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/book_model.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
+import 'book_pdf_actions.dart';
 
 /// Book tile used on home and series-books screens (same layout).
 class HomeBookCard extends ConsumerWidget {
@@ -24,6 +25,9 @@ class HomeBookCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final unitsValue = ref.watch(apiUnitsProvider(book.id));
+    final bookPdfs =
+        ref.watch(apiBookPdfsProvider).valueOrNull?[book.id] ?? const [];
+    final hasStudyPdfs = bookPdfs.isNotEmpty;
     final isSoon = unitsValue.maybeWhen(
       data: (units) => units.isEmpty,
       orElse: () => false,
@@ -137,6 +141,43 @@ class HomeBookCard extends ConsumerWidget {
                       ],
 
                       const Spacer(),
+
+                      if (hasStudyPdfs && !isSoon) ...[
+                        Align(
+                          alignment: rtlUnitLine
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: () => openBookStudyPdfs(
+                              context: context,
+                              bookTitle: book.title,
+                              pdfs: bookPdfs,
+                              accent: accents.first,
+                            ),
+                            icon: Icon(
+                              Icons.picture_as_pdf_rounded,
+                              size: 18,
+                              color: accents.first,
+                            ),
+                            label: Text(l10n.bookStudyPdfOpen),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: accents.first,
+                              side: BorderSide(
+                                color: accents.first.withValues(alpha: 0.45),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
 
                       Align(
                         alignment: rtlUnitLine

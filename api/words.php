@@ -14,6 +14,9 @@
  *      All words for a book (used by the Favorites screen to match
  *      locally-stored favourite IDs against live data).
  *
+ *   4. /words.php?global=1
+ *      All rows in `words` across every book (unit samples tap-to-lookup).
+ *
  * Response: JSON array of word objects whose keys match the DB columns:
  * [
  *   {
@@ -36,16 +39,49 @@
 
 require_once __DIR__ . '/config.php';
 
+$db = getDb();
+
+$columns = 'id, book_id, unit, section, section_details, word, type, important,
+            meaning_en, meaning_fa, meaning_kur,
+            example_en, example_fa, example_kur';
+
+$rowToJson = function (array $r): array {
+    return [
+        'id'          => (int) $r['id'],
+        'book_id'     => (int) $r['book_id'],
+        'unit'        => (int) $r['unit'],
+        'section'         => $r['section'] !== null ? (int) $r['section'] : null,
+        'section_details' => isset($r['section_details']) && $r['section_details'] !== ''
+            ? $r['section_details']
+            : null,
+        'word'        => $r['word']         ?? '',
+        'type'        => $r['type']         ?? '',
+        'important'   => isset($r['important']) ? (int) $r['important'] : 0,
+        'meaning_en'  => $r['meaning_en']   ?? '',
+        'meaning_fa'  => $r['meaning_fa']   ?? '',
+        'meaning_kur' => $r['meaning_kur']  ?? '',
+        'example_en'  => $r['example_en']   ?? '',
+        'example_fa'  => $r['example_fa']   ?? '',
+        'example_kur' => $r['example_kur']  ?? '',
+    ];
+};
+
+if (isset($_GET['global']) && (string) $_GET['global'] === '1') {
+    $stmt = $db->prepare(
+        "SELECT $columns
+         FROM   words
+         ORDER  BY book_id ASC, unit ASC, section ASC, id ASC"
+    );
+    $stmt->execute();
+    $rows = $stmt->fetchAll();
+    $result = array_map($rowToJson, $rows);
+    sendJson(array_values($result));
+}
+
 $bookId = isset($_GET['book_id']) ? (int) $_GET['book_id'] : 0;
 if ($bookId <= 0) {
     sendError('book_id is required and must be a positive integer.');
 }
-
-$db = getDb();
-
-$columns = 'id, book_id, unit, section, word, type,
-            meaning_en, meaning_fa, meaning_kur,
-            example_en, example_fa, example_kur';
 
 if (isset($_GET['unit'])) {
     $unit = (int) $_GET['unit'];
@@ -54,19 +90,30 @@ if (isset($_GET['unit'])) {
     if (isset($_GET['section'])) {
         // Mode 1: specific unit + section
         $section = (int) $_GET['section'];
-        $stmt    = $db->prepare(
-            "SELECT $columns
-             FROM   words
-             WHERE  book_id = ? AND unit = ? AND section = ?
-             ORDER  BY id ASC"
-        );
-        $stmt->execute([$bookId, $unit, $section]);
+        if ($section > 0) {
+            $stmt = $db->prepare(
+                "SELECT $columns
+                 FROM   words
+                 WHERE  book_id = ? AND unit = ? AND section = ?
+                 ORDER  BY id ASC"
+            );
+            $stmt->execute([$bookId, $unit, $section]);
+        } else {
+            // Treat section=0 the same as "no section"
+            $stmt = $db->prepare(
+                "SELECT $columns
+                 FROM   words
+                 WHERE  book_id = ? AND unit = ? AND (section IS NULL OR section = 0)
+                 ORDER  BY id ASC"
+            );
+            $stmt->execute([$bookId, $unit]);
+        }
     } else {
-        // Mode 2: unit with no sections (section IS NULL)
+        // Mode 2: unit with no sections (section IS NULL or section=0)
         $stmt = $db->prepare(
             "SELECT $columns
              FROM   words
-             WHERE  book_id = ? AND unit = ?
+             WHERE  book_id = ? AND unit = ? AND (section IS NULL OR section = 0)
              ORDER  BY id ASC"
         );
         $stmt->execute([$bookId, $unit]);
@@ -84,21 +131,6 @@ if (isset($_GET['unit'])) {
 
 $rows = $stmt->fetchAll();
 
-$result = array_map(function (array $r): array {
-    return [
-        'id'          => (int) $r['id'],
-        'book_id'     => (int) $r['book_id'],
-        'unit'        => (int) $r['unit'],
-        'section'     => $r['section'] !== null ? (int) $r['section'] : null,
-        'word'        => $r['word']         ?? '',
-        'type'        => $r['type']         ?? '',
-        'meaning_en'  => $r['meaning_en']   ?? '',
-        'meaning_fa'  => $r['meaning_fa']   ?? '',
-        'meaning_kur' => $r['meaning_kur']  ?? '',
-        'example_en'  => $r['example_en']   ?? '',
-        'example_fa'  => $r['example_fa']   ?? '',
-        'example_kur' => $r['example_kur']  ?? '',
-    ];
-}, $rows);
+$result = array_map($rowToJson, $rows);
 
 sendJson(array_values($result));

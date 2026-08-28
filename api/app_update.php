@@ -3,16 +3,10 @@
  * GET /app_update.php (public)
  *
  * Reads the latest Android / Windows update info from MySQL.
- *
- * Query:
- * - installed_version (optional) — buildNumber / versionCode on the device.
- * - installed_version_name (optional)
- * - platform (optional) — android|windows for release_notes lookup (default android)
- *
- * Table: app_updates (platform = android|windows; apk_url holds APK or Windows zip/exe URL)
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth_helpers.php';
+require_once __DIR__ . '/user_app_version_helpers.php';
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -27,9 +21,27 @@ $db = getDb();
 $installedVersion = isset($_GET['installed_version'])
     ? max(0, (int) $_GET['installed_version'])
     : 0;
+$installedVersionName = isset($_GET['installed_version_name'])
+    ? trim((string) $_GET['installed_version_name'])
+    : '';
 $notesPlatform = isset($_GET['platform']) ? strtolower(trim((string) $_GET['platform'])) : 'android';
 if ($notesPlatform !== 'windows') {
     $notesPlatform = 'android';
+}
+
+if ($installedVersion > 0) {
+    $token = auth_bearer_token();
+    if ($token !== null && $token !== '') {
+        $reportUser = auth_user_from_token($db, $token);
+        if ($reportUser !== null) {
+            user_app_version_report(
+                $db,
+                (int) $reportUser['id'],
+                $installedVersion,
+                $installedVersionName
+            );
+        }
+    }
 }
 
 $emptyNotes = [

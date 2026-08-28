@@ -238,14 +238,41 @@ class _TeacherDashboardScreenState extends ConsumerState<TeacherDashboardScreen>
 
 /// Roster of students linked to the current teacher. Tapping one drills into
 /// their practice detail screen.
-class _StudentsTab extends ConsumerWidget {
+class _StudentsTab extends ConsumerStatefulWidget {
   const _StudentsTab({required this.l10n, required this.scheme});
 
   final AppLocalizations l10n;
   final ColorScheme scheme;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StudentsTab> createState() => _StudentsTabState();
+}
+
+class _StudentsTabState extends ConsumerState<_StudentsTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<TeacherStudentSummary> _filterStudents(
+    List<TeacherStudentSummary> students,
+  ) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return students;
+    return students.where((s) {
+      return s.displayLabel.toLowerCase().contains(q) ||
+          s.email.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final scheme = widget.scheme;
     final async = ref.watch(teacherStudentsProvider);
     return DecoratedBox(
       decoration: TeacherChatUi.teacherPanelBackground(scheme),
@@ -271,158 +298,362 @@ class _StudentsTab extends ConsumerWidget {
           ),
         ),
         data: (List<TeacherStudentSummary> students) {
-          if (students.isEmpty) {
-            return ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                const SizedBox(height: 24),
-                Icon(
-                  Icons.groups_rounded,
-                  size: 72,
-                  color: scheme.primary.withValues(alpha: 0.55),
+          final filtered = _filterStudents(students);
+          final hasSearch = _query.trim().isNotEmpty;
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _TeacherStudentsSearchField(
+                  controller: _searchController,
+                  query: _query,
+                  hintText: l10n.teacherStudentsSearchHint,
+                  closeTooltip: l10n.cancel,
+                  scheme: scheme,
+                  onChanged: (v) => setState(() => _query = v),
+                  onClear: () {
+                    _searchController.clear();
+                    setState(() => _query = '');
+                  },
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  l10n.teacherStudentsEmpty,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.45,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              await refreshAllRemoteApiData(ref);
-              await ref.read(teacherStudentsProvider.future);
-            },
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              itemCount: students.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, i) {
-                final s = students[i];
-                return AppJellyCard(
-                  onTap: () => context.push('/teacher/student/${s.id}'),
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                        children: [
-                          ProfileAvatar(
-                            avatarId: s.avatar,
-                            userId: s.id,
-                            size: 52,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.displayLabel,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    await refreshAllRemoteApiData(ref);
+                    await ref.read(teacherStudentsProvider.future);
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    itemCount: _studentsListItemCount(
+                      students,
+                      filtered,
+                      hasSearch,
+                    ),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      if (i == 0) {
+                        return AppJellyCard(
+                          onTap: () => context.push('/teacher/groups'),
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: scheme.primaryContainer.withValues(
+                                    alpha: 0.65,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  s.email,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                      ),
+                                child: Icon(
+                                  Icons.groups_3_rounded,
+                                  color: scheme.primary,
                                 ),
-                                if (s.pricingAvailable) ...[
-                                  const SizedBox(height: 6),
-                                  if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0)
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      FinancialFormat.formatAmount(
-                                        s.totalUnpaid!,
-                                        s.currencyCode,
-                                        Localizations.localeOf(context)
-                                            .toString(),
-                                        l10n,
-                                      ),
-                                      style: const TextStyle(
-                                        color: FinancialColors.unpaidFg,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                      ),
-                                    )
-                                  else if (!s.hasDefaultTermFeeSet)
-                                    Text(
-                                      l10n.teacherFinancePriceNotSet,
+                                      l10n.teacherClassGroupsTitle,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .labelSmall
+                                          .titleMedium
+                                          ?.copyWith(fontWeight: FontWeight.w800),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.teacherClassGroupsStudentsEntryHint,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
                                           ?.copyWith(
                                             color: scheme.onSurfaceVariant,
                                           ),
                                     ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: scheme.primaryContainer.withValues(
-                                    alpha: 0.9,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  '${s.sessionCount}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: scheme.onPrimaryContainer,
-                                      ),
+                                  ],
                                 ),
                               ),
-                              if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0) ...[
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: FinancialColors.unpaidBg,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    l10n.teacherFinanceStudentUnpaidBadge,
-                                    style: const TextStyle(
-                                      color: FinancialColors.unpaidFg,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ],
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: scheme.onSurfaceVariant,
+                        );
+                      }
+                      if (students.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            l10n.teacherStudentsEmpty,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  height: 1.45,
+                                ),
                           ),
-                        ],
-                      ),
-                );
-              },
-            ),
+                        );
+                      }
+                      if (hasSearch && filtered.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            l10n.teacherStudentsSearchNoResults,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  height: 1.45,
+                                ),
+                          ),
+                        );
+                      }
+                      final s = filtered[i - 1];
+                      return _TeacherStudentRosterCard(
+                        student: s,
+                        l10n: l10n,
+                        scheme: scheme,
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  int _studentsListItemCount(
+    List<TeacherStudentSummary> students,
+    List<TeacherStudentSummary> filtered,
+    bool hasSearch,
+  ) {
+    if (students.isEmpty) return 2;
+    if (hasSearch && filtered.isEmpty) return 2;
+    return filtered.length + 1;
+  }
+}
+
+class _TeacherStudentsSearchField extends StatelessWidget {
+  const _TeacherStudentsSearchField({
+    required this.controller,
+    required this.query,
+    required this.hintText,
+    required this.closeTooltip,
+    required this.scheme,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final String query;
+  final String hintText;
+  final String closeTooltip;
+  final ColorScheme scheme;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: scheme.surface,
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: tt.bodyLarge,
+        cursorColor: scheme.primary,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: tt.bodyLarge?.copyWith(
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+          ),
+          filled: true,
+          fillColor: scheme.surface,
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: scheme.primary,
+            size: 24,
+          ),
+          suffixIcon: query.trim().isEmpty
+              ? null
+              : IconButton(
+                  tooltip: closeTooltip,
+                  onPressed: onClear,
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(22),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(22),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(22),
+            borderSide: BorderSide(
+              color: scheme.primary.withValues(alpha: 0.55),
+              width: 2,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 6,
+            vertical: 14,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeacherStudentRosterCard extends StatelessWidget {
+  const _TeacherStudentRosterCard({
+    required this.student,
+    required this.l10n,
+    required this.scheme,
+  });
+
+  final TeacherStudentSummary student;
+  final AppLocalizations l10n;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = student;
+    return AppJellyCard(
+      onTap: () => context.push('/teacher/student/${s.id}'),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          ProfileAvatar(
+            avatarId: s.avatar,
+            userId: s.id,
+            size: 52,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.displayLabel,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  s.email,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                if (s.pricingAvailable) ...[
+                  const SizedBox(height: 6),
+                  if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0)
+                    Text(
+                      FinancialFormat.formatAmount(
+                        s.totalUnpaid!,
+                        s.currencyCode,
+                        Localizations.localeOf(context).toString(),
+                        l10n,
+                      ),
+                      style: const TextStyle(
+                        color: FinancialColors.unpaidFg,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    )
+                  else if (!s.hasDefaultTermFeeSet)
+                    Text(
+                      l10n.teacherFinancePriceNotSet,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${s.sessionCount}',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+              if (s.hasUnpaid && (s.totalUnpaid ?? 0) > 0) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: FinancialColors.unpaidBg,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    l10n.teacherFinanceStudentUnpaidBadge,
+                    style: const TextStyle(
+                      color: FinancialColors.unpaidFg,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: scheme.onSurfaceVariant,
+          ),
+        ],
       ),
     );
   }

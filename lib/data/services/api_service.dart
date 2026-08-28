@@ -9,9 +9,11 @@ import '../../core/cache/api_disk_cache.dart';
 import '../models/admin_user_row.dart';
 import '../models/admin_story.dart';
 import '../models/auth_user.dart';
+import '../models/teacher_class_group.dart';
 import '../models/teacher_student.dart';
 import '../models/book_model.dart';
 import '../models/game_word_category.dart';
+import '../models/book_pdf.dart';
 import '../models/grammar_topic_pdf.dart';
 import '../models/section_info.dart';
 import '../models/unit_sample.dart';
@@ -27,6 +29,7 @@ import '../models/league.dart';
 import '../models/unit_model.dart';
 import '../models/app_update_manifest.dart';
 import '../models/vocab_entry.dart';
+import '../models/pvp_challenge.dart';
 import '../models/vocab_quiz_result.dart';
 import '../models/teacher_message.dart';
 import '../models/class_schedule_slot.dart';
@@ -281,6 +284,29 @@ class ApiService {
             .map((e) => GameWordCategory.fromJson(e as Map<String, dynamic>))
             .toList();
         if (list.isNotEmpty) return list;
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /book_pdfs.php ────────────────────────────────────────────────────
+  Future<List<BookPdf>> fetchBookPdfs() async {
+    final uri = Uri.parse('$baseUrl/book_pdfs.php');
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'book pdfs');
+      await _writeGetCache(uri, response.body, _ttlBooks);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => BookPdf.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => BookPdf.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       rethrow;
     }
@@ -1639,14 +1665,199 @@ class ApiService {
         .toList();
   }
 
+  /// GET /teacher_class_groups.php
+  Future<List<TeacherClassGroupSummary>> fetchTeacherClassGroups() async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['groups'] as List<dynamic>? ?? const [];
+    return list
+        .map(
+          (e) => TeacherClassGroupSummary.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// GET /teacher_class_groups.php?group_id=
+  Future<TeacherClassGroupDetail> fetchTeacherClassGroup(int groupId) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php').replace(
+      queryParameters: {'group_id': '$groupId'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupDetail.fromJson(
+      map['group'] as Map<String, dynamic>,
+    );
+  }
+
+  /// POST /teacher_class_groups.php — create named group class.
+  Future<TeacherClassGroupDetail> createTeacherClassGroup({
+    required String name,
+    String? note,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'create_group': true,
+        'name': name,
+        if (note != null) 'note': note,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupDetail.fromJson(
+      map['group'] as Map<String, dynamic>,
+    );
+  }
+
+  /// POST /teacher_class_groups.php — update name or note.
+  Future<TeacherClassGroupDetail> updateTeacherClassGroup({
+    required int groupId,
+    String? name,
+    String? note,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final body = <String, dynamic>{
+      'update_group': true,
+      'group_id': groupId,
+    };
+    if (name != null) body['name'] = name;
+    if (note != null) body['note'] = note;
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupDetail.fromJson(
+      map['group'] as Map<String, dynamic>,
+    );
+  }
+
+  /// POST /teacher_class_groups.php — delete group and members.
+  Future<List<TeacherClassGroupSummary>> deleteTeacherClassGroup(
+    int groupId,
+  ) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'delete_group_id': groupId}),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    final list = map['groups'] as List<dynamic>? ?? const [];
+    return list
+        .map(
+          (e) => TeacherClassGroupSummary.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// POST /teacher_class_groups.php — add student to group.
+  Future<TeacherClassGroupDetail> addTeacherClassGroupMember({
+    required int groupId,
+    required int studentId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'group_id': groupId,
+        'add_member': true,
+        'student_id': studentId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupDetail.fromJson(
+      map['group'] as Map<String, dynamic>,
+    );
+  }
+
+  /// POST /teacher_class_groups.php — remove student from group.
+  Future<TeacherClassGroupDetail> removeTeacherClassGroupMember({
+    required int groupId,
+    required int studentId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'group_id': groupId,
+        'remove_member': true,
+        'student_id': studentId,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupDetail.fromJson(
+      map['group'] as Map<String, dynamic>,
+    );
+  }
+
+  /// POST /teacher_class_groups.php — log one session for every member.
+  Future<TeacherClassGroupSessionBulkResponse> addTeacherClassGroupSession({
+    required int groupId,
+    DateTime? recordedAt,
+  }) async {
+    final uri = Uri.parse('$baseUrl/teacher_class_groups.php');
+    final body = <String, dynamic>{
+      'group_id': groupId,
+      'add_group_session': true,
+    };
+    if (recordedAt != null) {
+      body['recorded_at'] = recordedAt.toUtc().toIso8601String();
+    }
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode(body),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return TeacherClassGroupSessionBulkResponse.fromJson(map);
+  }
+
   /// GET /teacher_student_sessions.php
-  Future<TeacherSessionInfo> fetchTeacherStudentSessions(int studentId) async {
+  Future<StudentMyClassSessionsResponse> fetchTeacherStudentSessions(
+    int studentId,
+  ) async {
     final uri = Uri.parse(
       '$baseUrl/teacher_student_sessions.php',
     ).replace(queryParameters: {'student_id': '$studentId'});
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return StudentMyClassSessionsResponse.fromJson(map, _parseTeacherSessionInfo);
+  }
+
+  TeacherSessionInfo _parseTeacherSessionInfoFromAnyResponse(
+    Map<String, dynamic> map,
+  ) {
+    final personal = map['personal'];
+    if (personal is Map<String, dynamic>) {
+      return _parseTeacherSessionInfo(personal);
+    }
     return _parseTeacherSessionInfo(map);
   }
 
@@ -1738,7 +1949,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   /// GET /teacher_student_pricing.php?student_id=
@@ -1833,7 +2044,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   Future<TeacherSessionInfo> addTeacherStudentTerm({
@@ -1859,7 +2070,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   Future<TeacherSessionInfo> updateTeacherStudentTerm({
@@ -1882,7 +2093,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   Future<TeacherSessionInfo> deleteTeacherStudentTerm({
@@ -1899,7 +2110,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   Future<TeacherSessionInfo> setTeacherTermPayment({
@@ -1922,7 +2133,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   /// POST — update private note only (does not change session list).
@@ -1944,7 +2155,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   /// POST — delete one class session row by server id.
@@ -1965,7 +2176,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   /// POST — change [recordedAt] for an existing session.
@@ -1990,16 +2201,16 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
-  /// GET /my_class_sessions.php — student: read-only session list from teacher.
-  Future<TeacherSessionInfo> fetchMyClassSessions() async {
+  /// GET /my_class_sessions.php — student: personal + group class sessions.
+  Future<StudentMyClassSessionsResponse> fetchMyClassSessions() async {
     final uri = Uri.parse('$baseUrl/my_class_sessions.php');
     final response = await http.get(uri, headers: _mergeHeaders());
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return StudentMyClassSessionsResponse.fromJson(map, _parseTeacherSessionInfo);
   }
 
   List<ClassScheduleSlot> _parseScheduleSlots(Map<String, dynamic> map) {
@@ -2292,7 +2503,7 @@ class ApiService {
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseTeacherSessionInfo(map);
+    return _parseTeacherSessionInfoFromAnyResponse(map);
   }
 
   /// POST /upload_avatar.php — multipart field `photo` (JPEG after client compression).
@@ -2656,6 +2867,102 @@ class ApiService {
         '$baseUrl/user_vocab_marks.php',
       ).replace(queryParameters: const {'kind': 'important'}),
     );
+  }
+
+  // ── Word Builder PvP Challenge ─────────────────────────────────────────────
+
+  Future<PvpMatch> createPvpChallenge({required int opponentId}) async {
+    final uri = Uri.parse('$baseUrl/pvp_challenges.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'opponent_id': opponentId}),
+    );
+    if (response.statusCode == 409) {
+      try {
+        final m = jsonDecode(response.body) as Map<String, dynamic>;
+        final mid = (m['match_id'] as num?)?.toInt();
+        if (mid != null && mid > 0) {
+          throw PvpActiveMatchException(mid, m['error']?.toString());
+        }
+      } catch (e) {
+        if (e is PvpActiveMatchException) rethrow;
+      }
+    }
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return PvpMatch.fromJson(map['match'] as Map<String, dynamic>);
+  }
+
+  Future<PvpMatchListBuckets> fetchPvpChallenges({String status = 'active'}) async {
+    final uri = Uri.parse('$baseUrl/pvp_challenges.php').replace(
+      queryParameters: {'status': status},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return PvpMatchListBuckets.fromJson(map);
+  }
+
+  Future<PvpMatch> fetchPvpChallengeDetail(int matchId) async {
+    final uri = Uri.parse('$baseUrl/pvp_challenges.php').replace(
+      queryParameters: {'match_id': '$matchId'},
+    );
+    final response = await http.get(uri, headers: _mergeHeaders());
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return PvpMatch.fromJson(map['match'] as Map<String, dynamic>);
+  }
+
+  Future<PvpMatch> acceptPvpChallenge(int matchId) async {
+    return _pvpChallengeAction(matchId: matchId, action: 'accept');
+  }
+
+  Future<PvpMatch> declinePvpChallenge(int matchId) async {
+    return _pvpChallengeAction(matchId: matchId, action: 'decline');
+  }
+
+  Future<PvpMatch> _pvpChallengeAction({
+    required int matchId,
+    required String action,
+  }) async {
+    final uri = Uri.parse('$baseUrl/pvp_challenges.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({'action': action, 'match_id': matchId}),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return PvpMatch.fromJson(map['match'] as Map<String, dynamic>);
+  }
+
+  Future<PvpSubmitResult> submitPvpChallenge({
+    required int matchId,
+    required DateTime startedAt,
+    required DateTime completedAt,
+    required List<String> words,
+  }) async {
+    final uri = Uri.parse('$baseUrl/pvp_challenge_submit.php');
+    final response = await http.post(
+      uri,
+      headers: _mergeHeaders({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: jsonEncode({
+        'match_id': matchId,
+        'started_at': startedAt.toUtc().toIso8601String(),
+        'completed_at': completedAt.toUtc().toIso8601String(),
+        'words': words,
+      }),
+    );
+    _assertAuthResponse(response);
+    final map = jsonDecode(response.body) as Map<String, dynamic>;
+    return PvpSubmitResult.fromJson(map);
   }
 
   void _assertAuthResponse(http.Response response) {

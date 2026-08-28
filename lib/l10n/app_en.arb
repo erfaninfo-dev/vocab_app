@@ -136,6 +136,27 @@
   "unitPlural": "units",
   "loadingEllipsis": "Loading…",
   "tapToOpen": "Tap to open",
+  "bookStudyPdfTooltip": "Study material (PDF)",
+  "bookStudyPdfOpen": "PDF",
+  "bookStudyPdfPickerTitle": "Study: {bookTitle}",
+  "@bookStudyPdfPickerTitle": {
+    "placeholders": {
+      "bookTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "bookStudyPdfPickerSubtitle": "{count, plural, =1{1 file available} other{{count} files available}}",
+  "@bookStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookStudyPdfView": "View",
+  "bookStudyPdfPartLabel": "Part",
+  "bookStudyPdfUnavailable": "Study material not available yet",
   "grammarPracticeTitle": "Grammar practice",
   "grammarPracticeSubtitle": "Multiple-choice questions by grammar topic",
   "reviewWordsDue": "{count, plural, =1{1 word due for review!} other{{count} words due for review!}}",
@@ -463,7 +484,57 @@
   "teacherPanelSubtitle": "View your students' vocabulary & grammar practice and class sessions.",
   "teacherOpenPanel": "Teacher panel",
   "teacherStudentsEmpty": "No students linked yet. On the server, create student codes tied to your teacher account — learners who register with those codes appear here.",
+  "teacherStudentsSearchHint": "Search students by name or email…",
+  "teacherStudentsSearchNoResults": "No students match this search.",
   "teacherPanelTabStudents": "Students",
+  "teacherClassGroupsTitle": "Group classes",
+  "teacherClassGroupsStudentsEntryHint": "Create a class, add members, and log one session for everyone at once.",
+  "teacherClassGroupsCreateButton": "New class",
+  "teacherClassGroupsNameLabel": "Class name",
+  "teacherClassGroupsNoteLabel": "Note (optional)",
+  "teacherClassGroupsEmpty": "No group classes yet. Create one for students who share the same class time.",
+  "teacherClassGroupsMemberCount": "{count} members",
+  "@teacherClassGroupsMemberCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsAddSessionButton": "Log session for all members",
+  "teacherClassGroupsAddSessionHint": "Each member gets one session in their current term (same as tapping + on each student).",
+  "teacherClassGroupsMembersSection": "Members",
+  "teacherClassGroupsAddMemberButton": "Add member",
+  "teacherClassGroupsAddMemberTitle": "Add student to class",
+  "teacherClassGroupsMembersEmpty": "No members yet. Add students who attend this class together.",
+  "teacherClassGroupsNoStudentsToAdd": "All your students are already in this class.",
+  "teacherClassGroupsSessionAdded": "Session logged for {count} students",
+  "@teacherClassGroupsSessionAdded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsSessionPartial": "Logged for {added} students; {failed} could not be added",
+  "@teacherClassGroupsSessionPartial": {
+    "placeholders": {
+      "added": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberTitle": "Remove from class?",
+  "teacherClassGroupsRemoveMemberBody": "Remove {name} from this group? Their past sessions stay on their record.",
+  "@teacherClassGroupsRemoveMemberBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberConfirm": "Remove",
+  "teacherClassGroupsDeleteTitle": "Delete class?",
+  "teacherClassGroupsDeleteBody": "Delete \"{name}\"? Members are removed from the group; individual session history is kept.",
+  "@teacherClassGroupsDeleteBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsDeleteConfirm": "Delete",
   "teacherPanelTabSchedule": "Schedule",
   "teacherPanelTabMessages": "Messages",
   "teacherScheduleEmpty": "Nothing in the next 7 days. Add weekly class times under each student (Weekly schedule tab), or every upcoming slot was already logged under Class sessions.",
@@ -531,6 +602,14 @@
   "teacherClassSessionTimeFieldLabel": "Time",
   "youClassSessionsTitle": "Class sessions",
   "youClassSessionsSubtitle": "Sessions your teacher records in your profile",
+  "studentPersonalClassTab": "Personal",
+  "studentGroupClassSubtitle": "Group class sessions recorded by your teacher",
+  "studentClassGroupsPreviewHint": "You also have {count} group class(es) — open for separate tabs.",
+  "@studentClassGroupsPreviewHint": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "youClassSessionsEmpty": "No sessions recorded yet.",
   "studentPanelTitle": "Your class",
   "studentPanelFabTooltip": "Open class panel",
@@ -539,6 +618,7 @@
   "studentPanelStatUnread": "Unread",
   "teacherClassSessionsHintEmpty": "Tap + to record each class session. The time is saved automatically.",
   "teacherClassSessionsTabSubtitleTerms": "Create terms and set how many sessions each term allows. Log sessions under the matching term; students see the same grouping.",
+  "teacherGroupClassSessionsTeacherHint": "Group sessions are read-only here. Log new group sessions from Group classes on the Students tab.",
   "teacherClassTermsSection": "Terms",
   "teacherClassTermTitle": "Term {number}",
   "@teacherClassTermTitle": {
@@ -717,6 +797,29 @@
   "grammarStudyPdfView": "View",
   "grammarStudyPdfPartLabel": "Part",
   "grammarStudyPdfUnavailable": "Study material not available yet",
+  "grammarTopicsIntroTitle": "Grammar Practice & Learning",
+  "grammarTopicsIntroBody": "Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.",
+  "grammarTopicsIntroHint": "Select one or more topics to create your own quiz",
+  "grammarTopicsActionHint": "Tap Quiz to practice • Tap Learn to study",
+  "grammarTopicsCardQuizTitle": "Quiz",
+  "grammarTopicsCardQuizDesc": "Practice questions and test yourself",
+  "grammarTopicsCardLearnTitle": "Learn",
+  "grammarTopicsCardLearnDesc": "Study rules, examples and PDF lessons",
+  "grammarTopicsSelectedCount": "{count, plural, =0{0 topics selected} =1{1 topic selected} other{{count} topics selected}}",
+  "@grammarTopicsSelectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarTopicsSelectionEmptyHint": "Select one or more topics to begin",
+  "grammarTopicsSelectionReadyHint": "Choose your challenge and start practicing",
+  "grammarTopicsStartQuiz": "Start Quiz",
+  "grammarTopicsQuestionsCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@grammarTopicsQuestionsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "grammarNotEnoughInBank": "Not enough questions in the bank for this selection (need at least {minRequired}).",
   "@grammarNotEnoughInBank": {
     "placeholders": {

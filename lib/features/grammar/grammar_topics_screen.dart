@@ -12,7 +12,6 @@ import '../../core/widgets/app_jelly_style.dart';
 import '../../data/models/admin_story.dart';
 import '../../data/models/grammar_book.dart';
 import '../../data/models/grammar_question.dart';
-import '../../data/models/grammar_topic_summary.dart';
 import '../../data/models/grammar_topic_pdf.dart';
 import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
@@ -20,6 +19,7 @@ import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
 import 'grammar_pdf_viewer_screen.dart';
 import 'grammar_topic_pdf_picker_sheet.dart';
+import 'grammar_topic_practice_card.dart';
 
 /// Set to `true` to show the Grammar League banner above books again.
 const bool kGrammarShowLeagueBannerOnTopicsScreen = true;
@@ -90,23 +90,20 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
     });
   }
 
-  int _totalQuestionsInBank(List<GrammarTopicSummary> all) {
-    var n = 0;
-    for (final t in all) {
-      if (_selected.contains(t.topic)) {
-        n += t.questionCount;
-      }
-    }
-    return n;
-  }
 
-  Future<void> _startPractice() async {
-    if (_selected.isEmpty) return;
+  Future<void> _startPractice([Set<String>? topicsOverride]) async {
+    final topics = topicsOverride ?? _selected;
+    if (topics.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
     final topicsData = ref.read(apiGrammarTopicsProvider).valueOrNull;
     if (topicsData == null) return;
 
-    final bank = _totalQuestionsInBank(topicsData);
+    var bank = 0;
+    for (final t in topicsData) {
+      if (topics.contains(t.topic)) {
+        bank += t.questionCount;
+      }
+    }
     if (bank <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -115,7 +112,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
       return;
     }
 
-    final minRequired = grammarQuizMinQuestionsForTopics(_selected.length);
+    final minRequired = grammarQuizMinQuestionsForTopics(topics.length);
     if (bank < minRequired) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,20 +130,26 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
       showDragHandle: true,
       builder: (ctx) => _GrammarQuestionCountSheet(
         maxQuestions: cap,
-        selectedTopicCount: _selected.length,
+        selectedTopicCount: topics.length,
       ),
     );
 
     if (count == null || !mounted) return;
 
-    final list = _selected.toList()..sort();
+    final list = topics.toList()..sort();
     final parts = <String>[
       ...list.map((t) => 'topic=${Uri.encodeQueryComponent(t)}'),
       'count=$count',
     ];
     await context.push('/grammar/practice?${parts.join('&')}');
     if (!mounted) return;
-    setState(_selected.clear);
+    if (topicsOverride == null) {
+      setState(_selected.clear);
+    }
+  }
+
+  Future<void> _startSingleTopicQuiz(String topic) async {
+    await _startPractice({topic});
   }
 
   bool _canCreateStoryFromQuestion(GrammarQuestion q) {
@@ -420,7 +423,7 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                         const showPracticeByTopicHeader =
                             kGrammarShowBooksOnTopicsScreen;
                         final topicsTopPadding = showPracticeByTopicHeader
-                            ? 0.0
+                            ? 14.0
                             : practiceTopPadding;
 
                         return CustomScrollView(
@@ -522,14 +525,14 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                               t.topic,
                                             ));
                                     final pdfRows = topicPdfs[t.topic.trim()];
-                                    final accents = _cardAccents(index);
                                     final hasPdfRow = pdfRows != null;
                                     final pdfs =
                                         pdfRows?.where((p) => p.hasValidUrl).toList() ??
                                         const <GrammarTopicPdf>[];
+                                    final accent = grammarTopicCardAccent(index);
                                     return Directionality(
                                       textDirection: TextDirection.ltr,
-                                      child: _TopicCard(
+                                      child: GrammarTopicPracticeCard(
                                         title: t.topic,
                                         questionCount: t.questionCount,
                                         index: index,
@@ -543,7 +546,8 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                         adminNewChecked: t.isNew,
                                         adminNewSaving: _savingAdminNewTopics
                                             .contains(t.topic),
-                                        onTap: () => _toggleTopic(t.topic),
+                                        onSelectionToggle: () =>
+                                            _toggleTopic(t.topic),
                                         onLongPress: isAdmin
                                             ? () => _toggleAdminNewControl(
                                                 t.topic,
@@ -555,14 +559,21 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                                                 isNew: value,
                                               )
                                             : null,
-                                        showStudyPdfButton: hasPdfRow,
-                                        onOpenPdf: pdfs.isEmpty
+                                        quizEnabled: t.questionCount > 0,
+                                        onQuizTap: t.questionCount > 0
+                                            ? () => _startSingleTopicQuiz(
+                                                t.topic,
+                                              )
+                                            : null,
+                                        learnEnabled:
+                                            hasPdfRow && pdfs.isNotEmpty,
+                                        onLearnTap: pdfs.isEmpty
                                             ? null
                                             : () => _openTopicStudyPdfs(
                                                 context: context,
                                                 topic: t.topic,
                                                 pdfs: pdfs,
-                                                accent: accents.first,
+                                                accent: accent,
                                               ),
                                       ),
                                     );
@@ -576,35 +587,9 @@ class _GrammarTopicsScreenState extends ConsumerState<GrammarTopicsScreen> {
                   ),
                 ),
               ),
-              SafeArea(
-                top: false,
-                child: Material(
-                  color: scheme.surface.withValues(alpha: 0.98),
-                  elevation: 6,
-                  shadowColor: Colors.black26,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                    child: FilledButton.icon(
-                      onPressed: _selected.isEmpty ? null : _startPractice,
-                      icon: const Icon(Icons.play_arrow_rounded, size: 26),
-                      label: Text(
-                        _selected.isEmpty
-                            ? l10n.grammarSelectTopicsCta
-                            : l10n.grammarContinueTopics(_selected.length),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              GrammarTopicsSelectionBar(
+                selectedCount: _selected.length,
+                onStartQuiz: _selected.isEmpty ? null : () => _startPractice(),
               ),
             ],
           ),
@@ -1626,357 +1611,4 @@ List<Color> _cardAccents(int index) {
     Colors.red,
   ];
   return [colors[index % colors.length], colors[(index + 1) % colors.length]];
-}
-
-class _AdminNewToggleChip extends StatelessWidget {
-  const _AdminNewToggleChip({
-    required this.checked,
-    required this.saving,
-    required this.fadingOut,
-    required this.onToggle,
-    required this.scheme,
-    required this.textTheme,
-  });
-
-  final bool checked;
-  final bool saving;
-  final bool fadingOut;
-  final ValueChanged<bool>? onToggle;
-  final ColorScheme scheme;
-  final TextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: saving || fadingOut ? null : () => onToggle?.call(!checked),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: checked
-                ? scheme.primary
-                : scheme.outlineVariant.withValues(alpha: 0.55),
-            width: checked ? 1.8 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (saving)
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: scheme.primary,
-                ),
-              )
-            else
-              Icon(
-                checked
-                    ? Icons.check_box_rounded
-                    : Icons.check_box_outline_blank_rounded,
-                size: 18,
-                color: checked ? scheme.primary : scheme.onSurfaceVariant,
-              ),
-            const SizedBox(width: 4),
-            Text(
-              'New',
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: checked ? scheme.primary : scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StudyPdfButton extends StatelessWidget {
-  const _StudyPdfButton({
-    required this.enabled,
-    required this.onTap,
-    required this.accent,
-    required this.tooltip,
-  });
-
-  final bool enabled;
-  final VoidCallback? onTap;
-  final Color accent;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final iconColor = enabled ? accent : scheme.onSurfaceVariant;
-
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled ? onTap : null,
-        child: Opacity(
-          opacity: enabled ? 1 : 0.42,
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: enabled
-                  ? accent.withValues(alpha: 0.14)
-                  : scheme.surfaceContainerHighest.withValues(alpha: 0.72),
-              shape: BoxShape.circle,
-              border: enabled
-                  ? null
-                  : Border.all(
-                      color: scheme.outlineVariant.withValues(alpha: 0.55),
-                    ),
-            ),
-            child: Icon(Icons.menu_book_rounded, size: 26, color: iconColor),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TopicCard extends StatelessWidget {
-  const _TopicCard({
-    required this.title,
-    required this.questionCount,
-    required this.index,
-    required this.selected,
-    required this.showNewBadge,
-    required this.onTap,
-    this.showAdminNewToggle = false,
-    this.adminNewFadingOut = false,
-    this.adminNewChecked = false,
-    this.adminNewSaving = false,
-    this.onLongPress,
-    this.onAdminNewToggle,
-    this.onOpenPdf,
-    this.showStudyPdfButton = false,
-  });
-
-  final String title;
-  final int questionCount;
-  final int index;
-  final bool selected;
-  final bool showNewBadge;
-  final bool showAdminNewToggle;
-  final bool adminNewFadingOut;
-  final bool adminNewChecked;
-  final bool adminNewSaving;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final ValueChanged<bool>? onAdminNewToggle;
-
-  /// Row exists in grammar_topic_pdfs; button shown enabled/disabled accordingly.
-  final bool showStudyPdfButton;
-
-  /// Opens the topic's study PDF when enabled. Null = disabled (empty pdf_url).
-  final VoidCallback? onOpenPdf;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final accents = _cardAccents(index);
-    final textTheme = Theme.of(context).textTheme;
-
-    return AppJellyShell(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      decoration: appJellyAccentCardSurfaceDecoration(
-        context,
-        accent: accents.first,
-        accentEnd: accents.last,
-        selected: selected,
-        intensity: 0.20,
-        scheme: scheme,
-      ),
-      shadows: appJellyCardShadows(context, glowColor: accents.first),
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      child: SizedBox(
-              height: 120,
-              width: double.infinity,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: showAdminNewToggle ? 8 : 30,
-                        top: 4,
-                        bottom: 36,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            AppJellyIconBubble(
-                              color: accents.first,
-                              size: 52,
-                              child: const Icon(
-                                Icons.rule_rounded,
-                                color: Colors.white,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.25,
-                                ),
-                              ),
-                            ),
-                            if (showAdminNewToggle) ...[
-                              const SizedBox(width: 10),
-                              AnimatedOpacity(
-                                opacity: adminNewFadingOut ? 0 : 1,
-                                duration: const Duration(milliseconds: 480),
-                                curve: Curves.easeOut,
-                                child: _AdminNewToggleChip(
-                                  checked: adminNewChecked,
-                                  saving: adminNewSaving,
-                                  fadingOut: adminNewFadingOut,
-                                  onToggle: onAdminNewToggle,
-                                  scheme: scheme,
-                                  textTheme: textTheme,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!showAdminNewToggle)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Icon(
-                        selected
-                            ? Icons.check_circle_rounded
-                            : Icons.arrow_outward_rounded,
-                        color: selected
-                            ? scheme.primary
-                            : accents.first.withValues(alpha: 0.75),
-                        size: 24,
-                      ),
-                    ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showStudyPdfButton) ...[
-                          _StudyPdfButton(
-                            enabled: onOpenPdf != null,
-                            onTap: onOpenPdf,
-                            accent: accents.first,
-                            tooltip: onOpenPdf != null
-                                ? AppLocalizations.of(
-                                    context,
-                                  )!.grammarStudyPdfTooltip
-                                : AppLocalizations.of(
-                                    context,
-                                  )!.grammarStudyPdfUnavailable,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: appJellyInsetDecoration(context),
-                          child: Text(
-                            '$questionCount question${questionCount == 1 ? '' : 's'}',
-                            style: textTheme.labelMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (showNewBadge)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFFD166),
-                              Color(0xFFFF6B6B),
-                              Color(0xFF9B5DE5),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: scheme.surface.withValues(alpha: 0.92),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFFF6B6B,
-                              ).withValues(alpha: 0.28),
-                              blurRadius: 12,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'New',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-    );
-  }
 }

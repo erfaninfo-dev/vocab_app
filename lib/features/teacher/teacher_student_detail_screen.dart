@@ -187,7 +187,7 @@ class _TeacherStudentDetailScreenState
         children: [
           _VocabTab(studentId: widget.studentId),
           _GrammarTab(studentId: widget.studentId),
-          TeacherClassSessionsPanel(studentId: widget.studentId),
+          TeacherStudentClassSessionsTab(studentId: widget.studentId),
           TeacherClassSchedulePanel(studentId: widget.studentId),
         ],
       ),

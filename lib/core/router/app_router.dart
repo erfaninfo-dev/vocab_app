@@ -9,6 +9,9 @@ import '../../features/word_builder/word_builder_constants.dart';
 import '../../features/word_builder/presentation/word_builder_category_picker_screen.dart';
 import '../../features/word_builder/presentation/word_builder_lobby_screen.dart';
 import '../../features/word_builder/presentation/word_builder_ltr_scope.dart';
+import '../../features/word_builder/presentation/pvp/pvp_challenge_detail_screen.dart';
+import '../../features/word_builder/presentation/pvp/pvp_challenge_session_screen.dart';
+import '../../features/word_builder/presentation/pvp/pvp_challenges_hub_screen.dart';
 import '../../features/word_builder/presentation/word_builder_session_screen.dart';
 import '../../features/word_builder/presentation/word_builder_campaign_stages_screen.dart';
 import '../../features/word_builder/presentation/word_builder_theme_stages_screen.dart';
@@ -51,6 +54,8 @@ import '../../features/you/student_panel_screen.dart';
 import '../../features/you/student_message_peers_screen.dart';
 import '../../features/you/teacher_chat_screen.dart';
 import '../../features/teacher/teacher_chat_open_args.dart';
+import '../../features/teacher/teacher_class_group_detail_screen.dart';
+import '../../features/teacher/teacher_class_groups_screen.dart';
 import '../../features/teacher/teacher_dashboard_screen.dart';
 import '../../features/teacher/teacher_student_detail_screen.dart';
 import '../../features/vocab_quiz/vocab_quiz_history_screen.dart';
@@ -179,6 +184,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/teacher/groups',
+        builder: (_, __) => const TeacherClassGroupsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/groups/:groupId',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['groupId'] ?? '') ?? 0;
+          return TeacherClassGroupDetailScreen(groupId: id);
+        },
+      ),
+      GoRoute(
         path: '/teacher/student/:studentId',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0;
@@ -289,6 +305,32 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(
+            path: '/word-builder/challenges',
+            builder: (_, __) => const WordBuilderLtrScope(
+              child: PvpChallengesHubScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/word-builder/challenge/:matchId',
+            builder: (context, state) {
+              final matchId =
+                  int.tryParse(state.pathParameters['matchId'] ?? '') ?? 0;
+              return WordBuilderLtrScope(
+                child: PvpChallengeDetailScreen(matchId: matchId),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/word-builder/challenge/:matchId/play',
+            builder: (context, state) {
+              final matchId =
+                  int.tryParse(state.pathParameters['matchId'] ?? '') ?? 0;
+              return WordBuilderLtrScope(
+                child: PvpChallengeSessionScreen(matchId: matchId),
+              );
+            },
+          ),
 
           GoRoute(
             path: '/grammar',
@@ -365,8 +407,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/you/class-sessions',
             builder: (context, state) {
               final tab = state.uri.queryParameters['tab'];
-              final initial = tab == 'schedule' ? 1 : 0;
-              return StudentClassSessionsScreen(initialTabIndex: initial);
+              final initial = tab == 'schedule'
+                  ? StudentClassSessionsTabKey.schedule
+                  : StudentClassSessionsTabKey.personal;
+              return StudentClassSessionsScreen(initialTabKey: initial);
             },
           ),
           GoRoute(path: '/you', builder: (_, __) => const YouScreen()),

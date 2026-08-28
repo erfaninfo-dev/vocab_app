@@ -126,6 +126,27 @@
   "unitPlural": "یەکەکان",
   "loadingEllipsis": "بارکردن…",
   "tapToOpen": "بگرە بۆ کردنەوە",
+  "bookStudyPdfTooltip": "بابەتی خوێندن (PDF)",
+  "bookStudyPdfOpen": "PDF",
+  "bookStudyPdfPickerTitle": "خوێندن: {bookTitle}",
+  "@bookStudyPdfPickerTitle": {
+    "placeholders": {
+      "bookTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "bookStudyPdfPickerSubtitle": "{count, plural, =1{١ فایل بەردەستە} other{{count} فایل بەردەستە}}",
+  "@bookStudyPdfPickerSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookStudyPdfView": "بینین",
+  "bookStudyPdfPartLabel": "بەش",
+  "bookStudyPdfUnavailable": "فایلی خوێندن هێشتا ئامادە نییە",
   "grammarPracticeTitle": "ڕاهێنانی ڕێزمان",
   "grammarPracticeSubtitle": "پرسیارە هەڵبژاردەییەکان بەپێی بابەتی ڕێزمان",
   "reviewWordsDue": "{count, plural, =1{١ وشە بۆ پێداچوونەوە!} other{{count} وشە بۆ پێداچوونەوە!}}",
@@ -339,7 +360,57 @@
   "teacherPanelSubtitle": "بینینی وشە و ڕێزمانی قوتابیان و تۆمارکردنی وانەکان.",
   "teacherOpenPanel": "پانێلی مامۆستا",
   "teacherStudentsEmpty": "هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.",
+  "teacherStudentsSearchHint": "گەڕان بۆ قوتابی بە ناو یان ئیمەیڵ…",
+  "teacherStudentsSearchNoResults": "هیچ قوتابیەک بەم گەڕانەوە نەدۆزرایەوە.",
   "teacherPanelTabStudents": "قوتابیان",
+  "teacherClassGroupsTitle": "پۆلەکانی گرووپ",
+  "teacherClassGroupsStudentsEntryHint": "پۆل دروست بکە، ئەندام زیاد بکە و دانیشتن بۆ هەموو بە یەک داگرتن تۆمار بکە.",
+  "teacherClassGroupsCreateButton": "پۆلی نوێ",
+  "teacherClassGroupsNameLabel": "ناوی پۆل",
+  "teacherClassGroupsNoteLabel": "تێبینی (ئارەزوومەند)",
+  "teacherClassGroupsEmpty": "هێشتا پۆلی گرووپ نییە. بۆ قوتابیانی هەمان کات پۆل دروست بکە.",
+  "teacherClassGroupsMemberCount": "{count} ئەندام",
+  "@teacherClassGroupsMemberCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsAddSessionButton": "تۆمارکردنی دانیشتن بۆ هەموو",
+  "teacherClassGroupsAddSessionHint": "هەر ئەندامێک دانیشتنێک لە خولی ئێستای خۆی وەردەگرێت (وەک + لە پرۆفایلی هەر قوتابی).",
+  "teacherClassGroupsMembersSection": "ئەندامان",
+  "teacherClassGroupsAddMemberButton": "زیادکردنی ئەندام",
+  "teacherClassGroupsAddMemberTitle": "زیادکردنی قوتابی بۆ پۆل",
+  "teacherClassGroupsMembersEmpty": "هێشتا ئەندام نییە. قوتابیانی هەمان پۆل زیاد بکە.",
+  "teacherClassGroupsNoStudentsToAdd": "هەموو قوتابیەکانت لەم پۆلەدان.",
+  "teacherClassGroupsSessionAdded": "دانیشتن بۆ {count} قوتابی تۆمارکرا",
+  "@teacherClassGroupsSessionAdded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsSessionPartial": "بۆ {added} قوتابی تۆمارکرا؛ {failed} سەرکەوتوو نەبوو",
+  "@teacherClassGroupsSessionPartial": {
+    "placeholders": {
+      "added": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberTitle": "لابردن لە پۆل؟",
+  "teacherClassGroupsRemoveMemberBody": "{name} لەم گرووپە لاببرێت؟ دانیشتنە کۆنەکانی لە تۆمارەکەی دەمێنێتەوە.",
+  "@teacherClassGroupsRemoveMemberBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsRemoveMemberConfirm": "لابردن",
+  "teacherClassGroupsDeleteTitle": "سڕینەوەی پۆل؟",
+  "teacherClassGroupsDeleteBody": "«{name}» بسڕدرێتەوە؟ ئەندامان لە گرووپ لادەبرێن؛ مێژووی دانیشتنە تاکەکەسی دەمێنێتەوە.",
+  "@teacherClassGroupsDeleteBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "teacherClassGroupsDeleteConfirm": "سڕینەوە",
   "teacherPanelTabSchedule": "خشتەی وانە",
   "teacherPanelTabMessages": "نامەکان",
   "teacherScheduleEmpty": "لە ٧ ڕۆژی داهاتوودا هیچ نییە. کاتەکانی هەفتانە لە هەر قوتابییەک زیاد بکە، یان هەموو کاتە نزیکەکان پێشتر تۆمارکراون.",
@@ -407,6 +478,14 @@
   "teacherClassSessionTimeFieldLabel": "کات",
   "youClassSessionsTitle": "دانیشتنەکانی پۆل",
   "youClassSessionsSubtitle": "ئەو دانیشتنانەی مامۆستا لە پرۆفایلەکەتدا تۆمار دەکات",
+  "studentPersonalClassTab": "پۆلی تاکەکەسی",
+  "studentGroupClassSubtitle": "دانیشتنەکانی ئەم پۆلی گرووپەی کە مامۆستا تۆمار کردووە",
+  "studentClassGroupsPreviewHint": "هەروەها {count} پۆلی گرووپت هەیە — بۆ تابە جیاکان بیکەرەوە.",
+  "@studentClassGroupsPreviewHint": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "youClassSessionsEmpty": "هێشتا دانیشتن تۆمار نەکراوە.",
   "studentPanelTitle": "پانێلی پۆل",
   "studentPanelFabTooltip": "کردنەوەی پانێلی پۆل",
@@ -415,6 +494,7 @@
   "studentPanelStatUnread": "نەخوێندراوە",
   "teacherClassSessionsHintEmpty": "بە + هەر دانیشتنێک تۆمار بکە؛ کاتەکە خۆکار پاشەکەوت دەکرێت.",
   "teacherClassSessionsTabSubtitleTerms": "خولەکان دروست بکە و بۆ هەر خولێک زۆرترین ژمارەی دانیشتن دیاری بکە؛ دانیشتنەکان لەژێر هەمان خول تۆمار بکە؛ قوتابی هەمان گروپکردن دەبینێت.",
+  "teacherGroupClassSessionsTeacherHint": "دانیشتنەکانی پۆلی گرووپ لێرە تەنها بۆ خوێندنەوەن. دانیشتنی نوێی گرووپ لە «پۆلە گرووپییەکان» لە تابی قوتابیان تۆمار بکە.",
   "teacherClassTermsSection": "خولەکان",
   "teacherClassTermTitle": "خول {number}",
   "@teacherClassTermTitle": {
@@ -575,6 +655,29 @@
   "grammarStudyPdfView": "بینین",
   "grammarStudyPdfPartLabel": "بەش",
   "grammarStudyPdfUnavailable": "فایلی خوێندن هێشتا ئامادە نییە",
+  "grammarTopicsIntroTitle": "Grammar Practice & Learning",
+  "grammarTopicsIntroBody": "Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.",
+  "grammarTopicsIntroHint": "Select one or more topics to create your own quiz",
+  "grammarTopicsActionHint": "Tap Quiz to practice • Tap Learn to study",
+  "grammarTopicsCardQuizTitle": "Quiz",
+  "grammarTopicsCardQuizDesc": "Practice questions and test yourself",
+  "grammarTopicsCardLearnTitle": "Learn",
+  "grammarTopicsCardLearnDesc": "Study rules, examples and PDF lessons",
+  "grammarTopicsSelectedCount": "{count, plural, =0{0 topics selected} =1{1 topic selected} other{{count} topics selected}}",
+  "@grammarTopicsSelectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "grammarTopicsSelectionEmptyHint": "Select one or more topics to begin",
+  "grammarTopicsSelectionReadyHint": "Choose your challenge and start practicing",
+  "grammarTopicsStartQuiz": "Start Quiz",
+  "grammarTopicsQuestionsCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@grammarTopicsQuestionsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "grammarNotEnoughInBank": "پرسیاری پێویست لە بانکدا نییە بۆ ئەم هەڵبژاردنە (کەمترین {minRequired} پێویستە).",
   "grammarNoQuestions": "بۆ بابەتە هەڵبژێردراوەکان پرسیار نەدۆزرایەوە.",
   "grammarTopicsPick": "بابەت و درێژی دانیشتن هەڵبژێرە",

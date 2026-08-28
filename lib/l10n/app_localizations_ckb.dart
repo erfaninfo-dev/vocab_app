@@ -344,6 +344,37 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get tapToOpen => 'بگرە بۆ کردنەوە';
 
   @override
+  String get bookStudyPdfTooltip => 'بابەتی خوێندن (PDF)';
+
+  @override
+  String get bookStudyPdfOpen => 'PDF';
+
+  @override
+  String bookStudyPdfPickerTitle(String bookTitle) {
+    return 'خوێندن: $bookTitle';
+  }
+
+  @override
+  String bookStudyPdfPickerSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count فایل بەردەستە',
+      one: '١ فایل بەردەستە',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bookStudyPdfView => 'بینین';
+
+  @override
+  String get bookStudyPdfPartLabel => 'بەش';
+
+  @override
+  String get bookStudyPdfUnavailable => 'فایلی خوێندن هێشتا ئامادە نییە';
+
+  @override
   String get grammarPracticeTitle => 'ڕاهێنانی ڕێزمان';
 
   @override
@@ -1010,7 +1041,96 @@ class AppLocalizationsCkb extends AppLocalizations {
       'هێشتا قوتابی بەستراو نییە. لەسەر سێرڤەر کۆدی قوتابی بە هەژماری مامۆستاکەت بەستە؛ قوتابیەکان بە هەمان کۆد تۆمار دەبن.';
 
   @override
+  String get teacherStudentsSearchHint => 'گەڕان بۆ قوتابی بە ناو یان ئیمەیڵ…';
+
+  @override
+  String get teacherStudentsSearchNoResults =>
+      'هیچ قوتابیەک بەم گەڕانەوە نەدۆزرایەوە.';
+
+  @override
   String get teacherPanelTabStudents => 'قوتابیان';
+
+  @override
+  String get teacherClassGroupsTitle => 'پۆلەکانی گرووپ';
+
+  @override
+  String get teacherClassGroupsStudentsEntryHint =>
+      'پۆل دروست بکە، ئەندام زیاد بکە و دانیشتن بۆ هەموو بە یەک داگرتن تۆمار بکە.';
+
+  @override
+  String get teacherClassGroupsCreateButton => 'پۆلی نوێ';
+
+  @override
+  String get teacherClassGroupsNameLabel => 'ناوی پۆل';
+
+  @override
+  String get teacherClassGroupsNoteLabel => 'تێبینی (ئارەزوومەند)';
+
+  @override
+  String get teacherClassGroupsEmpty =>
+      'هێشتا پۆلی گرووپ نییە. بۆ قوتابیانی هەمان کات پۆل دروست بکە.';
+
+  @override
+  String teacherClassGroupsMemberCount(int count) {
+    return '$count ئەندام';
+  }
+
+  @override
+  String get teacherClassGroupsAddSessionButton =>
+      'تۆمارکردنی دانیشتن بۆ هەموو';
+
+  @override
+  String get teacherClassGroupsAddSessionHint =>
+      'هەر ئەندامێک دانیشتنێک لە خولی ئێستای خۆی وەردەگرێت (وەک + لە پرۆفایلی هەر قوتابی).';
+
+  @override
+  String get teacherClassGroupsMembersSection => 'ئەندامان';
+
+  @override
+  String get teacherClassGroupsAddMemberButton => 'زیادکردنی ئەندام';
+
+  @override
+  String get teacherClassGroupsAddMemberTitle => 'زیادکردنی قوتابی بۆ پۆل';
+
+  @override
+  String get teacherClassGroupsMembersEmpty =>
+      'هێشتا ئەندام نییە. قوتابیانی هەمان پۆل زیاد بکە.';
+
+  @override
+  String get teacherClassGroupsNoStudentsToAdd =>
+      'هەموو قوتابیەکانت لەم پۆلەدان.';
+
+  @override
+  String teacherClassGroupsSessionAdded(int count) {
+    return 'دانیشتن بۆ $count قوتابی تۆمارکرا';
+  }
+
+  @override
+  String teacherClassGroupsSessionPartial(int added, int failed) {
+    return 'بۆ $added قوتابی تۆمارکرا؛ $failed سەرکەوتوو نەبوو';
+  }
+
+  @override
+  String get teacherClassGroupsRemoveMemberTitle => 'لابردن لە پۆل؟';
+
+  @override
+  String teacherClassGroupsRemoveMemberBody(String name) {
+    return '$name لەم گرووپە لاببرێت؟ دانیشتنە کۆنەکانی لە تۆمارەکەی دەمێنێتەوە.';
+  }
+
+  @override
+  String get teacherClassGroupsRemoveMemberConfirm => 'لابردن';
+
+  @override
+  String get teacherClassGroupsDeleteTitle => 'سڕینەوەی پۆل؟';
+
+  @override
+  String teacherClassGroupsDeleteBody(String name) {
+    return '«$name» بسڕدرێتەوە؟ ئەندامان لە گرووپ لادەبرێن؛ مێژووی دانیشتنە تاکەکەسی دەمێنێتەوە.';
+  }
+
+  @override
+  String get teacherClassGroupsDeleteConfirm => 'سڕینەوە';
 
   @override
   String get teacherPanelTabSchedule => 'خشتەی وانە';
@@ -1212,6 +1332,18 @@ class AppLocalizationsCkb extends AppLocalizations {
       'ئەو دانیشتنانەی مامۆستا لە پرۆفایلەکەتدا تۆمار دەکات';
 
   @override
+  String get studentPersonalClassTab => 'پۆلی تاکەکەسی';
+
+  @override
+  String get studentGroupClassSubtitle =>
+      'دانیشتنەکانی ئەم پۆلی گرووپەی کە مامۆستا تۆمار کردووە';
+
+  @override
+  String studentClassGroupsPreviewHint(int count) {
+    return 'هەروەها $count پۆلی گرووپت هەیە — بۆ تابە جیاکان بیکەرەوە.';
+  }
+
+  @override
   String get youClassSessionsEmpty => 'هێشتا دانیشتن تۆمار نەکراوە.';
 
   @override
@@ -1237,6 +1369,10 @@ class AppLocalizationsCkb extends AppLocalizations {
   @override
   String get teacherClassSessionsTabSubtitleTerms =>
       'خولەکان دروست بکە و بۆ هەر خولێک زۆرترین ژمارەی دانیشتن دیاری بکە؛ دانیشتنەکان لەژێر هەمان خول تۆمار بکە؛ قوتابی هەمان گروپکردن دەبینێت.';
+
+  @override
+  String get teacherGroupClassSessionsTeacherHint =>
+      'دانیشتنەکانی پۆلی گرووپ لێرە تەنها بۆ خوێندنەوەن. دانیشتنی نوێی گرووپ لە «پۆلە گرووپییەکان» لە تابی قوتابیان تۆمار بکە.';
 
   @override
   String get teacherClassTermsSection => 'خولەکان';
@@ -1695,6 +1831,69 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get grammarStudyPdfUnavailable => 'فایلی خوێندن هێشتا ئامادە نییە';
+
+  @override
+  String get grammarTopicsIntroTitle => 'Grammar Practice & Learning';
+
+  @override
+  String get grammarTopicsIntroBody =>
+      'Choose a topic and either practice with quizzes or learn the grammar with lessons and PDF materials.';
+
+  @override
+  String get grammarTopicsIntroHint =>
+      'Select one or more topics to create your own quiz';
+
+  @override
+  String get grammarTopicsActionHint =>
+      'Tap Quiz to practice • Tap Learn to study';
+
+  @override
+  String get grammarTopicsCardQuizTitle => 'Quiz';
+
+  @override
+  String get grammarTopicsCardQuizDesc =>
+      'Practice questions and test yourself';
+
+  @override
+  String get grammarTopicsCardLearnTitle => 'Learn';
+
+  @override
+  String get grammarTopicsCardLearnDesc =>
+      'Study rules, examples and PDF lessons';
+
+  @override
+  String grammarTopicsSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count topics selected',
+      one: '1 topic selected',
+      zero: '0 topics selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get grammarTopicsSelectionEmptyHint =>
+      'Select one or more topics to begin';
+
+  @override
+  String get grammarTopicsSelectionReadyHint =>
+      'Choose your challenge and start practicing';
+
+  @override
+  String get grammarTopicsStartQuiz => 'Start Quiz';
+
+  @override
+  String grammarTopicsQuestionsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0';
+  }
 
   @override
   String grammarNotEnoughInBank(int minRequired) {

@@ -47,3 +47,44 @@ GrammarCommunityCardTheme grammarCommunityCardThemeForIndex(int index) {
   final i = index % kGrammarCommunityCardThemes.length;
   return kGrammarCommunityCardThemes[i];
 }
+
+/// Card accent from answer accuracy (0.0–1.0). Falls back when [hasScore] is false.
+GrammarCommunityCardTheme grammarCommunityCardThemeForAccuracy({
+  required double ratio,
+  required bool hasScore,
+  int fallbackIndex = 0,
+}) {
+  if (!hasScore) {
+    return grammarCommunityCardThemeForIndex(fallbackIndex);
+  }
+
+  final pct = (ratio.clamp(0.0, 1.0) * 100).round();
+  if (pct >= 90) {
+    return const GrammarCommunityCardTheme(
+      accent: Color(0xFF16A34A),
+      accentEnd: Color(0xFF22C55E),
+    );
+  }
+  if (pct >= 75) {
+    return const GrammarCommunityCardTheme(
+      accent: Color(0xFF0D9488),
+      accentEnd: Color(0xFF14B8A6),
+    );
+  }
+  if (pct >= 60) {
+    return const GrammarCommunityCardTheme(
+      accent: Color(0xFF2563EB),
+      accentEnd: Color(0xFF3B82F6),
+    );
+  }
+  if (pct >= 45) {
+    return const GrammarCommunityCardTheme(
+      accent: Color(0xFFEA580C),
+      accentEnd: Color(0xFFF97316),
+    );
+  }
+  return const GrammarCommunityCardTheme(
+    accent: Color(0xFFDC2626),
+    accentEnd: Color(0xFFE11D48),
+  );
+}

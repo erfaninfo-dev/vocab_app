@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../home/widgets/home_release_notes_banner.dart';
+import '../home/widgets/learning_goal_home_prompt.dart';
 import '../you/learning_goal_provider.dart';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
@@ -273,36 +274,39 @@ class ShellScaffold extends ConsumerWidget {
 
     return HomeReleaseNotesOverlayGate(
       show: onHome,
-      child: Scaffold(
-        body: child,
-        bottomNavigationBar: hideBottomBar
-            ? null
-            : NavigationBar(
-                selectedIndex: currentIndex,
-                indicatorColor: currentIndex == _playTabIndex
-                    ? Colors.transparent
-                    : null,
-                onDestinationSelected: (index) {
-                  if (index == 0) {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                    context.go(tabs[0].path);
-                  } else if (!location.startsWith(tabs[index].path)) {
-                    context.push(tabs[index].path);
-                  }
-                },
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                height: kShellBottomNavigationBarHeight,
-                destinations: [
-                  for (int i = 0; i < tabs.length; i++)
-                    _navDestination(
-                      tabs[i],
-                      isPlayTab: tabs[i].path == '/word-builder',
-                      isYouTab: tabs[i].path == '/you',
-                      isDark: isDark,
-                      learningGoal: learningGoal,
-                    ),
-                ],
-              ),
+      child: LearningGoalHomePromptGate(
+        show: onHome,
+        child: Scaffold(
+          body: child,
+          bottomNavigationBar: hideBottomBar
+              ? null
+              : NavigationBar(
+                  selectedIndex: currentIndex,
+                  indicatorColor: currentIndex == _playTabIndex
+                      ? Colors.transparent
+                      : null,
+                  onDestinationSelected: (index) {
+                    if (index == 0) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      context.go(tabs[0].path);
+                    } else if (!location.startsWith(tabs[index].path)) {
+                      context.push(tabs[index].path);
+                    }
+                  },
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  height: kShellBottomNavigationBarHeight,
+                  destinations: [
+                    for (int i = 0; i < tabs.length; i++)
+                      _navDestination(
+                        tabs[i],
+                        isPlayTab: tabs[i].path == '/word-builder',
+                        isYouTab: tabs[i].path == '/you',
+                        isDark: isDark,
+                        learningGoal: learningGoal,
+                      ),
+                  ],
+                ),
+        ),
       ),
     );
   }

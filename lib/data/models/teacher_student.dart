@@ -164,6 +164,7 @@ class ClassSessionEntry {
     required this.index,
     required this.recordedAtRaw,
     this.termId,
+    this.groupId,
   });
 
   final int id;
@@ -173,6 +174,9 @@ class ClassSessionEntry {
 
   /// Server row for `teacher_student_terms` when the API is migrated.
   final int? termId;
+
+  /// Group class id when session was logged via teacher group panel.
+  final int? groupId;
 
   /// Server datetime string for when the session was recorded.
   final String recordedAtRaw;
@@ -185,6 +189,7 @@ class ClassSessionEntry {
           0,
       recordedAtRaw: (json['recorded_at'] ?? '').toString(),
       termId: (json['term_id'] as num?)?.toInt(),
+      groupId: (json['group_id'] as num?)?.toInt(),
     );
   }
 }
