@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/user_friendly_error.dart';
 import '../../core/widgets/app_jelly_style.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../domain/api_providers.dart';
@@ -12,11 +13,18 @@ import '../../l10n/app_localizations.dart';
 const String kPasswordResetSupportLaunchUri = 'https://rubika.ir';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.wrapWithScaffold = true});
+  const LoginScreen({
+    super.key,
+    this.wrapWithScaffold = true,
+    this.addAccount = false,
+  });
 
   /// When embedded in [AuthHubScreen] [TabBarView], omit [Scaffold] to avoid
   /// nested scaffolds (fixes dim/grey overlay under RTL e.g. Kurdish).
   final bool wrapWithScaffold;
+
+  /// Admin multi-account: keep the current session and add another.
+  final bool addAccount;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -42,14 +50,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     setState(() => _submitting = true);
     final l10n = AppLocalizations.of(context)!;
+    final adding =
+        widget.addAccount &&
+        ref.read(authProvider).valueOrNull?.user.isAdmin == true;
     try {
-      await ref
-          .read(authProvider.notifier)
-          .login(_emailCtrl.text, _passwordCtrl.text);
+      if (adding) {
+        await ref
+            .read(authProvider.notifier)
+            .addAccount(_emailCtrl.text, _passwordCtrl.text);
+      } else {
+        await ref
+            .read(authProvider.notifier)
+            .login(_emailCtrl.text, _passwordCtrl.text);
+      }
       if (!mounted) {
         return;
       }
-      if (context.canPop()) {
+      if (adding) {
+        context.go('/home');
+      } else if (context.canPop()) {
         context.pop();
       } else {
         context.go('/home');
@@ -58,9 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) {
         return;
       }
-      final msg = e.toString().contains('Invalid email or password')
-          ? l10n.loginInvalid
-          : l10n.loginFailed;
+      final String msg;
+      if (e is AuthAddAccountLimitException) {
+        msg = l10n.addAccountLimitReached(e.max);
+      } else if (e.toString().contains('Invalid email or password')) {
+        msg = l10n.loginInvalid;
+      } else {
+        msg = userFriendlyErrorMessage(e, l10n);
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) {
@@ -108,10 +132,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         .read(apiServiceProvider)
                         .requestPasswordResetEmailCode(email);
                     sent = true;
+                    if (!ctx.mounted) return;
                     ScaffoldMessenger.of(ctx).showSnackBar(
                       SnackBar(content: Text(l10n.passwordResetCodeSent)),
                     );
                   } catch (_) {
+                    if (!ctx.mounted) return;
                     ScaffoldMessenger.of(ctx).showSnackBar(
                       SnackBar(content: Text(l10n.passwordResetSendFailed)),
                     );
@@ -139,13 +165,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   }
                   if (p1 != p2) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text(l10n.passwordResetPasswordsMismatch)),
+                      SnackBar(
+                        content: Text(l10n.passwordResetPasswordsMismatch),
+                      ),
                     );
                     return;
                   }
                   setModalState(() => confirming = true);
                   try {
-                    await ref.read(apiServiceProvider).confirmPasswordResetEmailCode(
+                    await ref
+                        .read(apiServiceProvider)
+                        .confirmPasswordResetEmailCode(
                           email: email,
                           code: code,
                           newPassword: p1,
@@ -177,10 +207,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children: [
                     Text(
                       l10n.passwordResetTitle,
-                      style: Theme.of(ctx)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -238,7 +267,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Text(l10n.passwordResetChangeButton),
                       ),
@@ -294,98 +325,106 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            Text(
-              l10n.welcomeBack,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.loginSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 28),
-            TextFormField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: InputDecoration(
-                labelText: l10n.email,
-                border: const OutlineInputBorder(),
-              ),
-              validator: (v) {
-                final s = v?.trim() ?? '';
-                if (s.isEmpty) {
-                  return l10n.enterEmail;
-                }
-                if (!s.contains('@')) {
-                  return l10n.enterValidEmail;
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              autofillHints: const [AutofillHints.password],
-              decoration: InputDecoration(
-                labelText: l10n.password,
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
+              Text(
+                widget.addAccount ? l10n.addAccountTitle : l10n.welcomeBack,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) {
-                  return l10n.enterPassword;
-                }
-                if (v.length < 8) {
-                  return l10n.passwordMinLength;
-                }
-                return null;
-              },
-            ),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
+              const SizedBox(height: 8),
+              Text(
+                widget.addAccount
+                    ? l10n.addAccountSubtitle
+                    : l10n.loginSubtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 28),
+              TextFormField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                decoration: InputDecoration(
+                  labelText: l10n.email,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  final s = v?.trim() ?? '';
+                  if (s.isEmpty) {
+                    return l10n.enterEmail;
+                  }
+                  if (!s.contains('@')) {
+                    return l10n.enterValidEmail;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordCtrl,
+                obscureText: _obscure,
+                autofillHints: const [AutofillHints.password],
+                decoration: InputDecoration(
+                  labelText: l10n.password,
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return l10n.enterPassword;
+                  }
+                  if (v.length < 8) {
+                    return l10n.passwordMinLength;
+                  }
+                  return null;
+                },
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton(
+                  onPressed: _submitting
+                      ? null
+                      : () => _showForgotPasswordSheet(context),
+                  child: Text(l10n.forgotPassword),
+                ),
+              ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _submitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.signInButton),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
                 onPressed: _submitting
                     ? null
-                    : () => _showForgotPasswordSheet(context),
-                child: Text(l10n.forgotPassword),
+                    : () => context.push(
+                        widget.addAccount
+                            ? '/register?add_account=1'
+                            : '/register',
+                      ),
+                child: Text(l10n.createAnAccount),
               ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
-              child: _submitting
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.signInButton),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _submitting ? null : () => context.push('/register'),
-              child: Text(l10n.createAnAccount),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
 
@@ -399,7 +438,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: Text(l10n.loginTitle),
+        title: Text(widget.addAccount ? l10n.addAccountTitle : l10n.loginTitle),
       ),
       body: body,
     );

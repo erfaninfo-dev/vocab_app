@@ -214,12 +214,13 @@ try {
             "INSERT INTO pvp_matches
              (challenger_id, opponent_id, category_id, letter_seed, anchor_words_json, letters_json,
               duration_sec, status, expires_at)
-             VALUES (:cid, :opp, :cat, 0, '[]', '[]', 60, 'pending', :exp)"
+             VALUES (:cid, :opp, :cat, 0, '[]', '[]', :dur, 'pending', :exp)"
         );
         $ins->execute([
             ':cid' => $uid,
             ':opp' => $opponentId,
             ':cat' => $placeholderCat,
+            ':dur' => PVP_CHALLENGE_PLAY_DURATION_SEC,
             ':exp' => $expires,
         ]);
         $matchId = (int) $db->lastInsertId();

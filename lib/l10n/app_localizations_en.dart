@@ -464,6 +464,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signedOut => 'Signed out';
 
   @override
+  String get addAccount => 'Add account';
+
+  @override
+  String get addAccountTitle => 'Add account';
+
+  @override
+  String get addAccountSubtitle =>
+      'Sign in to another account. This one stays signed in.';
+
+  @override
+  String get switchAccount => 'Switch account';
+
+  @override
+  String get accountsTitle => 'Accounts';
+
+  @override
+  String get currentAccountBadge => 'Active';
+
+  @override
+  String addAccountLimitReached(int count) {
+    return 'You can add up to $count accounts.';
+  }
+
+  @override
+  String get signOutCurrentBody =>
+      'This account will be signed out. You\'ll stay signed in on the other account.';
+
+  @override
+  String get signOutAllAccounts => 'Sign out of all accounts';
+
+  @override
+  String get removeAccount => 'Remove';
+
+  @override
+  String get removeAccountTitle => 'Remove this account?';
+
+  @override
+  String get removeAccountBody =>
+      'This account will be signed out on this device. The active account stays the same.';
+
+  @override
+  String accountSwitched(String name) {
+    return 'Switched to $name';
+  }
+
+  @override
+  String signedOutSwitched(String name) {
+    return 'Signed out. Now using $name.';
+  }
+
+  @override
   String get loadingAccount => 'Loading account…';
 
   @override
@@ -935,6 +986,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchWordWholeBook => 'Search word (whole book)…';
+
+  @override
+  String get searchUnitsHint => 'Search units…';
+
+  @override
+  String get noMatchingUnits => 'No matching units found.';
+
+  @override
+  String idiomsUnitsLearnHint(int count) {
+    return '✦ $count units · Tap a card to start learning';
+  }
+
+  @override
+  String get idiomsUnitsFilterTitle => 'Filter units';
+
+  @override
+  String get idiomsUnitsFilterAll => 'All units';
+
+  @override
+  String get idiomsUnitsFilterNotStarted => 'Not started';
+
+  @override
+  String get idiomsUnitsFilterInProgress => 'In progress';
+
+  @override
+  String get idiomsUnitsFilterCompleted => 'Completed';
 
   @override
   String get noMatchingWords => 'No matching words found.';
@@ -3333,4 +3410,147 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sampleTtsEngineGoogle => 'Google';
+
+  @override
+  String get speakingHomeCardTitle => 'Speaking Part 1';
+
+  @override
+  String get speakingHomeCardSubtitle =>
+      'Practice common questions with model answers';
+
+  @override
+  String get speakingPart1Title => 'Speaking Part 1';
+
+  @override
+  String get speakingPart1Badge => 'Part 1';
+
+  @override
+  String get speakingPart1HeroTitle => 'IELTS Speaking Part 1';
+
+  @override
+  String get speakingPart1HeroSubtitle =>
+      'Browse topics, learn formulas, and memorize sample answers.';
+
+  @override
+  String get speakingSearchTopicsHint => 'Search topics…';
+
+  @override
+  String speakingTopicsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count topics ready',
+      one: '1 topic ready',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions · Part 1',
+      one: '1 question · Part 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoTopics => 'No speaking topics yet.';
+
+  @override
+  String get speakingNoQuestions => 'No questions in this topic yet.';
+
+  @override
+  String speakingTopicsLoadError(String error) {
+    return 'Could not load topics: $error';
+  }
+
+  @override
+  String speakingQuestionsLoadError(String error) {
+    return 'Could not load questions: $error';
+  }
+
+  @override
+  String get speakingUntitledTopic => 'Topic';
+
+  @override
+  String get speakingModelAnswer => 'Answer';
+
+  @override
+  String get speakingFormula => 'Formula';
+
+  @override
+  String get speakingTemplate => 'Template';
+
+  @override
+  String get speakingSampleAnswer => 'Sample answer';
+
+  @override
+  String speakingModelNumber(int number) {
+    return 'Model Question $number';
+  }
+
+  @override
+  String get speakingExpandAll => 'Expand all';
+
+  @override
+  String get speakingCollapseAll => 'Collapse all';
+
+  @override
+  String get speakingAnswerCopied => 'Answer copied';
+
+  @override
+  String get speakingViewTopics => 'Topics';
+
+  @override
+  String get speakingViewModelQuestions => 'Model Questions';
+
+  @override
+  String get speakingSearchModelsHint => 'Search model questions…';
+
+  @override
+  String speakingModelsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count model questions',
+      one: '1 model question',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingModelQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoModels => 'No model questions yet.';
+
+  @override
+  String speakingModelsLoadError(String error) {
+    return 'Could not load model questions: $error';
+  }
+
+  @override
+  String get speakingOpenModelQuestions => 'View questions';
 }

@@ -465,6 +465,57 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get signedOut => 'دەرچوویت';
 
   @override
+  String get addAccount => 'زیادکردنی هەژمار';
+
+  @override
+  String get addAccountTitle => 'زیادکردنی هەژمار';
+
+  @override
+  String get addAccountSubtitle =>
+      'بچۆ ناو هەژمارێکی تر. ئەم هەژمارە چوونەژوورەوە دەمێنێتەوە.';
+
+  @override
+  String get switchAccount => 'گۆڕینی هەژمار';
+
+  @override
+  String get accountsTitle => 'هەژمارەکان';
+
+  @override
+  String get currentAccountBadge => 'چالاک';
+
+  @override
+  String addAccountLimitReached(int count) {
+    return 'زۆرترین $count هەژمار دەتوانیت زیاد بکەیت.';
+  }
+
+  @override
+  String get signOutCurrentBody =>
+      'لەم هەژمارە دەردەچیت و لە هەژمارەکەی تر دەمێنیتەوە.';
+
+  @override
+  String get signOutAllAccounts => 'دەرچوون لە هەموو هەژمارەکان';
+
+  @override
+  String get removeAccount => 'سڕینەوە';
+
+  @override
+  String get removeAccountTitle => 'ئەم هەژمارە بسڕدرێتەوە؟';
+
+  @override
+  String get removeAccountBody =>
+      'ئەم هەژمارە لەسەر ئەم ئامێرە دەردەچێت. هەژمارە چالاکەکە ناگۆڕێت.';
+
+  @override
+  String accountSwitched(String name) {
+    return 'گۆڕدرا بۆ $name';
+  }
+
+  @override
+  String signedOutSwitched(String name) {
+    return 'دەرچوویت. ئێستا $name بەکاردێت.';
+  }
+
+  @override
   String get loadingAccount => 'بارکردنی هەژمار…';
 
   @override
@@ -941,6 +992,32 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get searchWordWholeBook => 'گەڕان بۆ وشە (هەموو کتێب)…';
+
+  @override
+  String get searchUnitsHint => 'گەڕان لە یەکەکان…';
+
+  @override
+  String get noMatchingUnits => 'هیچ یەکەیەکی هاوتا نەدۆزرایەوە.';
+
+  @override
+  String idiomsUnitsLearnHint(int count) {
+    return '✦ $count یەکە · بۆ دەستپێکردن کرتە لەسەر کارت بکە';
+  }
+
+  @override
+  String get idiomsUnitsFilterTitle => 'فلتەری یەکەکان';
+
+  @override
+  String get idiomsUnitsFilterAll => 'هەموو یەکەکان';
+
+  @override
+  String get idiomsUnitsFilterNotStarted => 'دەستپێنەکراو';
+
+  @override
+  String get idiomsUnitsFilterInProgress => 'لە ژێر فێربوون';
+
+  @override
+  String get idiomsUnitsFilterCompleted => 'تەواوکراو';
 
   @override
   String get noMatchingWords => 'هیچ وشەیەکی هاوتا نەدۆزرایەوە.';
@@ -3345,4 +3422,147 @@ class AppLocalizationsCkb extends AppLocalizations {
 
   @override
   String get sampleTtsEngineGoogle => 'گووگڵ';
+
+  @override
+  String get speakingHomeCardTitle => 'سپێکینگ بەشی ١';
+
+  @override
+  String get speakingHomeCardSubtitle =>
+      'ڕاهێنانی پرسیارە باوەکان لەگەڵ وەڵامی نموونەیی';
+
+  @override
+  String get speakingPart1Title => 'سپێکینگ بەشی ١';
+
+  @override
+  String get speakingPart1Badge => 'بەشی ١';
+
+  @override
+  String get speakingPart1HeroTitle => 'IELTS Speaking Part 1';
+
+  @override
+  String get speakingPart1HeroSubtitle =>
+      'بابەتەکان ببینە، فۆرمولا فێر ببە و وەڵامی نموونەیی لەبەر بگرە.';
+
+  @override
+  String get speakingSearchTopicsHint => 'گەڕان لە بابەت…';
+
+  @override
+  String speakingTopicsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count بابەت ئامادەن',
+      one: '١ بابەت ئامادەیە',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count پرسیار',
+      one: '١ پرسیار',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count پرسیار · بەشی ١',
+      one: '١ پرسیار · بەشی ١',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoTopics => 'هێشتا بابەتی سپێکینگ نییە.';
+
+  @override
+  String get speakingNoQuestions => 'لەم بابەتەدا پرسیار نییە.';
+
+  @override
+  String speakingTopicsLoadError(String error) {
+    return 'بارکردنی بابەتەکان سەرکەوتوو نەبوو: $error';
+  }
+
+  @override
+  String speakingQuestionsLoadError(String error) {
+    return 'بارکردنی پرسیارەکان سەرکەوتوو نەبوو: $error';
+  }
+
+  @override
+  String get speakingUntitledTopic => 'بابەت';
+
+  @override
+  String get speakingModelAnswer => 'وەڵام';
+
+  @override
+  String get speakingFormula => 'فۆرمولا';
+
+  @override
+  String get speakingTemplate => 'تێمپلەیت';
+
+  @override
+  String get speakingSampleAnswer => 'وەڵامی نموونە';
+
+  @override
+  String speakingModelNumber(int number) {
+    return 'Model Question $number';
+  }
+
+  @override
+  String get speakingExpandAll => 'کردنەوەی هەموو';
+
+  @override
+  String get speakingCollapseAll => 'داخستنی هەموو';
+
+  @override
+  String get speakingAnswerCopied => 'وەڵام کۆپی کرا';
+
+  @override
+  String get speakingViewTopics => 'بابەتەکان';
+
+  @override
+  String get speakingViewModelQuestions => 'مۆدێلی پرسیار';
+
+  @override
+  String get speakingSearchModelsHint => 'گەڕان لە مۆدێلی پرسیار…';
+
+  @override
+  String speakingModelsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مۆدێلی پرسیار',
+      one: '١ مۆدێلی پرسیار',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingModelQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count پرسیار',
+      one: '١ پرسیار',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoModels => 'هێشتا مۆدێلی پرسیار نییە.';
+
+  @override
+  String speakingModelsLoadError(String error) {
+    return 'بارکردنی مۆدێلی پرسیار سەرکەوتوو نەبوو: $error';
+  }
+
+  @override
+  String get speakingOpenModelQuestions => 'بینینی پرسیارەکان';
 }

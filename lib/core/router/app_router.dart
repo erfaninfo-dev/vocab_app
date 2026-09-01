@@ -34,6 +34,9 @@ import '../../features/quiz/quiz_screen.dart';
 import '../../features/review/review_screen.dart';
 import '../../features/sections/sections_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/speaking/speaking_model_questions_screen.dart';
+import '../../features/speaking/speaking_part1_topics_screen.dart';
+import '../../features/speaking/speaking_topic_questions_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/shell/shell_scaffold.dart';
 import '../../features/auth/login_screen.dart';
@@ -120,8 +123,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(path: '/auth', builder: (_, __) => const AuthHubScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+        path: '/login',
+        builder: (_, state) => LoginScreen(
+          addAccount: state.uri.queryParameters['add_account'] == '1',
+        ),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (_, state) => RegisterScreen(
+          addAccount: state.uri.queryParameters['add_account'] == '1',
+        ),
+      ),
 
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
 
@@ -307,9 +320,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/word-builder/challenges',
-            builder: (_, __) => const WordBuilderLtrScope(
-              child: PvpChallengesHubScreen(),
-            ),
+            builder: (_, __) =>
+                const WordBuilderLtrScope(child: PvpChallengesHubScreen()),
           ),
           GoRoute(
             path: '/word-builder/challenge/:matchId',
@@ -352,6 +364,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               final unitId =
                   int.tryParse(state.pathParameters['unitId'] ?? '') ?? 0;
               return GrammarUnitLessonScreen(bookId: bookId, unitId: unitId);
+            },
+          ),
+          GoRoute(
+            path: '/speaking/part1',
+            builder: (_, __) => const SpeakingPart1TopicsScreen(),
+          ),
+          GoRoute(
+            path: '/speaking/part1/topics/:topicId',
+            builder: (context, state) {
+              final topicId =
+                  int.tryParse(state.pathParameters['topicId'] ?? '') ?? 0;
+              return SpeakingTopicQuestionsScreen(topicId: topicId);
+            },
+          ),
+          GoRoute(
+            path: '/speaking/part1/models/:modelId',
+            builder: (context, state) {
+              final modelId =
+                  int.tryParse(state.pathParameters['modelId'] ?? '') ?? 0;
+              return SpeakingModelQuestionsScreen(modelId: modelId);
             },
           ),
           GoRoute(
@@ -572,8 +604,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 direction: _flashcardDirectionFromQuery(state),
                 shuffle: _flashcardBoolFromQuery(state, 'shuffle'),
                 srsEnabled: _flashcardBoolFromQuery(state, 'srs', def: true),
-                swipeRatings:
-                    _flashcardBoolFromQuery(state, 'swipe', def: true),
+                swipeRatings: _flashcardBoolFromQuery(
+                  state,
+                  'swipe',
+                  def: true,
+                ),
               );
             },
           ),
@@ -608,8 +643,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 direction: _flashcardDirectionFromQuery(state),
                 shuffle: _flashcardBoolFromQuery(state, 'shuffle'),
                 srsEnabled: _flashcardBoolFromQuery(state, 'srs', def: true),
-                swipeRatings:
-                    _flashcardBoolFromQuery(state, 'swipe', def: true),
+                swipeRatings: _flashcardBoolFromQuery(
+                  state,
+                  'swipe',
+                  def: true,
+                ),
               );
             },
           ),
@@ -668,7 +706,11 @@ FlashcardDirection _flashcardDirectionFromQuery(GoRouterState state) {
   return FlashcardDirection.fromKey(state.uri.queryParameters['dir']);
 }
 
-bool _flashcardBoolFromQuery(GoRouterState state, String key, {bool def = false}) {
+bool _flashcardBoolFromQuery(
+  GoRouterState state,
+  String key, {
+  bool def = false,
+}) {
   final raw = state.uri.queryParameters[key];
   if (raw == null) return def;
   return raw == '1' || raw == 'true';

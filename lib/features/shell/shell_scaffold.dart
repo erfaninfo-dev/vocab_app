@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_accounts_blur_overlay.dart';
 import '../home/widgets/home_release_notes_banner.dart';
 import '../home/widgets/learning_goal_home_prompt.dart';
 import '../you/learning_goal_provider.dart';
@@ -58,6 +61,9 @@ List<_Tab> _tabs(AppLocalizations l10n) => [
 
 /// Play tab index in [_tabs] — keep in sync with `/word-builder` position.
 const int _playTabIndex = 2;
+
+/// You tab index in [_tabs] — keep in sync with `/you` position.
+const int _youTabIndex = 3;
 
 /// Matches Material 3 [NavigationBar] indicator width so the custom pill fills it.
 const double _playTabPillMinWidth = 64;
@@ -261,6 +267,12 @@ class ShellScaffold extends ConsumerWidget {
 
     final hideBottomBar = _hideBottomBarForLocation(location);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authSession = ref.watch(authProvider).valueOrNull;
+    final authSlots = ref.watch(authAccountSlotsProvider);
+    final showAccountSwitcher = showsAuthAccountSwitcher(
+      active: authSession,
+      slots: authSlots,
+    );
 
     int currentIndex = 0;
     for (int i = 0; i < tabs.length; i++) {
@@ -280,34 +292,112 @@ class ShellScaffold extends ConsumerWidget {
           body: child,
           bottomNavigationBar: hideBottomBar
               ? null
-              : NavigationBar(
-                  selectedIndex: currentIndex,
-                  indicatorColor: currentIndex == _playTabIndex
-                      ? Colors.transparent
-                      : null,
-                  onDestinationSelected: (index) {
-                    if (index == 0) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      context.go(tabs[0].path);
-                    } else if (!location.startsWith(tabs[index].path)) {
-                      context.push(tabs[index].path);
-                    }
-                  },
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                  height: kShellBottomNavigationBarHeight,
-                  destinations: [
-                    for (int i = 0; i < tabs.length; i++)
-                      _navDestination(
-                        tabs[i],
-                        isPlayTab: tabs[i].path == '/word-builder',
-                        isYouTab: tabs[i].path == '/you',
-                        isDark: isDark,
-                        learningGoal: learningGoal,
-                      ),
-                  ],
+              : _ShellNavigationBar(
+                  tabs: tabs,
+                  currentIndex: currentIndex,
+                  location: location,
+                  isDark: isDark,
+                  learningGoal: learningGoal,
+                  showAccountSwitcher: showAccountSwitcher,
                 ),
         ),
       ),
+    );
+  }
+}
+
+void _selectShellTab(
+  BuildContext context, {
+  required List<_Tab> tabs,
+  required String location,
+  required int index,
+}) {
+  if (index == 0) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    context.go(tabs[0].path);
+  } else if (!location.startsWith(tabs[index].path)) {
+    context.push(tabs[index].path);
+  }
+}
+
+class _ShellNavigationBar extends StatelessWidget {
+  const _ShellNavigationBar({
+    required this.tabs,
+    required this.currentIndex,
+    required this.location,
+    required this.isDark,
+    required this.learningGoal,
+    required this.showAccountSwitcher,
+  });
+
+  final List<_Tab> tabs;
+  final int currentIndex;
+  final String location;
+  final bool isDark;
+  final LearningGoal? learningGoal;
+  final bool showAccountSwitcher;
+
+  @override
+  Widget build(BuildContext context) {
+    final bar = NavigationBar(
+      selectedIndex: currentIndex,
+      indicatorColor: currentIndex == _playTabIndex ? Colors.transparent : null,
+      onDestinationSelected: (index) {
+        _selectShellTab(context, tabs: tabs, location: location, index: index);
+      },
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      height: kShellBottomNavigationBarHeight,
+      destinations: [
+        for (int i = 0; i < tabs.length; i++)
+          _navDestination(
+            tabs[i],
+            isPlayTab: tabs[i].path == '/word-builder',
+            isYouTab: tabs[i].path == '/you',
+            isDark: isDark,
+            learningGoal: learningGoal,
+          ),
+      ],
+    );
+
+    if (!showAccountSwitcher) {
+      return bar;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tabWidth = constraints.maxWidth / tabs.length;
+        final rtl = Directionality.of(context) == TextDirection.rtl;
+        final youLeft = rtl
+            ? (tabs.length - 1 - _youTabIndex) * tabWidth
+            : _youTabIndex * tabWidth;
+        return Stack(
+          children: [
+            bar,
+            Positioned(
+              left: youLeft,
+              width: tabWidth,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => _selectShellTab(
+                  context,
+                  tabs: tabs,
+                  location: location,
+                  index: _youTabIndex,
+                ),
+                onLongPress: () {
+                  HapticFeedback.mediumImpact();
+                  showAuthAccountsBlurOverlay(
+                    context: context,
+                    bottomBarHeight: kShellBottomNavigationBarHeight,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

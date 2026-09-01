@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:http/http.dart' show ClientException;
@@ -22,6 +23,10 @@ bool _looksLikeNetworkFailure(String text) {
 }
 
 String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
+  if (error is TimeoutException) {
+    return l10n.errNoInternet;
+  }
+
   if (error is SocketException) {
     return l10n.errNoInternet;
   }
@@ -45,6 +50,10 @@ String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
     return l10n.errNoInternet;
   }
 
+  if (text.contains('is not a subtype') || text.contains('type cast')) {
+    return l10n.errBadData;
+  }
+
   // ApiService uses "HTTP {code}" when the response body is not JSON.
   if (text.contains('HTTP ')) {
     return l10n.errServerReturnedError;
@@ -61,6 +70,11 @@ String userFriendlyErrorMessage(Object error, AppLocalizations l10n) {
 
   if (text.contains('Failed to fetch')) {
     return l10n.errServer;
+  }
+
+  final cleaned = text.replaceFirst(RegExp(r'^(Exception|Error):\s*'), '').trim();
+  if (cleaned.isNotEmpty && cleaned.length < 180) {
+    return cleaned;
   }
 
   return l10n.errorGeneric;

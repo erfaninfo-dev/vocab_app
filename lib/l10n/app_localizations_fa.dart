@@ -463,6 +463,57 @@ class AppLocalizationsFa extends AppLocalizations {
   String get signedOut => 'خارج شدید';
 
   @override
+  String get addAccount => 'افزودن حساب';
+
+  @override
+  String get addAccountTitle => 'افزودن حساب';
+
+  @override
+  String get addAccountSubtitle =>
+      'وارد حساب دیگری شوید. این حساب همچنان وارد می‌ماند.';
+
+  @override
+  String get switchAccount => 'تعویض حساب';
+
+  @override
+  String get accountsTitle => 'حساب‌ها';
+
+  @override
+  String get currentAccountBadge => 'فعال';
+
+  @override
+  String addAccountLimitReached(int count) {
+    return 'حداکثر $count حساب می‌توانید اضافه کنید.';
+  }
+
+  @override
+  String get signOutCurrentBody =>
+      'از این حساب خارج می‌شوید و در حساب دیگر وارد می‌مانید.';
+
+  @override
+  String get signOutAllAccounts => 'خروج از همهٔ حساب‌ها';
+
+  @override
+  String get removeAccount => 'حذف';
+
+  @override
+  String get removeAccountTitle => 'این حساب حذف شود؟';
+
+  @override
+  String get removeAccountBody =>
+      'این حساب روی این دستگاه خارج می‌شود. حساب فعال عوض نمی‌شود.';
+
+  @override
+  String accountSwitched(String name) {
+    return 'به $name تغییر کرد';
+  }
+
+  @override
+  String signedOutSwitched(String name) {
+    return 'خارج شدید. الان وارد $name هستید.';
+  }
+
+  @override
   String get loadingAccount => 'در حال بارگذاری حساب…';
 
   @override
@@ -935,6 +986,32 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchWordWholeBook => 'جستجوی لغت (کل کتاب)…';
+
+  @override
+  String get searchUnitsHint => 'جستجوی یونیت…';
+
+  @override
+  String get noMatchingUnits => 'یونیت مطابقی یافت نشد.';
+
+  @override
+  String idiomsUnitsLearnHint(int count) {
+    return '✦ $count یونیت · برای شروع روی کارت بزنید';
+  }
+
+  @override
+  String get idiomsUnitsFilterTitle => 'فیلتر یونیت‌ها';
+
+  @override
+  String get idiomsUnitsFilterAll => 'همهٔ یونیت‌ها';
+
+  @override
+  String get idiomsUnitsFilterNotStarted => 'شروع‌نشده';
+
+  @override
+  String get idiomsUnitsFilterInProgress => 'در حال یادگیری';
+
+  @override
+  String get idiomsUnitsFilterCompleted => 'تکمیل‌شده';
 
   @override
   String get noMatchingWords => 'لغت مطابقی یافت نشد.';
@@ -3325,4 +3402,146 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get sampleTtsEngineGoogle => 'گوگل';
+
+  @override
+  String get speakingHomeCardTitle => 'اسپیکینگ پارت ۱';
+
+  @override
+  String get speakingHomeCardSubtitle => 'تمرین سوالات رایج با مدل جواب';
+
+  @override
+  String get speakingPart1Title => 'اسپیکینگ پارت ۱';
+
+  @override
+  String get speakingPart1Badge => 'پارت ۱';
+
+  @override
+  String get speakingPart1HeroTitle => 'IELTS Speaking Part 1';
+
+  @override
+  String get speakingPart1HeroSubtitle =>
+      'تاپیک‌ها را ببین، فرمول‌ها را یاد بگیر و جواب نمونه را حفظ کن.';
+
+  @override
+  String get speakingSearchTopicsHint => 'جستجوی تاپیک…';
+
+  @override
+  String speakingTopicsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تاپیک آماده',
+      one: '۱ تاپیک آماده',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سوال',
+      one: '۱ سوال',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingTopicQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سوال · پارت ۱',
+      one: '۱ سوال · پارت ۱',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoTopics => 'هنوز تاپیک اسپیکینگی وجود ندارد.';
+
+  @override
+  String get speakingNoQuestions => 'در این تاپیک سوالی نیست.';
+
+  @override
+  String speakingTopicsLoadError(String error) {
+    return 'بارگذاری تاپیک‌ها ناموفق بود: $error';
+  }
+
+  @override
+  String speakingQuestionsLoadError(String error) {
+    return 'بارگذاری سوالات ناموفق بود: $error';
+  }
+
+  @override
+  String get speakingUntitledTopic => 'تاپیک';
+
+  @override
+  String get speakingModelAnswer => 'جواب';
+
+  @override
+  String get speakingFormula => 'فرمول';
+
+  @override
+  String get speakingTemplate => 'تمپلت';
+
+  @override
+  String get speakingSampleAnswer => 'جواب نمونه';
+
+  @override
+  String speakingModelNumber(int number) {
+    return 'Model Question $number';
+  }
+
+  @override
+  String get speakingExpandAll => 'باز کردن همه';
+
+  @override
+  String get speakingCollapseAll => 'بستن همه';
+
+  @override
+  String get speakingAnswerCopied => 'جواب کپی شد';
+
+  @override
+  String get speakingViewTopics => 'تاپیک‌ها';
+
+  @override
+  String get speakingViewModelQuestions => 'مدل سوال‌ها';
+
+  @override
+  String get speakingSearchModelsHint => 'جستجوی مدل سوال…';
+
+  @override
+  String speakingModelsLearnHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مدل سوال',
+      one: '۱ مدل سوال',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakingModelQuestionsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سوال',
+      one: '۱ سوال',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get speakingNoModels => 'هنوز مدل سوالی وجود ندارد.';
+
+  @override
+  String speakingModelsLoadError(String error) {
+    return 'بارگذاری مدل سوال‌ها ناموفق بود: $error';
+  }
+
+  @override
+  String get speakingOpenModelQuestions => 'مشاهده سوالات';
 }

@@ -11,6 +11,8 @@ import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../unit_samples/sample_tts_player.dart';
 import '../unit_samples/unit_samples_screen.dart';
+import '../units/idioms/idioms_units_constants.dart';
+import '../units/idioms/idioms_word_card_colors.dart';
 import 'important_words_controller.dart';
 import 'word_preferences_controller.dart';
 import '../../data/models/vocab_entry.dart';
@@ -244,13 +246,15 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
     );
 
     final content = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
-        ),
-      ),
+      decoration: widget.bookId == kIdiomsSpeakingBookId
+          ? idiomsWordsPageDecoration(context)
+          : BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [scheme.primary.withValues(alpha: 0.07), scheme.surface],
+              ),
+            ),
       child: showTabs
           ? TabBarView(children: [samplesBody, wordsBody()])
           : samplesOnly

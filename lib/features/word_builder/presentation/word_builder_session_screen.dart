@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/audio/word_builder_sound_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../application/pvp_challenge_providers.dart';
 import '../application/word_builder_campaign_providers.dart';
 import '../application/word_builder_theme_categories_provider.dart';
 import '../application/word_builder_coins_provider.dart';
@@ -46,9 +47,16 @@ import 'widgets/word_builder_tray_circle_button.dart';
 import 'widgets/word_info_sheet.dart';
 
 class WordBuilderSessionScreen extends ConsumerStatefulWidget {
-  const WordBuilderSessionScreen({super.key, required this.bookKey});
+  const WordBuilderSessionScreen({
+    super.key,
+    required this.bookKey,
+    this.pvpMatchId,
+    this.pvpTopicLabel,
+  });
 
   final int bookKey;
+  final int? pvpMatchId;
+  final String? pvpTopicLabel;
 
   @override
   ConsumerState<WordBuilderSessionScreen> createState() =>
@@ -59,11 +67,16 @@ class _WordBuilderSessionScreenState
     extends ConsumerState<WordBuilderSessionScreen>
     with WidgetsBindingObserver {
   final _answerSlotKeys = AnswerSlotKeyBag();
+  DateTime? _pvpStartedAt;
+  bool _pvpSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (widget.pvpMatchId != null) {
+      _pvpStartedAt = DateTime.now().toUtc();
+    }
   }
 
   @override
@@ -143,6 +156,14 @@ class _WordBuilderSessionScreenState
 
   ({String emoji, String title, String body, String nextLabel})
   _levelCompleteCopy(AppLocalizations l10n) {
+    if (widget.pvpMatchId != null) {
+      return (
+        emoji: '🏆',
+        title: l10n.wordBuilderLevelCompleteTitle,
+        body: 'You found all 3 challenge words!',
+        nextLabel: 'Submit score',
+      );
+    }
     final camp = decodeWordBuilderCampaignSessionKey(widget.bookKey);
     if (camp == null || camp.stage1Based < kWordBuilderStagesPerTier) {
       return (
@@ -178,11 +199,52 @@ class _WordBuilderSessionScreenState
   }
 
   Future<void> _finishCampaignStageAndExit() async {
+    if (widget.pvpMatchId != null) {
+      if (mounted) {
+        context.go('/word-builder/challenge/${widget.pvpMatchId}');
+      }
+      return;
+    }
     await _saveCampaignStageProgress();
     if (mounted) context.pop();
   }
 
+  Future<void> _submitPvpChallengeAndExit() async {
+    final matchId = widget.pvpMatchId;
+    if (matchId == null || _pvpSubmitting) return;
+    setState(() => _pvpSubmitting = true);
+    final s = ref.read(wordBuilderGameProvider(widget.bookKey)).valueOrNull;
+    if (s == null) {
+      setState(() => _pvpSubmitting = false);
+      return;
+    }
+    final words = s.solvedLower.toList()..sort();
+    final started = _pvpStartedAt ?? DateTime.now().toUtc();
+    final completed = DateTime.now().toUtc();
+    try {
+      await ref.read(pvpChallengeActionsProvider).submit(
+            matchId: matchId,
+            startedAt: started,
+            completedAt: completed,
+            words: words,
+          );
+      if (!mounted) return;
+      context.go('/word-builder/challenge/$matchId');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _pvpSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Submit failed: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _advanceAfterLevelComplete() async {
+    if (widget.pvpMatchId != null) {
+      await _submitPvpChallengeAndExit();
+      return;
+    }
     final key = widget.bookKey;
     final camp = decodeWordBuilderCampaignSessionKey(key);
     if (camp != null) {
@@ -339,7 +401,18 @@ class _WordBuilderSessionScreenState
                 toolbarHeight: playMode.usesCompactLetterBoard
                     ? 44
                     : kToolbarHeight,
-                title: const SizedBox.shrink(),
+                title: widget.pvpTopicLabel == null
+                    ? const SizedBox.shrink()
+                    : Text(
+                        widget.pvpTopicLabel!,
+                        style: GoogleFonts.fredoka(
+                          fontWeight: FontWeight.w800,
+                          color: chromeOn,
+                          fontSize: 18,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                 centerTitle: false,
                 automaticallyImplyLeading: false,
                 leading: trayGameOver

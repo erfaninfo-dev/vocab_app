@@ -9,6 +9,8 @@ import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../quiz/widgets/book_vocab_quiz_fab.dart';
+import 'idioms/idioms_units_constants.dart';
+import 'idioms/idioms_units_screen.dart';
 
 class UnitsScreen extends ConsumerStatefulWidget {
   const UnitsScreen({super.key, required this.bookId});
@@ -19,7 +21,27 @@ class UnitsScreen extends ConsumerStatefulWidget {
 }
 
 class _UnitsScreenState extends ConsumerState<UnitsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    if (widget.bookId == kIdiomsSpeakingBookId) {
+      return IdiomsUnitsScreen(bookId: widget.bookId);
+    }
+    return _DefaultUnitsScreen(bookId: widget.bookId);
+  }
+}
+
+class _DefaultUnitsScreen extends ConsumerStatefulWidget {
+  const _DefaultUnitsScreen({required this.bookId});
+  final int bookId;
+
+  @override
+  ConsumerState<_DefaultUnitsScreen> createState() =>
+      _DefaultUnitsScreenState();
+}
+
+class _DefaultUnitsScreenState extends ConsumerState<_DefaultUnitsScreen> {
   int? _loadingUnit;
+  String _query = '';
 
   Future<void> _onUnitTap(int unit) async {
     if (_loadingUnit != null) return;
@@ -85,7 +107,7 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
         const SizedBox(width: 4),
       ],
     );
-    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 2);
+    final topInset = appGradientContentTopInset(context, appBar: appBar, extra: 12);
 
     return AppGradientScaffold(
       floatingActionButtonLocation:
@@ -143,6 +165,10 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
               );
             }
 
+            final filtered = _query.trim().isEmpty
+                ? units
+                : units.where((u) => u.matchesQuery(_query)).toList();
+
             final width = MediaQuery.sizeOf(context).width;
             final crossAxisCount = width >= 1000
                 ? 4
@@ -157,50 +183,75 @@ class _UnitsScreenState extends ConsumerState<UnitsScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, topInset, 20, 10),
-                        child: Text(
-                          l10n.unitsGridHint(units.length),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
+                    padding: EdgeInsets.fromLTRB(16, topInset, 16, 8),
+                    child: SearchBar(
+                      autoFocus: false,
+                      hintText: l10n.searchUnitsHint,
+                      leading: const Icon(Icons.search_rounded),
+                      trailing: [
+                        if (_query.isNotEmpty)
+                          IconButton(
+                            onPressed: () => setState(() => _query = ''),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() => _query = value),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Text(
+                      l10n.unitsGridHint(filtered.length),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        0,
-                        16,
-                        showQuizFab
-                            ? BookVocabQuizFab.scrollBottomPadding(context)
-                            : 20,
+                  ),
+                ),
+                if (filtered.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: Text(l10n.noMatchingUnits)),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      0,
+                      16,
+                      showQuizFab
+                          ? BookVocabQuizFab.scrollBottomPadding(context)
+                          : 20,
+                    ),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.92,
                       ),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.92,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final unitInfo = units[index];
-                              return Directionality(
-                              textDirection: TextDirection.ltr,
-                              child: _UnitTile(
-                                l10n: l10n,
-                                unitInfo: unitInfo,
-                                delay: index * 20,
-                                isLoading: _loadingUnit == unitInfo.unit,
-                                onTap: () => _onUnitTap(unitInfo.unit),
-                              ),
-                            );
-                          },
-                          childCount: units.length,
-                        ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final unitInfo = filtered[index];
+                          return Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: _UnitTile(
+                              l10n: l10n,
+                              unitInfo: unitInfo,
+                              delay: index * 20,
+                              isLoading: _loadingUnit == unitInfo.unit,
+                              onTap: () => _onUnitTap(unitInfo.unit),
+                            ),
+                          );
+                        },
+                        childCount: filtered.length,
                       ),
                     ),
-                  ],
-                );
+                  ),
+              ],
+            );
               },
             ),
           ),

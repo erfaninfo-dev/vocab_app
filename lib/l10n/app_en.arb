@@ -187,6 +187,35 @@
   "signOutTitle": "Sign out?",
   "signOutBody": "Are you sure you want to sign out?",
   "signedOut": "Signed out",
+  "addAccount": "Add account",
+  "addAccountTitle": "Add account",
+  "addAccountSubtitle": "Sign in to another account. This one stays signed in.",
+  "switchAccount": "Switch account",
+  "accountsTitle": "Accounts",
+  "currentAccountBadge": "Active",
+  "addAccountLimitReached": "You can add up to {count} accounts.",
+  "@addAccountLimitReached": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "signOutCurrentBody": "This account will be signed out. You'll stay signed in on the other account.",
+  "signOutAllAccounts": "Sign out of all accounts",
+  "removeAccount": "Remove",
+  "removeAccountTitle": "Remove this account?",
+  "removeAccountBody": "This account will be signed out on this device. The active account stays the same.",
+  "accountSwitched": "Switched to {name}",
+  "@accountSwitched": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "signedOutSwitched": "Signed out. Now using {name}.",
+  "@signedOutSwitched": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "loadingAccount": "Loading account…",
   "sectionTranslationLanguage": "Translation language",
   "translationLangPersian": "Persian",
@@ -418,6 +447,19 @@
   "tooltipQuiz": "Quiz",
   "tooltipFlashcards": "Flashcards",
   "searchWordWholeBook": "Search word (whole book)…",
+  "searchUnitsHint": "Search units…",
+  "noMatchingUnits": "No matching units found.",
+  "idiomsUnitsLearnHint": "✦ {count} units · Tap a card to start learning",
+  "@idiomsUnitsLearnHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "idiomsUnitsFilterTitle": "Filter units",
+  "idiomsUnitsFilterAll": "All units",
+  "idiomsUnitsFilterNotStarted": "Not started",
+  "idiomsUnitsFilterInProgress": "In progress",
+  "idiomsUnitsFilterCompleted": "Completed",
   "noMatchingWords": "No matching words found.",
   "sectionInUnit": "Section {section} in Unit {unit}",
   "@sectionInUnit": {
@@ -1467,5 +1509,81 @@
         "type": "String"
       }
     }
-  }
+  },
+  "speakingHomeCardTitle": "Speaking Part 1",
+  "speakingHomeCardSubtitle": "Practice common questions with model answers",
+  "speakingPart1Title": "Speaking Part 1",
+  "speakingPart1Badge": "Part 1",
+  "speakingPart1HeroTitle": "IELTS Speaking Part 1",
+  "speakingPart1HeroSubtitle": "Browse topics, learn formulas, and memorize sample answers.",
+  "speakingSearchTopicsHint": "Search topics…",
+  "speakingTopicsLearnHint": "{count, plural, =1{1 topic ready} other{{count} topics ready}}",
+  "@speakingTopicsLearnHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "speakingTopicQuestionCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@speakingTopicQuestionCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "speakingTopicQuestionsSubtitle": "{count, plural, =1{1 question · Part 1} other{{count} questions · Part 1}}",
+  "@speakingTopicQuestionsSubtitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "speakingNoTopics": "No speaking topics yet.",
+  "speakingNoQuestions": "No questions in this topic yet.",
+  "speakingTopicsLoadError": "Could not load topics: {error}",
+  "@speakingTopicsLoadError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "speakingQuestionsLoadError": "Could not load questions: {error}",
+  "@speakingQuestionsLoadError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "speakingUntitledTopic": "Topic",
+  "speakingModelAnswer": "Answer",
+  "speakingFormula": "Formula",
+  "speakingTemplate": "Template",
+  "speakingSampleAnswer": "Sample answer",
+  "speakingModelNumber": "Model Question {number}",
+  "@speakingModelNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "speakingExpandAll": "Expand all",
+  "speakingCollapseAll": "Collapse all",
+  "speakingAnswerCopied": "Answer copied",
+  "speakingViewTopics": "Topics",
+  "speakingViewModelQuestions": "Model Questions",
+  "speakingSearchModelsHint": "Search model questions…",
+  "speakingModelsLearnHint": "{count, plural, =1{1 model question} other{{count} model questions}}",
+  "@speakingModelsLearnHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "speakingModelQuestionsSubtitle": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@speakingModelQuestionsSubtitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "speakingNoModels": "No model questions yet.",
+  "speakingModelsLoadError": "Could not load model questions: {error}",
+  "@speakingModelsLoadError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "speakingOpenModelQuestions": "View questions"
 }

@@ -862,6 +862,90 @@ abstract class AppLocalizations {
   /// **'Signed out'**
   String get signedOut;
 
+  /// No description provided for @addAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Add account'**
+  String get addAccount;
+
+  /// No description provided for @addAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add account'**
+  String get addAccountTitle;
+
+  /// No description provided for @addAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to another account. This one stays signed in.'**
+  String get addAccountSubtitle;
+
+  /// No description provided for @switchAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch account'**
+  String get switchAccount;
+
+  /// No description provided for @accountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts'**
+  String get accountsTitle;
+
+  /// No description provided for @currentAccountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get currentAccountBadge;
+
+  /// No description provided for @addAccountLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {count} accounts.'**
+  String addAccountLimitReached(int count);
+
+  /// No description provided for @signOutCurrentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This account will be signed out. You\'ll stay signed in on the other account.'**
+  String get signOutCurrentBody;
+
+  /// No description provided for @signOutAllAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of all accounts'**
+  String get signOutAllAccounts;
+
+  /// No description provided for @removeAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeAccount;
+
+  /// No description provided for @removeAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this account?'**
+  String get removeAccountTitle;
+
+  /// No description provided for @removeAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This account will be signed out on this device. The active account stays the same.'**
+  String get removeAccountBody;
+
+  /// No description provided for @accountSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to {name}'**
+  String accountSwitched(String name);
+
+  /// No description provided for @signedOutSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed out. Now using {name}.'**
+  String signedOutSwitched(String name);
+
   /// No description provided for @loadingAccount.
   ///
   /// In en, this message translates to:
@@ -1665,6 +1749,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search word (whole book)…'**
   String get searchWordWholeBook;
+
+  /// No description provided for @searchUnitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search units…'**
+  String get searchUnitsHint;
+
+  /// No description provided for @noMatchingUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching units found.'**
+  String get noMatchingUnits;
+
+  /// No description provided for @idiomsUnitsLearnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'✦ {count} units · Tap a card to start learning'**
+  String idiomsUnitsLearnHint(int count);
+
+  /// No description provided for @idiomsUnitsFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter units'**
+  String get idiomsUnitsFilterTitle;
+
+  /// No description provided for @idiomsUnitsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All units'**
+  String get idiomsUnitsFilterAll;
+
+  /// No description provided for @idiomsUnitsFilterNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get idiomsUnitsFilterNotStarted;
+
+  /// No description provided for @idiomsUnitsFilterInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get idiomsUnitsFilterInProgress;
+
+  /// No description provided for @idiomsUnitsFilterCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get idiomsUnitsFilterCompleted;
 
   /// No description provided for @noMatchingWords.
   ///
@@ -5805,6 +5937,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Google'**
   String get sampleTtsEngineGoogle;
+
+  /// No description provided for @speakingHomeCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking Part 1'**
+  String get speakingHomeCardTitle;
+
+  /// No description provided for @speakingHomeCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice common questions with model answers'**
+  String get speakingHomeCardSubtitle;
+
+  /// No description provided for @speakingPart1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking Part 1'**
+  String get speakingPart1Title;
+
+  /// No description provided for @speakingPart1Badge.
+  ///
+  /// In en, this message translates to:
+  /// **'Part 1'**
+  String get speakingPart1Badge;
+
+  /// No description provided for @speakingPart1HeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'IELTS Speaking Part 1'**
+  String get speakingPart1HeroTitle;
+
+  /// No description provided for @speakingPart1HeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse topics, learn formulas, and memorize sample answers.'**
+  String get speakingPart1HeroSubtitle;
+
+  /// No description provided for @speakingSearchTopicsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search topics…'**
+  String get speakingSearchTopicsHint;
+
+  /// No description provided for @speakingTopicsLearnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 topic ready} other{{count} topics ready}}'**
+  String speakingTopicsLearnHint(int count);
+
+  /// No description provided for @speakingTopicQuestionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}}'**
+  String speakingTopicQuestionCount(int count);
+
+  /// No description provided for @speakingTopicQuestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question · Part 1} other{{count} questions · Part 1}}'**
+  String speakingTopicQuestionsSubtitle(int count);
+
+  /// No description provided for @speakingNoTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'No speaking topics yet.'**
+  String get speakingNoTopics;
+
+  /// No description provided for @speakingNoQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'No questions in this topic yet.'**
+  String get speakingNoQuestions;
+
+  /// No description provided for @speakingTopicsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load topics: {error}'**
+  String speakingTopicsLoadError(String error);
+
+  /// No description provided for @speakingQuestionsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load questions: {error}'**
+  String speakingQuestionsLoadError(String error);
+
+  /// No description provided for @speakingUntitledTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic'**
+  String get speakingUntitledTopic;
+
+  /// No description provided for @speakingModelAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get speakingModelAnswer;
+
+  /// No description provided for @speakingFormula.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula'**
+  String get speakingFormula;
+
+  /// No description provided for @speakingTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Template'**
+  String get speakingTemplate;
+
+  /// No description provided for @speakingSampleAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample answer'**
+  String get speakingSampleAnswer;
+
+  /// No description provided for @speakingModelNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Question {number}'**
+  String speakingModelNumber(int number);
+
+  /// No description provided for @speakingExpandAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand all'**
+  String get speakingExpandAll;
+
+  /// No description provided for @speakingCollapseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse all'**
+  String get speakingCollapseAll;
+
+  /// No description provided for @speakingAnswerCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer copied'**
+  String get speakingAnswerCopied;
+
+  /// No description provided for @speakingViewTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics'**
+  String get speakingViewTopics;
+
+  /// No description provided for @speakingViewModelQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Questions'**
+  String get speakingViewModelQuestions;
+
+  /// No description provided for @speakingSearchModelsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search model questions…'**
+  String get speakingSearchModelsHint;
+
+  /// No description provided for @speakingModelsLearnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 model question} other{{count} model questions}}'**
+  String speakingModelsLearnHint(int count);
+
+  /// No description provided for @speakingModelQuestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}}'**
+  String speakingModelQuestionsSubtitle(int count);
+
+  /// No description provided for @speakingNoModels.
+  ///
+  /// In en, this message translates to:
+  /// **'No model questions yet.'**
+  String get speakingNoModels;
+
+  /// No description provided for @speakingModelsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load model questions: {error}'**
+  String speakingModelsLoadError(String error);
+
+  /// No description provided for @speakingOpenModelQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'View questions'**
+  String get speakingOpenModelQuestions;
 }
 
 class _AppLocalizationsDelegate

@@ -25,7 +25,10 @@ import '../domain/tray_water_constants.dart';
 import '../domain/word_builder_game_logic.dart';
 import '../domain/word_builder_models.dart';
 import '../word_builder_coin_constants.dart';
+import '../data/pvp_challenge_level.dart';
+import '../pvp_challenge_session_key.dart';
 import '../word_builder_constants.dart';
+import 'pvp_challenge_providers.dart';
 import 'word_builder_coins_provider.dart';
 import 'word_builder_play_mode_controller.dart';
 import 'word_builder_session_audio.dart';
@@ -1005,6 +1008,28 @@ class WordBuilderGameNotifier
       return initial;
     }
 
+    final pvpMatchId = decodePvpChallengeSessionKey(bookKey);
+    if (pvpMatchId != null) {
+      final match = await ref.read(pvpChallengeDetailProvider(pvpMatchId).future);
+      final categories = await ref.read(apiGameWordCategoriesProvider.future);
+      final level = buildPvpChallengeLevel(match: match, categories: categories);
+      if (level.targetWords.isEmpty) {
+        throw StateError('NO_WORDS');
+      }
+      _globalTargetsByLemma = {
+        for (final t in level.targetWords) normalizeWord(t.word): t,
+      };
+      final initial = WordBuilderViewState.createInitial(
+        persisted: persisted,
+        sessionLevels: [level],
+        levelIndex: 0,
+        random: _random,
+        scenarioOverride: trayScenarioForLevelIndex(pvpMatchId % 3),
+      );
+      _startPassiveWaterTimer();
+      return initial;
+    }
+
     final themeIndex = decodeWordBuilderThemeSessionKey(bookKey);
     if (themeIndex != null) {
       throw StateError('NO_WORDS');
@@ -1514,7 +1539,9 @@ class WordBuilderGameNotifier
     if (isLevelComplete(s.level, newSolved)) {
       coinReward += wordBuilderCoinsLevelCompleteBonus();
     }
-    await ref.read(wordBuilderCoinsProvider.notifier).addCoins(coinReward);
+    if (!isPvpChallengeSessionKey(arg)) {
+      await ref.read(wordBuilderCoinsProvider.notifier).addCoins(coinReward);
+    }
     final levelDone = isLevelComplete(s.level, newSolved);
     final deferLevelSfx =
         levelDone &&

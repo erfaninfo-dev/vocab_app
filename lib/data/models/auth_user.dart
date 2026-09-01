@@ -73,9 +73,26 @@ class AuthSession {
   final AuthUser user;
 
   factory AuthSession.fromAuthResponse(Map<String, dynamic> json) {
+    final token = json['token'];
+    final user = json['user'];
+    if (token is! String || token.isEmpty) {
+      throw const FormatException('Missing auth token');
+    }
+    if (user is! Map<String, dynamic>) {
+      throw const FormatException('Missing user payload');
+    }
     return AuthSession(
-      token: json['token'] as String,
-      user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
+      token: token,
+      user: AuthUser.fromJson(user),
     );
   }
+
+  factory AuthSession.fromJson(Map<String, dynamic> json) {
+    return AuthSession.fromAuthResponse(json);
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'token': token,
+    'user': user.toJson(),
+  };
 }

@@ -32,7 +32,6 @@ if (!function_exists('pvp_tables_ready')) {
             && pvp_table_exists($db, 'pvp_match_players');
     }
 }
-
 auth_options_exit();
 
 header('Access-Control-Allow-Origin: *');
@@ -133,11 +132,17 @@ try {
         $letters = [];
     }
 
+    $anchor = json_decode($match['anchor_words_json'], true);
+    if (!is_array($anchor)) {
+        $anchor = [];
+    }
+
     $validation = pvp_validate_submitted_words(
         $db,
         (int) $match['category_id'],
         $letters,
-        $rawWords
+        $rawWords,
+        $anchor
     );
 
     $wordsJson = json_encode($validation['valid_words'], JSON_UNESCAPED_UNICODE);

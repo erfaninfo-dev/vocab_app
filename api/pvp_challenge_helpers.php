@@ -7,8 +7,9 @@
 
 const PVP_CHALLENGE_PENDING_HOURS = 48;
 const PVP_CHALLENGE_PLAY_DAYS = 7;
-const PVP_CHALLENGE_DURATION_GRACE_SEC = 5;
-const PVP_CHALLENGE_MIN_PLAYABLE_WORDS = 8;
+const PVP_CHALLENGE_DURATION_GRACE_SEC = 60;
+const PVP_CHALLENGE_TARGET_WORD_COUNT = 3;
+const PVP_CHALLENGE_PLAY_DURATION_SEC = 3600;
 const PVP_CHALLENGE_MIN_WORD_LEN = 3;
 
 function pvp_normalize_word($word)
@@ -262,13 +263,17 @@ function pvp_generate_match_letters(PDO $db, $matchId)
     foreach ($catOrder as $catIdx => $cat) {
         $categoryId = (int) $cat['id'];
         $words = pvp_fetch_category_words($db, $categoryId);
-        if (count($words) < 10) {
+        if (count($words) < PVP_CHALLENGE_TARGET_WORD_COUNT) {
             continue;
         }
         for ($attempt = 0; $attempt < 20; $attempt++) {
             $seed = (int) $matchId * 1000 + ($catIdx * 20) + $attempt;
-            $anchor = pvp_pick_anchor_words($words, $seed, 3);
-            if (count($anchor) < 3) {
+            $anchor = pvp_pick_anchor_words(
+                $words,
+                $seed,
+                PVP_CHALLENGE_TARGET_WORD_COUNT
+            );
+            if (count($anchor) < PVP_CHALLENGE_TARGET_WORD_COUNT) {
                 continue;
             }
             $pool = pvp_pool_max_per_letter_across_words($anchor);
@@ -276,16 +281,13 @@ function pvp_generate_match_letters(PDO $db, $matchId)
             if (count($letters) < 6) {
                 continue;
             }
-            $playable = pvp_count_playable_words($words, $letters);
-            if ($playable >= PVP_CHALLENGE_MIN_PLAYABLE_WORDS) {
-                return [
-                    'category_id' => $categoryId,
-                    'category' => $cat,
-                    'letter_seed' => $seed,
-                    'anchor_words' => $anchor,
-                    'letters' => $letters,
-                ];
-            }
+            return [
+                'category_id' => $categoryId,
+                'category' => $cat,
+                'letter_seed' => $seed,
+                'anchor_words' => $anchor,
+                'letters' => $letters,
+            ];
         }
     }
 
@@ -313,8 +315,13 @@ function pvp_compute_score(array $validWords)
     return $score;
 }
 
-function pvp_validate_submitted_words(PDO $db, $categoryId, array $letters, array $rawWords)
-{
+function pvp_validate_submitted_words(
+    PDO $db,
+    $categoryId,
+    array $letters,
+    array $rawWords,
+    array $targetWordsLower = []
+) {
     $pool = [];
     foreach ($letters as $ch) {
         $k = pvp_normalize_word($ch);
@@ -326,6 +333,15 @@ function pvp_validate_submitted_words(PDO $db, $categoryId, array $letters, arra
         }
         $pool[$k]++;
     }
+
+    $targetSet = [];
+    foreach ($targetWordsLower as $rawTarget) {
+        $t = pvp_normalize_word($rawTarget);
+        if ($t !== '') {
+            $targetSet[$t] = true;
+        }
+    }
+    $restrictToTargets = count($targetSet) > 0;
 
     $valid = [];
     $invalid = [];
@@ -349,6 +365,10 @@ function pvp_validate_submitted_words(PDO $db, $categoryId, array $letters, arra
             continue;
         }
         $seen[$w] = true;
+        if ($restrictToTargets && !isset($targetSet[$w])) {
+            $invalid[] = $w;
+            continue;
+        }
         if (!pvp_word_in_category($db, $categoryId, $w)) {
             $invalid[] = $w;
             continue;

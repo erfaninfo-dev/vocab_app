@@ -80,7 +80,7 @@ class PvpChallengeDetailScreen extends ConsumerWidget {
           if (match.status == PvpMatchStatus.pending && match.viewer.canAccept)
             _pendingActions(context, ref, match),
           if (match.status == PvpMatchStatus.accepted && match.viewer.canPlay)
-            _playButton(context),
+            _playButton(context, ref, match),
           if (match.status == PvpMatchStatus.accepted &&
               !match.viewer.canPlay &&
               me?.playerStatus != PvpPlayerStatus.submitted)
@@ -123,6 +123,11 @@ class PvpChallengeDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
+            'Classic tray — find 3 words from this topic',
+            style: GoogleFonts.fredoka(color: Colors.black54, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Text(
             _statusLabel(match.status),
             style: GoogleFonts.fredoka(color: Colors.black54),
           ),
@@ -144,7 +149,7 @@ class PvpChallengeDetailScreen extends ConsumerWidget {
                 );
               }
             },
-            child: const Text('Decline'),
+            child: const Text('No'),
           ),
         ),
         const SizedBox(width: 12),
@@ -152,30 +157,59 @@ class PvpChallengeDetailScreen extends ConsumerWidget {
           child: FilledButton(
             style: FilledButton.styleFrom(backgroundColor: kPvpGold, foregroundColor: Colors.black87),
             onPressed: () async {
-              await ref.read(pvpChallengeActionsProvider).accept(match.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Challenge accepted!')),
-                );
+              final accepted =
+                  await ref.read(pvpChallengeActionsProvider).accept(match.id);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Challenge accepted!')),
+              );
+              if (accepted.viewer.canPlay) {
+                context.push('/word-builder/challenge/${match.id}/play');
               }
             },
-            child: const Text('Accept'),
+            child: const Text('Yes'),
           ),
         ),
       ],
     );
   }
 
-  Widget _playButton(BuildContext context) {
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(
-        backgroundColor: kPvpCrimson,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-      ),
-      onPressed: () => context.push('/word-builder/challenge/$matchId/play'),
-      icon: const Icon(Icons.play_arrow_rounded),
-      label: Text('Play Now', style: GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w800)),
+  Widget _playButton(BuildContext context, WidgetRef ref, PvpMatch match) {
+    final lang = ref.watch(langProvider);
+    final preferKur = lang == TranslationLang.kur;
+    final topic = match.category.label(preferKur: preferKur);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(pvpCategoryIcon(match.category.icon), color: kPvpGold),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Topic: $topic',
+                    style: GoogleFonts.fredoka(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: kPvpCrimson,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          onPressed: () => context.push('/word-builder/challenge/$matchId/play'),
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: Text('Play Now', style: GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w800)),
+        ),
+      ],
     );
   }
 

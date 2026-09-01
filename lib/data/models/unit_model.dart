@@ -13,4 +13,18 @@ class UnitInfo {
       unitDetails: json['unit_details']?.toString(),
     );
   }
+
+  bool matchesQuery(String rawQuery) {
+    final query = rawQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+
+    final details = unitDetails?.trim().toLowerCase() ?? '';
+    if (details.contains(query)) return true;
+
+    if (RegExp(r'^\d+$').hasMatch(query) && unit.toString() == query) {
+      return true;
+    }
+
+    return false;
+  }
 }

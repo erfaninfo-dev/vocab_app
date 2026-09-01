@@ -19,6 +19,7 @@ import '../../l10n/app_localizations.dart';
 import 'home_book_card.dart';
 import 'home_book_track_provider.dart';
 import 'home_displayed_books_provider.dart';
+import '../speaking/speaking_home_card.dart';
 import 'series_books_screen.dart';
 
 const Color _kHomeFabHappyBlue = Color(0xFF2196F3);
@@ -290,11 +291,18 @@ class _HomeTrackBookPage extends ConsumerWidget {
                         : 1;
 
                     final entries = _trackHomeEntriesForTrack(books);
+                    final speakingCardHeight = width / (crossAxisCount == 1 ? 2.15 : 1.48);
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (track == HomeBookTrack.ielts) ...[
+                            SizedBox(
+                              height: speakingCardHeight,
+                              child: const SpeakingHomeCard(),
+                            ),
+                          ],
                           Directionality(
                             textDirection: TextDirection.ltr,
                             child: GridView.builder(
@@ -307,7 +315,7 @@ class _HomeTrackBookPage extends ConsumerWidget {
                                     mainAxisSpacing: 14,
                                     childAspectRatio: crossAxisCount == 1
                                         ? 2.15
-                                        : 1.42,
+                                        : 1.48,
                                   ),
                               itemCount: entries.length,
                               itemBuilder: (context, i) {

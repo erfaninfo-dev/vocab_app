@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/profile/profile_avatar.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_accounts_sheet.dart';
 import '../stories/story_providers.dart';
 import '../stories/story_ring.dart';
 import 'student_code_dialogs.dart';
@@ -19,6 +20,7 @@ class YouAccountSection extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final authAsync = ref.watch(authProvider);
+    final storedSlots = ref.watch(authAccountSlotsProvider);
     final l10n = AppLocalizations.of(context)!;
     final signOutTitleStyle =
         (ListTileTheme.of(context).titleTextStyle ??
@@ -31,6 +33,10 @@ class YouAccountSection extends ConsumerWidget {
         _SectionLabel(label: l10n.sectionAccount),
         authAsync.when(
           data: (session) {
+            final slots = effectiveAuthSlots(
+              active: session,
+              publishedSlots: storedSlots,
+            );
             if (session == null) {
               return Container(
                 decoration: youJellyCardDecoration(context, scheme: scheme),
@@ -114,10 +120,7 @@ class YouAccountSection extends ConsumerWidget {
                               userId: session.user.id,
                               size: 48,
                             )
-                          : StoryRing(
-                              stories: ownStories,
-                              size: 60,
-                            );
+                          : StoryRing(stories: ownStories, size: 60);
                       return Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -140,8 +143,8 @@ class YouAccountSection extends ConsumerWidget {
                                         l10n.profile,
                                         style: theme.textTheme.titleMedium
                                             ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                                              fontWeight: FontWeight.w800,
+                                            ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -251,6 +254,47 @@ class YouAccountSection extends ConsumerWidget {
                       onTap: () => showRedeemStudentCodeDialog(context, ref),
                     ),
                   ],
+                  if (showsAuthAccountSwitcher(
+                    active: session,
+                    slots: slots,
+                  )) ...[
+                    Divider(
+                      height: 0,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      leading: YouJellyIconBubble(
+                        color: scheme.primary,
+                        size: 40,
+                        child: Icon(
+                          slots.length > 1
+                              ? Icons.switch_account_rounded
+                              : Icons.person_add_alt_1_rounded,
+                          size: 20,
+                          color: scheme.onPrimary,
+                        ),
+                      ),
+                      title: Text(
+                        slots.length > 1 ? l10n.switchAccount : l10n.addAccount,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      subtitle: Text(
+                        slots.length > 1
+                            ? l10n.accountsTitle
+                            : l10n.addAccountSubtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () =>
+                          showAuthAccountsSheet(context: context, ref: ref),
+                    ),
+                  ],
                   Divider(
                     height: 0,
                     color: scheme.outlineVariant.withValues(alpha: 0.35),
@@ -276,32 +320,84 @@ class YouAccountSection extends ConsumerWidget {
                               TextStyle(color: scheme.onError),
                         ),
                         onTap: () async {
-                          final ok = await showDialog<bool>(
+                          final hasOthers = await ref
+                              .read(authProvider.notifier)
+                              .hasOtherSavedAccounts();
+                          if (!context.mounted) {
+                            return;
+                          }
+                          final choice = await showDialog<_SignOutChoice>(
                             context: context,
                             builder: (ctx) {
                               return AlertDialog(
                                 title: Text(l10n.signOutTitle),
-                                content: Text(l10n.signOutBody),
+                                content: Text(
+                                  hasOthers
+                                      ? l10n.signOutCurrentBody
+                                      : l10n.signOutBody,
+                                ),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
-                                        Navigator.of(ctx).pop(false),
+                                        Navigator.of(ctx).pop(_SignOutChoice.cancel),
                                     child: Text(l10n.cancel),
                                   ),
+                                  if (hasOthers)
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(
+                                        _SignOutChoice.allAccounts,
+                                      ),
+                                      child: Text(l10n.signOutAllAccounts),
+                                    ),
                                   FilledButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(true),
+                                    onPressed: () => Navigator.of(ctx).pop(
+                                      hasOthers
+                                          ? _SignOutChoice.currentOnly
+                                          : _SignOutChoice.allAccounts,
+                                    ),
                                     child: Text(l10n.signOut),
                                   ),
                                 ],
                               );
                             },
                           );
-                          if (ok != true) {
+                          if (choice == null || choice == _SignOutChoice.cancel) {
                             return;
                           }
-                          await ref.read(authProvider.notifier).logout();
-                          if (context.mounted) {
+                          if (!context.mounted) {
+                            return;
+                          }
+                          if (choice == _SignOutChoice.allAccounts) {
+                            await ref
+                                .read(authProvider.notifier)
+                                .logoutAllAccounts();
+                            if (!context.mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.signedOut)),
+                            );
+                            context.go('/home');
+                            return;
+                          }
+                          final next = await ref
+                              .read(authProvider.notifier)
+                              .logout();
+                          if (!context.mounted) {
+                            return;
+                          }
+                          if (next != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.signedOutSwitched(
+                                    authAccountDisplayName(next.user),
+                                  ),
+                                ),
+                              ),
+                            );
+                            context.go('/home');
+                          } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(l10n.signedOut)),
                             );
@@ -334,6 +430,8 @@ class YouAccountSection extends ConsumerWidget {
     );
   }
 }
+
+enum _SignOutChoice { cancel, currentOnly, allAccounts }
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});

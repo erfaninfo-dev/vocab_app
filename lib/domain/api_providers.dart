@@ -10,6 +10,9 @@ import '../data/models/grammar_topic_pdf.dart';
 import '../data/models/grammar_book.dart';
 import '../data/models/grammar_question.dart';
 import '../data/models/grammar_topic_summary.dart';
+import '../data/models/speaking_model_summary.dart';
+import '../data/models/speaking_question.dart';
+import '../data/models/speaking_topic.dart';
 import '../data/models/grammar_unit.dart';
 import '../data/models/grammar_unit_text.dart';
 import '../data/models/class_schedule_slot.dart';
@@ -135,6 +138,33 @@ final apiGrammarTopicsProvider = FutureProvider<List<GrammarTopicSummary>>((
 ) {
   ref.watch(apiRemoteDataEpochProvider);
   return ref.read(apiServiceProvider).fetchGrammarTopics();
+});
+
+// ─── Speaking Part 1 ────────────────────────────────────────────────────────
+
+final apiSpeakingTopicsProvider = FutureProvider.family<List<SpeakingTopic>, int>(
+  (ref, part) {
+    ref.watch(apiRemoteDataEpochProvider);
+    return ref.read(apiServiceProvider).fetchSpeakingTopics(part: part);
+  },
+);
+
+final apiSpeakingTopicQuestionsProvider =
+    FutureProvider.family<SpeakingTopicQuestionsResponse, int>((ref, topicId) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchSpeakingTopicQuestions(topicId);
+});
+
+final apiSpeakingModelQuestionsProvider =
+    FutureProvider.family<List<SpeakingModelSummary>, int>((ref, part) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchSpeakingModelQuestions(part: part);
+});
+
+final apiSpeakingModelQuestionItemsProvider =
+    FutureProvider.family<SpeakingModelQuestionsResponse, int>((ref, modelId) {
+  ref.watch(apiRemoteDataEpochProvider);
+  return ref.read(apiServiceProvider).fetchSpeakingModelQuestionItems(modelId);
 });
 
 // ─── Vocabulary book study PDFs ───────────────────────────────────────────────

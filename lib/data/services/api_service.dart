@@ -20,6 +20,9 @@ import '../models/unit_sample.dart';
 import '../models/grammar_book.dart';
 import '../models/grammar_question.dart';
 import '../models/grammar_topic_summary.dart';
+import '../models/speaking_model_summary.dart';
+import '../models/speaking_question.dart';
+import '../models/speaking_topic.dart';
 import '../models/grammar_unit.dart';
 import '../models/grammar_unit_text.dart';
 import '../models/grammar_result.dart';
@@ -330,6 +333,104 @@ class ApiService {
         return data
             .map((e) => GrammarTopicPdf.fromJson(e as Map<String, dynamic>))
             .toList();
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /speaking_topics.php?part=1 ───────────────────────────────────────
+  Future<List<SpeakingTopic>> fetchSpeakingTopics({int part = 1}) async {
+    final uri = Uri.parse('$baseUrl/speaking_topics.php').replace(
+      queryParameters: {'part': '$part'},
+    );
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'speaking topics');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => SpeakingTopic.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => SpeakingTopic.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /speaking_questions.php?topic_id={id} ─────────────────────────────
+  Future<SpeakingTopicQuestionsResponse> fetchSpeakingTopicQuestions(
+    int topicId,
+  ) async {
+    final uri = Uri.parse('$baseUrl/speaking_questions.php').replace(
+      queryParameters: {'topic_id': '$topicId'},
+    );
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'speaking questions');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return SpeakingTopicQuestionsResponse.fromJson(data);
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as Map<String, dynamic>;
+        return SpeakingTopicQuestionsResponse.fromJson(data);
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /speaking_model_questions.php?part=1 ──────────────────────────────
+  Future<List<SpeakingModelSummary>> fetchSpeakingModelQuestions({
+    int part = 1,
+  }) async {
+    final uri = Uri.parse('$baseUrl/speaking_model_questions.php').replace(
+      queryParameters: {'part': '$part'},
+    );
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'speaking model questions');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => SpeakingModelSummary.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as List<dynamic>;
+        return data
+            .map((e) => SpeakingModelSummary.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      rethrow;
+    }
+  }
+
+  // ── GET /speaking_questions.php?model_id={id} ─────────────────────────────
+  Future<SpeakingModelQuestionsResponse> fetchSpeakingModelQuestionItems(
+    int modelId,
+  ) async {
+    final uri = Uri.parse('$baseUrl/speaking_questions.php').replace(
+      queryParameters: {'model_id': '$modelId'},
+    );
+    try {
+      final response = await http.get(uri, headers: _mergeHeaders());
+      _assertOk(response, 'speaking model question items');
+      await _writeGetCache(uri, response.body, _ttlGrammarCatalog);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return SpeakingModelQuestionsResponse.fromJson(data);
+    } catch (_) {
+      final cached = await _readGetCache(uri);
+      if (cached != null) {
+        final data = jsonDecode(cached) as Map<String, dynamic>;
+        return SpeakingModelQuestionsResponse.fromJson(data);
       }
       rethrow;
     }
@@ -1062,16 +1163,30 @@ class ApiService {
 
   // ── Auth (no bearer token on login/register) ─────────────────────────────
 
+  static const Duration _authRequestTimeout = Duration(seconds: 45);
+
+  Future<http.Response> _postAuthJson(Uri uri, String body) {
+    return http
+        .post(
+          uri,
+          headers: const {'Content-Type': 'application/json; charset=utf-8'},
+          body: body,
+        )
+        .timeout(
+          _authRequestTimeout,
+          onTimeout: () => throw TimeoutException('Connection timed out'),
+        );
+  }
+
   /// POST /login.php
   Future<AuthSession> login({
     required String email,
     required String password,
   }) async {
     final uri = Uri.parse('$baseUrl/login.php');
-    final response = await http.post(
+    final response = await _postAuthJson(
       uri,
-      headers: const {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode({'email': email.trim(), 'password': password}),
+      jsonEncode({'email': email.trim(), 'password': password}),
     );
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -1099,11 +1214,7 @@ class ApiService {
         body['student_code'] = c;
       }
     }
-    final response = await http.post(
-      uri,
-      headers: const {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode(body),
-    );
+    final response = await _postAuthJson(uri, jsonEncode(body));
     _assertAuthResponse(response);
     final map = jsonDecode(response.body) as Map<String, dynamic>;
     return AuthSession.fromAuthResponse(map);

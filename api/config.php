@@ -16,13 +16,22 @@ define('DB_USER', 'apiuser');
 define('DB_PASS', '');
 define('DB_NAME', 'erfaninfocom_appbooks');
 
-// ─── Password reset email settings ───────────────────────────────────────────
-// NOTE: This uses PHP's `mail()` by default (shared hosting friendly).
-// If your host blocks outbound mail, configure SMTP at the server level or
-// switch to an SMTP library later.
-define('APP_NAME', 'IELTS Essential Words');
-define('MAIL_FROM', 'no-reply@erfaninfo.com');
-define('MAIL_FROM_NAME', APP_NAME);
+if (is_file(__DIR__ . '/secrets.php')) {
+    require_once __DIR__ . '/secrets.php';
+}
+
+// ─── Password reset email ────────────────────────────────────────────────────
+// PHP mail() is not enough for Gmail/Yahoo. Set SMTP_* in secrets.php
+// (cPanel → Email Accounts → create no-reply@erfaninfo.com).
+if (!defined('APP_NAME')) {
+    define('APP_NAME', 'Erfan Academy');
+}
+if (!defined('MAIL_FROM')) {
+    define('MAIL_FROM', 'no-reply@erfaninfo.com');
+}
+if (!defined('MAIL_FROM_NAME')) {
+    define('MAIL_FROM_NAME', APP_NAME);
+}
 
 /**
  * Returns a PDO connection to the database.

@@ -8,6 +8,8 @@ import '../../../data/models/book_model.dart';
 import '../../../data/models/vocab_entry.dart';
 import '../../../domain/api_providers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../units/idioms/idioms_units_constants.dart';
+import '../../units/idioms/idioms_word_card.dart';
 import '../important_words_controller.dart';
 import '../word_preferences_controller.dart';
 
@@ -29,6 +31,16 @@ class WordCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bookId = int.tryParse(entry.bookId);
+    if (bookId == kIdiomsSpeakingBookId) {
+      return IdiomsWordCard(
+        entry: entry,
+        number: number,
+        showUnitBadge: showUnitBadge,
+        translationLang: translationLang,
+      );
+    }
+
     final prefs = ref.watch(wordPreferencesProvider);
     final important = ref.watch(importantWordsProvider);
     final prefsNotifier = ref.read(wordPreferencesProvider.notifier);
@@ -42,7 +54,7 @@ class WordCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final accent = _accent(entry.section);
     final cardNumber = number;
-    const localMeaningColor = Colors.blue;
+    final localMeaningColor = Colors.blue;
 
     final localMeaning = entry.meaningFor(resolvedLang);
     final localExample = entry.exampleLocalFor(resolvedLang);
@@ -63,13 +75,9 @@ class WordCard extends ConsumerWidget {
       orElse: () => null,
     );
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: AppJellyCard(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final cardBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
               if (bookTitle != null) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +85,7 @@ class WordCard extends ConsumerWidget {
                     Icon(
                       Icons.menu_book_outlined,
                       size: 18,
-                      color: scheme.primary.withValues(alpha: 0.85),
+                      color: accent.withValues(alpha: 0.85),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -298,7 +306,7 @@ class WordCard extends ConsumerWidget {
                           ? 'U${entry.unit}'
                           : 'U${entry.unit}  S${entry.section}',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                        color: accent.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -306,8 +314,14 @@ class WordCard extends ConsumerWidget {
                 ],
               ),
             ],
-          ),
-        ),
+          );
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: AppJellyCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+        child: cardBody,
+      ),
     );
   }
 }
