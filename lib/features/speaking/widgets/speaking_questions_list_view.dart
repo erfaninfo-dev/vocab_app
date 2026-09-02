@@ -1,11 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/tts/tts_service.dart';
 import '../../../data/models/speaking_question.dart';
 import '../../../l10n/app_localizations.dart';
+import '../speaking_constants.dart';
 import 'speaking_question_card.dart';
 
 class SpeakingQuestionsListView extends ConsumerStatefulWidget {
@@ -56,19 +54,28 @@ class _SpeakingQuestionsListViewState
   void _onExpandAllChanged() {
     final next = widget.expandAllNotifier?.value;
     if (next == null) return;
+    final lock = next && !_expandAll
+        ? lockSpeakingListScrollOffset(context)
+        : null;
+
     setState(() {
       _expandAll = next;
       if (_expandAll) _expandedQuestionId = null;
     });
+    lock?.releaseAfterLayout();
   }
 
   void _toggleExpanded(int questionId) {
+    final willExpand = !_expandAll && _expandedQuestionId != questionId;
+    final lock = willExpand ? lockSpeakingListScrollOffset(context) : null;
+
     setState(() {
       if (_expandAll) _expandAll = false;
       _expandedQuestionId =
           _expandedQuestionId == questionId ? null : questionId;
       widget.expandAllNotifier?.value = false;
     });
+    lock?.releaseAfterLayout();
   }
 
   bool _isExpanded(SpeakingQuestion question) {
@@ -76,40 +83,38 @@ class _SpeakingQuestionsListViewState
     return _expandedQuestionId == question.id;
   }
 
-  Future<void> _speakQuestion(String text) async {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
-    await ref.read(ttsProvider.notifier).speak(trimmed);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final tts = ref.watch(ttsProvider);
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: widget.padding,
-      itemCount: widget.questions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final question = widget.questions[index];
-        final displayIndex = index + 1;
-        final isExpanded = _isExpanded(question);
-        final isSpeaking = tts.isSpeakingText(question.questionText);
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var index = 0; index < widget.questions.length; index++) ...[
+            if (index > 0) const SizedBox(height: 12),
+            Builder(
+              builder: (context) {
+                final question = widget.questions[index];
+                final displayIndex = index + 1;
+                final isExpanded = _isExpanded(question);
 
-        return SpeakingQuestionCard(
-          l10n: l10n,
-          index: displayIndex,
-          question: question,
-          isExpanded: isExpanded,
-          isSpeaking: isSpeaking,
-          topicLabel: widget.showTopicOnCards ? question.topicTitle : null,
-          onToggle: () => _toggleExpanded(question.id),
-          onSpeak: () => unawaited(_speakQuestion(question.questionText)),
-        );
-      },
+                return SpeakingQuestionCard(
+                  l10n: l10n,
+                  index: displayIndex,
+                  question: question,
+                  isExpanded: isExpanded,
+                  accentColor: speakingQuestionAccentColor(displayIndex),
+                  topicLabel:
+                      widget.showTopicOnCards ? question.topicTitle : null,
+                  onToggle: () => _toggleExpanded(question.id),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

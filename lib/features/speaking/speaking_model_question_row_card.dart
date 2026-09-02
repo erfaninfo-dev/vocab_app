@@ -18,7 +18,6 @@ class SpeakingModelQuestionRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final theme = speakingThemeForTopic(model.id);
     final title = model.title.trim();
 
@@ -81,7 +80,7 @@ class SpeakingModelQuestionRowCard extends StatelessWidget {
                           fontSize: 12.5,
                           height: 1.3,
                           fontWeight: FontWeight.w600,
-                          color: scheme.onSurface.withValues(alpha: 0.82),
+                          color: speakingCardSubtitleColor(context),
                         ),
                       ),
                       const SizedBox(height: 6),

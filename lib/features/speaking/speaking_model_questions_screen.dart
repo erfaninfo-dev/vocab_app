@@ -58,7 +58,11 @@ class _SpeakingModelQuestionsScreenState
               l10n.speakingModelNumber(data.model.modelNumber),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                              color: speakingCardTitleColor(context),
+                            ),
             ),
             Text(
               l10n.speakingModelQuestionsSubtitle(data.questions.length),
@@ -72,7 +76,11 @@ class _SpeakingModelQuestionsScreenState
         ),
         orElse: () => Text(
           l10n.speakingViewModelQuestions,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                              color: speakingCardTitleColor(context),
+                            ),
         ),
       ),
       centerTitle: false,
@@ -101,22 +109,17 @@ class _SpeakingModelQuestionsScreenState
         const SizedBox(width: 4),
       ],
     );
-    final topInset = appGradientContentTopInset(
-      context,
-      appBar: appBar,
-      extra: 12,
-    );
 
     return Directionality(
       textDirection: TextDirection.ltr,
       child: AppGradientScaffold(
+        extendBodyBehindAppBar: false,
         appBar: appBar,
         body: RefreshIndicator(
           onRefresh: _onRefresh,
           child: dataValue.when(
             loading: () => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(top: topInset),
               children: const [
                 SizedBox(
                   height: 280,
@@ -126,17 +129,15 @@ class _SpeakingModelQuestionsScreenState
             ),
             error: (error, _) => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(top: topInset),
+              padding: const EdgeInsets.all(20),
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Center(
-                    child: Text(
-                      l10n.speakingQuestionsLoadError('$error'),
-                      textAlign: TextAlign.center,
-                    ),
+                Center(
+                  child: Text(
+                    l10n.speakingQuestionsLoadError('$error'),
+                    textAlign: TextAlign.center,
                   ),
                 ),
+                const SizedBox(height: 16),
                 Center(
                   child: OutlinedButton.icon(
                     onPressed: _onRefresh,
@@ -150,7 +151,6 @@ class _SpeakingModelQuestionsScreenState
               if (data.questions.isEmpty) {
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.only(top: topInset),
                   children: [
                     const SizedBox(height: 120),
                     Center(child: Text(l10n.speakingNoQuestions)),
@@ -165,7 +165,7 @@ class _SpeakingModelQuestionsScreenState
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, topInset, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                       child: _ModelSummaryCard(
                         l10n: l10n,
                         title: data.model.title,
@@ -213,62 +213,196 @@ class _ModelSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: isDark ? 0.22 : 0.09),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Material(
+          color: isDark
+              ? scheme.surfaceContainerHigh.withValues(alpha: 0.94)
+              : Colors.white.withValues(alpha: 0.98),
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 18,
+                top: 18,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: isDark ? 0.1 : 0.08),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                accent.withValues(alpha: 0.22),
+                                accent.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(13),
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.24),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 20,
+                            color: accent,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              title.trim().isEmpty
+                                  ? l10n.speakingModelAnswer
+                                  : title.trim(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 17,
+                                height: 1.3,
+                                letterSpacing: -0.2,
+                                color: speakingQuestionsTitleColor(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _ModelSummaryInfoBlock(
+                      label: l10n.speakingFormula,
+                      text: formula,
+                      accent: accent,
+                      monospace: true,
+                    ),
+                    const SizedBox(height: 10),
+                    _ModelSummaryInfoBlock(
+                      label: l10n.speakingTemplate,
+                      text: template,
+                      accent: accent,
+                      italic: true,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModelSummaryInfoBlock extends StatelessWidget {
+  const _ModelSummaryInfoBlock({
+    required this.label,
+    required this.text,
+    required this.accent,
+    this.monospace = false,
+    this.italic = false,
+  });
+
+  final String label;
+  final String text;
+  final Color accent;
+  final bool monospace;
+  final bool italic;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
+        color: isDark
+            ? scheme.surface.withValues(alpha: 0.55)
+            : accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: accent.withValues(alpha: isDark ? 0.22 : 0.16),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title.trim().isNotEmpty) ...[
-            Text(
-              title.trim(),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14.5,
-                height: 1.35,
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-          ],
-          Text(
-            l10n.speakingFormula,
-            style: TextStyle(
-              color: accent,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            formula,
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 13,
-              height: 1.35,
-            ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: accent,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                  letterSpacing: 0.25,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.speakingTemplate,
+            text,
             style: TextStyle(
-              color: accent,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            template,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.35,
-              fontStyle: FontStyle.italic,
+              fontSize: 13.5,
+              height: 1.42,
+              fontFamily: monospace ? 'monospace' : null,
+              fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+              fontWeight: monospace ? FontWeight.w500 : FontWeight.w600,
+              color: scheme.onSurface.withValues(alpha: 0.9),
             ),
           ),
         ],

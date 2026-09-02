@@ -3498,10 +3498,19 @@ class AppLocalizationsFa extends AppLocalizations {
   String get speakingExpandAll => 'باز کردن همه';
 
   @override
+  String get speakingExpand => 'باز کردن';
+
+  @override
   String get speakingCollapseAll => 'بستن همه';
 
   @override
   String get speakingAnswerCopied => 'جواب کپی شد';
+
+  @override
+  String get speakingQuestionsHintTitle => 'با اعتماد به نفس و طبیعی جواب بده.';
+
+  @override
+  String get speakingQuestionsHintSubtitle => 'با جملات کامل صحبت کن.';
 
   @override
   String get speakingViewTopics => 'تاپیک‌ها';

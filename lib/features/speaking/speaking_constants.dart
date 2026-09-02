@@ -38,92 +38,96 @@ String _speakingTopicSlug(String title) {
 /// Speaking Part 1 topic title → best-matching illustration from idioms pool.
 const _kSpeakingAssetBySlug = <String, String>{
   // Current Part 1 topics
-  'praiseencouragement': 'assets/idioms_units/achievement_pic.png',
-  'holidays': 'assets/idioms_units/travel_pic.png',
-  'holiday': 'assets/idioms_units/travel_pic.png',
-  'library': 'assets/idioms_units/education_pic.png',
-  'libraries': 'assets/idioms_units/education_pic.png',
-  'smallbusiness': 'assets/idioms_units/work_pic.png',
-  'business': 'assets/idioms_units/work_pic.png',
-  'chocolates': 'assets/idioms_units/food_pic.png',
-  'chocolate': 'assets/idioms_units/food_pic.png',
+  'praiseencouragement': 'assets/idioms_units/achievement_pic.webp',
+  'holidays': 'assets/idioms_units/travel_pic.webp',
+  'holiday': 'assets/idioms_units/travel_pic.webp',
+  'library': 'assets/idioms_units/education_pic.webp',
+  'libraries': 'assets/idioms_units/education_pic.webp',
+  'smallbusiness': 'assets/idioms_units/work_pic.webp',
+  'business': 'assets/idioms_units/work_pic.webp',
+  'chocolates': 'assets/idioms_units/food_pic.webp',
+  'chocolate': 'assets/idioms_units/food_pic.webp',
   // Common IELTS Part 1 topics
-  'work': 'assets/idioms_units/work_pic.png',
-  'workcareer': 'assets/idioms_units/work_pic.png',
-  'job': 'assets/idioms_units/work_pic.png',
-  'hometown': 'assets/idioms_units/city_pic.png',
-  'hometowncity': 'assets/idioms_units/city_pic.png',
-  'city': 'assets/idioms_units/city_pic.png',
-  'cities': 'assets/idioms_units/city_pic.png',
-  'home': 'assets/idioms_units/home_pic.png',
-  'family': 'assets/idioms_units/home_pic.png',
-  'food': 'assets/idioms_units/food_pic.png',
-  'music': 'assets/idioms_units/entertainment_pic.png',
-  'weather': 'assets/idioms_units/weather_pic.png',
-  'travel': 'assets/idioms_units/travel_pic.png',
-  'transport': 'assets/idioms_units/transport_pic.png',
-  'shopping': 'assets/idioms_units/shopping_pic.png',
-  'health': 'assets/idioms_units/health_pic.png',
-  'sport': 'assets/idioms_units/health_pic.png',
-  'sports': 'assets/idioms_units/health_pic.png',
-  'technology': 'assets/idioms_units/technology_pic.png',
-  'friends': 'assets/idioms_units/friendship_pic.png',
-  'friendship': 'assets/idioms_units/friendship_pic.png',
-  'money': 'assets/idioms_units/money_pic.png',
-  'education': 'assets/idioms_units/education_pic.png',
-  'study': 'assets/idioms_units/education_pic.png',
-  'studying': 'assets/idioms_units/education_pic.png',
-  'nature': 'assets/idioms_units/nature_pic.png',
-  'environment': 'assets/idioms_units/environment_pic.png',
-  'communication': 'assets/idioms_units/communication_pic.png',
-  'people': 'assets/idioms_units/people_pic.png',
-  'personality': 'assets/idioms_units/people_pic.png',
-  'time': 'assets/idioms_units/time_pic.png',
-  'age': 'assets/idioms_units/age_pic.png',
-  'future': 'assets/idioms_units/futureplans_pic.png',
-  'futureplans': 'assets/idioms_units/futureplans_pic.png',
-  'experience': 'assets/idioms_units/experience_pic.png',
-  'memories': 'assets/idioms_units/experience_pic.png',
-  'opinion': 'assets/idioms_units/opinion_pic.png',
-  'opinions': 'assets/idioms_units/opinion_pic.png',
-  'love': 'assets/idioms_units/love_pic.png',
-  'relationships': 'assets/idioms_units/love_pic.png',
-  'feelings': 'assets/idioms_units/positivefeeling_pic.png',
-  'positivefeelings': 'assets/idioms_units/positivefeeling_pic.png',
-  'negativefeelings': 'assets/idioms_units/negativefeeling_pic.png',
-  'stress': 'assets/idioms_units/problems_pic.png',
-  'problems': 'assets/idioms_units/problems_pic.png',
-  'achievement': 'assets/idioms_units/achievement_pic.png',
-  'success': 'assets/idioms_units/achievement_pic.png',
-  'entertainment': 'assets/idioms_units/entertainment_pic.png',
-  'freetime': 'assets/idioms_units/entertainment_pic.png',
+  'work': 'assets/idioms_units/work_pic.webp',
+  'workcareer': 'assets/idioms_units/work_pic.webp',
+  'job': 'assets/idioms_units/work_pic.webp',
+  'hometown': 'assets/idioms_units/city_pic.webp',
+  'hometowncity': 'assets/idioms_units/city_pic.webp',
+  'city': 'assets/idioms_units/city_pic.webp',
+  'cities': 'assets/idioms_units/city_pic.webp',
+  'home': 'assets/idioms_units/home_pic.webp',
+  'family': 'assets/idioms_units/home_pic.webp',
+  'food': 'assets/idioms_units/food_pic.webp',
+  'music': 'assets/idioms_units/entertainment_pic.webp',
+  'weather': 'assets/idioms_units/weather_pic.webp',
+  'travel': 'assets/idioms_units/travel_pic.webp',
+  'transport': 'assets/idioms_units/transport_pic.webp',
+  'shopping': 'assets/idioms_units/shopping_pic.webp',
+  'health': 'assets/idioms_units/health_pic.webp',
+  'sport': 'assets/idioms_units/health_pic.webp',
+  'sports': 'assets/idioms_units/health_pic.webp',
+  'technology': 'assets/idioms_units/technology_pic.webp',
+  'internet': 'assets/idioms_units/technology_pic.webp',
+  'online': 'assets/idioms_units/technology_pic.webp',
+  'friends': 'assets/idioms_units/friendship_pic.webp',
+  'friendship': 'assets/idioms_units/friendship_pic.webp',
+  'money': 'assets/idioms_units/money_pic.webp',
+  'education': 'assets/idioms_units/education_pic.webp',
+  'study': 'assets/idioms_units/education_pic.webp',
+  'studying': 'assets/idioms_units/education_pic.webp',
+  'nature': 'assets/idioms_units/nature_pic.webp',
+  'environment': 'assets/idioms_units/environment_pic.webp',
+  'communication': 'assets/idioms_units/communication_pic.webp',
+  'people': 'assets/idioms_units/people_pic.webp',
+  'personality': 'assets/idioms_units/people_pic.webp',
+  'time': 'assets/idioms_units/time_pic.webp',
+  'age': 'assets/idioms_units/age_pic.webp',
+  'future': 'assets/idioms_units/futureplans_pic.webp',
+  'futureplans': 'assets/idioms_units/futureplans_pic.webp',
+  'experience': 'assets/idioms_units/experience_pic.webp',
+  'memories': 'assets/idioms_units/experience_pic.webp',
+  'opinion': 'assets/idioms_units/opinion_pic.webp',
+  'opinions': 'assets/idioms_units/opinion_pic.webp',
+  'love': 'assets/idioms_units/love_pic.webp',
+  'relationships': 'assets/idioms_units/love_pic.webp',
+  'feelings': 'assets/idioms_units/positivefeeling_pic.webp',
+  'positivefeelings': 'assets/idioms_units/positivefeeling_pic.webp',
+  'negativefeelings': 'assets/idioms_units/negativefeeling_pic.webp',
+  'stress': 'assets/idioms_units/problems_pic.webp',
+  'problems': 'assets/idioms_units/problems_pic.webp',
+  'achievement': 'assets/idioms_units/achievement_pic.webp',
+  'success': 'assets/idioms_units/achievement_pic.webp',
+  'entertainment': 'assets/idioms_units/entertainment_pic.webp',
+  'freetime': 'assets/idioms_units/entertainment_pic.webp',
 };
 
 /// Keyword fallbacks when slug is not an exact map key (checked in order).
 const _kSpeakingAssetKeywordRules = <(String keyword, String asset)>[
-  ('chocolate', 'assets/idioms_units/food_pic.png'),
-  ('library', 'assets/idioms_units/education_pic.png'),
-  ('holiday', 'assets/idioms_units/travel_pic.png'),
-  ('praise', 'assets/idioms_units/achievement_pic.png'),
-  ('encourag', 'assets/idioms_units/achievement_pic.png'),
-  ('business', 'assets/idioms_units/work_pic.png'),
-  ('hometown', 'assets/idioms_units/city_pic.png'),
-  ('weather', 'assets/idioms_units/weather_pic.png'),
-  ('transport', 'assets/idioms_units/transport_pic.png'),
-  ('friend', 'assets/idioms_units/friendship_pic.png'),
-  ('family', 'assets/idioms_units/home_pic.png'),
-  ('food', 'assets/idioms_units/food_pic.png'),
-  ('music', 'assets/idioms_units/entertainment_pic.png'),
-  ('health', 'assets/idioms_units/health_pic.png'),
-  ('sport', 'assets/idioms_units/health_pic.png'),
-  ('study', 'assets/idioms_units/education_pic.png'),
-  ('work', 'assets/idioms_units/work_pic.png'),
-  ('travel', 'assets/idioms_units/travel_pic.png'),
-  ('shop', 'assets/idioms_units/shopping_pic.png'),
-  ('money', 'assets/idioms_units/money_pic.png'),
-  ('tech', 'assets/idioms_units/technology_pic.png'),
-  ('nature', 'assets/idioms_units/nature_pic.png'),
-  ('city', 'assets/idioms_units/city_pic.png'),
+  ('chocolate', 'assets/idioms_units/food_pic.webp'),
+  ('library', 'assets/idioms_units/education_pic.webp'),
+  ('holiday', 'assets/idioms_units/travel_pic.webp'),
+  ('praise', 'assets/idioms_units/achievement_pic.webp'),
+  ('encourag', 'assets/idioms_units/achievement_pic.webp'),
+  ('business', 'assets/idioms_units/work_pic.webp'),
+  ('hometown', 'assets/idioms_units/city_pic.webp'),
+  ('weather', 'assets/idioms_units/weather_pic.webp'),
+  ('transport', 'assets/idioms_units/transport_pic.webp'),
+  ('friend', 'assets/idioms_units/friendship_pic.webp'),
+  ('family', 'assets/idioms_units/home_pic.webp'),
+  ('food', 'assets/idioms_units/food_pic.webp'),
+  ('music', 'assets/idioms_units/entertainment_pic.webp'),
+  ('health', 'assets/idioms_units/health_pic.webp'),
+  ('sport', 'assets/idioms_units/health_pic.webp'),
+  ('study', 'assets/idioms_units/education_pic.webp'),
+  ('work', 'assets/idioms_units/work_pic.webp'),
+  ('travel', 'assets/idioms_units/travel_pic.webp'),
+  ('shop', 'assets/idioms_units/shopping_pic.webp'),
+  ('money', 'assets/idioms_units/money_pic.webp'),
+  ('tech', 'assets/idioms_units/technology_pic.webp'),
+  ('internet', 'assets/idioms_units/technology_pic.webp'),
+  ('online', 'assets/idioms_units/technology_pic.webp'),
+  ('nature', 'assets/idioms_units/nature_pic.webp'),
+  ('city', 'assets/idioms_units/city_pic.webp'),
 ];
 
 /// Maps topic title to the closest idioms illustration asset.
@@ -210,3 +214,104 @@ Color speakingTopicCardSurface(
 
 const Color kSpeakingBrandTeal = Color(0xFF0D9488);
 const Color kSpeakingBrandCyan = Color(0xFF06B6D4);
+
+/// Card/topic titles — aligned with idioms unit cards (not full-strength onSurface).
+Color speakingCardTitleColor(BuildContext context) =>
+    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.88);
+
+/// Secondary titles under accent labels (model chip, previews).
+Color speakingCardSubtitleColor(BuildContext context) =>
+    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.76);
+
+const _kSpeakingQuestionAccentColors = <Color>[
+  Color(0xFF3B82F6),
+  Color(0xFF22C55E),
+  Color(0xFF8B5CF6),
+  Color(0xFFF59E0B),
+  Color(0xFFEC4899),
+];
+
+Color speakingQuestionAccentColor(int index) {
+  if (index <= 0) return _kSpeakingQuestionAccentColors.first;
+  return _kSpeakingQuestionAccentColors[
+    (index - 1) % _kSpeakingQuestionAccentColors.length
+  ];
+}
+
+Color speakingQuestionsTitleColor(BuildContext context) {
+  final brightness = Theme.of(context).brightness;
+  return brightness == Brightness.light
+      ? const Color(0xFF1E3A5F)
+      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.92);
+}
+
+/// Finds the outer vertical scroll view (skips nested non-scrollable lists).
+ScrollPosition? speakingParentScrollPosition(BuildContext context) {
+  ScrollPosition? result;
+
+  context.visitAncestorElements((element) {
+    if (element is! StatefulElement) return true;
+    final state = element.state;
+    if (state is! ScrollableState) return true;
+
+    final position = state.position;
+    if (position.axis != Axis.vertical) return true;
+    if (position.physics is NeverScrollableScrollPhysics) return true;
+
+    result = position;
+    return false;
+  });
+
+  return result;
+}
+
+/// Keeps the list offset fixed while a card grows downward.
+SpeakingListScrollLock? lockSpeakingListScrollOffset(BuildContext context) {
+  final position = speakingParentScrollPosition(context);
+  if (position == null || !position.hasPixels) return null;
+
+  return SpeakingListScrollLock._(position, position.pixels);
+}
+
+/// Prevents list jump when a speaking question card grows — keeps the card top
+/// anchored and lets expansion continue downward only.
+void preserveSpeakingListScrollOffset(BuildContext context) {
+  lockSpeakingListScrollOffset(context)?.releaseAfterLayout();
+}
+
+/// Holds scroll offset across one or more layout passes after expand/collapse.
+class SpeakingListScrollLock {
+  SpeakingListScrollLock._(this._position, this._lockedOffset)
+    : _hold = _position.hold(() {});
+
+  final ScrollPosition _position;
+  final double _lockedOffset;
+  final ScrollHoldController _hold;
+  var _released = false;
+
+  void releaseAfterLayout({int frameCount = 3}) {
+    void restoreFrame(int remaining) {
+      if (_released || !(_position.hasPixels)) return;
+
+      final target = _lockedOffset.clamp(
+        _position.minScrollExtent,
+        _position.maxScrollExtent,
+      );
+      if ((_position.pixels - target).abs() > 0.5) {
+        _position.jumpTo(target);
+      }
+
+      if (remaining <= 1) {
+        _released = true;
+        _hold.cancel();
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => restoreFrame(remaining - 1),
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => restoreFrame(frameCount));
+  }
+}

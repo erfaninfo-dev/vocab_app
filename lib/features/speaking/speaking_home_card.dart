@@ -79,10 +79,11 @@ class SpeakingHomeCard extends StatelessWidget {
                             l10n.speakingHomeCardTitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 17,
                               height: 1.15,
+                              color: speakingCardTitleColor(context),
                             ),
                           ),
                           const SizedBox(height: 6),

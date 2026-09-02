@@ -6064,6 +6064,12 @@ abstract class AppLocalizations {
   /// **'Expand all'**
   String get speakingExpandAll;
 
+  /// No description provided for @speakingExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand'**
+  String get speakingExpand;
+
   /// No description provided for @speakingCollapseAll.
   ///
   /// In en, this message translates to:
@@ -6075,6 +6081,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Answer copied'**
   String get speakingAnswerCopied;
+
+  /// No description provided for @speakingQuestionsHintTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer naturally and confidently.'**
+  String get speakingQuestionsHintTitle;
+
+  /// No description provided for @speakingQuestionsHintSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak in complete sentences.'**
+  String get speakingQuestionsHintSubtitle;
 
   /// No description provided for @speakingViewTopics.
   ///

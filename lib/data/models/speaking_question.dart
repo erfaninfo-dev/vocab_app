@@ -31,6 +31,8 @@ class SpeakingQuestion {
     required this.id,
     required this.questionText,
     required this.answer,
+    required this.faAnswer,
+    required this.kurAnswer,
     required this.sortOrder,
     required this.model,
     this.topicId,
@@ -40,6 +42,8 @@ class SpeakingQuestion {
   final int id;
   final String questionText;
   final String answer;
+  final String faAnswer;
+  final String kurAnswer;
   final int sortOrder;
   final SpeakingModelQuestion model;
   final int? topicId;
@@ -51,6 +55,8 @@ class SpeakingQuestion {
       id: (json['id'] as num?)?.toInt() ?? 0,
       questionText: json['question_text'] as String? ?? '',
       answer: json['answer'] as String? ?? '',
+      faAnswer: json['fa_answer'] as String? ?? '',
+      kurAnswer: json['kur_answer'] as String? ?? '',
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
       model: SpeakingModelQuestion.fromJson(
         json['model'] as Map<String, dynamic>? ?? const {},

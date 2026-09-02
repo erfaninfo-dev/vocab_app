@@ -5,36 +5,38 @@ order may differ from the book list.
 
 | Category (slug) | File |
 |-----------------|------|
-| Age | `age_pic.png` |
-| Cities & Places | `city_pic.png` |
-| Communication | `communication_pic.png` |
-| Education | `education_pic.png` |
-| Entertainment & Free Time | `entertainment_pic.png` |
-| Environment | `environment_pic.png` |
-| Experiences & Memories | `experience_pic.png` |
-| Food | `food_pic.png` |
-| Friendship & Helping Others | `friendship_pic.png` |
-| Future & Plans | `futureplans_pic.png` |
-| Health & Lifestyle | `health_pic.png` |
-| Home & Family | `home_pic.png` |
-| Love & Relationships | `love_pic.png` |
-| Money | `money_pic.png` |
-| Negative Feelings | `negativefeeling_pic.png` |
-| Nature | `nature_pic.png` |
-| Opinions & Decisions | `opinion_pic.png` |
-| People & Personality | `people_pic.png` |
-| Shopping | `shopping_pic.png` |
-| Stress & Problems | `problems_pic.png` |
-| Success & Achievement | `achievement_pic.png` |
-| Positive Feelings | `positivefeeling_pic.png` |
-| Technology | `technology_pic.png` |
-| Time | `time_pic.png` |
-| Transport | `transport_pic.png` |
-| Travel | `travel_pic.png` |
-| Weather | `weather_pic.png` |
-| Work & Career | `work_pic.png` |
+| Age | `age_pic.webp` |
+| Cities & Places | `city_pic.webp` |
+| Communication | `communication_pic.webp` |
+| Education | `education_pic.webp` |
+| Entertainment & Free Time | `entertainment_pic.webp` |
+| Environment | `environment_pic.webp` |
+| Experiences & Memories | `experience_pic.webp` |
+| Food | `food_pic.webp` |
+| Friendship & Helping Others | `friendship_pic.webp` |
+| Future & Plans | `futureplans_pic.webp` |
+| Health & Lifestyle | `health_pic.webp` |
+| Home & Family | `home_pic.webp` |
+| Love & Relationships | `love_pic.webp` |
+| Money | `money_pic.webp` |
+| Negative Feelings | `negativefeeling_pic.webp` |
+| Nature | `nature_pic.webp` |
+| Opinions & Decisions | `opinion_pic.webp` |
+| People & Personality | `people_pic.webp` |
+| Shopping | `shopping_pic.webp` |
+| Stress & Problems | `problems_pic.webp` |
+| Success & Achievement | `achievement_pic.webp` |
+| Positive Feelings | `positivefeeling_pic.webp` |
+| Technology | `technology_pic.webp` |
+| Time | `time_pic.webp` |
+| Transport | `transport_pic.webp` |
+| Travel | `travel_pic.webp` |
+| Weather | `weather_pic.webp` |
+| Work & Career | `work_pic.webp` |
 
 Add slugs in `idioms_units_constants.dart` → `_kIdiomsAssetBySlug`.
+
+**Format:** use **lossless** WebP (`VP8L`). Lossy WebP often fails silently on Flutter desktop (Windows/macOS/Linux).
 
 ### Image slot
 

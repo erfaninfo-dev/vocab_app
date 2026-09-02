@@ -65,7 +65,9 @@ class SpeakingTopicCard extends StatelessWidget {
                       Positioned(
                         left: -px(18),
                         top: -px(10),
-                        child: _WaveAccent(color: theme.glow.withValues(alpha: 0.35)),
+                        child: _WaveAccent(
+                          color: theme.glow.withValues(alpha: 0.35),
+                        ),
                       ),
                       Positioned(
                         right: px(6),
@@ -116,10 +118,16 @@ class SpeakingTopicCard extends StatelessWidget {
                                       vertical: px(3),
                                     ),
                                     decoration: BoxDecoration(
-                                      color: theme.accent.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(px(20)),
+                                      color: theme.accent.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        px(20),
+                                      ),
                                       border: Border.all(
-                                        color: theme.accent.withValues(alpha: 0.28),
+                                        color: theme.accent.withValues(
+                                          alpha: 0.28,
+                                        ),
                                       ),
                                     ),
                                     child: Text(
@@ -138,17 +146,16 @@ class SpeakingTopicCard extends StatelessWidget {
                               SizedBox(
                                 width: side - px(24),
                                 child: Text(
-                                  title.isEmpty ? l10n.speakingUntitledTopic : title,
+                                  title.isEmpty
+                                      ? l10n.speakingUntitledTopic
+                                      : title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                     height: 1.15,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.9),
+                                    color: speakingCardTitleColor(context),
                                   ),
                                 ),
                               ),

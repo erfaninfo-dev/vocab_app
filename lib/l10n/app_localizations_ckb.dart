@@ -3519,10 +3519,19 @@ class AppLocalizationsCkb extends AppLocalizations {
   String get speakingExpandAll => 'کردنەوەی هەموو';
 
   @override
+  String get speakingExpand => 'کردنەوە';
+
+  @override
   String get speakingCollapseAll => 'داخستنی هەموو';
 
   @override
   String get speakingAnswerCopied => 'وەڵام کۆپی کرا';
+
+  @override
+  String get speakingQuestionsHintTitle => 'بە ئاسایی و بە متمانە وەڵام بدە.';
+
+  @override
+  String get speakingQuestionsHintSubtitle => 'بە ڕستەی تەواو قسە بکە.';
 
   @override
   String get speakingViewTopics => 'بابەتەکان';

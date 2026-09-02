@@ -76,7 +76,11 @@ class _SpeakingPart1TopicsScreenState
         l10n.speakingPart1Title,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          color: speakingCardTitleColor(context),
+        ),
       ),
       centerTitle: false,
     );

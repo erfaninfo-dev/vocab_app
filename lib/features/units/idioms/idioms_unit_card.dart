@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/resilient_asset_image.dart';
 import '../../../data/models/unit_model.dart';
 import '../../../l10n/app_localizations.dart';
 import 'idioms_unit_progress.dart';
@@ -243,11 +244,10 @@ class _UnitIllustration extends StatelessWidget {
         child: Transform.scale(
           scale: extraScale,
           alignment: Alignment.bottomRight,
-          child: Image.asset(
-            path,
+          child: ResilientAssetImage(
+            assetPath: path,
             fit: BoxFit.contain,
             alignment: Alignment.bottomRight,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             filterQuality: FilterQuality.medium,
           ),
         ),

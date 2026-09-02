@@ -3507,10 +3507,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speakingExpandAll => 'Expand all';
 
   @override
+  String get speakingExpand => 'Expand';
+
+  @override
   String get speakingCollapseAll => 'Collapse all';
 
   @override
   String get speakingAnswerCopied => 'Answer copied';
+
+  @override
+  String get speakingQuestionsHintTitle => 'Answer naturally and confidently.';
+
+  @override
+  String get speakingQuestionsHintSubtitle => 'Speak in complete sentences.';
 
   @override
   String get speakingViewTopics => 'Topics';

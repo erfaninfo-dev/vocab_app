@@ -1,25 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../core/files/study_pdf_opener.dart';
 import '../../data/models/book_pdf.dart';
-import '../../l10n/app_localizations.dart';
-import '../grammar/grammar_pdf_viewer_screen.dart';
 import 'book_pdf_picker_sheet.dart';
 
-void openBookPdf(
+Future<void> openBookPdf(
   BuildContext context, {
   required BookPdf pdf,
 }) {
-  final l10n = AppLocalizations.of(context)!;
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => GrammarPdfViewerScreen(
-        title: pdf.displayTitle(
-          fallbackPrefix: l10n.bookStudyPdfPartLabel,
-        ),
-        pdfUrl: pdf.pdfUrl,
-        cacheVersion: pdf.cacheVersion,
-      ),
-    ),
+  return openStudyPdf(
+    context: context,
+    pdfUrl: pdf.pdfUrl,
+    cacheVersion: pdf.cacheVersion,
   );
 }
 
@@ -32,7 +24,7 @@ Future<void> openBookStudyPdfs({
   if (pdfs.isEmpty) return;
 
   if (pdfs.length == 1) {
-    openBookPdf(context, pdf: pdfs.first);
+    await openBookPdf(context, pdf: pdfs.first);
     return;
   }
 

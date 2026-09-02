@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS speaking_questions (
   model_id INT UNSIGNED NOT NULL,
   question_text TEXT NOT NULL,
   answer TEXT NOT NULL,
+  fa_answer TEXT NOT NULL DEFAULT '',
+  kur_answer TEXT NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

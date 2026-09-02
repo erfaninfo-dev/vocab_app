@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/resilient_asset_image.dart';
+
 import '../../../core/language/language_provider.dart';
 import '../../../core/tts/tts_service.dart';
 import '../../../data/models/vocab_entry.dart';
@@ -263,10 +265,10 @@ class _TopicIllustration extends StatelessWidget {
       return SizedBox(
         width: 28,
         height: 28,
-        child: Image.asset(
-          path,
+        child: ResilientAssetImage(
+          assetPath: path,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _fallbackIcon(),
+          fallback: _fallbackIcon(),
         ),
       );
     }

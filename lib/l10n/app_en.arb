@@ -1561,8 +1561,11 @@
     }
   },
   "speakingExpandAll": "Expand all",
+  "speakingExpand": "Expand",
   "speakingCollapseAll": "Collapse all",
   "speakingAnswerCopied": "Answer copied",
+  "speakingQuestionsHintTitle": "Answer naturally and confidently.",
+  "speakingQuestionsHintSubtitle": "Speak in complete sentences.",
   "speakingViewTopics": "Topics",
   "speakingViewModelQuestions": "Model Questions",
   "speakingSearchModelsHint": "Search model questions…",

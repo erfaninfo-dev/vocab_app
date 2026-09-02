@@ -17,7 +17,7 @@ import '../../domain/api_full_refresh.dart';
 import '../../domain/api_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../stories/story_providers.dart';
-import 'grammar_pdf_viewer_screen.dart';
+import '../../core/files/study_pdf_opener.dart';
 import 'grammar_topic_pdf_picker_sheet.dart';
 import 'grammar_topic_practice_card.dart';
 
@@ -25,21 +25,14 @@ import 'grammar_topic_practice_card.dart';
 const bool kGrammarShowLeagueBannerOnTopicsScreen = true;
 const bool kGrammarShowBooksOnTopicsScreen = false;
 
-void _openGrammarTopicPdf(
+Future<void> _openGrammarTopicPdf(
   BuildContext context, {
   required GrammarTopicPdf pdf,
 }) {
-  final l10n = AppLocalizations.of(context)!;
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => GrammarPdfViewerScreen(
-        title: pdf.displayTitle(
-          fallbackPrefix: l10n.grammarStudyPdfPartLabel,
-        ),
-        pdfUrl: pdf.pdfUrl,
-        cacheVersion: pdf.cacheVersion,
-      ),
-    ),
+  return openStudyPdf(
+    context: context,
+    pdfUrl: pdf.pdfUrl,
+    cacheVersion: pdf.cacheVersion,
   );
 }
 
@@ -52,7 +45,7 @@ Future<void> _openTopicStudyPdfs({
   if (pdfs.isEmpty) return;
 
   if (pdfs.length == 1) {
-    _openGrammarTopicPdf(context, pdf: pdfs.first);
+    await _openGrammarTopicPdf(context, pdf: pdfs.first);
     return;
   }
 
